@@ -1,0 +1,311 @@
+import { useTranslation } from 'react-i18next';
+import { catalog, reviewGoNoGo, type Locale, type ValidationIssue } from '@payload/shared';
+import { CREDITS } from '../data/credits';
+import { currentLocale, lt, setLocale, tr } from '../i18n';
+import { useDesign } from '../state/design';
+import { useSettings } from '../state/settings';
+import { useSim } from '../state/sim';
+import { useUi } from '../state/ui';
+import { Modal, Panel, fmt, useScenario } from './common';
+
+export function LanguageSelect() {
+  const { t } = useTranslation();
+  const cur = currentLocale();
+  return (
+    <div className="flex items-center gap-1" role="group" aria-label={t('menu.language')}>
+      {(['es', 'en'] as Locale[]).map((l) => (
+        <button key={l} className={`btn ${cur === l ? 'btn-primary' : ''}`} onClick={() => setLocale(l)} aria-pressed={cur === l}>
+          {t(`lang.${l}`)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function MenuScreen({ onPlay }: { onPlay: () => void }) {
+  const { t } = useTranslation();
+  const setOverlay = useUi((s) => s.setOverlay);
+  return (
+    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 p-4">
+      <div className="absolute right-4 top-4">
+        <LanguageSelect />
+      </div>
+      <div className="rounded-xl bg-black/45 px-8 py-6 text-center backdrop-blur-[2px]">
+        <h1 className="num text-6xl font-bold tracking-[0.35em] text-accent drop-shadow-[0_0_18px_rgba(56,225,192,.5)] sm:text-8xl">{t('app.title')}</h1>
+        <p className="mt-3 text-slate-300">{t('app.subtitle')}</p>
+        <p className="num mt-1 text-xs uppercase tracking-widest text-slate-500">{t('menu.tagline')}</p>
+      </div>
+      <nav className="flex w-64 flex-col gap-3">
+        <button className="btn btn-primary !py-3" onClick={onPlay}>
+          {t('menu.play')}
+        </button>
+        <button className="btn" onClick={() => setOverlay('settings')}>
+          {t('menu.settings')}
+        </button>
+        <button className="btn" onClick={() => setOverlay('credits')}>
+          {t('menu.credits')}
+        </button>
+      </nav>
+    </div>
+  );
+}
+
+export function SettingsPanel() {
+  const { t } = useTranslation();
+  const s = useSettings();
+  const close = () => useUi.getState().setOverlay(null);
+  const row = 'flex items-center justify-between gap-4 py-2 text-sm';
+  return (
+    <Modal onClose={close}>
+      <Panel title={t('settings.title')}>
+        <div className={row}>
+          <span>{t('settings.language')}</span>
+          <LanguageSelect />
+        </div>
+        <label className={row}>
+          <span>
+            {t('settings.fov')} <span className="num text-accent">{s.fov}°</span>
+          </span>
+          <input type="range" min={50} max={110} step={1} value={s.fov} onChange={(e) => s.set({ fov: Number(e.target.value) })} />
+        </label>
+        <label className={row}>
+          <span>
+            {t('settings.sensitivity')} <span className="num text-accent">{s.sensitivity.toFixed(2)}</span>
+          </span>
+          <input type="range" min={0.2} max={3} step={0.05} value={s.sensitivity} onChange={(e) => s.set({ sensitivity: Number(e.target.value) })} />
+        </label>
+        <label className={row}>
+          <span>{t('settings.headBob')}</span>
+          <input type="checkbox" checked={s.headBob} onChange={(e) => s.set({ headBob: e.target.checked })} />
+        </label>
+        <label className={row}>
+          <span>
+            {t('settings.accessible2D')}
+            <small className="block text-xs text-slate-400">{t('settings.accessible2DHint')}</small>
+          </span>
+          <input type="checkbox" checked={s.accessible2D} onChange={(e) => s.set({ accessible2D: e.target.checked })} />
+        </label>
+        <label className={row}>
+          <span>{t('settings.shadows')}</span>
+          <input type="checkbox" checked={s.shadows} onChange={(e) => s.set({ shadows: e.target.checked })} />
+        </label>
+        <div className="mt-4 text-right">
+          <button className="btn btn-primary" onClick={close}>
+            {t('common.close')}
+          </button>
+        </div>
+      </Panel>
+    </Modal>
+  );
+}
+
+export function CreditsScreen() {
+  const { t } = useTranslation();
+  const close = () => useUi.getState().setOverlay(null);
+  return (
+    <Modal onClose={close}>
+      <Panel title={t('credits.title')}>
+        <p className="mb-4 text-sm text-slate-300">{t('credits.intro')}</p>
+        <ul className="space-y-3">
+          {CREDITS.map((c) => (
+            <li key={c.id} className="rounded border border-line p-3 text-sm">
+              <div className="font-bold">
+                <a className="underline" href={c.sourceUrl} target="_blank" rel="noopener noreferrer">{c.title}</a>
+              </div>
+              <div className="text-slate-300">
+                {t('credits.by')}{' '}
+                <a className="underline" href={c.authorUrl} target="_blank" rel="noopener noreferrer">{c.author}</a> · {t('credits.source')}
+              </div>
+              <div className="num text-xs text-accent">
+                {t('credits.license')}:{' '}
+                <a className="underline" href={c.licenseUrl} target="_blank" rel="noopener noreferrer">{c.license}</a>
+              </div>
+              <div className="text-xs text-slate-300">{t(c.modifiedKey)}</div>
+              {!c.commercialOk && <div className="mt-1 text-xs text-warn">{t('credits.ncnd')}</div>}
+              <div className="text-xs text-slate-400">
+                {t('credits.usedFor')}: {t(`credits.${c.id}`)}
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4 text-right">
+          <button className="btn btn-primary" onClick={close}>
+            {t('common.close')}
+          </button>
+        </div>
+      </Panel>
+    </Modal>
+  );
+}
+
+export function BriefingScreen({ onStart, onBack }: { onStart: () => void; onBack: () => void }) {
+  const { t } = useTranslation();
+  const sc = useScenario();
+  if (!sc) return null;
+  const r = sc.requirements;
+  const reqs: [string, string][] = [];
+  if (r.maxGroundResolutionM != null) reqs.push(['maxGroundResolutionM', `≤ ${fmt(r.maxGroundResolutionM)} ${t('unit.m')}`]);
+  if (r.minDownlinkMbitPerDay != null) reqs.push(['minDownlinkMbitPerDay', `≥ ${fmt(r.minDownlinkMbitPerDay)} ${t('unit.mbitDay')}`]);
+  reqs.push(['minLifetimeYears', `≥ ${fmt(r.minLifetimeYears)} ${t('unit.years')}`]);
+  if (r.maxRevisitDays != null) reqs.push(['maxRevisitDays', `≤ ${fmt(r.maxRevisitDays)} ${t('unit.days')}`]);
+  if (r.minScienceValue != null) reqs.push(['minScienceValue', `≥ ${fmt(r.minScienceValue)}`]);
+  const orbitNames = catalog.orbits.filter((o) => sc.allowedOrbits.includes(o.id)).map((o) => lt(o.name));
+  const launcherNames = catalog.launchers.filter((l) => sc.allowedLaunchers.includes(l.id)).map((l) => lt(l.name));
+  return (
+    <div className="absolute inset-0 z-10 flex items-center justify-center overflow-auto p-4">
+      <div className="grid w-full max-w-5xl gap-4 md:grid-cols-[1.4fr_1fr]">
+        <Panel title={`${t('briefing.title')} · ${lt(sc.name)}`}>
+          <p className="whitespace-pre-line leading-relaxed">{lt(sc.briefing)}</p>
+          <p className="num mt-4 text-xs uppercase text-slate-400">
+            {t('briefing.difficulty')}: {t(`difficulty.${sc.difficulty}`)}
+          </p>
+        </Panel>
+        <div className="space-y-4">
+          <Panel title={t('briefing.requirements')}>
+            <ul className="space-y-1 text-sm">
+              {reqs.map(([k, v]) => (
+                <li key={k} className="flex justify-between gap-2">
+                  <span>{t(`req.${k}`)}</span>
+                  <span className="num text-accent">{v}</span>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+          <Panel title={t('briefing.constraints')}>
+            <ul className="space-y-1 text-sm">
+              <li className="flex justify-between"><span>{t('briefing.budget')}</span><span className="num text-accent">{fmt(sc.budgetMUSD)} {t('unit.musd')}</span></li>
+              <li className="flex justify-between"><span>{t('briefing.devMonths')}</span><span className="num text-accent">{sc.maxDevMonths} {t('briefing.months')}</span></li>
+              <li className="flex justify-between"><span>{t('briefing.groundStations')}</span><span className="num text-accent">{sc.groundStations}</span></li>
+              <li className="flex justify-between"><span>{t('briefing.operationDays')}</span><span className="num text-accent">{sc.operationDays}</span></li>
+              <li><span className="text-slate-400">{t('briefing.orbits')}:</span> {orbitNames.join(', ')}</li>
+              <li><span className="text-slate-400">{t('briefing.launchers')}:</span> {launcherNames.join(', ')}</li>
+            </ul>
+          </Panel>
+          <div className="flex gap-3">
+            <button className="btn" onClick={onBack}>{t('common.back')}</button>
+            <button className="btn btn-primary flex-1" onClick={onStart}>{t('briefing.start')}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const SEV_ORDER = { blocker: 0, warning: 1, info: 2 } as const;
+const SEV_COLOR = { blocker: 'text-bad border-bad', warning: 'text-warn border-warn', info: 'text-accent border-accent' } as const;
+
+export function IssueList({ issues }: { issues: ValidationIssue[] }) {
+  const { t } = useTranslation();
+  if (!issues.length) return <p className="text-sm text-slate-400">{t('review.noIssues')}</p>;
+  return (
+    <ul className="space-y-2">
+      {[...issues].sort((a, b) => SEV_ORDER[a.severity] - SEV_ORDER[b.severity]).map((i, k) => (
+        <li key={k} className={`rounded border-l-4 bg-[#0a1424] p-2 text-sm ${SEV_COLOR[i.severity]}`}>
+          <span className="num mr-2 text-[10px] uppercase">{t(`review.severity.${i.severity}`)}</span>
+          <span className="text-slate-200">{tr(i.message)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function ReviewScreen({ onBack, onLaunch }: { onBack: () => void; onLaunch: () => void }) {
+  const { t } = useTranslation();
+  const design = useDesign.getState().design();
+  let result = { go: false, issues: [] as ValidationIssue[] };
+  try {
+    result = reviewGoNoGo(design, catalog);
+  } catch {
+    /* motor no disponible */
+  }
+  return (
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4">
+      <Panel title={t('review.title')} className="max-h-full w-full max-w-2xl overflow-auto">
+        <div className={`num mb-1 text-4xl font-bold ${result.go ? 'text-ok' : 'text-bad'}`}>{result.go ? t('review.go') : t('review.nogo')}</div>
+        <p className="mb-4 text-sm text-slate-300">{result.go ? t('review.goText') : t('review.nogoText')}</p>
+        <IssueList issues={result.issues} />
+        <div className="mt-5 flex justify-end gap-3">
+          <button className={`btn ${result.go ? '' : 'btn-primary'}`} onClick={onBack}>{t('review.backToHangar')}</button>
+          <button className="btn btn-primary" onClick={onLaunch} disabled={!result.go}>{t('review.launch')}</button>
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+const bar = (v: number) => Math.max(0, Math.min(100, v));
+
+export function ReportScreen({ onRedesign, onMenu }: { onRedesign: () => void; onMenu: () => void }) {
+  const { t } = useTranslation();
+  const result = useSim((s) => s.result);
+  const w = result?.score.weights;
+  const wsum = w ? w.objectives + w.science + w.efficiency + w.collaboration : 1;
+  return (
+    <div className="absolute inset-0 z-10 flex items-start justify-center overflow-auto p-4">
+      <div className="w-full max-w-5xl space-y-4 py-6">
+        <h1 className="num text-2xl uppercase tracking-widest text-accent">{t('report.title')}</h1>
+        {!result ? (
+          <Panel><p>{t('report.noSim')}</p></Panel>
+        ) : (
+          <>
+            <div className="grid gap-4 md:grid-cols-[1fr_1.4fr]">
+              <Panel title={t('report.total')}>
+                <div className="num text-7xl font-bold text-accent">{fmt(result.score.total, 0)}<span className="text-2xl text-slate-400"> / 100</span></div>
+                <ul className="mt-4 space-y-3">
+                  {(['objectives', 'science', 'efficiency', 'collaboration'] as const).map((k) => (
+                    <li key={k}>
+                      <div className="flex justify-between text-xs">
+                        <span>{t(`report.${k}`)} <span className="text-slate-500">({t('report.weight')} {fmt((result.score.weights[k] / (wsum || 1)) * 100, 0)}%)</span></span>
+                        <span className="num">{fmt(result.score[k], 0)}</span>
+                      </div>
+                      <div className="mt-1 h-2 rounded bg-[#0a1424]"><div className="h-full rounded bg-accent" style={{ width: `${bar(result.score[k])}%` }} /></div>
+                    </li>
+                  ))}
+                </ul>
+              </Panel>
+              <Panel title={t('report.dataSummary')}>
+                <dl className="num grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <dt className="text-slate-400">{t('report.launchResult')}</dt>
+                  <dd className={result.launchSuccess ? 'text-ok' : 'text-bad'}>{result.launchSuccess ? t('report.launchOk') : t('report.launchFail')}</dd>
+                  <dt className="text-slate-400">{t('operation.seed')}</dt>
+                  <dd>{result.seed}</dd>
+                  <dt className="text-slate-400">{t('report.status')}</dt>
+                  <dd>{t(`operation.status.${result.status}`)}</dd>
+                  <dt className="text-slate-400">{t('report.daysOperated')}</dt>
+                  <dd>{fmt(result.daysOperated)}</dd>
+                  <dt className="text-slate-400">{t('operation.dataDownlinked')}</dt>
+                  <dd>{fmt(result.dataDownlinkedMbit, 0)} {t('operation.mbit')}</dd>
+                  <dt className="text-slate-400">{t('operation.dataLost')}</dt>
+                  <dd className={result.dataLostMbit > 0 ? 'text-warn' : ''}>{fmt(result.dataLostMbit, 0)} {t('operation.mbit')}</dd>
+                  <dt className="text-slate-400">{t('report.minBattery')}</dt>
+                  <dd>{fmt(result.minBatteryPct, 0)}%</dd>
+                </dl>
+              </Panel>
+            </div>
+            <Panel title={t('report.chain')}>
+              <ul className="space-y-3">
+                {result.report.map((e, i) => (
+                  <li key={i} className={`rounded border-l-4 bg-[#0a1424] p-3 text-sm ${e.severity === 'failure' ? 'border-bad' : e.severity === 'warning' ? 'border-warn' : e.severity === 'success' ? 'border-ok' : 'border-accent'}`}>
+                    <div className="font-bold"><span className="num mr-2 text-[10px] uppercase text-slate-400">{t(`report.sev.${e.severity}`)}</span>{tr(e.message)}</div>
+                    {e.causes.length > 0 && (
+                      <ol className="mt-1 list-none space-y-0.5 pl-3 text-slate-300">
+                        {e.causes.map((c, j) => (
+                          <li key={j}>↳ <span className="text-slate-500">{t('report.because')}</span> {tr(c)}</li>
+                        ))}
+                      </ol>
+                    )}
+                    {e.suggestion && <p className="mt-1 text-accent">{t('report.suggestion')}: {tr(e.suggestion)}</p>}
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          </>
+        )}
+        <div className="flex justify-end gap-3">
+          <button className="btn" onClick={onMenu}>{t('report.menu')}</button>
+          <button className="btn btn-primary" onClick={onRedesign}>{t('report.redesign')}</button>
+        </div>
+      </div>
+    </div>
+  );
+}

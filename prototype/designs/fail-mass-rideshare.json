@@ -1,0 +1,6 @@
+{
+  "scenarioId": "leo-earth-observation",
+  "componentIds": ["structure-microsat", "payload-multispectral-basic", "payload-thermal-camera", "obc-basic", "comms-s-band", "adcs-reaction-wheels", "thermal-radiator", "battery-large", "power-high-efficiency", "power-high-efficiency"],
+  "orbitId": "LEO",
+  "launcherId": "launcher-albatros"
+}

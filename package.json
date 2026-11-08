@@ -1,0 +1,24 @@
+{
+  "name": "payload",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Payload \u2014 simulador 3D web de dise\u00f1o de misiones espaciales (1-4 jugadores)",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev --filter=@payload/client",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "validate": "turbo run typecheck test build",
+    "proto": "pnpm --filter @payload/shared proto"
+  },
+  "devDependencies": {
+    "@gltf-transform/cli": "^4.5.1",
+    "prettier": "^3.9.10",
+    "turbo": "^2.11.10",
+    "typescript": "~6.0.3"
+  }
+}

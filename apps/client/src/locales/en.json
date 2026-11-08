@@ -1,0 +1,284 @@
+{
+  "app": {
+    "title": "PAYLOAD",
+    "subtitle": "Space mission design simulator"
+  },
+  "common": {
+    "back": "Back",
+    "close": "Close",
+    "on": "Yes",
+    "off": "No",
+    "none": "—",
+    "loading": "Loading…",
+    "help": "Help",
+    "settings": "Settings",
+    "menu": "Menu",
+    "continue": "Continue",
+    "unlimited": "Unlimited"
+  },
+  "menu": {
+    "play": "Play",
+    "settings": "Settings",
+    "credits": "Credits",
+    "language": "Language",
+    "tagline": "Design, launch and operate your mission"
+  },
+  "lang": {
+    "es": "Español",
+    "en": "English"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "fov": "Field of view",
+    "headBob": "Head bob",
+    "sensitivity": "Mouse sensitivity",
+    "accessible2D": "2D accessible mode",
+    "accessible2DHint": "Do the whole design from 2D panels, without moving in 3D.",
+    "shadows": "Shadows (graphics quality)"
+  },
+  "credits": {
+    "title": "Credits",
+    "intro": "3D models from Sketchfab. Thanks to their authors.",
+    "by": "by",
+    "license": "License",
+    "source": "Source: Sketchfab",
+    "usedFor": "Used for",
+    "astronaut": "Player avatar",
+    "walker": "Hangar exhibit",
+    "galaxy": "Menu and space backdrop",
+    "erizon": "Space station in orbit",
+    "ncnd": "CC-BY-NC-ND: non-commercial use only, no derivatives.",
+    "modifiedCompressed": "Modified: meshopt compression and WebP textures.",
+    "modifiedMeshopt": "Modified: meshopt compression.",
+    "modifiedTechnical": "Technically modified: meshopt compression and vertex quantization; geometry and textures unchanged.",
+    "console": "Hangar mission console"
+  },
+  "briefing": {
+    "title": "Mission briefing",
+    "requirements": "Measurable requirements",
+    "constraints": "Budget and limits",
+    "budget": "Budget",
+    "devMonths": "Development time",
+    "months": "months",
+    "groundStations": "Ground stations",
+    "operationDays": "Operation days",
+    "orbits": "Allowed orbits",
+    "launchers": "Allowed launchers",
+    "start": "Go to the hangar",
+    "difficulty": "Difficulty"
+  },
+  "difficulty": {
+    "basic": "Basic",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced"
+  },
+  "req": {
+    "maxGroundResolutionM": "Ground resolution (max.)",
+    "minDownlinkMbitPerDay": "Data downlinked per day (min.)",
+    "minLifetimeYears": "Lifetime (min.)",
+    "maxRevisitDays": "Revisit (max.)",
+    "minScienceValue": "Science value (min.)"
+  },
+  "unit": {
+    "m": "m",
+    "mbitDay": "Mbit/day",
+    "years": "years",
+    "days": "days",
+    "musd": "M$",
+    "kg": "kg",
+    "w": "W",
+    "wh": "Wh",
+    "km": "km"
+  },
+  "subsystem": {
+    "structure": "Structure",
+    "power": "Solar power",
+    "battery": "Batteries",
+    "comms": "Communications",
+    "obc": "Onboard computer",
+    "adcs": "Attitude control",
+    "thermal": "Thermal",
+    "payload": "Instruments"
+  },
+  "hangar": {
+    "title": "Integration hangar",
+    "console": "Mission console",
+    "ship": "Spacecraft",
+    "shelf": "Shelf",
+    "holding": "Carrying",
+    "empty": "Hands free",
+    "orbit": "Orbit",
+    "launcher": "Launcher",
+    "choose": "— choose —",
+    "requestReview": "Request Go/No-Go review",
+    "mounted": "Mounted",
+    "components": "Components",
+    "noStructure": "No structure: mount a bus first.",
+    "capture": "Click the scene to capture the mouse",
+    "resources": "Resources",
+    "mountedList": "Mounted components",
+    "add": "Add",
+    "remove": "Remove",
+    "returnItem": "Return",
+    "backToConsole": "Close console",
+    "noGoReasons": "The previous review was No-Go:",
+    "pause": "Pause",
+    "accessibleTitle": "Mission design (2D mode)",
+    "budgetSummary": "Resource summary",
+    "count": "Quantity"
+  },
+  "prompt": {
+    "pick": "Pick up",
+    "mount": "Mount on the spacecraft",
+    "unmount": "Remove the last one",
+    "console": "Use the console",
+    "returnItem": "Put back on the shelf",
+    "hand": "Carrying",
+    "swap": "Swap for",
+    "shipEmpty": "The spacecraft is empty: bring a component"
+  },
+  "resources": {
+    "title": "Resource panel",
+    "limiting": "Limits the mission",
+    "why": "Why?",
+    "margin": "Margin",
+    "mass": "Mass",
+    "power": "Power",
+    "battery": "Battery",
+    "budget": "Budget",
+    "data": "Data",
+    "comms": "Communications",
+    "time": "Schedule",
+    "lifetime": "Lifetime",
+    "status": {
+      "ok": "OK",
+      "tight": "Tight",
+      "over": "Exceeded"
+    }
+  },
+  "review": {
+    "title": "Go/No-Go review",
+    "go": "GO",
+    "nogo": "NO-GO",
+    "goText": "All systems ready for launch.",
+    "nogoText": "There are blockers to resolve before launch.",
+    "backToHangar": "Back to the hangar",
+    "launch": "Authorize launch",
+    "noIssues": "No findings.",
+    "severity": {
+      "blocker": "Blocker",
+      "warning": "Warning",
+      "info": "Info"
+    }
+  },
+  "launch": {
+    "title": "Launch pad",
+    "countdown": "T-",
+    "liftoff": "Liftoff",
+    "stageSep": "Stage separation",
+    "ascent": "Ascent",
+    "failure": "Launch anomaly",
+    "success": "Orbital insertion confirmed",
+    "skip": "Skip sequence",
+    "chase": "Chase camera",
+    "tower": "Tower view",
+    "standby": "Standing by",
+    "orbitInsertion": "Orbit insertion"
+  },
+  "operation": {
+    "title": "Mission operations",
+    "pause": "Pause",
+    "time": "Time",
+    "battery": "Battery",
+    "dataStored": "Data stored",
+    "dataDownlinked": "Data downlinked",
+    "dataLost": "Data lost",
+    "contact": "In contact",
+    "noContact": "No contact",
+    "eclipse": "Eclipse",
+    "sunlight": "Sunlight",
+    "day": "Mission day",
+    "of": "of",
+    "log": "Event log",
+    "finish": "Finish and view report",
+    "view": {
+      "third": "Orbital camera",
+      "first": "Through the instrument"
+    },
+    "status": {
+      "nominal": "Nominal",
+      "degraded": "Degraded",
+      "failed": "Failed",
+      "complete": "Complete"
+    },
+    "ended": "The mission has ended.",
+    "viewfinder": "INSTRUMENT VIEWFINDER",
+    "capturing": "Capturing data",
+    "idle": "Not capturing",
+    "mbit": "Mbit",
+    "noEvents": "No events yet.",
+    "dayShort": "D",
+    "seed": "Seed"
+  },
+  "report": {
+    "title": "Mission report",
+    "total": "Total score",
+    "breakdown": "Breakdown",
+    "objectives": "Objectives",
+    "science": "Science",
+    "efficiency": "Efficiency",
+    "collaboration": "Collaboration",
+    "weight": "weight",
+    "chain": "Chain of causes",
+    "because": "Because",
+    "suggestion": "Suggestion",
+    "dataSummary": "Data summary",
+    "launchResult": "Launch",
+    "launchOk": "Successful",
+    "launchFail": "Failed",
+    "daysOperated": "Days operated",
+    "minBattery": "Minimum battery",
+    "redesign": "Redesign and simulate again",
+    "menu": "Menu",
+    "status": "Final status",
+    "noSim": "No result available.",
+    "sev": {
+      "success": "Success",
+      "info": "Info",
+      "warning": "Warning",
+      "failure": "Failure"
+    }
+  },
+  "help": {
+    "title": "Controls",
+    "hint": "H: help",
+    "toggle": "Show/hide this help",
+    "menu": "Choose Play to start. Change the language at the top.",
+    "briefing": "Read the requirements and press \"Go to the hangar\".",
+    "hangar": "WASD move · mouse look · V switch 1st/3rd person · E interact (pick up, mount, console) · Q put back · Tab resource panel · Esc release mouse · H help",
+    "review": "Review the findings. With Go you can authorize the launch.",
+    "launch": "V toggles chase camera and tower view · H help",
+    "operation": "V toggles orbital camera and through-the-instrument view · drag to orbit the camera · use the time controls · H help",
+    "report": "Review the chain of causes and redesign."
+  },
+  "keys": {
+    "move": "Move",
+    "look": "Look",
+    "view": "Switch view",
+    "interact": "Interact",
+    "resources": "Resources"
+  },
+  "errors": {
+    "modelFallback": "A 3D model could not be loaded; a simple shape is shown."
+  },
+  "phase": {
+    "menu": "Menu",
+    "briefing": "Briefing",
+    "design": "Design",
+    "review": "Review",
+    "launch": "Launch",
+    "operation": "Operation",
+    "report": "Report"
+  }
+}

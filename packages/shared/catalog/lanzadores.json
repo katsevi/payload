@@ -1,0 +1,98 @@
+[
+  {
+    "id": "launcher-albatros",
+    "name": {
+      "es": "Albatros Compartido",
+      "en": "Albatros Rideshare"
+    },
+    "description": {
+      "es": "Plaza en un lanzamiento compartido con decenas de satélites pequeños. Muy barato, pero hay que esperar el turno y el espacio es limitado.",
+      "en": "A seat on a shared launch with dozens of small satellites. Very cheap, but you wait your turn and space is limited."
+    },
+    "costMUSD": 1.5,
+    "reliability": 0.98,
+    "leadTimeMonths": 10,
+    "capacityKg": {
+      "LEO": 30,
+      "SSO": 25
+    },
+    "why": {
+      "es": "Compartir el cohete con otros reparte el costo, pero tu nave debe ser pequeña y esperar a que el resto esté listo.",
+      "en": "Sharing the rocket splits the cost, but your spacecraft must be small and wait until everyone else is ready."
+    }
+  },
+  {
+    "id": "launcher-colibri",
+    "name": {
+      "es": "Colibrí-1",
+      "en": "Colibrí-1"
+    },
+    "description": {
+      "es": "Cohete ligero dedicado: sale cuando tú quieres, pero su historial aún es corto.",
+      "en": "Dedicated light rocket: it flies when you want, but its track record is still short."
+    },
+    "costMUSD": 7.5,
+    "reliability": 0.94,
+    "leadTimeMonths": 4,
+    "capacityKg": {
+      "LEO": 150,
+      "SSO": 110
+    },
+    "why": {
+      "es": "Un cohete solo para ti sale pronto y lleva más carga, pero cuesta cinco veces más y falla algo más a menudo.",
+      "en": "A rocket just for you flies soon and carries more, but it costs five times as much and fails a bit more often."
+    }
+  },
+  {
+    "id": "launcher-condor",
+    "name": {
+      "es": "Cóndor-M",
+      "en": "Cóndor-M"
+    },
+    "description": {
+      "es": "Lanzador mediano y probado capaz de llegar a órbitas altas.",
+      "en": "Proven medium launcher able to reach high orbits."
+    },
+    "costMUSD": 45,
+    "reliability": 0.97,
+    "leadTimeMonths": 14,
+    "capacityKg": {
+      "LEO": 9000,
+      "SSO": 7000,
+      "MEO": 2500,
+      "GEO": 1800,
+      "HEO": 2600,
+      "TLI": 1200
+    },
+    "why": {
+      "es": "Llega a cualquier órbita y casi nunca falla, pero es demasiado grande y caro para un satélite pequeño.",
+      "en": "It reaches any orbit and rarely fails, but it is far too big and expensive for a small satellite."
+    }
+  },
+  {
+    "id": "launcher-quetzal",
+    "name": {
+      "es": "Quetzal-H",
+      "en": "Quetzal-H"
+    },
+    "description": {
+      "es": "Lanzador pesado para grandes satélites y misiones a la Luna.",
+      "en": "Heavy launcher for large satellites and missions to the Moon."
+    },
+    "costMUSD": 110,
+    "reliability": 0.96,
+    "leadTimeMonths": 24,
+    "capacityKg": {
+      "LEO": 25000,
+      "SSO": 19000,
+      "MEO": 8000,
+      "GEO": 7000,
+      "HEO": 8000,
+      "TLI": 6000
+    },
+    "why": {
+      "es": "Es el único capaz de enviar naves pesadas a la Luna, a un precio enorme y con años de espera.",
+      "en": "It is the only one able to send heavy spacecraft to the Moon, at a huge price and with years of waiting."
+    }
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "name": "@payload/game-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "echo \"@payload/game-server: pendiente (ver docs/phases)\"",
+    "test": "echo \"@payload/game-server: sin tests aún\"",
+    "build": "echo \"@payload/game-server: sin build aún\""
+  }
+}

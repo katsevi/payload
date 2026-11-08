@@ -1,0 +1,50 @@
+[
+  {
+    "id": "LEO",
+    "name": { "es": "Órbita baja (LEO)", "en": "Low Earth orbit (LEO)" },
+    "description": { "es": "Órbita circular a 450 km con 51,6° de inclinación, como la de muchas estaciones espaciales.", "en": "Circular orbit at 450 km inclined 51.6°, like many space stations." },
+    "why": { "es": "Al estar cerca se ve el suelo con más detalle y lanzar es barato, pero el roce con la atmósfera la hace caer en pocos años.", "en": "Being close shows the ground in more detail and launches are cheap, but atmospheric drag brings it down within a few years." },
+    "perigeeKm": 450, "apogeeKm": 450, "inclinationDeg": 51.6,
+    "radiationFactor": 0.1, "dragLifetimeYears": 4, "revisitDays": 4
+  },
+  {
+    "id": "SSO",
+    "name": { "es": "Órbita heliosíncrona (SSO)", "en": "Sun-synchronous orbit (SSO)" },
+    "description": { "es": "Órbita casi polar a 700 km que pasa sobre cada lugar siempre a la misma hora solar.", "en": "Near-polar orbit at 700 km that passes over each place at the same local solar time." },
+    "why": { "es": "La luz es igual en todas las fotos y cubre todo el planeta, pero al estar más alta la resolución empeora.", "en": "Lighting is the same in every image and it covers the whole planet, but being higher makes resolution worse." },
+    "perigeeKm": 700, "apogeeKm": 700, "inclinationDeg": 98.2,
+    "radiationFactor": 0.2, "dragLifetimeYears": 25, "revisitDays": 2
+  },
+  {
+    "id": "MEO",
+    "name": { "es": "Órbita media (MEO)", "en": "Medium Earth orbit (MEO)" },
+    "description": { "es": "Órbita circular a 20 200 km, la de los sistemas de navegación por satélite.", "en": "Circular orbit at 20,200 km, used by satellite navigation systems." },
+    "why": { "es": "Cada satélite ve casi medio planeta durante horas, pero atraviesa los cinturones de radiación.", "en": "Each satellite sees almost half the planet for hours, but it flies through the radiation belts." },
+    "perigeeKm": 20200, "apogeeKm": 20200, "inclinationDeg": 55,
+    "radiationFactor": 0.8, "dragLifetimeYears": null, "revisitDays": 1
+  },
+  {
+    "id": "GEO",
+    "name": { "es": "Órbita geoestacionaria (GEO)", "en": "Geostationary orbit (GEO)" },
+    "description": { "es": "Órbita ecuatorial a 35 786 km que tarda exactamente un día en dar la vuelta.", "en": "Equatorial orbit at 35,786 km that takes exactly one day per revolution." },
+    "why": { "es": "El satélite parece quieto en el cielo, así que una antena fija lo ve siempre; pero está lejísimos y llegar cuesta mucho.", "en": "The satellite seems fixed in the sky, so a fixed antenna always sees it; but it is very far away and costly to reach." },
+    "perigeeKm": 35786, "apogeeKm": 35786, "inclinationDeg": 0,
+    "radiationFactor": 0.5, "dragLifetimeYears": null, "revisitDays": 0
+  },
+  {
+    "id": "HEO",
+    "name": { "es": "Órbita muy elíptica (HEO)", "en": "Highly elliptical orbit (HEO)" },
+    "description": { "es": "Órbita tipo Molniya de 600 × 39 750 km e inclinación 63,4°, con periodo de medio día.", "en": "Molniya-type orbit of 600 × 39,750 km inclined 63.4°, with a half-day period." },
+    "why": { "es": "Pasa horas «colgada» sobre latitudes altas cerca del apogeo, ideal para dar servicio a regiones polares.", "en": "It 'hangs' for hours over high latitudes near apogee, ideal for serving polar regions." },
+    "perigeeKm": 600, "apogeeKm": 39750, "inclinationDeg": 63.4,
+    "radiationFactor": 0.7, "dragLifetimeYears": 20, "revisitDays": 1
+  },
+  {
+    "id": "TLI",
+    "name": { "es": "Transferencia lunar (TLI)", "en": "Trans-lunar injection (TLI)" },
+    "description": { "es": "Órbita de transferencia muy alargada, de 200 km a la distancia de la Luna (384 400 km).", "en": "Very elongated transfer orbit, from 200 km out to the Moon's distance (384,400 km)." },
+    "why": { "es": "Es el camino hacia la Luna: requiere un lanzador potente y la nave queda lejos de las estaciones terrestres.", "en": "It is the road to the Moon: it needs a powerful rocket and the spacecraft ends up far from ground stations." },
+    "perigeeKm": 200, "apogeeKm": 384400, "inclinationDeg": 28.5,
+    "radiationFactor": 0.6, "dragLifetimeYears": null, "revisitDays": 0
+  }
+]

@@ -1,0 +1,284 @@
+{
+  "app": {
+    "title": "PAYLOAD",
+    "subtitle": "Simulador de diseño de misiones espaciales"
+  },
+  "common": {
+    "back": "Volver",
+    "close": "Cerrar",
+    "on": "Sí",
+    "off": "No",
+    "none": "—",
+    "loading": "Cargando…",
+    "help": "Ayuda",
+    "settings": "Ajustes",
+    "menu": "Menú",
+    "continue": "Continuar",
+    "unlimited": "Ilimitada"
+  },
+  "menu": {
+    "play": "Jugar",
+    "settings": "Ajustes",
+    "credits": "Créditos",
+    "language": "Idioma",
+    "tagline": "Diseña, lanza y opera tu misión"
+  },
+  "lang": {
+    "es": "Español",
+    "en": "English"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "language": "Idioma",
+    "fov": "Campo de visión",
+    "headBob": "Balanceo de cabeza",
+    "sensitivity": "Sensibilidad del ratón",
+    "accessible2D": "Modo accesible 2D",
+    "accessible2DHint": "Hace todo el diseño desde paneles 2D, sin moverte en 3D.",
+    "shadows": "Sombras (calidad gráfica)"
+  },
+  "credits": {
+    "title": "Créditos",
+    "intro": "Modelos 3D de Sketchfab. Gracias a sus autores.",
+    "by": "por",
+    "license": "Licencia",
+    "source": "Fuente: Sketchfab",
+    "usedFor": "Uso",
+    "astronaut": "Avatar del jugador",
+    "walker": "Exhibición en el hangar",
+    "galaxy": "Fondo de menú y espacio",
+    "erizon": "Estación espacial en órbita",
+    "ncnd": "CC-BY-NC-ND: solo uso no comercial y sin obras derivadas.",
+    "modifiedCompressed": "Modificado: compresión meshopt y texturas WebP.",
+    "modifiedMeshopt": "Modificado: compresión meshopt.",
+    "modifiedTechnical": "Modificado técnicamente: compresión meshopt y cuantización de vértices; geometría y texturas sin cambios.",
+    "console": "Consola de misión del hangar"
+  },
+  "briefing": {
+    "title": "Briefing de la misión",
+    "requirements": "Requisitos medibles",
+    "constraints": "Presupuesto y límites",
+    "budget": "Presupuesto",
+    "devMonths": "Plazo de desarrollo",
+    "months": "meses",
+    "groundStations": "Estaciones terrestres",
+    "operationDays": "Días de operación",
+    "orbits": "Órbitas permitidas",
+    "launchers": "Lanzadores permitidos",
+    "start": "Ir al hangar",
+    "difficulty": "Dificultad"
+  },
+  "difficulty": {
+    "basic": "Básica",
+    "intermediate": "Intermedia",
+    "advanced": "Avanzada"
+  },
+  "req": {
+    "maxGroundResolutionM": "Resolución en suelo (máx.)",
+    "minDownlinkMbitPerDay": "Datos bajados por día (mín.)",
+    "minLifetimeYears": "Vida útil (mín.)",
+    "maxRevisitDays": "Revisita (máx.)",
+    "minScienceValue": "Valor científico (mín.)"
+  },
+  "unit": {
+    "m": "m",
+    "mbitDay": "Mbit/día",
+    "years": "años",
+    "days": "días",
+    "musd": "M$",
+    "kg": "kg",
+    "w": "W",
+    "wh": "Wh",
+    "km": "km"
+  },
+  "subsystem": {
+    "structure": "Estructura",
+    "power": "Energía solar",
+    "battery": "Baterías",
+    "comms": "Comunicaciones",
+    "obc": "Computadora de a bordo",
+    "adcs": "Control de actitud",
+    "thermal": "Térmico",
+    "payload": "Instrumentos"
+  },
+  "hangar": {
+    "title": "Hangar de integración",
+    "console": "Consola de misión",
+    "ship": "Nave",
+    "shelf": "Estante",
+    "holding": "Llevas",
+    "empty": "Manos libres",
+    "orbit": "Órbita",
+    "launcher": "Lanzador",
+    "choose": "— elegir —",
+    "requestReview": "Solicitar revisión Go/No-Go",
+    "mounted": "Montado",
+    "components": "Componentes",
+    "noStructure": "Sin estructura: monta primero un bus.",
+    "capture": "Haz clic en la escena para capturar el ratón",
+    "resources": "Recursos",
+    "mountedList": "Componentes montados",
+    "add": "Añadir",
+    "remove": "Quitar",
+    "returnItem": "Devolver",
+    "backToConsole": "Cerrar consola",
+    "noGoReasons": "La revisión anterior fue No-Go:",
+    "pause": "Pausa",
+    "accessibleTitle": "Diseño de la misión (modo 2D)",
+    "budgetSummary": "Resumen de recursos",
+    "count": "Cantidad"
+  },
+  "prompt": {
+    "pick": "Tomar",
+    "mount": "Montar en la nave",
+    "unmount": "Desmontar el último",
+    "console": "Usar la consola",
+    "returnItem": "Devolver al estante",
+    "hand": "Llevas",
+    "swap": "Cambiar por",
+    "shipEmpty": "La nave está vacía: lleva un componente"
+  },
+  "resources": {
+    "title": "Panel de recursos",
+    "limiting": "Limita la misión",
+    "why": "¿Por qué?",
+    "margin": "Margen",
+    "mass": "Masa",
+    "power": "Potencia",
+    "battery": "Batería",
+    "budget": "Presupuesto",
+    "data": "Datos",
+    "comms": "Comunicaciones",
+    "time": "Plazo",
+    "lifetime": "Vida útil",
+    "status": {
+      "ok": "OK",
+      "tight": "Justo",
+      "over": "Excedido"
+    }
+  },
+  "review": {
+    "title": "Revisión Go/No-Go",
+    "go": "GO",
+    "nogo": "NO-GO",
+    "goText": "Todos los sistemas listos para el lanzamiento.",
+    "nogoText": "Hay bloqueos que resolver antes de lanzar.",
+    "backToHangar": "Volver al hangar",
+    "launch": "Autorizar lanzamiento",
+    "noIssues": "Sin observaciones.",
+    "severity": {
+      "blocker": "Bloqueo",
+      "warning": "Aviso",
+      "info": "Info"
+    }
+  },
+  "launch": {
+    "title": "Plataforma de lanzamiento",
+    "countdown": "T-",
+    "liftoff": "Despegue",
+    "stageSep": "Separación de etapas",
+    "ascent": "Ascenso",
+    "failure": "Anomalía en el lanzamiento",
+    "success": "Inserción orbital confirmada",
+    "skip": "Saltar secuencia",
+    "chase": "Cámara de persecución",
+    "tower": "Vista desde la torre",
+    "standby": "En espera",
+    "orbitInsertion": "Inserción en órbita"
+  },
+  "operation": {
+    "title": "Operación de la misión",
+    "pause": "Pausa",
+    "time": "Tiempo",
+    "battery": "Batería",
+    "dataStored": "Datos almacenados",
+    "dataDownlinked": "Datos bajados",
+    "dataLost": "Datos perdidos",
+    "contact": "En contacto",
+    "noContact": "Sin contacto",
+    "eclipse": "Eclipse",
+    "sunlight": "Luz solar",
+    "day": "Día de misión",
+    "of": "de",
+    "log": "Registro de eventos",
+    "finish": "Terminar y ver informe",
+    "view": {
+      "third": "Cámara orbital",
+      "first": "A través del instrumento"
+    },
+    "status": {
+      "nominal": "Nominal",
+      "degraded": "Degradada",
+      "failed": "Fallida",
+      "complete": "Completa"
+    },
+    "ended": "La misión ha terminado.",
+    "viewfinder": "VISOR DEL INSTRUMENTO",
+    "capturing": "Capturando datos",
+    "idle": "Sin captura",
+    "mbit": "Mbit",
+    "noEvents": "Sin eventos todavía.",
+    "dayShort": "D",
+    "seed": "Semilla"
+  },
+  "report": {
+    "title": "Informe de la misión",
+    "total": "Puntuación total",
+    "breakdown": "Desglose",
+    "objectives": "Objetivos",
+    "science": "Ciencia",
+    "efficiency": "Eficiencia",
+    "collaboration": "Colaboración",
+    "weight": "peso",
+    "chain": "Cadena de causas",
+    "because": "Porque",
+    "suggestion": "Sugerencia",
+    "dataSummary": "Resumen de datos",
+    "launchResult": "Lanzamiento",
+    "launchOk": "Exitoso",
+    "launchFail": "Fallido",
+    "daysOperated": "Días operados",
+    "minBattery": "Batería mínima",
+    "redesign": "Rediseñar y simular otra vez",
+    "menu": "Menú",
+    "status": "Estado final",
+    "noSim": "No hay resultado disponible.",
+    "sev": {
+      "success": "Éxito",
+      "info": "Info",
+      "warning": "Aviso",
+      "failure": "Fallo"
+    }
+  },
+  "help": {
+    "title": "Controles",
+    "hint": "H: ayuda",
+    "toggle": "Mostrar/ocultar esta ayuda",
+    "menu": "Elige Jugar para comenzar. Cambia el idioma arriba.",
+    "briefing": "Lee los requisitos y pulsa «Ir al hangar».",
+    "hangar": "WASD moverse · ratón mirar · V cambiar 1ª/3ª persona · E interactuar (tomar, montar, consola) · Q devolver · Tab panel de recursos · Esc soltar el ratón · H ayuda",
+    "review": "Revisa los motivos. Con Go puedes autorizar el lanzamiento.",
+    "launch": "V alterna cámara de persecución y vista desde la torre · H ayuda",
+    "operation": "V alterna cámara orbital y vista a través del instrumento · arrastra para orbitar la cámara · usa los controles de tiempo · H ayuda",
+    "report": "Revisa la cadena de causas y rediseña."
+  },
+  "keys": {
+    "move": "Moverse",
+    "look": "Mirar",
+    "view": "Cambiar vista",
+    "interact": "Interactuar",
+    "resources": "Recursos"
+  },
+  "errors": {
+    "modelFallback": "No se pudo cargar un modelo 3D; se muestra una forma simple."
+  },
+  "phase": {
+    "menu": "Menú",
+    "briefing": "Briefing",
+    "design": "Diseño",
+    "review": "Revisión",
+    "launch": "Lanzamiento",
+    "operation": "Operación",
+    "report": "Informe"
+  }
+}

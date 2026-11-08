@@ -1,0 +1,49 @@
+[
+  {
+    "id": "leo-earth-observation",
+    "name": {
+      "es": "Ojos sobre la cosecha",
+      "en": "Eyes on the Harvest"
+    },
+    "briefing": {
+      "es": "Una cooperativa agrícola necesita vigilar la salud de sus cultivos desde el espacio para regar mejor y detectar plagas a tiempo. Diseña un satélite de observación en órbita baja que vea el suelo con al menos 35 m de detalle, baje 5000 Mbit de imágenes al día y funcione 3 años. Tienes 30 millones de dólares y 24 meses hasta el lanzamiento. Cuidado con la sombra de la Tierra: allí no hay sol para los paneles.",
+      "en": "A farming cooperative needs to monitor crop health from space to water better and catch pests early. Design a low-orbit observation satellite that sees the ground with at least 35 m detail, downloads 5000 Mbit of images per day and works for 3 years. You have 30 million dollars and 24 months until launch. Watch out for Earth's shadow: there is no sunlight for the panels there."
+    },
+    "why": {
+      "es": "Ver detalle exige estar cerca de la Tierra, pero allí la sombra es larga, el aire frena la nave y cada pasada sobre una estación dura pocos minutos.",
+      "en": "Seeing detail requires being close to Earth, but there the shadow is long, the air slows the spacecraft and each pass over a station lasts only minutes."
+    },
+    "missionType": "earth-observation",
+    "difficulty": "basic",
+    "budgetMUSD": 30,
+    "maxDevMonths": 24,
+    "requirements": {
+      "maxGroundResolutionM": 35,
+      "minDownlinkMbitPerDay": 5000,
+      "minLifetimeYears": 3,
+      "maxRevisitDays": 5,
+      "minScienceValue": 40
+    },
+    "allowedOrbits": [
+      "LEO",
+      "SSO"
+    ],
+    "allowedLaunchers": [
+      "launcher-albatros",
+      "launcher-colibri",
+      "launcher-condor",
+      "launcher-quetzal"
+    ],
+    "groundStations": 2,
+    "operationDays": 30,
+    "eventsEnabled": true,
+    "operationsCostMUSDPerYear": 0.5,
+    "weights": {
+      "objectives": 0.4,
+      "science": 0.3,
+      "efficiency": 0.2,
+      "collaboration": 0.1
+    },
+    "defaultSeed": 20260101
+  }
+]

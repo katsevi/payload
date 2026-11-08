@@ -1,0 +1,271 @@
+[
+  {
+    "id": "structure-cubesat-6u",
+    "subsystem": "structure",
+    "name": { "es": "Estructura CubeSat 6U", "en": "CubeSat 6U structure" },
+    "description": { "es": "Chasis de aluminio de 10×20×30 cm, el formato estándar de los nanosatélites.", "en": "10×20×30 cm aluminium frame, the standard nanosatellite format." },
+    "why": { "es": "Es barata y ligera, pero tiene poco espacio: solo caben seis piezas y unos 12 kg en total.", "en": "It is cheap and light, but space is tight: only six parts and about 12 kg in total fit." },
+    "level": "basic",
+    "massKg": 1.2, "powerW": 0, "costMUSD": 0.25, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.995, "devMonths": 1,
+    "maxSupportedMassKg": 12, "mountSlots": 6
+  },
+  {
+    "id": "structure-cubesat-12u",
+    "subsystem": "structure",
+    "name": { "es": "Estructura CubeSat 12U", "en": "CubeSat 12U structure" },
+    "description": { "es": "Chasis CubeSat doble de 20×20×30 cm.", "en": "Double CubeSat frame of 20×20×30 cm." },
+    "why": { "es": "El doble de volumen que un 6U por poco más de dinero; cabe una cámara pequeña con su electrónica.", "en": "Twice the volume of a 6U for little extra money; a small camera and its electronics fit inside." },
+    "level": "basic",
+    "massKg": 2.2, "powerW": 0, "costMUSD": 0.45, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.995, "devMonths": 2,
+    "maxSupportedMassKg": 24, "mountSlots": 9
+  },
+  {
+    "id": "structure-microsat",
+    "subsystem": "structure",
+    "name": { "es": "Plataforma microsatélite", "en": "Microsatellite bus" },
+    "description": { "es": "Estructura de panal de aluminio para satélites de hasta 120 kg.", "en": "Aluminium honeycomb structure for satellites up to 120 kg." },
+    "why": { "es": "Pesa más, pero aguanta instrumentos grandes y tiene sitio para doce piezas.", "en": "It is heavier, but it carries large instruments and has room for twelve parts." },
+    "level": "basic",
+    "massKg": 12, "powerW": 0, "costMUSD": 2, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.998, "devMonths": 4,
+    "maxSupportedMassKg": 120, "mountSlots": 12
+  },
+  {
+    "id": "structure-smallsat",
+    "subsystem": "structure",
+    "name": { "es": "Plataforma smallsat", "en": "Smallsat bus" },
+    "description": { "es": "Estructura robusta para satélites de hasta 300 kg con muchos instrumentos.", "en": "Sturdy structure for satellites up to 300 kg with many instruments." },
+    "why": { "es": "Admite casi cualquier carga, pero su masa y su precio obligan a un lanzador más caro.", "en": "It fits almost any payload, but its mass and price force you onto a pricier rocket." },
+    "level": "advanced",
+    "massKg": 35, "powerW": 0, "costMUSD": 5, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.998, "devMonths": 6,
+    "maxSupportedMassKg": 300, "mountSlots": 16
+  },
+  {
+    "id": "power-body-mounted",
+    "subsystem": "power",
+    "name": { "es": "Paneles solares de cuerpo", "en": "Body-mounted solar panels" },
+    "description": { "es": "Células solares pegadas a las caras del satélite.", "en": "Solar cells glued to the faces of the satellite." },
+    "why": { "es": "No tienen piezas móviles, así que casi nunca fallan, pero dan poca energía porque su área es pequeña.", "en": "They have no moving parts so they rarely fail, but they give little power because their area is small." },
+    "level": "basic",
+    "massKg": 0.4, "powerW": 0, "costMUSD": 0.1, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.995, "devMonths": 1,
+    "solarGenerationW": 15
+  },
+  {
+    "id": "power-deployable",
+    "subsystem": "power",
+    "name": { "es": "Paneles solares desplegables", "en": "Deployable solar panels" },
+    "description": { "es": "Alas solares que se abren en órbita como un libro.", "en": "Solar wings that unfold in orbit like a book." },
+    "why": { "es": "Al desplegarse captan mucha más luz, pero el mecanismo añade masa y un pequeño riesgo de que no se abran.", "en": "Unfolding lets them catch much more light, but the hinge adds mass and a small risk they won't open." },
+    "level": "basic",
+    "massKg": 1.5, "powerW": 0, "costMUSD": 0.6, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.98, "devMonths": 3,
+    "solarGenerationW": 50
+  },
+  {
+    "id": "power-high-efficiency",
+    "subsystem": "power",
+    "name": { "es": "Alas solares de alta eficiencia", "en": "High-efficiency solar wings" },
+    "description": { "es": "Alas desplegables con células de triple unión de arseniuro de galio.", "en": "Deployable wings with triple-junction gallium arsenide cells." },
+    "why": { "es": "Convierten casi un 30 % de la luz en electricidad: el doble de energía por kilo, a un precio alto.", "en": "They turn almost 30% of sunlight into electricity: twice the power per kilo, at a high price." },
+    "level": "advanced",
+    "massKg": 2.5, "powerW": 0, "costMUSD": 1.5, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.985, "devMonths": 5,
+    "solarGenerationW": 110
+  },
+  {
+    "id": "battery-small",
+    "subsystem": "battery",
+    "name": { "es": "Batería Li-ion 40 Wh", "en": "Li-ion battery 40 Wh" },
+    "description": { "es": "Paquete pequeño de celdas de ion-litio.", "en": "Small pack of lithium-ion cells." },
+    "why": { "es": "Ligera y barata, pero solo debe descargarse un 40 % por órbita para no estropearse: da 16 Wh útiles.", "en": "Light and cheap, but it should only discharge 40% per orbit to avoid damage: 16 Wh usable." },
+    "level": "basic",
+    "massKg": 0.35, "powerW": 0, "costMUSD": 0.05, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.98, "devMonths": 1,
+    "batteryCapacityWh": 40, "maxDepthOfDischarge": 0.4
+  },
+  {
+    "id": "battery-medium",
+    "subsystem": "battery",
+    "name": { "es": "Batería Li-ion 120 Wh", "en": "Li-ion battery 120 Wh" },
+    "description": { "es": "Paquete mediano de celdas de ion-litio con control térmico.", "en": "Medium lithium-ion pack with thermal control." },
+    "why": { "es": "Guarda tres veces más energía que la pequeña para atravesar la sombra de la Tierra sin apagarse.", "en": "It stores three times more energy than the small one to get through Earth's shadow without shutting down." },
+    "level": "basic",
+    "massKg": 1, "powerW": 0, "costMUSD": 0.2, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.98, "devMonths": 2,
+    "batteryCapacityWh": 120, "maxDepthOfDischarge": 0.4
+  },
+  {
+    "id": "battery-large",
+    "subsystem": "battery",
+    "name": { "es": "Batería de alta densidad 300 Wh", "en": "High-density battery 300 Wh" },
+    "description": { "es": "Celdas de alta densidad energética calificadas para espacio.", "en": "Space-qualified high energy density cells." },
+    "why": { "es": "Admite descargas del 50 % y guarda mucha energía en poco peso, ideal para instrumentos que gastan mucho.", "en": "It tolerates 50% discharges and stores a lot of energy for its weight, ideal for power-hungry instruments." },
+    "level": "advanced",
+    "massKg": 2, "powerW": 0, "costMUSD": 0.8, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.985, "devMonths": 4,
+    "batteryCapacityWh": 300, "maxDepthOfDischarge": 0.5
+  },
+  {
+    "id": "comms-uhf",
+    "subsystem": "comms",
+    "name": { "es": "Radio UHF", "en": "UHF radio" },
+    "description": { "es": "Transceptor UHF de 9,6 kbit/s con antena de dipolo.", "en": "9.6 kbit/s UHF transceiver with a dipole antenna." },
+    "why": { "es": "Es simple y fiable, perfecta para telemetría, pero demasiado lenta para bajar imágenes.", "en": "Simple and reliable, perfect for telemetry, but far too slow to download images." },
+    "level": "basic",
+    "massKg": 0.25, "powerW": 2, "costMUSD": 0.05, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.98, "devMonths": 1,
+    "downlinkMbps": 0.0096
+  },
+  {
+    "id": "comms-s-band",
+    "subsystem": "comms",
+    "name": { "es": "Transmisor banda S", "en": "S-band transmitter" },
+    "description": { "es": "Transmisor de 2 Mbit/s en banda S con antena de parche.", "en": "2 Mbit/s S-band transmitter with a patch antenna." },
+    "why": { "es": "Unas 200 veces más rápido que UHF: suficiente para varias imágenes al día si hay buenos contactos.", "en": "About 200 times faster than UHF: enough for several images a day with good contacts." },
+    "level": "basic",
+    "massKg": 0.6, "powerW": 8, "costMUSD": 0.5, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.98, "devMonths": 3,
+    "downlinkMbps": 2
+  },
+  {
+    "id": "comms-x-band",
+    "subsystem": "comms",
+    "name": { "es": "Transmisor banda X", "en": "X-band transmitter" },
+    "description": { "es": "Transmisor de 50 Mbit/s en banda X para cargas útiles de imagen.", "en": "50 Mbit/s X-band transmitter for imaging payloads." },
+    "why": { "es": "Baja enormes volúmenes de datos en cada pasada, a cambio de más potencia, masa y costo.", "en": "It downloads huge amounts of data on each pass, at the cost of more power, mass and money." },
+    "level": "advanced",
+    "massKg": 1.8, "powerW": 20, "costMUSD": 1.8, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.975, "devMonths": 6,
+    "downlinkMbps": 50
+  },
+  {
+    "id": "obc-basic",
+    "subsystem": "obc",
+    "name": { "es": "Computadora de a bordo básica", "en": "Basic onboard computer" },
+    "description": { "es": "Microcontrolador con 8 GB (64 000 Mbit) de memoria.", "en": "Microcontroller with 8 GB (64,000 Mbit) of memory." },
+    "why": { "es": "Gasta poquísimo y basta para guardar un día de imágenes pequeñas.", "en": "It uses very little power and is enough to store a day of small images." },
+    "level": "basic",
+    "massKg": 0.2, "powerW": 2, "costMUSD": 0.15, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.98, "devMonths": 2,
+    "storageMbit": 64000
+  },
+  {
+    "id": "obc-advanced",
+    "subsystem": "obc",
+    "name": { "es": "Computadora de a bordo avanzada", "en": "Advanced onboard computer" },
+    "description": { "es": "Procesador tolerante a radiación con 64 GB (512 000 Mbit) de memoria.", "en": "Radiation-tolerant processor with 64 GB (512,000 Mbit) of memory." },
+    "why": { "es": "Guarda ocho veces más datos y resiste mejor la radiación, pero consume el triple.", "en": "It stores eight times more data and resists radiation better, but uses three times the power." },
+    "level": "advanced",
+    "massKg": 0.8, "powerW": 6, "costMUSD": 0.8, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.99, "devMonths": 4,
+    "storageMbit": 512000
+  },
+  {
+    "id": "adcs-magnetorquers",
+    "subsystem": "adcs",
+    "name": { "es": "Magnetopares", "en": "Magnetorquers" },
+    "description": { "es": "Bobinas que empujan contra el campo magnético terrestre para orientar el satélite.", "en": "Coils that push against Earth's magnetic field to orient the satellite." },
+    "why": { "es": "Sencillos y casi irrompibles, pero solo apuntan con unos 5° de precisión.", "en": "Simple and almost unbreakable, but they only point to within about 5°." },
+    "level": "basic",
+    "massKg": 0.4, "powerW": 1.5, "costMUSD": 0.15, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.99, "devMonths": 2,
+    "pointingAccuracyDeg": 5
+  },
+  {
+    "id": "adcs-reaction-wheels",
+    "subsystem": "adcs",
+    "name": { "es": "Ruedas de reacción", "en": "Reaction wheels" },
+    "description": { "es": "Tres volantes de inercia que giran el satélite con precisión, más magnetopares para descargarlos.", "en": "Three flywheels that turn the satellite precisely, plus magnetorquers to unload them." },
+    "why": { "es": "Apuntan con 0,5° de precisión, necesario para cámaras exigentes, pero tienen piezas que se desgastan.", "en": "They point to 0.5°, needed for demanding cameras, but they have parts that wear out." },
+    "level": "basic",
+    "massKg": 1.5, "powerW": 8, "costMUSD": 1.2, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.97, "devMonths": 4,
+    "pointingAccuracyDeg": 0.5
+  },
+  {
+    "id": "adcs-star-tracker",
+    "subsystem": "adcs",
+    "name": { "es": "Ruedas + rastreador estelar", "en": "Wheels + star tracker" },
+    "description": { "es": "Ruedas de reacción guiadas por una cámara que reconoce las estrellas.", "en": "Reaction wheels guided by a camera that recognises the stars." },
+    "why": { "es": "Sabe hacia dónde mira con 0,05° de precisión, imprescindible para la alta resolución.", "en": "It knows where it is pointing to 0.05°, essential for high-resolution imaging." },
+    "level": "advanced",
+    "massKg": 3, "powerW": 12, "costMUSD": 2.5, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.975, "devMonths": 6,
+    "pointingAccuracyDeg": 0.05
+  },
+  {
+    "id": "thermal-passive",
+    "subsystem": "thermal",
+    "name": { "es": "Control térmico pasivo", "en": "Passive thermal control" },
+    "description": { "es": "Mantas aislantes y pinturas especiales que reflejan o irradian el calor.", "en": "Insulating blankets and special paints that reflect or radiate heat." },
+    "why": { "es": "No gasta energía, pero solo puede evacuar unos 40 W de calor de la electrónica.", "en": "It uses no power, but it can only shed about 40 W of heat from the electronics." },
+    "level": "basic",
+    "massKg": 0.3, "powerW": 0, "costMUSD": 0.05, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.999, "devMonths": 1,
+    "thermalDissipationW": 40
+  },
+  {
+    "id": "thermal-radiator",
+    "subsystem": "thermal",
+    "name": { "es": "Radiador desplegable", "en": "Deployable radiator" },
+    "description": { "es": "Placa que se abre hacia el espacio frío para irradiar calor.", "en": "A plate that opens towards cold space to radiate heat away." },
+    "why": { "es": "Disipa hasta 100 W sin consumir energía; solo añade algo de masa.", "en": "It sheds up to 100 W without using power; it only adds some mass." },
+    "level": "basic",
+    "massKg": 1.2, "powerW": 0, "costMUSD": 0.3, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.995, "devMonths": 2,
+    "thermalDissipationW": 100
+  },
+  {
+    "id": "thermal-active",
+    "subsystem": "thermal",
+    "name": { "es": "Control térmico activo", "en": "Active thermal control" },
+    "description": { "es": "Tubos de calor, calentadores y termostatos que mueven el calor a donde hace falta.", "en": "Heat pipes, heaters and thermostats that move heat where it is needed." },
+    "why": { "es": "Aguanta hasta 200 W de calor, pero los calentadores consumen 10 W todo el tiempo.", "en": "It handles up to 200 W of heat, but the heaters draw 10 W all the time." },
+    "level": "advanced",
+    "massKg": 1.5, "powerW": 10, "costMUSD": 0.6, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.98, "devMonths": 4,
+    "thermalDissipationW": 200
+  },
+  {
+    "id": "payload-multispectral-basic",
+    "subsystem": "payload",
+    "name": { "es": "Cámara multiespectral básica", "en": "Basic multispectral camera" },
+    "description": { "es": "Cámara de 4 bandas (azul, verde, rojo e infrarrojo cercano) con 30 m de resolución a 500 km.", "en": "4-band camera (blue, green, red and near infrared) with 30 m resolution at 500 km." },
+    "why": { "es": "El infrarrojo cercano revela qué cultivos están sanos; es ligera y no necesita un apuntado fino.", "en": "Near infrared reveals which crops are healthy; it is light and does not need fine pointing." },
+    "level": "basic",
+    "massKg": 3.5, "powerW": 15, "costMUSD": 2.5, "dataMbitPerDay": 6000, "scienceValue": 40, "reliability": 0.97, "devMonths": 6,
+    "groundResolutionAt500KmM": 30, "requiredPointingDeg": 5
+  },
+  {
+    "id": "payload-hires-camera",
+    "subsystem": "payload",
+    "name": { "es": "Cámara de alta resolución", "en": "High-resolution camera" },
+    "description": { "es": "Telescopio compacto con 2,5 m de resolución a 500 km.", "en": "Compact telescope with 2.5 m resolution at 500 km." },
+    "why": { "es": "Distingue parcelas individuales, pero genera muchísimos datos y necesita apuntar con 0,1° de precisión.", "en": "It can tell individual fields apart, but it produces huge amounts of data and needs 0.1° pointing." },
+    "level": "advanced",
+    "massKg": 12, "powerW": 35, "costMUSD": 7, "dataMbitPerDay": 60000, "scienceValue": 70, "reliability": 0.965, "devMonths": 12,
+    "groundResolutionAt500KmM": 2.5, "requiredPointingDeg": 0.1
+  },
+  {
+    "id": "payload-thermal-camera",
+    "subsystem": "payload",
+    "name": { "es": "Cámara térmica infrarroja", "en": "Thermal infrared camera" },
+    "description": { "es": "Cámara de infrarrojo térmico con criorrefrigerador; 80 m de resolución a 500 km.", "en": "Thermal infrared camera with a cryocooler; 80 m resolution at 500 km." },
+    "why": { "es": "Mide la temperatura del suelo para detectar sequía o incendios, pero su enfriador consume unos 60 W.", "en": "It measures ground temperature to spot drought or fires, but its cooler draws about 60 W." },
+    "level": "basic",
+    "massKg": 5, "powerW": 60, "costMUSD": 4, "dataMbitPerDay": 2000, "scienceValue": 45, "reliability": 0.96, "devMonths": 8,
+    "groundResolutionAt500KmM": 80, "requiredPointingDeg": 2
+  },
+  {
+    "id": "payload-radiometer",
+    "subsystem": "payload",
+    "name": { "es": "Radiómetro de microondas", "en": "Microwave radiometer" },
+    "description": { "es": "Mide la humedad del suelo con microondas; resolución de unos 15 km.", "en": "Measures soil moisture with microwaves; resolution of about 15 km." },
+    "why": { "es": "Ve a través de las nubes y genera pocos datos, aunque cada píxel cubre una región entera.", "en": "It sees through clouds and produces little data, although each pixel covers a whole region." },
+    "level": "basic",
+    "massKg": 4, "powerW": 20, "costMUSD": 2, "dataMbitPerDay": 400, "scienceValue": 30, "reliability": 0.98, "devMonths": 6,
+    "groundResolutionAt500KmM": 15000, "requiredPointingDeg": 10
+  },
+  {
+    "id": "payload-ais-receiver",
+    "subsystem": "payload",
+    "name": { "es": "Receptor AIS", "en": "AIS receiver" },
+    "description": { "es": "Escucha las señales de posición que emiten los barcos.", "en": "Listens to the position signals broadcast by ships." },
+    "why": { "es": "Diminuto y barato; no toma imágenes, pero sirve para vigilar la pesca y el tráfico marítimo.", "en": "Tiny and cheap; it takes no images, but it helps monitor fishing and sea traffic." },
+    "level": "basic",
+    "massKg": 0.5, "powerW": 3, "costMUSD": 0.4, "dataMbitPerDay": 150, "scienceValue": 15, "reliability": 0.99, "devMonths": 2
+  },
+  {
+    "id": "payload-hyperspectral",
+    "subsystem": "payload",
+    "name": { "es": "Cámara hiperespectral", "en": "Hyperspectral camera" },
+    "description": { "es": "Espectrómetro de imagen con más de 100 bandas y 20 m de resolución a 500 km.", "en": "Imaging spectrometer with over 100 bands and 20 m resolution at 500 km." },
+    "why": { "es": "Identifica el tipo de cultivo y sus enfermedades por su «huella» de color, a cambio de mucha energía y datos.", "en": "It identifies crop type and disease by their colour 'fingerprint', at the cost of lots of power and data." },
+    "level": "advanced",
+    "massKg": 9, "powerW": 40, "costMUSD": 6, "dataMbitPerDay": 30000, "scienceValue": 80, "reliability": 0.96, "devMonths": 12,
+    "groundResolutionAt500KmM": 20, "requiredPointingDeg": 0.5
+  }
+]

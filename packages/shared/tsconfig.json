@@ -1,0 +1,16 @@
+{
+  // Motor (src/): TS puro, SIN tipos de Node ni DOM. Si algo de Node se cuela en src/, tsc falla.
+  // Tests y prototipo se comprueban con tsconfig.node.json (ver script "typecheck").
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": [],
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    // prototype/ está fuera del paquete: con pnpm no ve node_modules de aquí. Este alias permite
+    // que tsx (que lee los paths de ESTE tsconfig al ejecutarse desde packages/shared) resuelva
+    // exceljs desde prototype/*.ts. No afecta a src/.
+    "paths": { "exceljs": ["./node_modules/exceljs"] }
+  },
+  "include": ["src", "catalog"],
+  "exclude": ["src/__tests__"]
+}

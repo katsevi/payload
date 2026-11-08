@@ -1,0 +1,11 @@
+{
+  "name": "@payload/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "echo \"@payload/api: pendiente (ver docs/phases)\"",
+    "test": "echo \"@payload/api: sin tests aún\"",
+    "build": "echo \"@payload/api: sin build aún\""
+  }
+}
