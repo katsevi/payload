@@ -35,6 +35,8 @@ ERIZON (CC-BY-NC-ND), modo `--preserve`: solo compresión de geometría, sin usa
 pnpm exec gltf-transform meshopt assets/models/source/programme_erizon.glb assets/web/models/programme_erizon.glb
 ```
 
+Antes de `optimize` en CC-BY, ten en cuenta que también puede cambiar la estructura: fusiona mallas (`join`), aplana nodos (`flatten`) y agrupa materiales en paletas (`palette`, p. ej. astronauta 14 → 3 materiales con 2 texturas nuevas). Es legal en CC-BY, pero debe quedar reflejado en la columna "Cambios" de `CREDITS.md`.
+
 Por qué no `optimize` en ERIZON: `optimize` fusiona mallas (`join`), aplana la escena (`flatten`), crea instancias (`instance`, que añade `EXT_mesh_gpu_instancing`), genera paletas (`palette`) y recomprime o redimensiona texturas. Cada una de esas operaciones modifica la estructura del modelo, algo que una licencia ND no permite. El comando `meshopt` solo comprime la geometría: el número de nodos y mallas se mantiene (82 nodos y 51 mallas en ERIZON) y las texturas no cambian. Sí añade cuantización de vértices (`KHR_mesh_quantization`), que es una pérdida mínima de precisión.
 
 Nota: `--simplify false` es obligatorio siempre. Ninguna configuración simplifica geometría en este proyecto.
@@ -78,6 +80,16 @@ function Astronaut() {
 - Modelo de escena: **< 5 MB** en `assets/web/models/`. Si supera el límite, revisa primero las texturas.
 - Texturas: **≤ 2048 px** por lado (el valor por defecto de `optimize`).
 - Vértices: sin objetivo fijo, pero vigila escenas con decenas de miles de mallas. Usa `join` (activo por defecto) cuando no haya animación por pieza.
+
+## Usar un modelo en una escena del cliente
+
+El cliente ya tiene el patrón montado; no crees un loader nuevo:
+
+- `apps/client/src/models/urls.ts`: mapa `MODEL_URLS` (clave → `/models/<archivo>.glb`). Añade ahí la URL de un modelo nuevo.
+- `apps/client/src/models/Models.tsx`: componentes listos. `FittedModel` clona la escena, la escala a `size`/`height` y la centra u origina en los pies (`origin`). Para un modelo nuevo, añade un componente como `AstronautModel`/`ErizonStation`, envuelto en `ModelBoundary` (muestra una forma simple si el GLB falla) y en `<Suspense>`.
+- Carga diferida para GLB pesados (> 3 MB): patrón `WalkerExhibit`/`ErizonStation` con `useState` + `setTimeout`, para no frenar el arranque. Los ligeros pueden precargarse con `preloadModels()`.
+- Créditos: además de `assets/CREDITS.md`, registra el modelo en `apps/client/src/data/credits.ts` (regla de `apps/client/CLAUDE.md`).
+- Cambios en `apps/client/` los hace el agente `client-3d` o quien lleve la escena; la skill solo define el contrato.
 
 ## Checklist: añadir un modelo nuevo
 

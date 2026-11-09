@@ -5,17 +5,22 @@ import es from '../locales/es.json';
 import { flatten } from '../i18n/flatten';
 import { missionSeed, type LoggedEvent } from '../state/sim';
 import { useDesign } from '../state/design';
+import { useProgress } from '../state/progress';
 import { importantEvents } from '../ui/Huds';
 
 describe('semilla por intento', () => {
-  it('defaultSeed + nº de intento; Rediseñar incrementa el intento', () => {
+  it('defaultSeed + nº de intento; el intento no se repite entre partidas ni al rediseñar', () => {
     const sc = catalog.scenarios[0]!;
     expect(missionSeed(sc.id, 0)).toBe(sc.defaultSeed);
     expect(missionSeed(sc.id, 3)).toBe(sc.defaultSeed + 3);
     useDesign.getState().startScenario(sc.id);
-    expect(useDesign.getState().attempt).toBe(0);
+    const first = useDesign.getState().attempt;
     useDesign.getState().nextAttempt();
-    expect(useDesign.getState().attempt).toBe(1);
+    expect(useDesign.getState().attempt).toBe(first + 1);
+    // Partida nueva (volver al menú y jugar): sigue el contador persistido, no vuelve a 0.
+    useDesign.getState().startScenario(sc.id);
+    expect(useDesign.getState().attempt).toBe(first + 2);
+    expect(useProgress.getState().attempts[sc.id]).toBe(first + 3);
   });
 });
 

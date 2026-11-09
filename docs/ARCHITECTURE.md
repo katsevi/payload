@@ -1,6 +1,6 @@
 # Arquitectura
 
-Documenta lo que **existe hoy** (fases 0 y 1) y lo que se **prevé** (fases 3 y 4). Decisiones de
+Documenta lo que **existe hoy** (fases 0, 1 y 2) y lo que se **prevé** (fases 3 y 4). Decisiones de
 fondo: `docs/adr/`. Estado: `docs/STATUS.md`.
 
 ## Vista general
@@ -14,7 +14,7 @@ flowchart LR
     subgraph NAV["Navegador del jugador"]
         UI["Interfaz React<br/><small>Paneles, consolas, informes</small>"]
         ESC["Escena 3D<br/><small>R3F, Drei, Rapier, cámaras 1ª/3ª</small>"]
-        AUD["Audio<br/><small>Fase 2</small>"]
+        AUD["Audio procedural<br/><small>Web Audio, fase 2</small>"]
         SIM1["Motor de simulación<br/><small>Modo solitario y vista previa</small>"]
     end
     CDN["CDN<br/><small>S3 + CloudFront, assets (fase 4)</small>"]
@@ -32,7 +32,7 @@ flowchart LR
     style GS fill:#e3eefb,stroke:#2f7bd8,stroke-width:2px
 ```
 
-Existe hoy: `UI`, `ESC` y `SIM1` (fase 1). `AUD`, `CDN`, `GS`, `API`, `RED` y `PG` son diseño futuro.
+Existe hoy: `UI`, `ESC`, `SIM1` (fase 1) y `AUD` (fase 2). `CDN`, `GS`, `API`, `RED` y `PG` son diseño futuro.
 
 ## Paquetes y dependencias
 
@@ -41,8 +41,8 @@ Workspaces: `apps/*` y `packages/*` (`pnpm-workspace.yaml`). Turborepo orquesta 
 
 | Paquete | Estado | Dependencias principales (package.json) |
 | --- | --- | --- |
-| `@payload/shared` | Fase 1 | `zod ^4.6.7`. Dev: `vitest ^5.1.0`, `tsx ^4.23.15`, `exceljs ^4.4.0` (hoja de cálculo), `@types/node ^24`. Exporta `./src/index.ts` y `./catalog/*` |
-| `@payload/client` | Fase 1 | `@payload/shared workspace:*`, `react`/`react-dom ^19.3.1`, `three ^0.187.0`, `@react-three/fiber ^9.8.2`, `drei ^10.7.9`, `rapier ^2.2.0`, `postprocessing ^3.2.2` (declarada, aún sin uso), `zustand ^5.1.0`, `xstate ^5.33.4`, `@xstate/react ^6.1.0`, `i18next ^27.0.1`, `react-i18next ^18.0.0`, `i18next-browser-languagedetector ^8.3.0`, `lucide-react ^1.70.0`. Dev: `vite ^8.3.6`, `@vitejs/plugin-react ^6.2.1`, `tailwindcss` y `@tailwindcss/vite ^4.3.5`, `vitest ^5.1.0` |
+| `@payload/shared` | Fase 2 | `zod ^4.6.7`. Dev: `vitest ^5.1.0`, `tsx ^4.23.15`, `exceljs ^4.4.0` (hoja de cálculo), `@types/node ^24`. Exporta `./src/index.ts` y `./catalog/*` |
+| `@payload/client` | Fase 2 | `@payload/shared workspace:*`, `react`/`react-dom ^19.3.1`, `three ^0.187.0`, `@react-three/fiber ^9.8.2`, `drei ^10.7.9`, `rapier ^2.2.0`, `postprocessing ^3.2.2` (declarada, aún sin uso), `zustand ^5.1.0`, `xstate ^5.33.4`, `@xstate/react ^6.1.0`, `i18next ^27.0.1`, `react-i18next ^18.0.0`, `i18next-browser-languagedetector ^8.3.0`, `lucide-react ^1.70.0`. Dev: `vite ^8.3.6`, `@vitejs/plugin-react ^6.2.1`, `tailwindcss` y `@tailwindcss/vite ^4.3.5`, `vitest ^5.1.0` |
 | `@payload/game-server` | Marcador (fase 3) | Ninguna; scripts `echo` |
 | `@payload/api` | Marcador (fase 4) | Ninguna; scripts `echo` |
 | raíz | | `turbo ^2.11.10`, `typescript ~6.0.3`, `prettier ^3.9.10`, `@gltf-transform/cli ^4.5.1` |
@@ -53,7 +53,8 @@ React, Three.js, DOM ni Node en `src/`; lo vigila `purity.test.ts`).
 ## `@payload/shared`: el motor
 
 - **Contrato:** `src/types.ts`. Solo cambios aditivos; romperlo exige un ADR.
-- **Catálogo:** `catalog/{componentes,orbitas,lanzadores,escenarios}.json` -> `parseCatalog` (zod) -> `catalog`. Añadir contenido no toca código.
+- **Catálogo:** `catalog/{componentes,orbitas,lanzadores,escenarios}.json` + `{glosario,mascota,academia}.json` (estos tres opcionales en `Catalog`) -> `parseCatalog` (zod) -> `catalog`. Añadir contenido no toca código.
+- **Módulos (`src/`):** `orbital` (Kepler), `budgets`, `review`, `simulation` + `constants`, **`events`** (tablas por dificultad, `rollPreLaunchEvents`, falla de componente/rueda; ADR 0008), `scoring`, `report`, **`advisors`** (`adviseByRole`: 4 roles), **`pedagogy`** (mascota, glosario, `evaluateAcademyStep`), `analysis`, `messages`/`locales` (i18n `sim`), `rng` (`createRng`, `deriveSeed`), `catalog`, `types` (contrato).
 - **API:** `computeBudgets`, `reviewGoNoGo`, `createMissionSim`/`runMission`, `scoreMission`, `buildReport`, `createRng`, `formatMessage` (lista completa en `packages/shared/CLAUDE.md`).
 
 ### Modelo de simulación (resumen)
@@ -61,26 +62,37 @@ React, Three.js, DOM ni Node en `src/`; lo vigila `purity.test.ts`).
 - **Órbita** (`orbital.ts`): `a = R⊕ + (hp+ha)/2`, `T = 2π√(a³/μ)` con μ = 398 600 km³/s². Eclipse con β = 0 (peor caso): `f = asin(R⊕/(R⊕+h))/π`. Contacto por estación con elevación mínima de 10°: `1440 · (1 − cos λ)/2 · 2` min/día, `λ = acos(R⊕ cos ε/(R⊕+h)) − ε`. GEO = 1440 min.
 - **Presupuestos** (`budgets.ts`): `used/available` por recurso; `tight` si el margen < 15 %, `over` si se excede. Tiempo = pieza más lenta + 0,25 meses por pieza + espera del lanzador. Vida = min(arrastre, `5 · ln 0.7 / ln(R^(1+2·rad))`). Operación = `operationsCostMUSDPerYear × minLifetimeYears`.
 - **Go/No-Go** (`review.ts`): `go = false` si hay algún `blocker`. Los requisitos del escenario y `power-storm` son avisos.
-- **Simulación** (`simulation.ts`, `constants.ts`): **paso fijo de 30 s**; `step(dt)` acumula tiempo y ejecuta los pasos fijos que quepan, así que el resultado no depende de cómo se trocee. Fase orbital uniforme, eclipse centrado en la fase 0,5. Batería: desgaste de −6 % de la capacidad nominal por hora bajo la DoD; al agotarse, apagón, modo seguro y −10 %; falla bajo el 60 % de la nominal o tras 5 agotamientos. Datos: se llenan por instrumentos y se bajan en contactos regulares. Eventos pre-sorteados por día según dificultad (tormenta solar −40 % de generación 8 h, falla de rueda de reacción, basura espacial con instrumentos apagados 2 h).
-- **Semillas:** toda aleatoriedad pasa por `createRng(seed)`; prohibidos `Math.random()` y `Date.now()` en `src/`. La semilla por defecto del escenario es `20260101`; el cliente usa **una semilla por intento**: `defaultSeed + nº de intento` (el intento 0 es `defaultSeed`; "Rediseñar" lo incrementa).
-- **Puntuación** (`scoring.ts`): `S = w1·objetivos + w2·ciencia + w3·eficiencia + w4·colaboración`, pesos por escenario. Objetivos = `100 · media · √mín` de los criterios con criterio de viabilidad.
+- **Simulación** (`simulation.ts`, `constants.ts`): **paso fijo de 30 s**; `step(dt)` acumula tiempo y ejecuta los pasos fijos que quepan, así que el resultado no depende de cómo se trocee. Fase orbital de Kepler (`orbitPhase` = anomalía verdadera / 2π; el tiempo de eclipse, contactos y energía sigue en anomalía media, eclipse centrado en la fase media 0,5). Batería: desgaste de −6 % de la capacidad nominal por hora bajo la DoD; al agotarse, apagón, modo seguro y −10 %; falla bajo el 60 % de la nominal o tras 5 agotamientos. Datos: se llenan por instrumentos y se bajan en contactos regulares. Eventos pre-sorteados según dificultad (`EVENT_TABLES` + `eventTuning` del escenario), en tres familias con flujos de azar separados (`deriveSeed`): entorno (tormenta solar −40 % de generación 8 h, basura espacial con instrumentos apagados 2 h, falla de rueda con apuntado de respaldo 1°/2°/5°), salud (sobrecalentamiento si el margen térmico < 15 %, falla de componente por fiabilidad × radiación; degradan, no destruyen) y pre-lanzamiento (`rollPreLaunchEvents`: retraso y recorte de presupuesto, que entran por `MissionSimOptions.preLaunch` y `computeBudgets(design, cat, preLaunch)`).
+- **Semillas:** toda aleatoriedad pasa por `createRng(seed)`; prohibidos `Math.random()` y `Date.now()` en `src/`. La semilla por defecto del escenario es `20260101`; el cliente usa **una semilla por intento**: `defaultSeed + nº de intento`, con el intento persistido por escenario (`state/progress.ts`); cada partida nueva y "Rediseñar" lo incrementan.
+- **Puntuación** (`scoring.ts`): `S = w1·objetivos + w2·ciencia + w3·eficiencia + w4·colaboración`, pesos por escenario. Objetivos = `100 · media · √mín` de los criterios con criterio de viabilidad, incl. agotamientos de batería (`energyCriterion`) y vida lineal 75 %→100 % (`lifetimeCriterion`).
 - **Informe** (`report.ts`): `ReportEntry[]` con cadena de causas, todo como `MessageRef`.
 
 ## `@payload/client`: flujo de datos
 
 ```text
-missionMachine (XState)  ── fase activa ──▶  App.tsx ── lazyScene ──▶ MenuScene | HangarScene | LaunchScene | OrbitScene
+missionMachine (XState)  ── fase activa ──▶  App.tsx ── lazyScene ──▶ MenuScene | HangarScene | LaunchScene | OrbitScene | SurfaceScene
         ▲  eventos (PLAY, REQUEST_REVIEW, LAUNCH…)                         │ leen / escriben
         │                                                                   ▼
-   UI (Screens, Huds, DesignPanel)  ◀── suscripción ──  stores Zustand: design · sim · settings · ui · launch
+   UI (Screens, Huds, DesignPanel)  ◀── suscripción ──  stores Zustand: design · sim · settings · progress · ui · launch · mascot · academy · cues
                                                                             │
                                                          @payload/shared: computeBudgets, reviewGoNoGo, createMissionSim
 ```
 
-1. **Fases:** `app/missionMachine.ts` (XState v5) decide la fase: `menu -> briefing -> design -> review -> launch -> operation -> report`. Un No-Go (`isGo` falso) o `BACK_TO_DESIGN` vuelve a `design`; `REDESIGN` desde el informe incrementa el intento. Los datos no viven en la máquina.
+1. **Fases:** `app/missionMachine.ts` (XState v5) decide la fase: `menu -> briefing -> design -> review -> prelaunch -> launch -> operation -> report`. Tras el Go, la acción `rollPreLaunch` llama a `rollPreLaunchEvents` y entra en `prelaunch` (`PreLaunchScreen`); si no hay eventos pasa directo a `launch`. Un No-Go (`isGo` falso) o `BACK_TO_DESIGN` vuelve a `design`; `REDESIGN` desde el informe incrementa el intento. Los datos no viven en la máquina.
 2. **Estado:** stores Zustand (`state/`): `design` (diseño y objeto en mano, intento), `sim` (la `MissionSim`, snapshot vivo, eventos, resultado, aceleración `TIME_SCALES = [0,1,10,100,1000,10000]`), `settings` (persistido en `localStorage`), `ui` (overlay, vista 1ª/3ª, avisos) y `launch`.
 3. **Escenas:** cada `Canvas` se carga con `React.lazy`. En operación cada frame llama `useSim.getState().tick(dt)` -> `sim.step(dt * aceleración)`; el snapshot "vivo" se lee con `getLiveSnapshot()` sin re-render y React solo se actualiza a ~10 Hz o con eventos.
 4. **Mensajes del motor:** el motor devuelve `MessageRef { key, params }`. El cliente hace `i18n.t(ref.key, { ns: 'sim', ...ref.params })` (`tr()` en `i18n/index.ts`). Los params `component`, `structure`, `launcher` y `orbit` llevan **ids del catálogo**; las plantillas los muestran con `$t(catalog.{{component}})`, y `simLocales` genera el subárbol `catalog.<id>` desde los JSON. Los nombres del catálogo en la UI usan `lt(localizedText)`.
+
+### Módulos de la fase 2 en el cliente
+
+Cada uno separa lógica pura (testeada en node) de componentes React; todo lee datos del catálogo.
+
+| Carpeta | Qué hace |
+| --- | --- |
+| `src/mascot/` | Mascota por datos (`catalog.mascot`): disparadores `event:`, `resource-over:`, `phase:`, `help:`... -> diálogo (`pickMascotDialogue`); cola con enfriamiento 15 s, burbuja `aria-live`, avatar SVG o `sprite2d`. Desactivable |
+| `src/academy/` | Pasos de `catalog.academy` evaluados con `evaluateAcademyStep`; bloquea la revisión hasta `step-go`; panel con objetivo y resaltado del recurso |
+| `src/audio/` | Web Audio procedural: `musicLogic`/`soundLogic` (puros) -> `AudioEngine` (buses música/efectos/avisos, 5 capas, emisores 3D). Todo sonido pasa por `cue(id)` (suena + flash + subtítulo) |
+| `src/instrument/` | Vista del instrumento (`I`): estado (eclipse / degradado / sin señal) derivado del snapshot y de los eventos; acceso a `SurfaceScene` |
 
 ### i18n
 
@@ -103,22 +115,22 @@ se lee el idioma guardado por el usuario (`payload.lang`), no el del navegador. 
 
 | Suite | Archivos | Qué cubre |
 | --- | --- | --- |
-| `@payload/shared` (140 tests) | `orbital` | Kepler, eclipse, contacto (LEO a 400 km ≈ 92,6 min con tolerancia) |
+| `@payload/shared` (237 tests, 16 archivos) | `orbital`, `kepler` | Kepler, eclipse, contacto (LEO a 400 km ≈ 92,6 min con tolerancia); fase de Kepler |
 | | `budgets`, `review` | Presupuestos, estados, diseños parciales, bloqueadores y avisos |
-| | `simulation` | Determinismo (mismo resultado al trocear `step`), modelo de batería, datos y eventos |
-| | `scoring` | Puntuación e informe con cadena de causas |
-| | `catalog`, `balance` | Esquema zod, referencias, errores legibles; >= 2 diseños válidos y fallos por >= 4 causas |
+| | `simulation`, `events` | Determinismo (mismo resultado al trocear `step`), batería, datos; eventos por dificultad y pre-lanzamiento |
+| | `scoring`, `advisors`, `pedagogy` | Puntuación e informe; asesores por rol; mascota, glosario y Academia |
+| | `catalog`, `balance`, `balance-review`, `scenarios` | Esquema zod, referencias; >= 2 diseños válidos y fallos por >= 4 causas; fixtures por escenario (>= 2 válidas y >= 2 causas de fallo en cada uno) |
 | | `locales` | Paridad es/en y que toda `MessageRef` emitida existe y se resuelve |
 | | `purity`, `rng` | Sin Node/DOM/React/relojes/azar global en `src/`; generador de semillas |
-| `@payload/client` (9 tests) | `i18n` | Paridad de claves del namespace `ui` |
-| | `flow` | Transiciones de la máquina XState e integración con el motor |
-| | `fixes` | Semilla por intento, ayuda y textos, registro de eventos |
+| `@payload/client` (67 tests, 5 archivos) | `i18n` | Paridad de claves del namespace `ui` |
+| | `flow`, `fixes` | Transiciones de la máquina XState e integración con el motor; semilla por intento, ayuda y textos |
+| | `phase2`, `phase2b` | Academia, escenarios, mascota, glosario, Kepler; audio (sin `AudioContext` y simulado), capas de música, vista del instrumento, rover |
 
 Rendimiento fino fuera de los tests: `pnpm --filter @payload/shared bench`. No hay tests E2E ni de
 renderizado 3D (previstos para la fase 4, con Playwright).
 
 ## Cómo encajarán `game-server` y `api`
 
-- **`apps/game-server` (fase 3):** Colyseus con `MissionRoom` (hasta 4 jugadores). Mantiene el diseño en un esquema sincronizado y **ejecuta el mismo motor** (`@payload/shared`): los clientes solo envían acciones (agregar instrumento, votar Go) y el servidor valida, recalcula `computeBudgets` y simula con una semilla. Test clave: una sala produce el mismo `MissionResult` que `runMission` con igual diseño y semilla. Por eso el motor no puede depender del DOM ni de Node. En el cliente habrá una capa con la misma interfaz para alternar motor local (solitario) y servidor (sala).
+- **`apps/game-server` (fase 3):** (punto de partida concreto en `docs/phases/fase-3.md`) Colyseus con `MissionRoom` (hasta 4 jugadores). Mantiene el diseño en un esquema sincronizado y **ejecuta el mismo motor** (`@payload/shared`): los clientes solo envían acciones (agregar instrumento, votar Go) y el servidor valida, recalcula `computeBudgets` y simula con una semilla. Test clave: una sala produce el mismo `MissionResult` que `runMission` con igual diseño y semilla. Por eso el motor no puede depender del DOM ni de Node. En el cliente habrá una capa con la misma interfaz para alternar motor local (solitario) y servidor (sala).
 - **`apps/api` (fase 4):** NestJS + Prisma + PostgreSQL: cuentas, diseños guardados, rankings por escenario e informes. Reutiliza los tipos de `@payload/shared` (`MissionDesign`, `MissionResult`, `ScoreBreakdown`); el servidor de juego le envía resultados. Un ranking solo es fiable si el servidor recalcula la puntuación con el motor.
 - Ambos deben importar de `@payload/shared` y no duplicar tipos ni fórmulas. Si el contrato necesita cambios, solo aditivos (o ADR).

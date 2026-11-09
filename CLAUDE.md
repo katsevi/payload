@@ -14,7 +14,7 @@ lee este archivo, el `CLAUDE.md` del paquete que vas a tocar y `docs/STATUS.md` 
 | --- | --- | --- |
 | 0 · Preproducción | GDD, catálogo JSON, prototipo en hoja de cálculo | Entregables hechos · hito pendiente de prueba en papel (ver `docs/phases/fase-0.md`) |
 | 1 · Rebanada vertical en solitario | Hangar 1ª/3ª persona, 1 escenario LEO, panel de recursos, motor con tests, lanzamiento, operación, informe | Hecha · validada con observaciones (ver `docs/STATUS.md`) |
-| 2 · Contenido y aprendizaje | 5 escenarios, 6 órbitas, eventos, Academia con Rise, audio | Pendiente |
+| 2 · Contenido y aprendizaje | 5 escenarios, 6 órbitas, eventos, Academia con mascota guía (Orbi; Rise solo con autorización), audio | Hecha · validada con observaciones · hito pendiente de prueba con estudiantes (ver `docs/phases/fase-2.md`) |
 | 3 · Multijugador | Colyseus, roles, Go/No-Go compartido | Pendiente (`apps/game-server` es un marcador) |
 | 4 · Pulido y lanzamiento | Rankings, guardar/comparar, AWS, Sentry, E2E | Pendiente (`apps/api` es un marcador) |
 
@@ -31,7 +31,7 @@ payload/
 │  └─ api/           # Fase 4: NestJS + Prisma (marcador)
 ├─ packages/
 │  └─ shared/        # tipos, motor de simulación, mecánica orbital (TS puro, con tests)
-│     ├─ catalog/    # componentes.json, orbitas.json, lanzadores.json, escenarios.json
+│     ├─ catalog/    # componentes, orbitas, lanzadores, escenarios + glosario, mascota, academia (.json)
 │     └─ locales/    # textos del motor (namespace i18n `sim`) en es/en
 ├─ assets/
 │  ├─ models/source/ # modelos .glb ORIGINALES (nunca se modifican)
@@ -91,7 +91,7 @@ pnpm --filter @payload/shared bench        # rendimiento del motor (fuera de los
 
 - **Agentes del proyecto** (`.claude/agents/`): `sim-engine` (motor), `client-3d` (cliente R3F),
   `content-designer` (catálogo y balance), `asset-pipeline` (modelos 3D), `validator` (revisión
-  previa a entregar), `docs-writer` (documentación). Úsalos para delegar en la parte que les toca.
+  previa a entregar), `docs-writer` (documentación), `game-server` (servidor Colyseus, fase 3). Úsalos para delegar en la parte que les toca.
 - **Skills del proyecto** (`.claude/skills/`): `3d-models` (inspeccionar/optimizar GLB),
   `validate` (validación completa), `add-catalog-item` (añadir contenido al catálogo).
 - `docs/STATUS.md` es el traspaso entre sesiones: qué se hizo, qué falta, decisiones recientes.

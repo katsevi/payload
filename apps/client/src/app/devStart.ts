@@ -2,6 +2,7 @@ import { catalog, componentsForScenario } from '@payload/shared';
 import { useDesign } from '../state/design';
 import { useSim } from '../state/sim';
 import { useUi } from '../state/ui';
+import { campaignScenarios } from '../ui/catalogViews';
 import { missionMachine } from './missionMachine';
 
 /**
@@ -13,7 +14,7 @@ export function devInitialSnapshot() {
   const phase = new URLSearchParams(location.search).get('phase');
   if (phase !== 'launch' && phase !== 'operation' && phase !== 'report') return undefined;
   try {
-    const sc = catalog.scenarios[0]!;
+    const sc = campaignScenarios()[0] ?? catalog.scenarios[0]!;
     const comps = componentsForScenario(sc.id, catalog);
     const first = (s: string) => comps.find((c) => c.subsystem === s)?.id;
     const d = useDesign.getState();

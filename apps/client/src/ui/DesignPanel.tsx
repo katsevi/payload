@@ -8,6 +8,8 @@ import { useDesign } from '../state/design';
 import { Panel, fmt, useBudgets, useScenario } from './common';
 import { IssueList } from './Screens';
 import { ResourcePanel } from './ResourcePanel';
+import { AdvisorsPanel } from './LearningPanels';
+import { useAcademy } from '../academy/academyStore';
 
 /** Selectores de órbita y lanzador (permitidos por el escenario). Usado en la consola 3D y en el modo 2D. */
 export function MissionSelectors() {
@@ -122,8 +124,9 @@ export function LimitingSummary() {
 export function AccessibleDesign({ onReview }: { onReview: () => void }) {
   const { t } = useTranslation();
   const issues = useDesign((s) => s.lastIssues);
+  const academy = useAcademy((s) => s.active);
   return (
-    <div className="grid h-full grid-cols-1 gap-4 overflow-auto p-4 pt-16 lg:grid-cols-[1fr_22rem]">
+    <div className={`grid h-full grid-cols-1 gap-4 overflow-auto p-4 lg:grid-cols-[1fr_22rem] ${academy ? 'pt-64' : 'pt-16'}`}>
       <Panel title={t('hangar.accessibleTitle')}>
         <div className="grid gap-6 md:grid-cols-2">
           <div>
@@ -144,6 +147,7 @@ export function AccessibleDesign({ onReview }: { onReview: () => void }) {
             </button>
           </div>
         </div>
+        <AdvisorsPanel className="mt-4 !p-3" />
       </Panel>
       <div className="pointer-events-auto">
         <ResourcePanel />

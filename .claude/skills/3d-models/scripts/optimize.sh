@@ -12,12 +12,12 @@ if [[ $# -lt 2 ]]; then
 fi
 
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
-INPUT="$(realpath "$1")"
-OUTPUT="$(realpath -m "$2")"
 MODE="${3:-}"
 
-[[ -f "$INPUT" ]] || { echo "No existe el origen: $INPUT" >&2; exit 1; }
-mkdir -p "$(dirname "$OUTPUT")"
+[[ -f "$1" ]] || { echo "No existe el origen: $1" >&2; exit 1; }
+INPUT="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+mkdir -p "$(dirname "$2")"
+OUTPUT="$(cd "$(dirname "$2")" && pwd)/$(basename "$2")"
 
 case "$MODE" in
   --preserve)
@@ -30,7 +30,8 @@ esac
 
 (cd "$ROOT" && pnpm exec gltf-transform "${CMD[@]}")
 
-before=$(stat -c %s "$INPUT")
-after=$(stat -c %s "$OUTPUT")
+# wc -c en vez de `stat -c` (portable: Git Bash, macOS y Linux)
+before=$(wc -c < "$INPUT" | tr -d ' ')
+after=$(wc -c < "$OUTPUT" | tr -d ' ')
 awk -v b="$before" -v a="$after" -v n="$(basename "$OUTPUT")" \
   'BEGIN { printf "%s: %.2f MB -> %.2f MB (%.1f%%)\n", n, b/1048576, a/1048576, (a/b)*100 }'

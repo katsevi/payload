@@ -194,6 +194,145 @@ export interface ScenarioDef {
    * Presupuesto de operación = este valor × requirements.minLifetimeYears. Por defecto 1.
    */
   operationsCostMUSDPerYear?: number;
+  /**
+   * Ajuste opcional de los eventos aleatorios de este escenario (fase 2). Lo que falte se toma de
+   * la tabla por dificultad (`EVENT_TABLES[difficulty]`). Solo actúa si `eventsEnabled` es true.
+   */
+  eventTuning?: ScenarioEventTuning;
+}
+
+// ─── Eventos aleatorios (fase 2) ────────────────────────────────────────────
+
+/** Eventos del ENTORNO (no dependen del diseño): un sorteo por día con pesos relativos. */
+export type EnvironmentEventType = 'solar-storm' | 'debris-avoidance' | 'reaction-wheel-failure';
+
+/** Rango entero cerrado [min, max]. */
+export interface NumberRange {
+  min: number;
+  max: number;
+}
+
+/**
+ * Tabla de eventos de una dificultad. Ver constants.ts (`EVENT_TABLES`) y el ADR 0008.
+ *  - Entorno: un sorteo diario con `environmentChancePerDay` y pesos `environmentWeights`.
+ *  - Salud de la nave (dependen del diseño): sobrecalentamiento (si el margen térmico es justo)
+ *    y falla de componente (según fiabilidad y radiación de la órbita).
+ *  - Pre-operación: retraso de lanzamiento y recorte de presupuesto (`rollPreLaunchEvents`).
+ */
+export interface EventTable {
+  environmentChancePerDay: number;
+  environmentWeights: Record<EnvironmentEventType, number>;
+  /** Probabilidad diaria base de sobrecalentamiento; se multiplica por el factor térmico (0-2). */
+  overheatingChancePerDay: number;
+  /** Aceleración de juego de los fallos de componente (0 = sin fallos genéricos). */
+  componentFailureAcceleration: number;
+  launchDelayChance: number;
+  launchDelayMonths: NumberRange;
+  budgetCutChance: number;
+  /** Porcentaje entero de recorte (5 = 5 %). */
+  budgetCutPct: NumberRange;
+}
+
+/** Ajuste parcial de la tabla de eventos para un escenario. */
+export type ScenarioEventTuning = Partial<Omit<EventTable, 'environmentWeights'>> & {
+  environmentWeights?: Partial<Record<EnvironmentEventType, number>>;
+};
+
+/** Eventos sorteados ANTES del lanzamiento (tras el Go). */
+export type PreLaunchEventType = 'launch-delay' | 'budget-cut';
+
+/**
+ * Resultado de `rollPreLaunchEvents`. El cliente lo pasa a `createMissionSim`/`runMission` en
+ * `MissionSimOptions.preLaunch` y a `computeBudgets(design, cat, preLaunch)` para el panel.
+ */
+export interface PreLaunchOutcome {
+  /** Semilla con la que se sortearon (normalmente la misma del intento). */
+  seed: number;
+  /** Meses de retraso añadidos al calendario (0 = sin retraso). */
+  delayMonths: number;
+  /** Recorte del presupuesto del escenario en % (0 = sin recorte). */
+  budgetCutPct: number;
+  /** Recorte en MUSD (= budgetMUSD × budgetCutPct / 100). */
+  budgetCutMUSD: number;
+  /** Eventos `launch-delay` / `budget-cut` (tSeconds = 0), para la consola y la mascota. */
+  events: SimEvent[];
+  /** Recursos que pasan a excedidos SOLO por estos eventos ('time' y/o 'budget'). */
+  overruns: ResourceId[];
+}
+
+// ─── Contenido pedagógico (fase 2) ──────────────────────────────────────────
+
+/** Entrada del glosario (catalog/glosario.json). */
+export interface GlossaryEntry {
+  id: string;
+  term: LocalizedText;
+  definition: LocalizedText;
+  why?: LocalizedText;
+  /** Ids de otras entradas del glosario. */
+  related?: string[];
+}
+
+export type MascotExpression = 'happy' | 'thinking' | 'worried' | 'celebrating';
+
+/**
+ * Diálogo de la mascota. `trigger` tiene la forma `<tipo>:<valor>`:
+ *   event:<SimEventType> · resource-over:<ResourceId> · resource-tight:<ResourceId> ·
+ *   phase:<MissionPhase> · academy:<id de paso> · help:<contexto> · review:go|no-go ·
+ *   report:success|failure
+ */
+export interface MascotDialogue {
+  id: string;
+  trigger: string;
+  expression: MascotExpression;
+  text: LocalizedText;
+}
+
+/** Mascota intercambiable por datos (catalog/mascota.json). Plan B del GDD: mascota propia. */
+export interface MascotDef {
+  id: string;
+  name: LocalizedText;
+  description?: LocalizedText;
+  /** Modelo GLB opcional (relativo a /models). */
+  model?: string;
+  /** Expresiones disponibles (morph targets o sprites). */
+  expressions: MascotExpression[];
+  /** Versión 2D opcional (modo accesible). */
+  sprite2d?: string;
+  dialogues: MascotDialogue[];
+}
+
+export type AcademyStepResource = ResourceId | 'intro' | 'launch' | 'operation' | 'report';
+export type AcademyGoalType = 'add-component' | 'select-orbit' | 'select-launcher' | 'resource-ok' | 'go' | 'manual';
+
+/**
+ * Objetivo de un paso de la Academia (ver `evaluateAcademyStep`):
+ *  - add-component: `value` = id de componente o de subsistema (sin value: cualquier pieza).
+ *  - select-orbit / select-launcher: `value` = id exigido (sin value: cualquiera).
+ *  - resource-ok: `value` = ResourceId (sin value: el `resource` del paso); no excedido y evaluable.
+ *  - go: el Go/No-Go da Go.
+ *  - manual: siempre cumplido; el cliente avanza con "Siguiente".
+ */
+export interface AcademyGoal {
+  type: AcademyGoalType;
+  value?: string;
+}
+
+export interface AcademyStep {
+  id: string;
+  resource: AcademyStepResource;
+  title: LocalizedText;
+  body: LocalizedText;
+  goal: AcademyGoal;
+}
+
+/** Academia (catalog/academia.json): mini-misión guiada sobre un escenario del catálogo. */
+export interface AcademyDef {
+  id: string;
+  scenarioId: string;
+  title: LocalizedText;
+  /** Mascota que guía (id de `Catalog.mascot`), opcional. */
+  mascotId?: string;
+  steps: AcademyStep[];
 }
 
 /** Catálogo completo cargado desde packages/shared/catalog/*.json */
@@ -202,6 +341,12 @@ export interface Catalog {
   orbits: OrbitDef[];
   launchers: LauncherDef[];
   scenarios: ScenarioDef[];
+  /** Glosario (catalog/glosario.json). Opcional para no romper catálogos de fase 1. */
+  glossary?: GlossaryEntry[];
+  /** Mascota guía (catalog/mascota.json). */
+  mascot?: MascotDef;
+  /** Academia (catalog/academia.json). */
+  academy?: AcademyDef;
 }
 
 // ─── Diseño del jugador ─────────────────────────────────────────────────────
@@ -318,7 +463,11 @@ export type SimEventType =
   | 'reaction-wheel-failure'
   | 'debris-avoidance'
   | 'component-failure'
-  | 'mission-complete';
+  | 'mission-complete'
+  // Fase 2 (aditivo)
+  | 'overheating'
+  | 'launch-delay'
+  | 'budget-cut';
 
 export interface SimEvent {
   type: SimEventType;
@@ -331,8 +480,16 @@ export interface SimEvent {
 export interface SimSnapshot {
   tSeconds: number;
   day: number;
-  /** 0-1 posición a lo largo de la órbita (para colocar la nave en 3D). */
+  /**
+   * 0-1 posición ANGULAR a lo largo de la órbita (anomalía verdadera / 2π, desde el perigeo), para
+   * colocar la nave en 3D. En órbitas elípticas avanza rápido cerca del perigeo y lento cerca del
+   * apogeo (2.ª ley de Kepler); en circulares coincide con `meanPhase`.
+   */
   orbitPhase: number;
+  /** 0-1 fracción del periodo transcurrida (anomalía media / 2π, uniforme en el tiempo). */
+  meanPhase?: number;
+  /** Altitud actual sobre la superficie (km), r(ν) − R⊕. */
+  altitudeKm?: number;
   inEclipse: boolean;
   inContact: boolean;
   batteryWh: number;
@@ -349,6 +506,12 @@ export interface MissionSimOptions {
   seed?: number;
   /** Paso fijo interno (s). Por defecto lo decide el motor. */
   fixedStepSeconds?: number;
+  /**
+   * Eventos pre-operación ya sorteados con `rollPreLaunchEvents` (fase 2). Si se pasan, el retraso
+   * se suma al calendario, el recorte reduce el presupuesto, sus eventos encabezan `events` y se
+   * reflejan en presupuestos, puntuación e informe. Si se omite, no hay eventos pre-operación.
+   */
+  preLaunch?: PreLaunchOutcome;
 }
 
 /**
@@ -377,6 +540,10 @@ export interface MissionResult {
   minBatteryPct: number;
   /** Capacidad de la batería al final, en % de la nominal (baja por desgaste y agotamientos). */
   finalBatteryCapacityPct?: number;
+  /** Número de agotamientos de batería (apagones) durante la operación. */
+  batteryDepletions?: number;
+  /** Eventos pre-operación aplicados (si se pasaron en las opciones). */
+  preLaunch?: PreLaunchOutcome;
   events: SimEvent[];
   budgets: BudgetReport;
   score: ScoreBreakdown;
@@ -404,4 +571,16 @@ export interface ReportEntry {
   causes: MessageRef[];
   /** Sugerencia de rediseño. */
   suggestion?: MessageRef;
+}
+
+// ─── Asesores por rol en solitario (fase 2) ─────────────────────────────────
+
+/** Roles del equipo (en solitario los "interpreta" el juego; en fase 3, jugadores). */
+export type AdvisorRole = 'director' | 'engineering' | 'science' | 'operations';
+
+/** Consejo de un asesor (ver `adviseByRole`). */
+export interface RoleAdvice {
+  role: AdvisorRole;
+  message: MessageRef;
+  severity: IssueSeverity;
 }

@@ -40,7 +40,8 @@
       "noOrbit": "La batería tiene {{capacityWh}} Wh ({{usableWh}} Wh útiles). Elige una órbita para saber cuánto dura la sombra."
     },
     "budget": {
-      "total": "Piezas {{componentsMUSD}} M + lanzamiento {{launcherMUSD}} M + operación {{opsMUSD}} M = {{totalMUSD}} M USD de {{budgetMUSD}} M disponibles."
+      "total": "Piezas {{componentsMUSD}} M + lanzamiento {{launcherMUSD}} M + operación {{opsMUSD}} M = {{totalMUSD}} M USD de {{budgetMUSD}} M disponibles.",
+      "cut": "Piezas {{componentsMUSD}} M + lanzamiento {{launcherMUSD}} M + operación {{opsMUSD}} M = {{totalMUSD}} M USD. Tras un recorte de {{cutMUSD}} M, de los {{originalMUSD}} M iniciales quedan {{budgetMUSD}} M disponibles."
     },
     "data": {
       "storage": "Los instrumentos generan {{generatedMbitPerDay}} Mbit al día y la computadora guarda {{storageMbit}} Mbit. Conviene poder guardar al menos un día por si se pierde alguna pasada."
@@ -52,7 +53,8 @@
     },
     "time": {
       "schedule": "La pieza más lenta, $t(catalog.{{component}}), marca el ritmo; con la integración son {{devMonths}} meses de desarrollo, más {{leadMonths}} meses de espera del lanzador: {{totalMonths}} de {{maxMonths}} meses.",
-      "empty": "Aún no hay piezas que construir. Espera del lanzador: {{leadMonths}} meses; tienes {{maxMonths}} meses."
+      "empty": "Aún no hay piezas que construir. Espera del lanzador: {{leadMonths}} meses; tienes {{maxMonths}} meses.",
+      "delayed": "Desarrollo {{devMonths}} meses + espera del lanzador {{leadMonths}} meses + retraso imprevisto {{delayMonths}} meses = {{totalMonths}} de {{maxMonths}} meses."
     },
     "lifetime": {
       "drag": "El roce con la atmósfera en $t(catalog.{{orbit}}) hace caer la nave en {{dragYears}} años, antes de que fallen sus piezas (unos {{reliabilityYears}} años). Vida útil: {{lifetimeYears}} años; se piden {{requiredYears}}.",
@@ -127,7 +129,18 @@
     "debrisAvoidance": "Alerta de basura espacial: maniobra de esquiva, instrumentos apagados {{hours}} h.",
     "reactionWheelFailure": "Falla una rueda de reacción: el apuntado empeora a {{backupDeg}}°.",
     "missionComplete": "¡Misión cumplida! {{days}} días de operación completados.",
-    "batteryWornOut": "La batería se ha desgastado por descargas profundas: solo le queda el {{capacityPct}} % de su capacidad y ya no sostiene la nave. Misión perdida."
+    "batteryWornOut": "La batería se ha desgastado por descargas profundas: solo le queda el {{capacityPct}} % de su capacidad y ya no sostiene la nave. Misión perdida.",
+    "launchDelay": "Retraso de lanzamiento: un problema en la integración retrasa la ventana {{months}} meses. Calendario: {{totalMonths}} de {{maxMonths}} meses.",
+    "budgetCut": "Recorte de presupuesto del {{pct}} %: la agencia retira {{cutMUSD}} M USD. Quedan {{budgetMUSD}} M USD y la misión cuesta {{totalMUSD}} M USD.",
+    "overheating": "Sobrecalentamiento: la nave genera {{powerW}} W de calor y el control térmico solo disipa {{dissipationW}} W. Modo seguro térmico: instrumentos apagados {{hours}} h.",
+    "componentFailure": {
+      "payload": "Falla $t(catalog.{{component}}): el instrumento deja de funcionar. Quedan {{remaining}} instrumento(s) operativos.",
+      "comms": "Falla $t(catalog.{{component}}): sin otra radio, se pasa a la antena de baja ganancia ({{downlinkMbps}} Mbit/s).",
+      "commsBackup": "Falla $t(catalog.{{component}}): la otra radio toma el relevo a {{downlinkMbps}} Mbit/s.",
+      "obc": "Falla $t(catalog.{{component}}): parte de la memoria se pierde y quedan {{storageMbit}} Mbit de almacenamiento.",
+      "adcs": "Falla $t(catalog.{{component}}): el apuntado pasa a {{accuracyDeg}}°.",
+      "isolated": "Falla $t(catalog.{{component}}): la protección de fallos la aísla y la nave pasa {{hours}} h en modo seguro mientras el equipo de tierra lo revisa."
+    }
   },
   "report": {
     "score": "Puntuación total: {{total}} (objetivos {{objectives}}, ciencia {{science}}, eficiencia {{efficiency}}).",
@@ -173,7 +186,9 @@
     "event": {
       "solarStorm": "Hubo {{count}} tormenta(s) solar(es) durante la misión.",
       "reactionWheel": "Una rueda de reacción falló durante la misión.",
-      "debris": "Hubo {{count}} maniobra(s) para esquivar basura espacial ({{hours}} h sin observar cada una)."
+      "debris": "Hubo {{count}} maniobra(s) para esquivar basura espacial ({{hours}} h sin observar cada una).",
+      "overheating": "La nave se sobrecalentó {{count}} vez/veces y apagó los instrumentos {{hours}} h cada una.",
+      "componentFailure": "Fallaron {{count}} pieza(s) durante la operación."
     },
     "margin": {
       "tight": {
@@ -196,6 +211,10 @@
         "time": "El recurso tiempo quedó excedido ({{marginPct}} %).",
         "lifetime": "El recurso vida útil quedó excedido ({{marginPct}} %)."
       }
+    },
+    "prelaunch": {
+      "delay": "El lanzamiento se retrasó {{months}} meses: el calendario quedó en {{totalMonths}} de {{maxMonths}} meses.",
+      "budgetCut": "Un recorte del {{pct}} % ({{cutMUSD}} M USD) dejó {{budgetMUSD}} M USD para una misión de {{totalMUSD}} M USD."
     }
   },
   "cause": {
@@ -216,7 +235,11 @@
     "dragLifetime": "El roce con la atmósfera en $t(catalog.{{orbit}}) hace caer la nave en {{dragYears}} años.",
     "reliabilityLifetime": "La probabilidad de que todas las piezas funcionen es del {{reliabilityPct}} % y la radiación ({{radiationPct}} %) la reduce: unos {{reliabilityYears}} años.",
     "wheelPointing": "Sin la rueda, los magnetopares solo apuntan con {{backupDeg}}° y las cámaras exigentes pierden la mitad de sus imágenes útiles.",
-    "deepDischarge": "Por debajo de la descarga segura la batería pierde un {{wearPct}} % de capacidad por hora."
+    "deepDischarge": "Por debajo de la descarga segura la batería pierde un {{wearPct}} % de capacidad por hora.",
+    "noScheduleMargin": "El calendario original ya ocupaba {{nominalMonths}} de {{maxMonths}} meses: no quedaba margen para imprevistos.",
+    "noBudgetMargin": "La misión costaba {{totalMUSD}} M USD de {{originalMUSD}} M: casi sin reserva para un recorte.",
+    "thermalMargin": "La nave genera {{powerW}} W de calor y el control térmico disipa {{dissipationW}} W (margen {{marginPct}} %). Con poco margen, cualquier pico la calienta de más.",
+    "reliabilityRadiation": "La probabilidad de que todas las piezas funcionen es del {{reliabilityPct}} %, y la radiación de $t(catalog.{{orbit}}) ({{radiationPct}} %) acelera los fallos."
   },
   "suggest": {
     "reliableLauncher": "Prueba con un lanzador más fiable, o vuelve a intentarlo: la mala suerte también existe.",
@@ -234,6 +257,63 @@
     "moreReliable": "Usa piezas más fiables o menos piezas: cada una es un punto de fallo.",
     "addInstrument": "Añade otro instrumento para aumentar el valor científico.",
     "fixFailureFirst": "Primero resuelve lo que hizo terminar la misión antes de tiempo: sin nave no hay datos.",
-    "redundancy": "Un apuntado con margen (o piezas de respaldo) hace la misión más robusta."
+    "redundancy": "Un apuntado con margen (o piezas de respaldo) hace la misión más robusta.",
+    "scheduleMargin": "Deja margen en el calendario (piezas más rápidas de construir o un lanzador con menos espera): los retrasos son habituales.",
+    "budgetMargin": "Guarda una reserva de presupuesto (las agencias suelen pedir un 10-20 %): los recortes pasan.",
+    "betterThermal": "Usa un control térmico que disipe al menos un 15 % más que el consumo, o reduce el consumo."
+  },
+  "advisor": {
+    "director": {
+      "go": "Directora de misión: el diseño pasa la revisión. Si los márgenes te convencen, da el Go.",
+      "noGo": "Directora de misión: hay {{blockers}} problema(s) que impiden lanzar. Resuélvelos antes de pedir el Go.",
+      "over": {
+        "budget": "Directora de misión: nos pasamos del presupuesto un {{overPct}} %. La agencia no aprobará la misión así.",
+        "time": "Directora de misión: el calendario se pasa un {{overPct}} %. Llegaríamos tarde a la ventana de lanzamiento."
+      },
+      "tight": {
+        "budget": "Directora de misión: solo queda un {{marginPct}} % de presupuesto. Un recorte nos dejaría fuera.",
+        "time": "Directora de misión: solo hay un {{marginPct}} % de margen en el calendario. Un retraso nos haría llegar tarde."
+      }
+    },
+    "engineering": {
+      "over": {
+        "mass": "Ingeniería: la nave pesa un {{overPct}} % más de lo que se puede lanzar o sostener. Quita peso o cambia de lanzador o estructura.",
+        "power": "Ingeniería: consumimos un {{overPct}} % más de lo que generan los paneles de media. Sin más paneles la batería se vaciará.",
+        "battery": "Ingeniería: la batería no aguanta la sombra; le falta un {{overPct}} % de energía útil."
+      },
+      "tight": {
+        "mass": "Ingeniería: la masa va justa ({{marginPct}} % de margen).",
+        "power": "Ingeniería: la energía va justa ({{marginPct}} % de margen); una tormenta solar nos pondría en apuros.",
+        "battery": "Ingeniería: la batería va justa en el eclipse ({{marginPct}} % de margen)."
+      },
+      "stormRisk": "Ingeniería: si llega una tormenta solar necesitaríamos {{deficitWh}} Wh extra y la batería solo da {{usableWh}} Wh útiles.",
+      "thermal": "Ingeniería: generamos {{powerW}} W de calor y solo disipamos {{dissipationW}} W. Riesgo de sobrecalentamiento.",
+      "thermalTight": "Ingeniería: el control térmico va justo ({{marginPct}} % de margen); en operación podría sobrecalentarse.",
+      "mountSlots": "Ingeniería: hay {{used}} piezas para {{slots}} puntos de montaje.",
+      "missing": "Ingeniería: faltan {{count}} subsistema(s) imprescindible(s) para volar.",
+      "ok": "Ingeniería: masa, energía y batería con margen sano. La nave se sostiene."
+    },
+    "science": {
+      "noPayload": "Ciencia: sin instrumentos no hay misión. Monta al menos uno.",
+      "resolution": "Ciencia: no llegamos al detalle pedido ({{requiredM}} m). Baja la órbita o usa una cámara mejor.",
+      "science": "Ciencia: el valor científico es {{science}} y se piden {{required}}. Añade o mejora instrumentos.",
+      "revisit": "Ciencia: pasamos por el mismo sitio cada {{revisitDays}} días y se piden {{maxDays}}.",
+      "pointing": "Ciencia: $t(catalog.{{component}}) necesita apuntar con {{requiredDeg}}° y el control de actitud no llega.",
+      "ok": "Ciencia: los instrumentos cumplen los requisitos (valor científico {{science}})."
+    },
+    "operations": {
+      "over": {
+        "data": "Operaciones: un día de datos no cabe en la memoria (excede un {{overPct}} %). Si perdemos una pasada, perdemos datos.",
+        "comms": "Operaciones: generamos un {{overPct}} % más de datos de los que podemos bajar. Lo que no baje se pierde.",
+        "lifetime": "Operaciones: la nave no durará lo que pide la misión (le falta un {{overPct}} %)."
+      },
+      "tight": {
+        "data": "Operaciones: la memoria va justa ({{marginPct}} % de margen).",
+        "comms": "Operaciones: el enlace con tierra va justo ({{marginPct}} % de margen).",
+        "lifetime": "Operaciones: la vida útil va justa ({{marginPct}} % de margen)."
+      },
+      "downlink": "Operaciones: bajaríamos {{achievedMbitPerDay}} Mbit al día y se piden {{requiredMbitPerDay}}.",
+      "ok": "Operaciones: datos, enlace y vida útil con margen. Podremos operar la nave."
+    }
   }
 }

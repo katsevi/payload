@@ -1,0 +1,74 @@
+{
+  "scenarioId": "mars-aurora-expedition",
+  "valid": [
+    {
+      "name": "rover-con-rtg-condor",
+      "design": {
+        "scenarioId": "mars-aurora-expedition",
+        "componentIds": ["structure-heavy-bus", "payload-surface-rover", "payload-hires-camera", "adcs-star-tracker", "comms-x-band", "obc-advanced", "thermal-heat-pipe-large", "battery-xl", "power-rtg", "power-rtg"],
+        "orbitId": "TLI",
+        "launcherId": "launcher-condor"
+      }
+    },
+    {
+      "name": "orbitador-paneles-jaguar",
+      "design": {
+        "scenarioId": "mars-aurora-expedition",
+        "componentIds": ["structure-heavy-bus", "payload-hires-camera", "payload-spectrograph", "adcs-star-tracker", "comms-high-gain-antenna", "obc-advanced", "thermal-heat-pipe-large", "battery-xl", "power-deep-space-wings"],
+        "orbitId": "TLI",
+        "launcherId": "launcher-jaguar"
+      }
+    },
+    {
+      "name": "orbitador-paneles-condor",
+      "design": {
+        "scenarioId": "mars-aurora-expedition",
+        "componentIds": ["structure-heavy-bus", "payload-hires-camera", "payload-spectrograph", "adcs-star-tracker", "comms-x-band", "obc-advanced", "thermal-heat-pipe-large", "battery-xl", "power-deep-space-wings"],
+        "orbitId": "TLI",
+        "launcherId": "launcher-condor"
+      }
+    }
+  ],
+  "failing": [
+    {
+      "name": "rtg-con-quetzal-llega-tarde",
+      "cause": "time",
+      "design": {
+        "scenarioId": "mars-aurora-expedition",
+        "componentIds": ["structure-heavy-bus", "payload-surface-rover", "payload-hires-camera", "adcs-star-tracker", "comms-high-gain-antenna", "obc-advanced", "thermal-heat-pipe-large", "battery-xl", "power-rtg", "power-rtg"],
+        "orbitId": "TLI",
+        "launcherId": "launcher-quetzal"
+      }
+    },
+    {
+      "name": "bateria-corta-en-eclipse",
+      "cause": "battery",
+      "design": {
+        "scenarioId": "mars-aurora-expedition",
+        "componentIds": ["structure-heavy-bus", "payload-hires-camera", "payload-spectrograph", "adcs-star-tracker", "comms-x-band", "obc-advanced", "thermal-heat-pipe-large", "battery-large", "power-deep-space-wings"],
+        "orbitId": "TLI",
+        "launcherId": "launcher-condor"
+      }
+    },
+    {
+      "name": "instrumentos-modestos",
+      "cause": "req-science",
+      "design": {
+        "scenarioId": "mars-aurora-expedition",
+        "componentIds": ["structure-heavy-bus", "payload-multispectral-basic", "payload-thermal-radiometer", "adcs-star-tracker", "comms-x-band", "obc-advanced", "thermal-heat-pipe-large", "battery-xl", "power-deep-space-wings"],
+        "orbitId": "TLI",
+        "launcherId": "launcher-condor"
+      }
+    },
+    {
+      "name": "expedicion-de-lujo",
+      "cause": "budget",
+      "design": {
+        "scenarioId": "mars-aurora-expedition",
+        "componentIds": ["structure-shielded-bus", "payload-surface-rover", "payload-hires-camera", "payload-hyperspectral", "adcs-star-tracker", "comms-high-gain-antenna", "obc-rad-hard", "thermal-heat-pipe-large", "battery-xl", "battery-xl", "power-rtg", "power-rtg", "power-rtg"],
+        "orbitId": "TLI",
+        "launcherId": "launcher-quetzal"
+      }
+    }
+  ]
+}

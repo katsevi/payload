@@ -6,11 +6,24 @@ export interface SettingsState {
   sensitivity: number;
   accessible2D: boolean;
   shadows: boolean;
+  /** Mascota guía activa (se puede desactivar para jugadores avanzados). */
+  mascot: boolean;
+  /** Silencia todo el audio (los avisos visuales y subtítulos siguen funcionando). */
+  muteAll: boolean;
+  /** Volúmenes 0-1 de los tres buses: música, efectos y avisos/voz. */
+  volMusic: number;
+  volSfx: number;
+  volAlerts: number;
+  /** Muestra subtítulos de sonido ("[alarma de batería]"). */
+  soundCaptions: boolean;
   set: (patch: Partial<Omit<SettingsState, 'set'>>) => void;
 }
 
 const KEY = 'payload.settings';
-const defaults = { fov: 75, headBob: false, sensitivity: 1, accessible2D: false, shadows: true };
+const defaults = {
+  fov: 75, headBob: false, sensitivity: 1, accessible2D: false, shadows: true, mascot: true,
+  muteAll: false, volMusic: 0.5, volSfx: 0.8, volAlerts: 0.8, soundCaptions: false,
+};
 
 function load(): typeof defaults {
   try {
@@ -27,8 +40,9 @@ export const useSettings = create<SettingsState>((set, get) => ({
   set: (patch) => {
     set(patch);
     try {
-      const { fov, headBob, sensitivity, accessible2D, shadows } = get();
-      localStorage.setItem(KEY, JSON.stringify({ fov, headBob, sensitivity, accessible2D, shadows }));
+      const { set: _set, ...persisted } = get();
+      void _set;
+      localStorage.setItem(KEY, JSON.stringify(persisted));
     } catch {
       /* ignorar */
     }

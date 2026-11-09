@@ -5,9 +5,19 @@
  *  - objetivos: criterios que exige el escenario, cada uno 0-1:
  *      operación completada (días operados / días previstos), datos bajados (media diaria sobre
  *      los días previstos / mínimo exigido), resolución (exigida / lograda), vida útil
- *      (estimada / exigida), ciencia (valor / mínimo), revisita (máxima / real) y viabilidad
+ *      (curva dura, ver lifetimeCriterion), ciencia (valor / mínimo), revisita (máxima / real) y viabilidad
  *      (0 si algún recurso duro —masa, energía, batería, presupuesto, tiempo— está excedido: ese
  *      diseño no habría pasado el Go/No-Go).
+ *      Fase 2 (ADR 0008):
+ *        · vida útil más dura (revisión de balance): lineal desde 0 al 75 % de la vida exigida
+ *          (ver lifetimeCriterion), en vez de estimada/exigida.
+ *        · energía (solo misiones completadas con agotamientos o desgaste): la batería terminó sana.
+ *            energía = clamp(1 − 0.15 · agotamientos) · clamp((capacidad final % − 60) / 40)
+ *          (60 % es el umbral en que la batería queda inservible). Terminar al borde de la muerte
+ *          ya no puntúa como una misión limpia, aunque el aviso power-storm siga siendo un aviso.
+ *        · sobrecostes por eventos pre-operación (retraso, recorte): un recurso duro excedido SOLO
+ *          por esos eventos no anula la viabilidad (el diseño pasó el Go); en su lugar añade el
+ *          criterio overrun-<recurso> = disponible / usado.
  *      objetivos = 100 · media(criterios) · √min(criterios): quedarse un poco corto en algo
  *      resta poco, pero fallar del todo un objetivo (p. ej. no bajar datos) hunde la nota.
  *      0 si el lanzamiento falla.
@@ -18,7 +28,8 @@
  *      multiplicada por (1 − 0.25 · nº de recursos excedidos): pasarse de un recurso cuesta caro.
  *  - colaboración: 100 en solitario salvo que se indique otro valor (fase 3: multijugador).
  */
-import type { BudgetReport, ScenarioDef, ScoreBreakdown } from './types';
+import { DEPLETION_SCORE_PENALTY, BATTERY_DEAD_FRACTION, LIFETIME_CRITERION_FLOOR } from './constants';
+import type { BudgetReport, ResourceId, ScenarioDef, ScoreBreakdown } from './types';
 
 export interface ScoreInput {
   scenario: ScenarioDef;
@@ -29,6 +40,34 @@ export interface ScoreInput {
   collaboration?: number;
   /** Revisita de la órbita elegida (días), para el criterio de revisita. Opcional. */
   revisitDays?: number;
+  /** Agotamientos de batería durante la operación (criterio de energía). Opcional. */
+  batteryDepletions?: number;
+  /** Capacidad final de la batería en % de la nominal (criterio de energía). Opcional. */
+  finalBatteryCapacityPct?: number;
+  /** Recursos excedidos solo por eventos pre-operación (PreLaunchOutcome.overruns). Opcional. */
+  eventOverruns?: ResourceId[];
+}
+
+/**
+ * Criterio de vida útil 0-1: lineal desde 0 al 75 % de la vida exigida hasta 1 al 100 %,
+ *   vida = clamp((estimada/exigida − 0,75) / 0,25).
+ * Quedarse corto de vida es incumplir la misión: 3,6 de 4 años (90 %) vale 0,6, no 0,9.
+ */
+export function lifetimeCriterion(lifetimeYears: number, requiredYears: number): number {
+  if (requiredYears <= 0) return 1;
+  return clamp((lifetimeYears / requiredYears - LIFETIME_CRITERION_FLOOR) / (1 - LIFETIME_CRITERION_FLOOR));
+}
+
+/**
+ * Criterio de energía 0-1: clamp(1 − 0.15·agotamientos) · clamp((cap − 60) / 40).
+ * null si la batería terminó intacta (sin agotamientos y al 100 %): no añade criterio.
+ */
+export function energyCriterion(depletions: number | undefined, finalCapacityPct: number | undefined): number | null {
+  const dep = Math.max(0, depletions ?? 0);
+  const cap = finalCapacityPct ?? 100;
+  if (dep === 0 && cap >= 100 - 1e-9) return null;
+  const deadPct = BATTERY_DEAD_FRACTION * 100;
+  return clamp(1 - DEPLETION_SCORE_PENALTY * dep) * clamp((cap - deadPct) / (100 - deadPct));
 }
 
 export const HEALTHY_MARGIN_MIN = 0.15;
@@ -53,11 +92,21 @@ export function objectiveCriteria(input: ScoreInput): Record<string, number> {
   const { scenario, budgets, daysOperated, dataDownlinkedMbit } = input;
   const req = scenario.requirements;
   const t = budgets.totals;
-  const hardOver = budgets.resources.some((r) => r.status === 'over' && (HARD_RESOURCES as readonly string[]).includes(r.id));
+  const eventOverruns = new Set<string>(input.eventOverruns ?? []);
+  const isHard = (id: string) => (HARD_RESOURCES as readonly string[]).includes(id);
+  const hardOver = budgets.resources.some((r) => r.status === 'over' && isHard(r.id) && !eventOverruns.has(r.id));
   const criteria: Record<string, number> = {
     completion: clamp(daysOperated / scenario.operationDays),
     feasibility: hardOver ? 0 : 1,
   };
+  for (const r of budgets.resources) {
+    if (r.status === 'over' && isHard(r.id) && eventOverruns.has(r.id)) {
+      criteria[`overrun-${r.id}`] = r.used > 0 ? clamp(r.available / r.used) : 0;
+    }
+  }
+  // Solo en misiones completadas: si la nave se perdió, ya lo mide `completion`.
+  const energy = criteria.completion! >= 1 ? energyCriterion(input.batteryDepletions, input.finalBatteryCapacityPct) : null;
+  if (energy !== null) criteria.energy = energy;
   if (req.minDownlinkMbitPerDay !== undefined) {
     criteria.data = clamp(dataDownlinkedMbit / scenario.operationDays / req.minDownlinkMbitPerDay);
   }
@@ -65,7 +114,7 @@ export function objectiveCriteria(input: ScoreInput): Record<string, number> {
     const r = t.groundResolutionM;
     criteria.resolution = r === null ? 0 : clamp(req.maxGroundResolutionM / r);
   }
-  if (req.minLifetimeYears > 0) criteria.lifetime = clamp(t.lifetimeYears / req.minLifetimeYears);
+  if (req.minLifetimeYears > 0) criteria.lifetime = lifetimeCriterion(t.lifetimeYears, req.minLifetimeYears);
   if (req.minScienceValue !== undefined && req.minScienceValue > 0) {
     criteria.science = clamp(t.scienceValue / req.minScienceValue);
   }

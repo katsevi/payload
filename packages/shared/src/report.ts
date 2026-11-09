@@ -10,11 +10,12 @@
  *     ← cause.batteryUsable     (energía útil de la batería respetando la DoD)
  *     → suggest.biggerBattery
  *
- * Orden de las entradas: lanzamiento, desenlace, energía, datos, resolución, vida útil, ciencia,
- * eventos, márgenes y puntuación.
+ * Orden de las entradas: eventos pre-operación (retraso, recorte), lanzamiento, desenlace, energía,
+ * datos, resolución, vida útil, ciencia, eventos de operación, márgenes y puntuación.
  */
 import { analyzeDesign, round } from './analysis';
 import { catalog } from './catalog';
+import { adjustmentsFrom } from './budgets';
 import { DEEP_DISCHARGE_WEAR_PER_H } from './constants';
 import type { Catalog, MessageRef, MissionResult, ReportEntry, SimEvent } from './types';
 
@@ -22,11 +23,40 @@ const ref = (key: string, params?: MessageRef['params']): MessageRef => (params 
 
 /** Cadena de causas para el informe post-misión. */
 export function buildReport(result: Omit<MissionResult, 'report'>, cat: Catalog = catalog): ReportEntry[] {
-  const a = analyzeDesign(result.design, cat);
+  const a = analyzeDesign(result.design, cat, adjustmentsFrom(result.preLaunch));
+  const nominal = result.preLaunch ? analyzeDesign(result.design, cat) : a;
   const s = a.scenario;
   const req = s.requirements;
   const entries: ReportEntry[] = [];
   const ofType = (type: SimEvent['type']) => result.events.filter((e) => e.type === type);
+
+  // ── Eventos pre-operación (antes del lanzamiento)
+  const pre = result.preLaunch;
+  if (pre && pre.delayMonths > 0) {
+    const over = pre.overruns.includes('time');
+    const entry: ReportEntry = {
+      severity: over ? 'warning' : 'info',
+      message: ref('report.prelaunch.delay', {
+        months: pre.delayMonths, totalMonths: round(a.scheduleMonths), maxMonths: s.maxDevMonths,
+      }),
+      causes: over ? [ref('cause.noScheduleMargin', { nominalMonths: round(nominal.scheduleMonths), maxMonths: s.maxDevMonths })] : [],
+    };
+    if (over) entry.suggestion = ref('suggest.scheduleMargin');
+    entries.push(entry);
+  }
+  if (pre && pre.budgetCutPct > 0) {
+    const over = pre.overruns.includes('budget');
+    const entry: ReportEntry = {
+      severity: over ? 'warning' : 'info',
+      message: ref('report.prelaunch.budgetCut', {
+        pct: pre.budgetCutPct, cutMUSD: round(pre.budgetCutMUSD, 2),
+        budgetMUSD: round(a.budgetAvailableMUSD, 2), totalMUSD: round(a.totalCostMUSD, 2),
+      }),
+      causes: over ? [ref('cause.noBudgetMargin', { totalMUSD: round(a.totalCostMUSD, 2), originalMUSD: s.budgetMUSD })] : [],
+    };
+    if (over) entry.suggestion = ref('suggest.budgetMargin');
+    entries.push(entry);
+  }
   const scoreEntry: ReportEntry = {
     severity: 'info',
     message: ref('report.score', {
@@ -86,7 +116,7 @@ export function buildReport(result: Omit<MissionResult, 'report'>, cat: Catalog 
   if (result.status === 'complete') {
     entries.push({ severity: 'success', message: ref('report.mission.complete', { days }), causes: [] });
   } else {
-    const fatal = ofType('component-failure').at(-1);
+    const fatal = ofType('component-failure').filter((e) => !e.message.key.startsWith('event.componentFailure.')).at(-1);
     entries.push({
       severity: 'failure',
       message: ref('report.mission.failed', { days, plannedDays: s.operationDays }),
@@ -309,6 +339,35 @@ export function buildReport(result: Omit<MissionResult, 'report'>, cat: Catalog 
   const debris = ofType('debris-avoidance');
   if (debris.length > 0) {
     entries.push({ severity: 'info', message: ref('report.event.debris', { count: debris.length, hours: param(debris[0], 'hours', 2) }), causes: [] });
+  }
+  const overheats = ofType('overheating');
+  if (overheats.length > 0) {
+    entries.push({
+      severity: 'warning',
+      message: ref('report.event.overheating', { count: overheats.length, hours: param(overheats[0], 'hours', 3) }),
+      causes: [ref('cause.thermalMargin', {
+        powerW: round(a.powerW),
+        dissipationW: round(a.thermalDissipationW),
+        marginPct: a.thermalMargin !== null && Number.isFinite(a.thermalMargin) ? round(a.thermalMargin * 100, 0) : -100,
+      })],
+      suggestion: ref('suggest.betterThermal'),
+    });
+  }
+  const partFailures = ofType('component-failure').filter((e) => e.message.key.startsWith('event.componentFailure.'));
+  if (partFailures.length > 0) {
+    entries.push({
+      severity: 'warning',
+      message: ref('report.event.componentFailure', { count: partFailures.length }),
+      causes: [
+        ...partFailures.map((e) => e.message),
+        ref('cause.reliabilityRadiation', {
+          reliabilityPct: round(a.systemReliability * 100, 0),
+          radiationPct: round(a.radiationFactor * 100, 0),
+          orbit: a.orbit?.id ?? '',
+        }),
+      ],
+      suggestion: ref('suggest.redundancy'),
+    });
   }
 
   // ── Márgenes (lo que el panel de recursos marcaba en ámbar o rojo)

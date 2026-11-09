@@ -2,7 +2,9 @@ import { create } from 'zustand';
 import {
   catalog,
   createMissionSim,
+  rollPreLaunchEvents,
   type MissionDesign,
+  type PreLaunchOutcome,
   type MissionResult,
   type MissionSim,
   type SimEvent,
@@ -25,7 +27,12 @@ interface SimState {
   result: MissionResult | null;
   finished: boolean;
   seed: number | null;
-  start: (design: MissionDesign, attempt?: number) => void;
+  /** Eventos pre-lanzamiento sorteados tras el Go (retraso, recorte); null si aún no se sortearon. */
+  preLaunch: PreLaunchOutcome | null;
+  /** Sortea los eventos pre-lanzamiento con la semilla del intento y los guarda (no arranca la simulación). */
+  rollPreLaunch: (design: MissionDesign, attempt?: number) => PreLaunchOutcome | null;
+  /** Arranca la simulación; usa `preLaunch` del store (o el que se pase) para retraso y recorte. */
+  start: (design: MissionDesign, attempt?: number, preLaunch?: PreLaunchOutcome | null) => void;
   tick: (dtSeconds: number) => void;
   setAccel: (a: TimeScale) => void;
   finish: () => MissionResult | null;
@@ -65,12 +72,25 @@ export const useSim = create<SimState>((set, get) => ({
   result: null,
   finished: false,
   seed: null,
+  preLaunch: null,
 
-  start: (design, attempt = 0) => {
+  rollPreLaunch: (design, attempt = 0) => {
+    let pre: PreLaunchOutcome | null = null;
+    try {
+      pre = rollPreLaunchEvents(design, catalog, missionSeed(design.scenarioId, attempt));
+    } catch (e) {
+      console.warn('[sim] rollPreLaunchEvents', e);
+    }
+    set({ preLaunch: pre });
+    return pre;
+  },
+
+  start: (design, attempt = 0, preLaunchArg) => {
     pending = [];
     eventSeq = 0;
     seed = missionSeed(design.scenarioId, attempt);
-    sim = createMissionSim(design, catalog, { seed });
+    const preLaunch = preLaunchArg === undefined ? get().preLaunch : preLaunchArg;
+    sim = createMissionSim(design, catalog, preLaunch ? { seed, preLaunch } : { seed });
     // El resultado del lanzamiento viene en los eventos del primer snapshot.
     let first = sim.snapshot();
     let hasLaunch = first.newEvents.some((e) => LAUNCH_EVENTS.has(e.type));
@@ -90,6 +110,7 @@ export const useSim = create<SimState>((set, get) => ({
       launchOk: !failed,
       result: null,
       seed,
+      preLaunch: preLaunch ?? null,
       finished: sim.isFinished(),
     });
     lastPublish = 0;
@@ -124,6 +145,6 @@ export const useSim = create<SimState>((set, get) => ({
     sim = null;
     live = null;
     pending = [];
-    set({ snapshot: null, events: [], launchOk: null, result: null, finished: false, accel: 1, seed: null });
+    set({ snapshot: null, events: [], launchOk: null, result: null, finished: false, accel: 1, seed: null, preLaunch: null });
   },
 }));

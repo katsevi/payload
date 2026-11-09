@@ -21,7 +21,10 @@
     "settings": "Settings",
     "credits": "Credits",
     "language": "Language",
-    "tagline": "Design, launch and operate your mission"
+    "tagline": "Design, launch and operate your mission",
+    "academy": "Academy",
+    "academyDone": "Academy completed",
+    "glossary": "Glossary"
   },
   "lang": {
     "es": "Español",
@@ -35,7 +38,16 @@
     "sensitivity": "Mouse sensitivity",
     "accessible2D": "2D accessible mode",
     "accessible2DHint": "Do the whole design from 2D panels, without moving in 3D.",
-    "shadows": "Shadows (graphics quality)"
+    "shadows": "Shadows (graphics quality)",
+    "mascot": "Guide mascot",
+    "mascotHint": "Comments and help with H. Turn it off if you already know the game.",
+    "audio": "Audio",
+    "muteAll": "Mute all",
+    "volMusic": "Music volume",
+    "volSfx": "Effects volume",
+    "volAlerts": "Alerts and voice volume",
+    "soundCaptions": "Sound captions",
+    "soundCaptionsHint": "Shows text such as [battery alarm] when a warning sounds. Important warnings always flash on screen."
   },
   "credits": {
     "title": "Credits",
@@ -45,7 +57,7 @@
     "source": "Source: Sketchfab",
     "usedFor": "Used for",
     "astronaut": "Player avatar",
-    "walker": "Hangar exhibit",
+    "walker": "Hangar exhibit and lunar and Mars exploration rover",
     "galaxy": "Menu and space backdrop",
     "erizon": "Space station in orbit",
     "ncnd": "CC-BY-NC-ND: non-commercial use only, no derivatives.",
@@ -66,7 +78,8 @@
     "orbits": "Allowed orbits",
     "launchers": "Allowed launchers",
     "start": "Go to the hangar",
-    "difficulty": "Difficulty"
+    "difficulty": "Difficulty",
+    "mascotTip": "Tip from {{name}}"
   },
   "difficulty": {
     "basic": "Basic",
@@ -184,7 +197,8 @@
     "chase": "Chase camera",
     "tower": "Tower view",
     "standby": "Standing by",
-    "orbitInsertion": "Orbit insertion"
+    "orbitInsertion": "Orbit insertion",
+    "zeroG": "Zero gravity"
   },
   "operation": {
     "title": "Mission operations",
@@ -219,7 +233,8 @@
     "mbit": "Mbit",
     "noEvents": "No events yet.",
     "dayShort": "D",
-    "seed": "Seed"
+    "seed": "Seed",
+    "preLaunch": "Delay +{{months}} months · cut −{{pct}}%"
   },
   "report": {
     "title": "Mission report",
@@ -248,7 +263,9 @@
       "info": "Info",
       "warning": "Warning",
       "failure": "Failure"
-    }
+    },
+    "events": "Mission events",
+    "preLaunchSummary": "Before launch: {{months}}-month delay and {{pct}}% budget cut."
   },
   "help": {
     "title": "Controls",
@@ -259,7 +276,7 @@
     "hangar": "WASD move · mouse look · V switch 1st/3rd person · E interact (pick up, mount, console) · Q put back · Tab resource panel · Esc release mouse · H help",
     "review": "Review the findings. With Go you can authorize the launch.",
     "launch": "V toggles chase camera and tower view · H help",
-    "operation": "V toggles orbital camera and through-the-instrument view · drag to orbit the camera · use the time controls · H help",
+    "operation": "V toggles orbital camera and view through the instrument · I opens the main instrument view · drag to orbit the camera · use the time controls · H help",
     "report": "Review the chain of causes and redesign."
   },
   "keys": {
@@ -279,6 +296,170 @@
     "review": "Review",
     "launch": "Launch",
     "operation": "Operation",
-    "report": "Report"
+    "report": "Report",
+    "prelaunch": "Pre-launch"
+  },
+  "scenarios": {
+    "title": "Choose a mission",
+    "intro": "Each scenario asks for different things: compare type, difficulty and budget before you start.",
+    "empty": "There are no campaign scenarios in the catalog.",
+    "type": "Type",
+    "attempts": "Attempts",
+    "play": "Play"
+  },
+  "missionType": {
+    "earth-observation": "Earth observation",
+    "telecom": "Telecommunications",
+    "space-telescope": "Space telescope",
+    "lunar-exploration": "Lunar exploration",
+    "mars-exploration": "Mars exploration"
+  },
+  "mascot": {
+    "dismiss": "Dismiss message",
+    "expression": {
+      "happy": "happy",
+      "thinking": "thinking",
+      "worried": "worried",
+      "celebrating": "celebrating"
+    }
+  },
+  "academy": {
+    "exit": "Exit",
+    "stepOf": "Step {{n}} of {{total}}",
+    "completed": "Academy completed!",
+    "completedText": "You now know every resource. Try a campaign mission.",
+    "backToMenu": "Back to menu",
+    "objective": "Goal:",
+    "met": "Done!",
+    "next": "Next",
+    "finish": "Finish the Academy",
+    "focus": "in focus",
+    "wait": {
+      "hangar": "Go on to the hangar for this step.",
+      "operation": "Request the Go/No-Go review and launch to continue.",
+      "report": "Finish operations to see the report.",
+      "launch": "Request the Go/No-Go review and authorize the launch: this step happens on the pad."
+    },
+    "goal": {
+      "addAny": "mount any part.",
+      "addSubsystem": "mount a {{name}} part.",
+      "addComponent": "mount “{{name}}”.",
+      "selectOrbit": "choose the {{name}} orbit.",
+      "selectAnyOrbit": "choose an orbit.",
+      "selectLauncher": "choose the {{name}} launcher.",
+      "selectAnyLauncher": "choose a launcher.",
+      "resourceOk": "keep “{{name}}” out of the red.",
+      "go": "get a Go at the review.",
+      "manual": "read and press Next."
+    },
+    "incomplete": "Academy not finished",
+    "incompleteText": "You skipped some steps. Enter the Academy again and complete them to pass it.",
+    "reviewLocked": "Not yet: finish the Academy steps before requesting the Go/No-Go review."
+  },
+  "advisors": {
+    "title": "Team advisors",
+    "none": "No advice yet: mount some parts.",
+    "open": "Advisors",
+    "role": {
+      "director": "Flight director",
+      "engineering": "Engineering",
+      "science": "Science",
+      "operations": "Operations"
+    }
+  },
+  "glossary": {
+    "title": "Glossary",
+    "search": "Search a term…",
+    "why": "Why does it matter?",
+    "related": "Related",
+    "backToList": "Back to the list",
+    "empty": "No term matches the search.",
+    "unavailable": "The catalog has no glossary."
+  },
+  "prelaunch": {
+    "title": "Before launch",
+    "intro": "The review gave a Go, but the real world does not wait: these surprises affect your mission.",
+    "delay": "Launch delay",
+    "cut": "Budget cut",
+    "overrun": "Now exceeded: {{list}}. It does not cancel the mission, but it lowers the score.",
+    "continue": "Continue to launch"
+  },
+  "event": {
+    "launch-success": "Launch",
+    "launch-failure": "Launch failure",
+    "eclipse-enter": "Eclipse",
+    "eclipse-exit": "Sunlight",
+    "contact-start": "Contact",
+    "contact-end": "Contact end",
+    "battery-low": "Battery low",
+    "battery-depleted": "Battery depleted",
+    "storage-full": "Storage full",
+    "solar-storm": "Solar storm",
+    "reaction-wheel-failure": "Wheel failure",
+    "debris-avoidance": "Space debris",
+    "component-failure": "Component failure",
+    "mission-complete": "Mission complete",
+    "overheating": "Overheating",
+    "launch-delay": "Delay",
+    "budget-cut": "Budget cut"
+  },
+  "sound": {
+    "mount": "[part mounted]",
+    "unmount": "[part removed]",
+    "batteryAlarm": "[battery alarm]",
+    "contact": "[station contact beep]",
+    "radioStatic": "[radio static]",
+    "countdownTick": "[countdown beep]",
+    "liftoff": "[engines roaring]",
+    "separation": "[stage separation]",
+    "explosion": "[explosion]",
+    "success": "[success chime]",
+    "complete": "[mission complete]"
+  },
+  "instrument": {
+    "title": "Instrument view",
+    "viewfinder": "MAIN INSTRUMENT VIEWFINDER",
+    "scale": "Ground resolution: {{res}} m per pixel",
+    "instrument": "Main instrument",
+    "looking": "Observing",
+    "groundRes": "Ground resolution",
+    "noResolution": "Not applicable (no ground optics)",
+    "target": {
+      "earth": "Earth",
+      "stars": "Star field",
+      "moon": "Lunar surface",
+      "mars": "Martian surface"
+    },
+    "condition": {
+      "nominal": "Nominal image",
+      "eclipse": "Eclipse: dark image",
+      "degraded": "Degraded pointing",
+      "lost": "Instrument lost",
+      "noInstrument": "No instrument"
+    },
+    "hint": {
+      "nominal": "The instrument points well and there is light: every pass adds useful data.",
+      "eclipse": "Earth blocks the Sun: without light the sensor sees nothing and the craft lives on its battery.",
+      "degraded": "A reaction wheel or the attitude unit failed: pointing gets worse and the image turns blurry and shaky.",
+      "lost": "No more images are coming in. Check the event log to see what failed.",
+      "noInstrument": "Your design carries no instruments: there is nothing to look at."
+    },
+    "lost": {
+      "payload": "INSTRUMENT LOST",
+      "mission": "NO SIGNAL: MISSION ENDED IN FAILURE"
+    },
+    "eclipseBanner": "Eclipse: no sunlight",
+    "openSurface": "View the surface",
+    "exit": "Exit",
+    "button": "Instrument",
+    "toggle": "View through the main instrument"
+  },
+  "surface": {
+    "title": {
+      "moon": "Lunar surface · Aurora G9",
+      "mars": "Martian surface · Aurora G9"
+    },
+    "description": "A short look at the Aurora G9 rover walking across the terrain. Its data already counts in the mission panel.",
+    "close": "Close the surface view"
   }
 }

@@ -94,5 +94,79 @@
       "es": "Es el único capaz de enviar naves pesadas a la Luna, a un precio enorme y con años de espera.",
       "en": "It is the only one able to send heavy spacecraft to the Moon, at a huge price and with years of waiting."
     }
+  },
+  {
+    "id": "launcher-zorzal",
+    "name": {
+      "es": "Zorzal-L",
+      "en": "Zorzal-L"
+    },
+    "description": {
+      "es": "Lanzador ligero-mediano dedicado, pensado para satélites científicos de unos cientos de kilos en órbita baja o heliosíncrona.",
+      "en": "Dedicated light-to-medium launcher meant for science satellites of a few hundred kilos in low or sun-synchronous orbit."
+    },
+    "costMUSD": 16,
+    "reliability": 0.95,
+    "leadTimeMonths": 6,
+    "capacityKg": {
+      "LEO": 900,
+      "SSO": 650
+    },
+    "why": {
+      "es": "Es el punto medio: lleva diez veces más que Colibrí-1 por el doble de precio, pero no llega más allá de la órbita baja.",
+      "en": "It is the middle ground: it carries ten times more than Colibrí-1 for twice the price, but it cannot go beyond low orbit."
+    }
+  },
+  {
+    "id": "launcher-pampero",
+    "name": {
+      "es": "Pampero-G",
+      "en": "Pampero-G"
+    },
+    "description": {
+      "es": "Lanzador mediano con etapa superior reencendible: especialista en órbitas geoestacionarias y de transferencia, aunque con poca carga.",
+      "en": "Medium launcher with a restartable upper stage: a specialist in geostationary and transfer orbits, though with little payload."
+    },
+    "costMUSD": 32,
+    "reliability": 0.955,
+    "leadTimeMonths": 12,
+    "capacityKg": {
+      "LEO": 3500,
+      "SSO": 2600,
+      "MEO": 1500,
+      "GEO": 1100,
+      "HEO": 1400,
+      "TLI": 450
+    },
+    "why": {
+      "es": "Es más barato que Cóndor-M para llegar a GEO o a la Luna, pero carga menos y falla un poco más: ideal para naves ligeras.",
+      "en": "It is cheaper than Cóndor-M to reach GEO or the Moon, but it carries less and fails a bit more: ideal for light spacecraft."
+    }
+  },
+  {
+    "id": "launcher-jaguar",
+    "name": {
+      "es": "Jaguar-R reutilizable",
+      "en": "Jaguar-R reusable"
+    },
+    "description": {
+      "es": "Lanzador pesado con primera etapa reutilizable que aterriza para volver a volar. Cuesta menos que Quetzal-H, pero lleva menos.",
+      "en": "Heavy launcher with a reusable first stage that lands to fly again. It costs less than Quetzal-H, but carries less."
+    },
+    "costMUSD": 68,
+    "reliability": 0.95,
+    "leadTimeMonths": 18,
+    "capacityKg": {
+      "LEO": 16000,
+      "SSO": 12000,
+      "MEO": 5000,
+      "GEO": 4000,
+      "HEO": 5000,
+      "TLI": 3200
+    },
+    "why": {
+      "es": "Recuperar la primera etapa abarata el viaje, pero esa etapa gasta combustible en volver y por eso lleva menos carga a la Luna.",
+      "en": "Recovering the first stage makes the trip cheaper, but that stage spends fuel coming back and therefore carries less to the Moon."
+    }
   }
 ]

@@ -14,8 +14,8 @@ Tailwind 4, Vitest, pnpm + Turborepo. Interfaz en español (por defecto) e ingl�
 | Fase | Estado |
 | --- | --- |
 | 0 · Preproducción | Entregables hechos. El hito (los compromisos son divertidos en papel) sigue **pendiente de una prueba con personas reales**. |
-| 1 · Rebanada vertical en solitario | Hecha y validada con observaciones: una misión completa (menú, briefing, hangar, Go/No-Go, lanzamiento, operación, informe) con un escenario de observación de la Tierra en LEO. |
-| 2 · Contenido y aprendizaje | Pendiente |
+| 1 · Rebanada vertical en solitario | Hecha y validada con observaciones: una misión completa (menú, briefing, hangar, Go/No-Go, lanzamiento, operación, informe). |
+| 2 · Contenido y aprendizaje | Hecha y validada con observaciones: 5 escenarios de campaña y Academia, eventos por dificultad, mascota Orbi, glosario, audio procedural y vista del instrumento. El hito (pruebas con >= 5 estudiantes) está **pendiente**. |
 | 3 · Multijugador | Pendiente (`apps/game-server` es un marcador) |
 | 4 · Pulido y lanzamiento | Pendiente (`apps/api` es un marcador) |
 
@@ -51,7 +51,7 @@ pnpm --filter @payload/client preview       # sirve el build de producción
 
 ## Cómo se juega
 
-Flujo: **menú → briefing → hangar → revisión Go/No-Go → lanzamiento → operación → informe** (y desde
+Flujo: **menú → briefing → hangar → revisión Go/No-Go → [pre-lanzamiento] → lanzamiento → operación → informe** (y desde
 el informe, "Rediseñar" vuelve al hangar con el diseño anterior y un nuevo intento).
 
 | Control | Acción |
@@ -63,13 +63,22 @@ el informe, "Rediseñar" vuelve al hangar con el diseño anterior y un nuevo int
 | `E` | Interactuar: tomar una pieza del estante, montarla o desmontarla de la nave, abrir la consola |
 | `Q` | Devolver la pieza que llevas |
 | `Tab` | Panel de recursos (barras de margen con estado en color y texto, y "¿por qué?") |
-| `H` | Ayuda contextual de la fase |
+| `H` | Ayuda contextual de la fase (la mascota Orbi la explica; desactivable en Ajustes) |
+| `G` | Glosario y fichas de conceptos (altitud orbital, carga útil, tasa de datos, enlace...) |
+| `I` | Vista del instrumento (en operación); en las misiones lunar y Marte permite ver la superficie con el rover Aurora G9 |
 
 En operación, la **aceleración temporal** va en pasos de 0×, 1×, 10×, 100×, 1000× y 10 000× (0× es pausa).
 
 **Modo accesible 2D:** en Ajustes se activa un panel 2D equivalente que permite completar todo el
 flujo sin caminar ni usar controles 3D (el hangar no se monta). Ajustes también permite cambiar el
 idioma (es/en, sin recargar), el campo de visión, el balanceo de cabeza, la sensibilidad y las sombras.
+
+**Contenido de la fase 2:**
+
+- **Escenarios:** el menú ofrece 5 misiones de campaña (observación de la Tierra en LEO, telecomunicaciones en GEO, telescopio espacial, exploración lunar polar, expedición a Marte) y la **Academia** (mini-misión de CubeSat de 21 pasos guiada por la mascota). Cada partida usa un intento nuevo (semilla distinta) y "Rediseñar" conserva tu diseño.
+- **Eventos aleatorios** por dificultad: tormenta solar, basura espacial, falla de rueda, sobrecalentamiento, falla de componente y, antes del lanzamiento, retrasos y recortes de presupuesto. Siempre deterministas por semilla.
+- **Asesores por rol** (director, ingeniería, ciencia, operaciones) y mascota con ayuda contextual.
+- **Audio:** música adaptativa y efectos generados en el navegador (sin archivos), con subtítulos de sonido y avisos visuales; volúmenes y silencio en Ajustes.
 
 Todavía **no** hay soporte de mando ni táctil, ni giro por pasos (ver `docs/STATUS.md`).
 
@@ -83,7 +92,7 @@ payload/
 │  └─ api/           # Fase 4: NestJS + Prisma (marcador, sin código)
 ├─ packages/
 │  └─ shared/        # contrato de tipos, motor de simulación, mecánica orbital (TS puro)
-│     ├─ catalog/    # componentes.json, orbitas.json, lanzadores.json, escenarios.json
+│     ├─ catalog/    # componentes, orbitas, lanzadores, escenarios + glosario, mascota, academia (.json)
 │     └─ locales/    # textos del motor (namespace `sim`) en es/en
 ├─ assets/
 │  ├─ models/source/ # modelos .glb ORIGINALES (nunca se modifican; se versionan en el repo)
@@ -96,7 +105,7 @@ payload/
 
 ## Tests y prototipos
 
-- `pnpm test` ejecuta la suite del motor (`packages/shared`, 10 archivos) y la del cliente (3 archivos).
+- `pnpm test` ejecuta la suite del motor (`packages/shared`, 237 tests en 16 archivos) y la del cliente (67 tests en 5 archivos).
   Qué cubre cada una: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#testing).
 - **CLI del motor:** `pnpm proto` (ver `prototype/README.md`). Diseños de ejemplo en `prototype/designs/`.
 - **Hoja de cálculo:** `pnpm --filter @payload/shared exec tsx ../../prototype/build-sheet.ts` regenera
@@ -127,13 +136,15 @@ también se muestran en la pantalla de créditos del juego.
 | Programme ERIZON | nejenabinupa | **CC-BY-NC-ND-4.0** | Estación de fondo en la escena orbital |
 | Sci-Fi Computer Desk Console | Inditrion Dradnon | CC-BY-4.0 | Consola de misión del hangar |
 
+Aurora G9 también hace de rover (`payload-surface-rover`) en las misiones lunar y Marte. El audio es procedural y no usa archivos.
+
 > **Aviso:** ERIZON es CC-BY-NC-ND: **no puede usarse comercialmente** ni modificarse (solo lleva
 > compresión técnica de geometría). Hay que sustituirlo por un modelo CC0/CC-BY antes de cualquier uso
 > comercial. Está aislado en un solo componente (`ErizonStation`) para retirarlo fácilmente.
 
 Los originales están en `assets/models/source/` y **se versionan en el repositorio** (el mayor,
 `programme_erizon.glb`, pesa ~31 MB, por debajo del límite de 100 MB de GitHub). La mascota Rise
-(Artemis II) requiere autorización de NASA y no está incluida (ver `docs/GDD.md`, sección Mascota).
+(Artemis II) requiere autorización de NASA y no está incluida: la mascota actual es Orbi, original del proyecto (ver `docs/GDD.md`, sección Mascota).
 
 ## Documentación
 

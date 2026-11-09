@@ -3,13 +3,16 @@
  *
  * Determinismo:
  *  - Toda aleatoriedad sale de createRng(seed): primero la tirada del lanzamiento y después el
- *    calendario de eventos aleatorios (pre-generado al crear la simulación, un sorteo por día).
+ *    calendario de eventos del entorno (pre-generado al crear la simulación, un sorteo por día).
+ *    Los eventos de salud de la nave usan un flujo derivado (deriveSeed) y también se pre-sortean
+ *    (ver events.ts), así que no alteran las tiradas de la fase 1.
  *  - La física avanza con un PASO FIJO interno (30 s por defecto). `step(dt)` solo acumula tiempo
  *    pedido y ejecuta tantos pasos fijos como quepan, así que trocear las llamadas de cualquier
  *    forma da exactamente el mismo estado para el mismo tiempo simulado total.
  *
  * Modelo (simplificado, ver comentarios de cada constante):
- *  - Fase orbital uniforme en el tiempo; eclipse centrado en la fase 0.5 (peor caso β = 0).
+ *  - Tiempo orbital uniforme (anomalía media); el eclipse se centra en la fase media 0.5 (peor caso
+ *    β = 0). `orbitPhase` del snapshot es la anomalía verdadera (2.ª ley de Kepler, ver orbital.ts).
  *  - Batería: carga con la generación solar en sol, descarga con el consumo. Coherente con la
  *    revisión (que exige que el eclipse quepa en capacidad × DoD):
  *      · por debajo del suelo de descarga segura (1 − DoD) se emite `battery-low` y la batería se
@@ -21,86 +24,63 @@
  *  - Datos: los instrumentos llenan el almacenamiento; se bajan durante los contactos, repartidos
  *    de forma regular a lo largo del día (pasadas de igual duración y separación); si el
  *    almacenamiento se llena, lo que sobra se pierde.
- *  - Eventos (solo si eventsEnabled): tormenta solar (−40 % de generación durante 8 h), falla de
- *    rueda de reacción (el apuntado pasa a 5° y los instrumentos exigentes generan la mitad) y
- *    maniobra por basura espacial (instrumentos apagados 2 h).
+ *  - Eventos (solo si eventsEnabled; sorteo en events.ts, tabla por dificultad en constants.ts):
+ *      · entorno: tormenta solar (−40 % de generación durante 8 h), falla de rueda de reacción (el
+ *        apuntado pasa al de respaldo y los instrumentos exigentes generan la mitad; respaldo = 1° con
+ *        star tracker + magnetopares, 2° con star tracker solo, 5° sin star tracker, ver
+ *        wheelBackupPointingDeg en events.ts) y maniobra por basura espacial (instrumentos apagados 2 h);
+ *      · salud: sobrecalentamiento (modo seguro térmico: instrumentos apagados 3 h) y falla de
+ *        componente: instrumento → se pierde; radio/computadora/ADCS → si hay otra unidad se usa
+ *        esa, si no se degrada (antena de baja ganancia 25 %, medio almacenamiento, apuntado de
+ *        respaldo; perder la unidad de ruedas equivale a la falla de ruedas y el apuntado nunca
+ *        mejora); paneles/batería/térmico → la protección de fallos aísla la pieza y la nave
+ *        pasa 6 h en modo seguro (no es fatal: la redundancia del bus lo cubre).
+ *  - Pre-operación (opcional, `opts.preLaunch` de rollPreLaunchEvents): sus eventos van primero en
+ *    `events` y el retraso/recorte se aplican a presupuestos, puntuación e informe.
  *  - `mission-complete` al cumplir `operationDays`.
  */
 import { analyzeDesign, round, type DesignAnalysis } from './analysis';
-import { budgetsFromAnalysis } from './budgets';
+import { adjustmentsFrom, budgetsFromAnalysis } from './budgets';
 import { catalog } from './catalog';
 import {
-  DEFAULT_FIXED_STEP_S, SECONDS_PER_DAY, STORM_GENERATION_FACTOR, STORM_DURATION_H, DEBRIS_PAYLOAD_OFF_H, WHEEL_ADCS_MAX_ACCURACY_DEG, BACKUP_POINTING_DEG, POINTING_DATA_FACTOR, DEPLETION_CAPACITY_FACTOR, MAX_DEPLETIONS, BROWNOUT_EXIT_SOC, SAFE_MODE_EXIT_SOC, DEEP_DISCHARGE_WEAR_PER_H, BATTERY_DEAD_FRACTION, BATTERY_LOW_REARM_MARGIN, EVENT_CHANCE_PER_DAY, EVENT_WEIGHTS,
+  DEFAULT_FIXED_STEP_S, SECONDS_PER_DAY, STORM_GENERATION_FACTOR, STORM_DURATION_H, DEBRIS_PAYLOAD_OFF_H, BACKUP_POINTING_DEG,
+  POINTING_DATA_FACTOR, DEPLETION_CAPACITY_FACTOR, MAX_DEPLETIONS, BROWNOUT_EXIT_SOC, SAFE_MODE_EXIT_SOC,
+  DEEP_DISCHARGE_WEAR_PER_H, BATTERY_DEAD_FRACTION, BATTERY_LOW_REARM_MARGIN,
+  OVERHEAT_SAFE_MODE_H, FAULT_SAFE_MODE_H, WHEEL_ADCS_MAX_ACCURACY_DEG, STAR_TRACKER_MAX_ACCURACY_DEG, COMMS_BACKUP_FACTOR, OBC_BACKUP_FACTOR,
 } from './constants';
-import { passDurationMin } from './orbital';
+import { wheelBackupPointingDeg, resolveEventTable, scheduleEnvironmentEvents, scheduleHealthEvents, type ScheduledEvent } from './events';
+import { altitudeAtTrueAnomaly, orbitEccentricity, orbitPhaseAt, passDurationMin } from './orbital';
 import { buildReport } from './report';
 import { createRng } from './rng';
 import { scoreMission } from './scoring';
 import type {
-  Catalog, MessageRef, MissionDesign, MissionResult, MissionSim, MissionSimOptions,
+  Catalog, ComponentDef, MessageRef, MissionDesign, MissionResult, MissionSim, MissionSimOptions,
   SimEvent, SimEventType, SimSnapshot, SimStatus,
 } from './types';
 
 export * from './constants';
-type RandomEventType = keyof typeof EVENT_WEIGHTS;
-
-interface ScheduledEvent {
-  tSeconds: number;
-  type: RandomEventType;
-}
-
-function hasWheels(a: DesignAnalysis): boolean {
-  return a.bySubsystem.adcs.some((c) => (c.pointingAccuracyDeg ?? Infinity) <= WHEEL_ADCS_MAX_ACCURACY_DEG);
-}
 
 /** Datos útiles por segundo según la precisión de apuntado disponible. */
-function dataRateMbitPerS(a: DesignAnalysis, pointingDeg: number | null): number {
+function dataRateMbitPerS(payload: ComponentDef[], pointingDeg: number | null): number {
   let perDay = 0;
-  for (const inst of a.bySubsystem.payload) {
+  for (const inst of payload) {
     const ok = inst.requiredPointingDeg === undefined || (pointingDeg !== null && pointingDeg <= inst.requiredPointingDeg);
     perDay += inst.dataMbitPerDay * (ok ? 1 : POINTING_DATA_FACTOR);
   }
   return perDay / SECONDS_PER_DAY;
 }
 
-function scheduleEvents(a: DesignAnalysis, rng: ReturnType<typeof createRng>): ScheduledEvent[] {
-  const s = a.scenario;
-  if (!s.eventsEnabled) return [];
-  const weights: [RandomEventType, number][] = [
-    ['solar-storm', EVENT_WEIGHTS['solar-storm']],
-    ['debris-avoidance', EVENT_WEIGHTS['debris-avoidance']],
-  ];
-  if (hasWheels(a)) weights.push(['reaction-wheel-failure', EVENT_WEIGHTS['reaction-wheel-failure']]);
-  const total = weights.reduce((acc, [, w]) => acc + w, 0);
-  const p = EVENT_CHANCE_PER_DAY[s.difficulty];
-  const out: ScheduledEvent[] = [];
-  const days = Math.ceil(s.operationDays);
-  for (let d = 0; d < days; d++) {
-    if (!rng.chance(p)) continue;
-    let pick = rng.next() * total;
-    let type: RandomEventType = weights[0]![0];
-    for (const [t, w] of weights) {
-      if (pick < w) {
-        type = t;
-        break;
-      }
-      pick -= w;
-    }
-    const tSeconds = d * SECONDS_PER_DAY + Math.floor(rng.next() * SECONDS_PER_DAY);
-    if (tSeconds < s.operationDays * SECONDS_PER_DAY) out.push({ tSeconds, type });
-  }
-  return out;
-}
-
 /** Crea la simulación paso a paso (incluye la tirada de lanzamiento con la semilla). */
 export function createMissionSim(design: MissionDesign, cat: Catalog = catalog, opts: MissionSimOptions = {}): MissionSim {
-  const a = analyzeDesign(design, cat);
+  const preLaunch = opts.preLaunch;
+  const a: DesignAnalysis = analyzeDesign(design, cat, adjustmentsFrom(preLaunch));
   const s = a.scenario;
   const seed = opts.seed ?? s.defaultSeed;
   const dt = opts.fixedStepSeconds && opts.fixedStepSeconds > 0 ? opts.fixedStepSeconds : DEFAULT_FIXED_STEP_S;
   const rng = createRng(seed);
 
-  const events: SimEvent[] = [];
+  // Los eventos pre-operación (si los hay) encabezan el registro.
+  const events: SimEvent[] = preLaunch ? preLaunch.events.map((e) => ({ ...e, tSeconds: 0 })) : [];
   let eventCursor = 0;
   const emit = (type: SimEventType, tSeconds: number, key: string, params?: MessageRef['params']) => {
     events.push({ type, tSeconds, message: params ? { key, params } : { key } });
@@ -125,13 +105,18 @@ export function createMissionSim(design: MissionDesign, cat: Catalog = catalog, 
     launchSuccess = true;
     emit('launch-success', 0, 'event.launchSuccess', { launcher: a.launcher.id, orbit: a.orbit.id });
   }
-  const scheduled = scheduleEvents(a, rng);
+  const table = resolveEventTable(s);
+  const scheduled: ScheduledEvent[] = [...scheduleEnvironmentEvents(a, table, rng), ...scheduleHealthEvents(a, table, seed)]
+    .map((ev, order) => ({ ev, order }))
+    .sort((x, y) => x.ev.tSeconds - y.ev.tSeconds || x.order - y.order)
+    .map((x) => x.ev);
   let nextScheduled = 0;
 
   // ── Constantes de la órbita
   const endS = s.operationDays * SECONDS_PER_DAY;
   const maxTicks = Math.ceil(endS / dt);
   const periodS = (a.orbitParams?.periodMin ?? 90) * 60;
+  const ecc = a.orbit ? orbitEccentricity(a.orbit) : 0;
   const halfEclipse = (a.orbitParams?.eclipseFraction ?? 0) / 2;
   const contactSecPerDay = a.totalContactMinPerDay * 60;
   const alwaysContact = contactSecPerDay >= SECONDS_PER_DAY;
@@ -183,8 +168,18 @@ export function createMissionSim(design: MissionDesign, cat: Catalog = catalog, 
   let storageArmed = true;
   let stormUntil = -1;
   let debrisUntil = -1;
+  /** Fin del modo seguro por sobrecalentamiento o por aislar una falla (instrumentos apagados). */
+  let faultSafeUntil = -1;
   let wheelFailed = false;
-  let dataRate = dataRateMbitPerS(a, a.bestPointingDeg);
+  let componentDegraded = false;
+  // Cantidades que pueden degradarse por fallas de componente.
+  let pointingDeg = a.bestPointingDeg;
+  let downlinkMbps = a.downlinkMbps;
+  let storageMbit = a.storageMbit;
+  const payload = [...a.bySubsystem.payload];
+  let payloadPowerW = a.payloadPowerW;
+  const failed = new Set<number>();
+  let dataRate = dataRateMbitPerS(payload, pointingDeg);
   let stored = 0;
   let downlinked = 0;
   let lost = 0;
@@ -203,6 +198,74 @@ export function createMissionSim(design: MissionDesign, cat: Catalog = catalog, 
     endTimeS = t;
   };
 
+  /** Unidades sanas de un subsistema (las ya falladas no cuentan). */
+  const aliveOf = (subsystem: ComponentDef['subsystem']) =>
+    a.components.filter((c, i) => c.subsystem === subsystem && !failed.has(i));
+
+  const failComponent = (t: number, index: number) => {
+    const c = a.components[index];
+    if (!c || failed.has(index)) return;
+    failed.add(index);
+    const component = c.id;
+    switch (c.subsystem) {
+      case 'payload': {
+        const k = payload.indexOf(c);
+        if (k >= 0) payload.splice(k, 1);
+        payloadPowerW = payload.reduce((acc, x) => acc + x.powerW, 0);
+        dataRate = dataRateMbitPerS(payload, pointingDeg);
+        componentDegraded = true;
+        emit('component-failure', t, 'event.componentFailure.payload', { component, remaining: payload.length });
+        break;
+      }
+      case 'comms': {
+        const rest = aliveOf('comms');
+        downlinkMbps = rest.length > 0
+          ? Math.max(...rest.map((x) => x.downlinkMbps ?? 0))
+          : (c.downlinkMbps ?? 0) * COMMS_BACKUP_FACTOR;
+        componentDegraded = true;
+        emit('component-failure', t, rest.length > 0 ? 'event.componentFailure.commsBackup' : 'event.componentFailure.comms', {
+          component, downlinkMbps: round(downlinkMbps, 4),
+        });
+        break;
+      }
+      case 'obc': {
+        const rest = aliveOf('obc');
+        storageMbit = rest.length > 0
+          ? rest.reduce((acc, x) => acc + (x.storageMbit ?? 0), 0)
+          : (c.storageMbit ?? 0) * OBC_BACKUP_FACTOR;
+        componentDegraded = true;
+        emit('component-failure', t, 'event.componentFailure.obc', { component, storageMbit: round(storageMbit, 0) });
+        break;
+      }
+      case 'adcs': {
+        // Modelo: los ADCS ≤ 1° controlan con ruedas de reacción (el star tracker, ≤ 0,1°, es la versión
+        // con determinación fina). Perder la unidad de ruedas, o el star tracker sin otra unidad con
+        // ruedas, equivale a la falla de ruedas: respaldo de wheelBackupPointingDeg con lo que quede.
+        // Perder solo el star tracker con ruedas sanas: se apunta con la mejor unidad restante.
+        // El apuntado NUNCA mejora al fallar una pieza.
+        const rest = aliveOf('adcs');
+        const acc = c.pointingAccuracyDeg ?? Infinity;
+        const isWheelUnit = acc <= WHEEL_ADCS_MAX_ACCURACY_DEG;
+        const isStarTracker = acc <= STAR_TRACKER_MAX_ACCURACY_DEG;
+        const otherWheels = rest.some((x) => (x.pointingAccuracyDeg ?? Infinity) <= WHEEL_ADCS_MAX_ACCURACY_DEG);
+        if (isWheelUnit && (!isStarTracker || !otherWheels)) wheelFailed = true;
+        const restBest = rest.length > 0 ? Math.min(...rest.map((x) => x.pointingAccuracyDeg ?? Infinity)) : BACKUP_POINTING_DEG;
+        const next = wheelFailed ? wheelBackupPointingDeg(rest) : restBest;
+        pointingDeg = Math.max(pointingDeg ?? 0, next);
+        dataRate = dataRateMbitPerS(payload, pointingDeg);
+        componentDegraded = true;
+        // accuracyDeg = apuntado resultante tras la falla (°).
+        emit('component-failure', t, 'event.componentFailure.adcs', { component, accuracyDeg: round(pointingDeg, 2) });
+        break;
+      }
+      default: {
+        // Paneles, batería o térmico: la protección de fallos aísla la pieza (redundancia del bus).
+        faultSafeUntil = Math.max(faultSafeUntil, t + FAULT_SAFE_MODE_H * 3600);
+        emit('component-failure', t, 'event.componentFailure.isolated', { component, hours: FAULT_SAFE_MODE_H });
+      }
+    }
+  };
+
   const applyScheduled = (ev: ScheduledEvent) => {
     switch (ev.type) {
       case 'solar-storm':
@@ -216,10 +279,24 @@ export function createMissionSim(design: MissionDesign, cat: Catalog = catalog, 
         emit('debris-avoidance', ev.tSeconds, 'event.debrisAvoidance', { hours: DEBRIS_PAYLOAD_OFF_H });
         break;
       case 'reaction-wheel-failure':
-        if (wheelFailed) break;
+        // Solo si quedan unidades con ruedas SANAS (una rueda ya fallada no puede volver a fallar).
+        if (wheelFailed || !aliveOf('adcs').some((x) => (x.pointingAccuracyDeg ?? Infinity) <= WHEEL_ADCS_MAX_ACCURACY_DEG)) break;
         wheelFailed = true;
-        dataRate = dataRateMbitPerS(a, BACKUP_POINTING_DEG);
-        emit('reaction-wheel-failure', ev.tSeconds, 'event.reactionWheelFailure', { backupDeg: BACKUP_POINTING_DEG });
+        {
+          const backupDeg = wheelBackupPointingDeg(aliveOf('adcs'));
+          pointingDeg = Math.max(pointingDeg ?? 0, backupDeg);
+          dataRate = dataRateMbitPerS(payload, pointingDeg);
+          emit('reaction-wheel-failure', ev.tSeconds, 'event.reactionWheelFailure', { backupDeg });
+        }
+        break;
+      case 'overheating':
+        faultSafeUntil = Math.max(faultSafeUntil, ev.tSeconds + OVERHEAT_SAFE_MODE_H * 3600);
+        emit('overheating', ev.tSeconds, 'event.overheating', {
+          hours: OVERHEAT_SAFE_MODE_H, powerW: round(a.powerW), dissipationW: round(a.thermalDissipationW),
+        });
+        break;
+      case 'component-failure':
+        failComponent(ev.tSeconds, ev.index);
         break;
     }
   };
@@ -231,7 +308,7 @@ export function createMissionSim(design: MissionDesign, cat: Catalog = catalog, 
       nextScheduled++;
     }
 
-    const phase = (t % periodS) / periodS;
+    const phase = (t % periodS) / periodS; // fase media (uniforme en el tiempo)
     const ecl = Math.abs(phase - 0.5) < halfEclipse;
     if (ecl !== inEclipse) {
       inEclipse = ecl;
@@ -241,14 +318,14 @@ export function createMissionSim(design: MissionDesign, cat: Catalog = catalog, 
     const contact = contactAt(t);
     if (contact !== inContact) {
       inContact = contact;
-      if (contact) emit('contact-start', t, 'event.contactStart', { downlinkMbps: a.downlinkMbps });
+      if (contact) emit('contact-start', t, 'event.contactStart', { downlinkMbps });
       else emit('contact-end', t, 'event.contactEnd', { downlinkedMbit: round(downlinked, 0) });
     }
 
     // ── Energía
     const gen = inEclipse ? 0 : a.solarGenerationW * (t < stormUntil ? STORM_GENERATION_FACTOR : 1);
-    const payloadActive = !brownout && !safeMode && t >= debrisUntil;
-    const load = brownout ? 0 : a.busPowerW + (payloadActive ? a.payloadPowerW : 0);
+    const payloadActive = !brownout && !safeMode && t >= debrisUntil && t >= faultSafeUntil;
+    const load = brownout ? 0 : a.busPowerW + (payloadActive ? payloadPowerW : 0);
     const netWh = ((gen - load) * dt) / 3600;
     let next = batteryWh + netWh;
     if (!brownout && netWh < 0 && next <= 0) {
@@ -301,18 +378,18 @@ export function createMissionSim(design: MissionDesign, cat: Catalog = catalog, 
     if (payloadActive && !finished) stored += dataRate * dt;
     const contactS = brownout ? 0 : contactSecondsIn(t);
     if (contactS > 0) {
-      const d = Math.min(stored, a.downlinkMbps * contactS);
+      const d = Math.min(stored, downlinkMbps * contactS);
       stored -= d;
       downlinked += d;
     }
-    if (stored > a.storageMbit) {
-      lost += stored - a.storageMbit;
-      stored = a.storageMbit;
+    if (stored > storageMbit) {
+      lost += stored - storageMbit;
+      stored = storageMbit;
       if (storageArmed) {
         storageArmed = false;
-        emit('storage-full', t, 'event.storageFull', { storageMbit: round(a.storageMbit, 0) });
+        emit('storage-full', t, 'event.storageFull', { storageMbit: round(storageMbit, 0) });
       }
-    } else if (!storageArmed && stored < 0.9 * a.storageMbit) {
+    } else if (!storageArmed && stored < 0.9 * storageMbit) {
       storageArmed = true;
     }
 
@@ -325,7 +402,8 @@ export function createMissionSim(design: MissionDesign, cat: Catalog = catalog, 
       endTimeS = endS;
       return;
     }
-    status = brownout || safeMode || wheelFailed ? 'degraded' : 'nominal';
+    const inFaultSafe = tick * dt < faultSafeUntil;
+    status = brownout || safeMode || wheelFailed || componentDegraded || inFaultSafe ? 'degraded' : 'nominal';
   };
 
   const currentTime = () => (finished ? endTimeS : Math.min(requestedS, endS));
@@ -334,10 +412,14 @@ export function createMissionSim(design: MissionDesign, cat: Catalog = catalog, 
     const t = currentTime();
     const newEvents = events.slice(eventCursor);
     eventCursor = events.length;
+    const meanPhase = launchSuccess ? (t % periodS) / periodS : 0;
+    const orbitPhase = launchSuccess ? orbitPhaseAt(t, periodS, ecc) : 0;
     return {
       tSeconds: t,
       day: Math.min(Math.ceil(s.operationDays), Math.floor(t / SECONDS_PER_DAY) + 1),
-      orbitPhase: launchSuccess ? (t % periodS) / periodS : 0,
+      orbitPhase,
+      meanPhase,
+      altitudeKm: a.orbit ? round(altitudeAtTrueAnomaly(a.orbit, orbitPhase * 2 * Math.PI), 1) : 0,
       inEclipse,
       inContact,
       batteryWh,
@@ -374,6 +456,7 @@ export function createMissionSim(design: MissionDesign, cat: Catalog = catalog, 
       requestedS = endS;
       const budgets = budgetsFromAnalysis(a);
       const daysOperated = round(endTimeS / SECONDS_PER_DAY, 3);
+      const finalCapacityPct = nominalCapacityWh > 0 ? (capacityWh / nominalCapacityWh) * 100 : undefined;
       const partial: Omit<MissionResult, 'report'> = {
         design,
         seed,
@@ -383,7 +466,9 @@ export function createMissionSim(design: MissionDesign, cat: Catalog = catalog, 
         dataDownlinkedMbit: downlinked,
         dataLostMbit: lost,
         minBatteryPct,
-        finalBatteryCapacityPct: nominalCapacityWh > 0 ? round((capacityWh / nominalCapacityWh) * 100, 1) : 0,
+        finalBatteryCapacityPct: finalCapacityPct !== undefined ? round(finalCapacityPct, 1) : 0,
+        batteryDepletions: depletions,
+        ...(preLaunch ? { preLaunch } : {}),
         events: [...events],
         budgets,
         score: scoreMission({
@@ -393,6 +478,9 @@ export function createMissionSim(design: MissionDesign, cat: Catalog = catalog, 
           daysOperated,
           dataDownlinkedMbit: downlinked,
           revisitDays: a.orbit?.revisitDays,
+          batteryDepletions: depletions,
+          finalBatteryCapacityPct: finalCapacityPct,
+          eventOverruns: preLaunch?.overruns,
         }),
       };
       result = { ...partial, report: buildReport(partial, cat) };

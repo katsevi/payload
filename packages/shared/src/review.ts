@@ -81,8 +81,8 @@ export function reviewFromAnalysis(a: DesignAnalysis, budgets: BudgetReport): Go
   }
 
   // ── Presupuesto, energía, batería, calendario
-  if (a.totalCostMUSD > s.budgetMUSD) {
-    blocker('budget', 'review.budget', { totalMUSD: round(a.totalCostMUSD, 2), budgetMUSD: s.budgetMUSD });
+  if (a.totalCostMUSD > a.budgetAvailableMUSD) {
+    blocker('budget', 'review.budget', { totalMUSD: round(a.totalCostMUSD, 2), budgetMUSD: round(a.budgetAvailableMUSD, 2) });
   }
   if (a.orbitParams && a.powerW > a.avgGenerationW && a.bySubsystem.power.length > 0) {
     blocker('power', 'review.power', { consumptionW: round(a.powerW), avgGenerationW: round(a.avgGenerationW) });

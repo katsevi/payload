@@ -1,0 +1,341 @@
+{
+  "id": "academy-cubesat",
+  "scenarioId": "academy-cubesat-leo",
+  "mascotId": "orbi",
+  "title": {
+    "es": "Academia: tu primer CubeSat",
+    "en": "Academy: your first CubeSat"
+  },
+  "steps": [
+    {
+      "id": "step-intro",
+      "resource": "intro",
+      "title": {
+        "es": "Bienvenida",
+        "en": "Welcome"
+      },
+      "body": {
+        "es": "Vamos a construir un CubeSat, un satélite del tamaño de una caja de zapatos, para fotografiar la Tierra desde órbita baja. En cada paso aprenderás un recurso: cuánto pesa, cuánta energía gasta, cuánto cuesta y cuánto tarda.",
+        "en": "We are going to build a CubeSat, a satellite the size of a shoebox, to photograph Earth from low orbit. In each step you will learn one resource: how much it weighs, how much power it uses, how much it costs and how long it takes."
+      },
+      "goal": {
+        "type": "manual"
+      }
+    },
+    {
+      "id": "step-structure",
+      "resource": "mass",
+      "title": {
+        "es": "La estructura",
+        "en": "The structure"
+      },
+      "body": {
+        "es": "Todo satélite empieza por su estructura: el esqueleto donde se montan las piezas. Elige una estructura CubeSat; fíjate en cuánta masa soporta y cuántos puntos de montaje tiene.",
+        "en": "Every satellite starts with its structure: the skeleton where parts are mounted. Pick a CubeSat structure; note how much mass it supports and how many mounting points it has."
+      },
+      "goal": {
+        "type": "add-component",
+        "value": "structure"
+      }
+    },
+    {
+      "id": "step-payload",
+      "resource": "data",
+      "title": {
+        "es": "La carga útil",
+        "en": "The payload"
+      },
+      "body": {
+        "es": "La carga útil es el motivo de la misión. Monta la cámara multiespectral básica: genera datos cada día y necesita energía para funcionar.",
+        "en": "The payload is the reason for the mission. Mount the basic multispectral camera: it produces data every day and needs power to work."
+      },
+      "goal": {
+        "type": "add-component",
+        "value": "payload-multispectral-basic"
+      }
+    },
+    {
+      "id": "step-orbit",
+      "resource": "lifetime",
+      "title": {
+        "es": "La órbita",
+        "en": "The orbit"
+      },
+      "body": {
+        "es": "Elige la órbita baja (LEO). Al estar cerca de la Tierra se ve más detalle, pero el roce con el aire hace caer la nave en pocos años.",
+        "en": "Choose low Earth orbit (LEO). Being close to Earth shows more detail, but air drag brings the spacecraft down within a few years."
+      },
+      "goal": {
+        "type": "select-orbit",
+        "value": "LEO"
+      }
+    },
+    {
+      "id": "step-power",
+      "resource": "power",
+      "title": {
+        "es": "Energía",
+        "en": "Power"
+      },
+      "body": {
+        "es": "Monta paneles solares hasta que la energía no quede en rojo. Ojo: en LEO la nave pasa más de un tercio de cada vuelta en la sombra de la Tierra, así que la media es menor que lo que dan al sol.",
+        "en": "Mount solar panels until power is no longer red. Careful: in LEO the spacecraft spends over a third of each orbit in Earth's shadow, so the average is lower than what they give in sunlight."
+      },
+      "goal": {
+        "type": "resource-ok",
+        "value": "power"
+      }
+    },
+    {
+      "id": "step-battery",
+      "resource": "battery",
+      "title": {
+        "es": "Batería",
+        "en": "Battery"
+      },
+      "body": {
+        "es": "En la sombra la nave vive de la batería. Monta una que cubra el eclipse sin pasar de su descarga segura: vaciarla del todo la desgasta.",
+        "en": "In the shadow the spacecraft lives off its battery. Mount one that covers the eclipse without going past its safe discharge: draining it fully wears it out."
+      },
+      "goal": {
+        "type": "resource-ok",
+        "value": "battery"
+      }
+    },
+    {
+      "id": "step-comms",
+      "resource": "comms",
+      "title": {
+        "es": "Radio",
+        "en": "Radio"
+      },
+      "body": {
+        "es": "Sin radio no hay forma de bajar las fotos. Monta una radio de comunicaciones.",
+        "en": "Without a radio there is no way to download the pictures. Mount a communications radio."
+      },
+      "goal": {
+        "type": "add-component",
+        "value": "comms"
+      }
+    },
+    {
+      "id": "step-obc",
+      "resource": "data",
+      "title": {
+        "es": "Computadora de a bordo",
+        "en": "On-board computer"
+      },
+      "body": {
+        "es": "La computadora controla la nave y guarda los datos hasta la siguiente pasada sobre una estación. Monta una.",
+        "en": "The computer runs the spacecraft and stores data until the next pass over a station. Mount one."
+      },
+      "goal": {
+        "type": "add-component",
+        "value": "obc"
+      }
+    },
+    {
+      "id": "step-adcs",
+      "resource": "power",
+      "title": {
+        "es": "Control de actitud",
+        "en": "Attitude control"
+      },
+      "body": {
+        "es": "Para que la cámara apunte a la Tierra hace falta control de actitud. Los magnetopares bastan para esta cámara y gastan poco.",
+        "en": "Attitude control keeps the camera pointed at Earth. Magnetorquers are enough for this camera and use little power."
+      },
+      "goal": {
+        "type": "add-component",
+        "value": "adcs"
+      }
+    },
+    {
+      "id": "step-thermal",
+      "resource": "power",
+      "title": {
+        "es": "Control térmico",
+        "en": "Thermal control"
+      },
+      "body": {
+        "es": "Todo lo que consume energía se convierte en calor. Monta un control térmico que disipe más de lo que consume la nave.",
+        "en": "Everything that uses power turns into heat. Mount a thermal control that dissipates more than the spacecraft uses."
+      },
+      "goal": {
+        "type": "add-component",
+        "value": "thermal"
+      }
+    },
+    {
+      "id": "step-data",
+      "resource": "data",
+      "title": {
+        "es": "Datos a bordo",
+        "en": "On-board data"
+      },
+      "body": {
+        "es": "Comprueba que un día de fotos cabe en la memoria de la computadora: si se pierde una pasada, no queremos perder datos.",
+        "en": "Check that one day of pictures fits in the computer's memory: if a pass is missed, we don't want to lose data."
+      },
+      "goal": {
+        "type": "resource-ok",
+        "value": "data"
+      }
+    },
+    {
+      "id": "step-link",
+      "resource": "comms",
+      "title": {
+        "es": "El enlace",
+        "en": "The link"
+      },
+      "body": {
+        "es": "Cada pasada sobre una estación dura pocos minutos. La radio debe bajar en ese tiempo todo lo que la cámara genera al día.",
+        "en": "Each pass over a station lasts only minutes. In that time the radio must download everything the camera produces in a day."
+      },
+      "goal": {
+        "type": "resource-ok",
+        "value": "comms"
+      }
+    },
+    {
+      "id": "step-launcher",
+      "resource": "mass",
+      "title": {
+        "es": "El lanzador",
+        "en": "The launcher"
+      },
+      "body": {
+        "es": "Elige un lanzador. Un lanzamiento compartido es barato pero lleva poca masa y hay que esperar más; uno dedicado es caro pero rápido.",
+        "en": "Pick a launcher. A rideshare is cheap but carries little mass and has a longer wait; a dedicated one is expensive but quick."
+      },
+      "goal": {
+        "type": "select-launcher"
+      }
+    },
+    {
+      "id": "step-mass",
+      "resource": "mass",
+      "title": {
+        "es": "Masa",
+        "en": "Mass"
+      },
+      "body": {
+        "es": "La masa total debe caber en el lanzador y en la estructura. Si está en rojo, quita peso o cambia de lanzador.",
+        "en": "Total mass must fit both the launcher and the structure. If it is red, remove weight or change launcher."
+      },
+      "goal": {
+        "type": "resource-ok",
+        "value": "mass"
+      }
+    },
+    {
+      "id": "step-budget",
+      "resource": "budget",
+      "title": {
+        "es": "Presupuesto",
+        "en": "Budget"
+      },
+      "body": {
+        "es": "El presupuesto suma piezas, lanzamiento y los años de operación. Deja algo de reserva: los recortes pasan.",
+        "en": "The budget adds up parts, launch and the years of operations. Leave some reserve: cuts happen."
+      },
+      "goal": {
+        "type": "resource-ok",
+        "value": "budget"
+      }
+    },
+    {
+      "id": "step-time",
+      "resource": "time",
+      "title": {
+        "es": "Calendario",
+        "en": "Schedule"
+      },
+      "body": {
+        "es": "La pieza más lenta marca el ritmo, cada pieza añade integración y luego hay que esperar al lanzador. Todo debe caber antes de la fecha límite.",
+        "en": "The slowest part sets the pace, every part adds integration time, and then you wait for the launcher. It all has to fit before the deadline."
+      },
+      "goal": {
+        "type": "resource-ok",
+        "value": "time"
+      }
+    },
+    {
+      "id": "step-lifetime",
+      "resource": "lifetime",
+      "title": {
+        "es": "Vida útil",
+        "en": "Lifetime"
+      },
+      "body": {
+        "es": "La nave dura hasta que el aire la hace caer o hasta que fallan sus piezas. Comprueba que llega a los años que pide la misión.",
+        "en": "The spacecraft lasts until the air brings it down or its parts fail. Check that it reaches the years the mission needs."
+      },
+      "goal": {
+        "type": "resource-ok",
+        "value": "lifetime"
+      }
+    },
+    {
+      "id": "step-go",
+      "resource": "launch",
+      "title": {
+        "es": "Go / No-Go",
+        "en": "Go / No-Go"
+      },
+      "body": {
+        "es": "Pide la revisión. Si todo está en orden tendrás el Go y podrás lanzar.",
+        "en": "Ask for the review. If everything is in order you will get the Go and can launch."
+      },
+      "goal": {
+        "type": "go"
+      }
+    },
+    {
+      "id": "step-launch",
+      "resource": "launch",
+      "title": {
+        "es": "Lanzamiento",
+        "en": "Launch"
+      },
+      "body": {
+        "es": "Es la hora de la verdad: pulsa lanzar. Ningún cohete es perfecto, y el tuyo tiene una probabilidad de fallar que depende del lanzador que elegiste.",
+        "en": "It is the moment of truth: press launch. No rocket is perfect, and yours has a chance of failing that depends on the launcher you chose."
+      },
+      "goal": {
+        "type": "manual"
+      }
+    },
+    {
+      "id": "step-operation",
+      "resource": "operation",
+      "title": {
+        "es": "Operación",
+        "en": "Operations"
+      },
+      "body": {
+        "es": "Ya en órbita, observa cómo baja la batería en cada sombra y cómo suben los datos en cada contacto con una estación.",
+        "en": "Now in orbit, watch the battery drop in every shadow and the data go up at every contact with a station."
+      },
+      "goal": {
+        "type": "manual"
+      }
+    },
+    {
+      "id": "step-report",
+      "resource": "report",
+      "title": {
+        "es": "Informe",
+        "en": "Report"
+      },
+      "body": {
+        "es": "El informe explica qué salió bien, qué falló y por qué. ¡Ya puedes diseñar misiones de verdad!",
+        "en": "The report explains what went well, what failed and why. You are ready to design real missions!"
+      },
+      "goal": {
+        "type": "manual"
+      }
+    }
+  ]
+}
