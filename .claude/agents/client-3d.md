@@ -12,6 +12,7 @@ Antes de empezar lee `CLAUDE.md` (raíz), `apps/client/CLAUDE.md` y la API de `@
 Reglas:
 - Toda la lógica de juego viene de `@payload/shared`; el cliente no recalcula presupuestos ni física orbital.
 - Nada de texto hardcodeado: claves en `src/locales/{es,en}.json` (namespace `ui`).
+- Mascota, Academia, glosario y asesores salen del catálogo (`catalog.mascot/academy/glossary`, `adviseByRole`); el cliente no conoce sus textos. Todo sonido pasa por `cue(id)` (audio + flash + subtítulo).
 - Estado de UI en Zustand; flujo de fases en la máquina XState; la escena lee del store.
 - Todo lo que se hace en 3D debe poder hacerse también desde un panel 2D (modo accesible).
 - Rendimiento: meta 60 FPS en laptop de gama media; usa `Suspense`, `useGLTF.preload`, sombras moderadas.

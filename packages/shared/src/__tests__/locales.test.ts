@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 import es from '../../locales/es.json';
 import en from '../../locales/en.json';
 import {
-  catalog, computeBudgets, createRng, formatMessage, lookupSimKey, RESOURCE_IDS, reviewGoNoGo, runMission, simLocales,
+  adviseByRole, catalog, computeBudgets, createRng, formatMessage, lookupSimKey, RESOURCE_IDS, reviewGoNoGo, rollPreLaunchEvents,
+  runMission, simLocales,
 } from '../index';
 import { flattenKeys } from '../messages';
-import type { MessageRef, MissionDesign, OrbitId } from '../types';
+import type { Catalog, MessageRef, MissionDesign, OrbitId } from '../types';
 import { allDesignNames, emptyDesign, loadDesign, SCENARIO_ID } from './fixtures';
 
 /** Diseños aleatorios (incluye órbitas y lanzadores no permitidos) para barrer todas las ramas. */
@@ -23,14 +24,31 @@ function randomDesigns(n: number, seed: number): MissionDesign[] {
   return out;
 }
 
-function collectRefs(designs: MissionDesign[], seeds: number[]): MessageRef[] {
+/** Escenario con todos los eventos de la fase 2 forzados (retraso, recorte, fallas, calor). */
+const stress: Catalog = {
+  ...catalog,
+  scenarios: catalog.scenarios.map((s) => (s.id !== SCENARIO_ID ? s : {
+    ...s,
+    operationDays: 10,
+    eventTuning: {
+      launchDelayChance: 1, launchDelayMonths: { min: 8, max: 8 }, budgetCutChance: 1, budgetCutPct: { min: 20, max: 20 },
+      componentFailureAcceleration: 1e6, overheatingChancePerDay: 1,
+    },
+  })),
+};
+
+function collectRefs(designs: MissionDesign[], seeds: number[], cat: Catalog = catalog, preLaunch = false): MessageRef[] {
   const refs: MessageRef[] = [];
   for (const d of designs) {
-    const b = computeBudgets(d);
+    const b = computeBudgets(d, cat);
+    const review = reviewGoNoGo(d, cat);
     refs.push(...b.resources.map((r) => r.why));
-    refs.push(...reviewGoNoGo(d).issues.map((i) => i.message));
+    refs.push(...review.issues.map((i) => i.message));
+    refs.push(...adviseByRole(d, b, review, cat).map((x) => x.message));
     for (const seed of seeds) {
-      const m = runMission(d, catalog, { seed });
+      const pre = preLaunch ? rollPreLaunchEvents(d, cat, seed) : undefined;
+      if (pre) refs.push(...computeBudgets(d, cat, pre).resources.map((r) => r.why));
+      const m = runMission(d, cat, pre ? { seed, preLaunch: pre } : { seed });
       refs.push(...m.events.map((e) => e.message));
       for (const e of m.report) {
         refs.push(e.message, ...e.causes);
@@ -82,7 +100,9 @@ describe('locales del motor (namespace sim)', () => {
       { ...emptyDesign(), componentIds: ['payload-multispectral-basic'], orbitId: 'GEO' as const, launcherId: 'launcher-albatros' },
       ...randomDesigns(150, 99),
     ];
-    const refs = collectRefs(designs.slice(0, 40), [1, 2, 3]).concat(collectRefs(designs.slice(40), [7]));
+    const refs = collectRefs(designs.slice(0, 40), [1, 2, 3])
+      .concat(collectRefs(designs.slice(40), [7]))
+      .concat(collectRefs([...allDesignNames().map(loadDesign), { ...loadDesign('ok-cubesat-leo'), componentIds: [...loadDesign('ok-cubesat-leo').componentIds, 'comms-uhf'] }], [1, 2], stress, true));
     const keys = new Set<string>();
     for (const ref of refs) {
       keys.add(ref.key);
@@ -98,5 +118,15 @@ describe('locales del motor (namespace sim)', () => {
     }
     // El barrido debe cubrir buena parte de las claves de mensajes del motor.
     expect(keys.size).toBeGreaterThan(80);
+    // Y las claves nuevas de la fase 2.
+    for (const k of [
+      'event.launchDelay', 'event.budgetCut', 'event.overheating', 'event.componentFailure.payload', 'event.componentFailure.comms',
+      'event.componentFailure.commsBackup', 'event.componentFailure.obc', 'event.componentFailure.adcs', 'event.componentFailure.isolated',
+      'report.prelaunch.delay', 'report.prelaunch.budgetCut', 'report.event.overheating', 'report.event.componentFailure',
+      'budget.time.delayed', 'budget.budget.cut', 'cause.noScheduleMargin', 'cause.thermalMargin', 'cause.reliabilityRadiation',
+      'advisor.director.go', 'advisor.director.noGo', 'advisor.engineering.ok', 'advisor.science.ok', 'advisor.operations.ok',
+    ]) {
+      expect(keys.has(k), k).toBe(true);
+    }
   });
 });

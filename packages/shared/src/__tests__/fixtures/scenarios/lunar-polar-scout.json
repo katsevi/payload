@@ -1,0 +1,74 @@
+{
+  "scenarioId": "lunar-polar-scout",
+  "valid": [
+    {
+      "name": "sonda-ligera-pampero",
+      "design": {
+        "scenarioId": "lunar-polar-scout",
+        "componentIds": ["structure-smallsat", "payload-hires-camera", "payload-thermal-radiometer", "adcs-star-tracker", "comms-x-band", "obc-advanced", "thermal-active", "battery-xl", "power-high-efficiency", "power-high-efficiency"],
+        "orbitId": "TLI",
+        "launcherId": "launcher-pampero"
+      }
+    },
+    {
+      "name": "rover-aurora-condor",
+      "design": {
+        "scenarioId": "lunar-polar-scout",
+        "componentIds": ["structure-heavy-bus", "payload-surface-rover", "payload-hires-camera", "adcs-star-tracker", "comms-x-band", "obc-advanced", "thermal-heat-pipe-large", "battery-xl", "power-large-array"],
+        "orbitId": "TLI",
+        "launcherId": "launcher-condor"
+      }
+    },
+    {
+      "name": "cartografa-multi-condor",
+      "design": {
+        "scenarioId": "lunar-polar-scout",
+        "componentIds": ["structure-smallsat", "payload-hires-camera", "payload-multispectral-basic", "payload-radiometer", "adcs-star-tracker", "comms-high-gain-antenna", "obc-advanced", "thermal-active", "battery-xl", "power-large-array"],
+        "orbitId": "TLI",
+        "launcherId": "launcher-condor"
+      }
+    }
+  ],
+  "failing": [
+    {
+      "name": "sin-camara-de-detalle",
+      "cause": "req-resolution",
+      "design": {
+        "scenarioId": "lunar-polar-scout",
+        "componentIds": ["structure-smallsat", "payload-thermal-radiometer", "payload-radiometer", "adcs-reaction-wheels", "comms-x-band", "obc-advanced", "thermal-active", "battery-xl", "power-high-efficiency", "power-high-efficiency"],
+        "orbitId": "TLI",
+        "launcherId": "launcher-pampero"
+      }
+    },
+    {
+      "name": "bateria-grande-no-cubre-eclipse",
+      "cause": "battery",
+      "design": {
+        "scenarioId": "lunar-polar-scout",
+        "componentIds": ["structure-smallsat", "payload-hires-camera", "payload-thermal-radiometer", "adcs-star-tracker", "comms-x-band", "obc-advanced", "thermal-active", "battery-large", "power-high-efficiency", "power-high-efficiency"],
+        "orbitId": "TLI",
+        "launcherId": "launcher-pampero"
+      }
+    },
+    {
+      "name": "rover-blindado-sobrepasa-pampero",
+      "cause": "mass-launcher",
+      "design": {
+        "scenarioId": "lunar-polar-scout",
+        "componentIds": ["structure-shielded-bus", "payload-surface-rover", "payload-hires-camera", "payload-thermal-radiometer", "adcs-star-tracker", "comms-high-gain-antenna", "obc-rad-hard", "thermal-heat-pipe-large", "battery-xl", "power-large-array", "battery-xl"],
+        "orbitId": "TLI",
+        "launcherId": "launcher-pampero"
+      }
+    },
+    {
+      "name": "quetzal-y-rtg",
+      "cause": "budget",
+      "design": {
+        "scenarioId": "lunar-polar-scout",
+        "componentIds": ["structure-shielded-bus", "payload-surface-rover", "payload-hires-camera", "payload-thermal-radiometer", "adcs-star-tracker", "comms-high-gain-antenna", "obc-rad-hard", "thermal-heat-pipe-large", "battery-xl", "battery-xl", "power-large-array", "power-rtg"],
+        "orbitId": "TLI",
+        "launcherId": "launcher-quetzal"
+      }
+    }
+  ]
+}

@@ -9,7 +9,7 @@ Para personas y para sesiones de Claude Code. Reglas no negociables del proyecto
 
 ## Flujo de trabajo
 
-1. **Rama** desde `main`: `feat/<fase>-<tema>` (por ejemplo `feat/f2-academia-rise`); para arreglos y docs, `fix/<tema>` o `docs/<tema>`.
+1. **Rama** desde `main`: `feat/<fase>-<tema>` (por ejemplo `feat/f2-academia-mascota`); para arreglos y docs, `fix/<tema>` o `docs/<tema>`.
 2. **Commits** con [Conventional Commits](https://www.conventionalcommits.org/es/): `feat(shared): ...`, `fix(client): ...`, `docs: ...`, `chore: ...`. Alcances habituales: `shared`, `client`, `catalog`, `assets`, `proto`, `docs`.
 3. **Antes de abrir el PR:** `pnpm validate` (typecheck + test + build) en verde. Si tocaste el motor, añade o ajusta tests en `packages/shared/src/__tests__/`; si tocaste textos, claves en **es y en**.
 4. **Documentación:** actualiza `docs/STATUS.md` (qué hiciste, qué falta, decisiones) y `CHANGELOG.md` (sección "Sin publicar") en cualquier cambio relevante. Si cambia un comando, una regla o un mapa de carpetas, actualiza también el `CLAUDE.md` correspondiente.
@@ -37,6 +37,7 @@ Un ADR aceptado no se edita: se escribe uno nuevo que lo sustituye.
 | `asset-pipeline` | haiku | Inspeccionar/optimizar GLB y registrar licencias |
 | `validator` | opus | Revisión independiente previa a entregar (solo lee y reporta) |
 | `docs-writer` | sonnet | README, STATUS, CHANGELOG, ARCHITECTURE, CLAUDE.md, ADR |
+| `game-server` | opus | Servidor Colyseus en `apps/game-server` (fase 3): salas, roles, Go/No-Go compartido, paridad con el motor |
 
 Pautas: delega en el agente de cada zona; no dejes que un agente toque código fuera de su zona; pide
 al `validator` una pasada antes de cerrar una fase y dale el código, no tu conclusión.

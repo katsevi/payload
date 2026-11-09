@@ -25,7 +25,7 @@
  */
 import { analyzeDesign, round, type DesignAnalysis } from './analysis';
 import { catalog } from './catalog';
-import type { BudgetReport, Catalog, MessageRef, MissionDesign, ResourceBudget, ResourceId } from './types';
+import type { BudgetReport, Catalog, MessageRef, MissionDesign, PreLaunchOutcome, ResourceBudget, ResourceId } from './types';
 
 /** Margen por debajo del cual un recurso se considera justo. */
 export const TIGHT_MARGIN = 0.15;
@@ -110,16 +110,18 @@ function batteryBudget(a: DesignAnalysis): Draft {
 }
 
 function costBudget(a: DesignAnalysis): Draft {
-  return makeBudget('budget', a.totalCostMUSD, a.scenario.budgetMUSD, 'MUSD', {
-    key: 'budget.budget.total',
-    params: {
-      componentsMUSD: round(a.componentsCostMUSD, 2),
-      launcherMUSD: round(a.launcherCostMUSD, 2),
-      opsMUSD: round(a.opsCostMUSD, 2),
-      totalMUSD: round(a.totalCostMUSD, 2),
-      budgetMUSD: a.scenario.budgetMUSD,
-    },
-  });
+  const base = {
+    componentsMUSD: round(a.componentsCostMUSD, 2),
+    launcherMUSD: round(a.launcherCostMUSD, 2),
+    opsMUSD: round(a.opsCostMUSD, 2),
+    totalMUSD: round(a.totalCostMUSD, 2),
+    budgetMUSD: round(a.budgetAvailableMUSD, 2),
+  };
+  const why: MessageRef =
+    a.budgetCutMUSD > 0
+      ? { key: 'budget.budget.cut', params: { ...base, cutMUSD: round(a.budgetCutMUSD, 2), originalMUSD: a.scenario.budgetMUSD } }
+      : { key: 'budget.budget.total', params: base };
+  return makeBudget('budget', a.totalCostMUSD, a.budgetAvailableMUSD, 'MUSD', why);
 }
 
 function dataBudget(a: DesignAnalysis): Draft {
@@ -150,7 +152,18 @@ function commsBudget(a: DesignAnalysis): Draft {
 }
 
 function timeBudget(a: DesignAnalysis): Draft {
-  const why: MessageRef = a.slowestComponent
+  const why: MessageRef = a.delayMonths > 0
+    ? {
+        key: 'budget.time.delayed',
+        params: {
+          devMonths: round(a.componentDevMonths),
+          leadMonths: round(a.leadMonths),
+          delayMonths: round(a.delayMonths),
+          totalMonths: round(a.scheduleMonths),
+          maxMonths: a.scenario.maxDevMonths,
+        },
+      }
+    : a.slowestComponent
     ? {
         key: 'budget.time.schedule',
         params: {
@@ -229,9 +242,18 @@ export function budgetsFromAnalysis(a: DesignAnalysis): BudgetReport {
   };
 }
 
-/** Presupuestos encadenados: masa, energía, batería, presupuesto, datos, comunicaciones, tiempo, vida útil. Función pura y barata (se llama en cada cambio del hangar). */
-export function computeBudgets(design: MissionDesign, cat: Catalog = catalog): BudgetReport {
-  return budgetsFromAnalysis(analyzeDesign(design, cat));
+/**
+ * Presupuestos encadenados: masa, energía, batería, presupuesto, datos, comunicaciones, tiempo, vida útil.
+ * Función pura y barata (se llama en cada cambio del hangar). Con `preLaunch` (fase 2) aplica el
+ * retraso de lanzamiento al calendario y el recorte al presupuesto disponible.
+ */
+export function computeBudgets(design: MissionDesign, cat: Catalog = catalog, preLaunch?: PreLaunchOutcome): BudgetReport {
+  return budgetsFromAnalysis(analyzeDesign(design, cat, adjustmentsFrom(preLaunch)));
+}
+
+/** Convierte un resultado pre-operación en ajustes del análisis (uso interno). */
+export function adjustmentsFrom(preLaunch?: PreLaunchOutcome): { delayMonths: number; budgetCutMUSD: number } {
+  return { delayMonths: preLaunch?.delayMonths ?? 0, budgetCutMUSD: preLaunch?.budgetCutMUSD ?? 0 };
 }
 
 /** Busca un recurso por id en un informe. */

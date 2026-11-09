@@ -37,3 +37,15 @@ export function createRng(seed: number): Rng {
     },
   };
 }
+
+/**
+ * Deriva una semilla independiente de `seed` para otro flujo de azar (p. ej. eventos de salud o
+ * pre-operación), de modo que añadir un flujo nuevo no altere las tiradas de los existentes.
+ * Mezcla de 32 bits tipo murmur3 (fmix32) sobre seed XOR salt. Determinista y pura.
+ */
+export function deriveSeed(seed: number, salt: number): number {
+  let h = (Math.trunc(seed) ^ Math.trunc(salt)) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b) >>> 0;
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) >>> 0;
+  return (h ^ (h >>> 16)) >>> 0;
+}

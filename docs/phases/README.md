@@ -6,7 +6,7 @@ Cinco fases, cada una cerrada por un hito comprobable. La fase 1 es la clave: pr
 flowchart TD
     F0["<b>Fase 0 · Preproducción</b><br/>Documento de diseño del juego y catálogo inicial de componentes en JSON<br/>Prototipo en papel o en hoja de cálculo para probar los compromisos"]
     F1["<b>Fase 1 · Rebanada vertical en solitario</b><br/>Hangar en 1ª y 3ª persona, un escenario en órbita baja, panel de recursos<br/>Motor de simulación con tests, lanzamiento, operación e informe post-misión"]
-    F2["<b>Fase 2 · Contenido y aprendizaje</b><br/>Cinco escenarios, seis órbitas, lanzadores, eventos aleatorios, dificultad<br/>Academia con Rise, explicaciones “¿por qué?”, música adaptativa y efectos"]
+    F2["<b>Fase 2 · Contenido y aprendizaje</b><br/>Cinco escenarios, seis órbitas, lanzadores, eventos aleatorios, dificultad<br/>Academia con mascota guía (Orbi; Rise solo con autorización), explicaciones “¿por qué?”, música adaptativa y efectos"]
     F3["<b>Fase 3 · Multijugador</b><br/>Colyseus con salas de 4, roles, solicitudes de recursos y Go/No-Go<br/>Sala de control compartida con avatares, chat y voz opcional"]
     F4["<b>Fase 4 · Pulido y lanzamiento</b><br/>Rendimiento y accesibilidad, rankings, guardar y comparar, sandbox y competitivo<br/>Despliegue en AWS, monitoreo con Sentry y pruebas E2E"]
     F0 -- "Hito: los compromisos son divertidos en papel" --> F1

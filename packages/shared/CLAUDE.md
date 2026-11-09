@@ -12,17 +12,48 @@ pueden usar Node). Corre en el navegador (solitario) y en el servidor de juego (
 | `getScenario/getComponent/getOrbit/getLauncher` | `(id, cat?) => Def` | Lanzan si el id no existe |
 | `componentsForScenario` | `(scenarioId, cat?) => ComponentDef[]` | Respeta `allowedComponents` |
 | `computeOrbitParams` | `(orbit) => OrbitParams` | Kepler: `T = 2π√(a³/μ)`, μ = 398 600 km³/s² |
-| `computeBudgets` | `(design, cat?) => BudgetReport` | Pura y barata: se llama en cada cambio del hangar |
+| `orbitEccentricity`, `solveKeplerEquation`, `trueAnomalyFromMeanAnomaly`, `orbitPhaseAt`, `altitudeAtTrueAnomaly` | `(orbit) => e` · `(M, e) => E` · `(M, e) => ν` · `(tS, periodS, e) => 0-1` · `(orbit, ν) => km` | 2.ª ley de Kepler (fase 2) |
+| `computeBudgets` | `(design, cat?, preLaunch?) => BudgetReport` | Pura y barata: se llama en cada cambio del hangar. Con `preLaunch` aplica retraso y recorte |
 | `reviewGoNoGo` | `(design, cat?) => GoNoGoResult` | `go=false` si hay algún `blocker` |
-| `createMissionSim` | `(design, cat?, {seed}) => MissionSim` | Paso fijo interno; determinista sin importar cómo se trocee `step()` |
-| `runMission` | `(design, cat?, {seed}) => MissionResult` | Misión completa de golpe |
+| `createMissionSim` | `(design, cat?, {seed, fixedStepSeconds?, preLaunch?}) => MissionSim` | Paso fijo interno; determinista sin importar cómo se trocee `step()` |
+| `runMission` | `(design, cat?, {seed, preLaunch?}) => MissionResult` | Misión completa de golpe |
+| `rollPreLaunchEvents` | `(design, cat?, seed?) => PreLaunchOutcome` | Fase 2: retraso de lanzamiento y recorte de presupuesto; el cliente lo llama tras el Go |
+| `resolveEventTable`, `EVENT_TABLES` | `(scenario) => EventTable` | Tabla de eventos por dificultad + `ScenarioDef.eventTuning` |
 | `scoreMission` | `(ScoreInput) => ScoreBreakdown` | `S = w1·obj + w2·ciencia + w3·eficiencia + w4·colab` |
+| `energyCriterion` | `(depletions?, finalCapacityPct?) => number \| null` | Criterio de objetivos por agotamientos de batería (ADR 0008) |
 | `buildReport` | `(result) => ReportEntry[]` | Cadena de causas con `MessageRef` |
-| `createRng` | `(seed) => Rng` | Única fuente de aleatoriedad |
+| `adviseByRole` | `(design, budgets, review, cat?) => RoleAdvice[]` | Asesores en solitario: director, engineering, science, operations (`sim:advisor.*`) |
+| `pickMascotDialogue` | `(trigger, mascot, variant = 0) => MascotDialogue \| null` | Determinista; `variant` rota entre diálogos con el mismo disparador |
+| `mascotTriggerForEvent`, `mascotTriggersFromBudgets` | `(event) => 'event:<tipo>'` · `(budgets) => string[]` | Disparadores de la mascota desde el motor |
+| `evaluateAcademyStep` | `(step, design, cat?) => boolean` | Objetivo de un paso de la Academia |
+| `getGlossaryEntry` | `(id, cat?) => GlossaryEntry \| null` | Glosario |
+| `createRng`, `deriveSeed` | `(seed) => Rng` · `(seed, salt) => seed` | Única fuente de aleatoriedad; `deriveSeed` separa flujos |
 | `simLocales` | `Record<Locale, object>` | Traducciones del namespace `sim` (+ subárbol `catalog.<id>` generado) |
 | `formatMessage` | `(ref, locale, cat?) => string` | Texto final sin i18next (prototipo, tests, servidor) |
 | `resolveMessageParams` | `(ref, locale, cat?) => params` | Params con nombres resueltos, para usos FUERA de las plantillas (no pasar a `t()`) |
 | `lookupSimKey`, `CATALOG_ID_PARAMS`, `TIGHT_MARGIN`, `RESOURCE_IDS` | | Utilidades y constantes |
+
+## Contenido pedagógico (fase 2, `catalog/*.json`, campos OPCIONALES de `Catalog`)
+
+- `glosario.json` → `catalog.glossary: GlossaryEntry[]` (`id`, `term`, `definition`, `why?`, `related?` con ids del glosario).
+- `mascota.json` → `catalog.mascot: MascotDef`. Mascota ORIGINAL **Orbi** (plan B del GDD; Rise no está en el
+  repo). Cambiar de mascota = cambiar el JSON. Disparadores `<tipo>:<valor>`, validados con zod:
+  `event:<SimEventType>`, `resource-over:<ResourceId>`, `resource-tight:<ResourceId>`, `phase:<MissionPhase>`,
+  `academy:<id de paso>`, `help:<contexto>` (libre: `hangar`, `control-room`…), `review:go|no-go`, `report:success|failure`.
+  Las expresiones de cada diálogo deben estar en `expressions`.
+- `academia.json` → `catalog.academy: AcademyDef` sobre el escenario `academy-cubesat-leo` (básico, sin eventos,
+  holgado). Objetivos: `add-component` (id de pieza o de subsistema), `select-orbit`, `select-launcher`,
+  `resource-ok` (no excedido y evaluable), `go`, `manual` (siempre true: avanza el jugador).
+
+## Eventos (fase 2, ADR 0008, `events.ts`)
+
+- Entorno (tormenta, basura, rueda): mismo flujo y tiradas que la fase 1. Salud (sobrecalentamiento si el
+  margen térmico < 15 %, falla de componente según fiabilidad × radiación): flujo derivado con `deriveSeed`.
+  Pre-operación (retraso, recorte): `rollPreLaunchEvents`, otro flujo derivado. Todo pre-sorteado.
+- Las fallas genéricas degradan, no destruyen (instrumento perdido, radio/OBC/ADCS de respaldo, paneles/
+  batería/térmico aislados con 6 h de modo seguro). Sus claves: `event.componentFailure.<caso>`, tipo `component-failure`.
+- Un `time`/`budget` excedido SOLO por eventos pre-operación no anula la viabilidad: criterio `overrun-<id>`.
+- Probabilidades y rangos por dificultad en `EVENT_TABLES`; un escenario puede ajustarlos con `eventTuning`.
 
 ## Mensajes (`MessageRef`) y nombres del catálogo
 
@@ -61,7 +92,14 @@ pueden usar Node). Corre en el navegador (solitario) y en el servidor de juego (
   viabilidad (0 si masa/energía/batería/presupuesto/tiempo están excedidos); eficiencia por curva
   de margen (15-50 % = 100) × (1 − 0.25 · nº de recursos excedidos).
 - Diseños de ejemplo y semillas en las que fallan: `prototype/designs/README.md` (9 diseños; semilla por defecto `20260101`).
-- Ojo (decisión abierta, `docs/STATUS.md`): `warn-power-storm` es Go con aviso pero falla con muchas semillas y puntúa 91,7 con la por defecto; la LEO del catálogo está a 450 km (los tests de órbita construyen una de 400 km ≈ 92,6 min).
+- Puntuación con agotamientos (ADR 0008): en misiones completadas, criterio `energía = clamp(1 − 0,15·agot.) ·
+  clamp((cap − 60)/40)`; `warn-power-storm` con la semilla por defecto puntúa 63,2 (antes 91,7). `power-storm` sigue
+  siendo aviso. La LEO del catálogo está a 450 km (los tests de órbita construyen una de 400 km ≈ 92,6 min).
+- Falla de rueda: apuntado de respaldo 1° (star tracker + magnetopares), 2° (star tracker solo) o 5°
+  (`wheelBackupPointingDeg`). Vida útil en la puntuación: `lifetimeCriterion` = lineal de 0 (75 % de la
+  vida exigida) a 1 (100 %).
+- Fase orbital: `orbitPhase` = anomalía verdadera / 2π (Kepler); eclipse, contactos y energía siguen en tiempo
+  (anomalía media), así que los presupuestos no cambian. `SimSnapshot.meanPhase` y `altitudeKm` son opcionales.
 
 ## Tipos y rendimiento
 
@@ -79,7 +117,10 @@ pueden usar Node). Corre en el navegador (solitario) y en el servidor de juego (
 - Cada fórmula nueva lleva test en `src/__tests__/`. Los valores de referencia (periodo de LEO a
   400 km ≈ 92.6 min, etc.) se comprueban con tolerancia.
 - El catálogo debe permitir **varias soluciones válidas** y **diseños que fallen por razones
-  distintas** (energía en eclipse, masa vs lanzador, datos sin bajar, presupuesto). Hay tests que lo garantizan.
+  distintas** (energía en eclipse, masa vs lanzador, datos sin bajar, presupuesto). `scenarios.test.ts` lo
+  comprueba para TODOS los escenarios con `src/__tests__/fixtures/scenarios/<scenarioId>.json`
+  (≥ 2 `valid` y `failing` con ≥ 2 `cause` distintas; formato en `fixtures.ts`). **Escenario nuevo ⇒ fixture nuevo**
+  (el test falla si falta).
 
 ## Comandos
 

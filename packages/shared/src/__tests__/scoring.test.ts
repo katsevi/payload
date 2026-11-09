@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildReport, computeBudgets, getScenario, runMission, scoreMission } from '../index';
-import { marginEfficiency } from '../scoring';
+import { buildReport, computeBudgets, energyCriterion, getScenario, reviewGoNoGo, runMission, scoreMission } from '../index';
+import { marginEfficiency, objectiveCriteria } from '../scoring';
 import { loadDesign } from './fixtures';
 
 describe('scoreMission', () => {
@@ -72,5 +72,69 @@ describe('buildReport', () => {
         expect(e.causes.length > 0 || e.suggestion !== undefined, `${n}: ${e.message.key}`).toBe(true);
       }
     }
+  });
+});
+
+describe('fase 2: agotamientos de batería y sobrecostes por eventos (ADR 0008)', () => {
+  const scenario = getScenario('leo-earth-observation');
+  const budgets = computeBudgets(loadDesign('ok-cubesat-leo'));
+  const base = { scenario, budgets, launchSuccess: true, daysOperated: 30, dataDownlinkedMbit: 6000 * 30 };
+
+  it('energyCriterion = clamp(1 − 0,15·agotamientos) · clamp((cap − 60) / 40)', () => {
+    expect(energyCriterion(0, 100)).toBeNull();
+    expect(energyCriterion(undefined, undefined)).toBeNull();
+    expect(energyCriterion(0, 90)).toBeCloseTo(0.75, 10);
+    expect(energyCriterion(1, 100)).toBeCloseTo(0.85, 10);
+    expect(energyCriterion(1, 65)).toBeCloseTo(0.85 * 0.125, 10);
+    expect(energyCriterion(2, 60)).toBe(0);
+    expect(energyCriterion(10, 100)).toBe(0);
+  });
+
+  it('una batería que acaba casi inservible rebaja los objetivos', () => {
+    const clean = scoreMission(base);
+    const worn = scoreMission({ ...base, batteryDepletions: 1, finalBatteryCapacityPct: 65 });
+    expect(worn.objectives).toBeLessThan(clean.objectives - 50);
+    // Desgaste leve: penaliza poco.
+    const mild = scoreMission({ ...base, finalBatteryCapacityPct: 97 });
+    expect(mild.objectives).toBeGreaterThan(80);
+    expect(mild.objectives).toBeLessThan(clean.objectives);
+  });
+
+  it('si la misión no se completó, el criterio de energía no se aplica (ya lo mide completion)', () => {
+    const partial = { ...base, daysOperated: 15, dataDownlinkedMbit: 6000 * 15 };
+    expect(scoreMission({ ...partial, batteryDepletions: 3, finalBatteryCapacityPct: 55 })).toEqual(scoreMission(partial));
+    expect(scoreMission(partial).objectives).toBeGreaterThan(0);
+  });
+
+  it('warn-power-storm ya no puntúa ~91 terminando con la batería al 0 %: queda por debajo de las soluciones válidas', () => {
+    const r = runMission(loadDesign('warn-power-storm'));
+    expect(r.status).toBe('complete');
+    expect(r.batteryDepletions).toBeGreaterThan(0);
+    expect(r.minBatteryPct).toBeLessThan(1);
+    expect(r.score.total).toBeLessThan(75);
+    for (const n of ['ok-cubesat-leo', 'ok-microsat-sso-hires', 'ok-microsat-leo-thermal']) {
+      expect(r.score.total, n).toBeLessThan(runMission(loadDesign(n)).score.total);
+    }
+    // Y sigue siendo Go con aviso (no un blocker).
+    const review = reviewGoNoGo(loadDesign('warn-power-storm'));
+    expect(review.go).toBe(true);
+    expect(review.issues.find((i) => i.code === 'power-storm')?.severity).toBe('warning');
+  });
+
+  it('una misión sin agotamientos no cambia su puntuación respecto a la fase 1', () => {
+    const r = runMission(loadDesign('ok-cubesat-leo'));
+    expect(r.batteryDepletions).toBe(0);
+    expect(r.finalBatteryCapacityPct).toBe(100);
+    expect(r.score).toEqual(scoreMission({ ...base, budgets: r.budgets, dataDownlinkedMbit: r.dataDownlinkedMbit, revisitDays: 4 }));
+  });
+
+  it('sobrecoste por evento pre-operación: criterio overrun-<recurso> = disponible/usado en vez de viabilidad 0', () => {
+    const over = { ...budgets, resources: budgets.resources.map((r) => (r.id === 'time' ? { ...r, used: 30, available: 24, margin: -0.25, status: 'over' as const } : r)) };
+    const byDesign = scoreMission({ ...base, budgets: over });
+    const byEvent = scoreMission({ ...base, budgets: over, eventOverruns: ['time'] });
+    expect(byDesign.objectives).toBe(0);
+    expect(byEvent.objectives).toBeGreaterThan(70);
+    expect(byEvent.objectives).toBeLessThan(scoreMission(base).objectives);
+    expect(objectiveCriteria({ ...base, budgets: over, eventOverruns: ['time'] })['overrun-time']).toBeCloseTo(0.8, 10);
   });
 });

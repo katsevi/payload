@@ -1,7 +1,7 @@
 # @payload/game-server — marcador de la fase 3
 
 **Hoy no tiene código** (`src/` vacío; los scripts `typecheck`/`test`/`build` solo hacen `echo`).
-No lo rellenes hasta que la fase 2 esté validada (`docs/phases/fase-3.md`).
+La fase 2 está hecha y validada con observaciones: ya puede empezar la fase 3. Punto de partida concreto (qué reutilizar del motor y del cliente) en `docs/phases/fase-3.md` § "Punto de partida"; agente de apoyo: `.claude/agents/game-server.md`.
 
 ## Qué irá aquí (según el plan)
 
@@ -9,6 +9,12 @@ No lo rellenes hasta que la fase 2 esté validada (`docs/phases/fase-3.md`).
   sincronizado, reconexión y emparejamiento; Redis para presencia y escalado.
 - Roles (Director/a, Ingeniería, Ciencia y carga útil, Operaciones y comunicaciones), solicitudes de
   recursos, Go/No-Go con votación, chat, *pings* y puntuación de colaboración.
+
+## Flujo del motor que debe correr el servidor
+
+Diseño -> `computeBudgets`/`reviewGoNoGo` -> Go -> `rollPreLaunchEvents(design, cat, seed)` ->
+`createMissionSim(design, cat, { seed, preLaunch })` -> `step(dt)` -> `scoreMission`/`buildReport`.
+Roles: `ADVISOR_ROLES`/`ROLE_RESOURCES`/`adviseByRole` (`packages/shared/src/advisors.ts`).
 
 ## Contrato que debe respetar
 

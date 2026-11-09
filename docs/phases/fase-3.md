@@ -6,6 +6,20 @@
 
 **Prerrequisito:** fase 2 validada. `apps/game-server` es hoy solo un marcador.
 
+## Punto de partida (estado al terminar la fase 2)
+
+Qué existe y debe **reutilizarse** (no reescribir). Estado y acciones humanas: `docs/STATUS.md`.
+
+- **Motor determinista y puro** (`packages/shared`): `computeBudgets`, `reviewGoNoGo`, `createMissionSim`/`runMission`, `scoreMission`, `buildReport`. Misma semilla = mismo resultado, sin importar cómo se trocee `step()`. Semilla del cliente = `defaultSeed + intento`.
+- **Flujo que debe reproducir el servidor:** diseño válido → Go → `rollPreLaunchEvents(design, cat, seed)` → `createMissionSim(design, cat, { seed, preLaunch })` → `step(dt)` → `scoreMission`/`buildReport`. Los eventos están pre-sorteados con flujos separados (`deriveSeed`), así que cliente y servidor coinciden.
+- **Roles:** `adviseByRole` y `ADVISOR_ROLES`/`ROLE_RESOURCES` (`advisors.ts`) ya definen los 4 roles y los recursos que vigila cada uno (claves `sim:advisor.*`). Con menos de 4 jugadores, un jugador agrupa roles.
+- **Contrato:** `packages/shared/src/types.ts` (solo cambios aditivos; ADR si se rompe). `MessageRef` para todo texto; el cliente traduce.
+- **Mascota y Academia** son datos (`catalog.mascot`, `catalog.academy`) con lógica pura en `apps/client/src/{mascot,academy}`. Decidir qué ve cada rol en una sala (una sola mascota por sala).
+- **Cliente:** `useSim`, `useDesign` y `missionMachine` (XState, con fase `prelaunch`) llaman al motor en local; hay que poner detrás una interfaz común (local vs sala). La Academia y el intento persistente (`state/progress.ts`) son solitario.
+- **Tests de referencia:** `simulation.test.ts` (determinismo) y `scenarios.test.ts` + fixtures por escenario (diseños válidos/fallidos listos para probar paridad servidor-motor).
+- **Pendiente heredado de la fase 2:** hito con estudiantes, escucha del audio, revisión visual; `orbitPhase` es anomalía verdadera (ADR 0008 §6).
+- `apps/game-server` es un marcador; agente de apoyo: `.claude/agents/game-server.md`.
+
 ## Alcance previsto
 
 - **Servidor de juego** con Colyseus (0.18): salas de hasta 4, estado autoritativo que **corre el mismo motor** de `packages/shared`; los clientes solo envían acciones ("agregar instrumento", "votar Go"); reconexión y emparejamiento. Redis para presencia y escalado.

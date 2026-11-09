@@ -38,3 +38,4 @@ Qué se gana, qué se pierde y qué obliga a hacer después.
 | [0005](0005-i18n-es-en.md) | i18n es/en desde el día 1 (`ui` y `sim`) | Aceptada |
 | [0006](0006-pipeline-de-assets.md) | Pipeline de assets y registro de licencias | Aceptada |
 | [0007](0007-fase-1-en-solitario.md) | Fase 1 en solitario antes que el multijugador | Aceptada |
+| [0008](0008-eventos-y-dificultad-fase-2.md) | Eventos por dificultad, penalización de agotamientos y fase de Kepler | Aceptada |

@@ -33,3 +33,36 @@ canvas { display: block; }
 .kbd { font-family: var(--font-mono); border: 1px solid var(--color-line); border-radius: 3px; padding: 0 .35rem; background: #0a1424; color: var(--color-accent); }
 .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+/* Audio: equivalentes visuales de los avisos sonoros */
+.cue-flash {
+  box-shadow: inset 0 0 0 4px var(--cue-color), inset 0 0 80px 10px var(--cue-color);
+  animation: cue-flash .9s ease-out forwards;
+}
+@keyframes cue-flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Mascota como indicador de gravedad cero en el lanzamiento */
+.zero-g-float { animation: zero-g-float 6s ease-in-out infinite; }
+@keyframes zero-g-float {
+  0%   { transform: translate(0, 0) rotate(-6deg); }
+  25%  { transform: translate(10px, -16px) rotate(5deg); }
+  50%  { transform: translate(-6px, -26px) rotate(-3deg); }
+  75%  { transform: translate(-12px, -10px) rotate(7deg); }
+  100% { transform: translate(0, 0) rotate(-6deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zero-g-float { animation: none; }
+}
+
+/* Vista del instrumento con apuntado degradado */
+.instrument-shake { animation: instrument-shake .35s steps(2, end) infinite; }
+@keyframes instrument-shake {
+  0%   { transform: translate(0, 0) scale(1.03); }
+  25%  { transform: translate(-5px, 3px) scale(1.03); }
+  50%  { transform: translate(4px, -4px) scale(1.03); }
+  75%  { transform: translate(-3px, -2px) scale(1.03); }
+  100% { transform: translate(2px, 4px) scale(1.03); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .instrument-shake { animation: none; }
+}

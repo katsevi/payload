@@ -9,13 +9,13 @@ if [[ $# -lt 1 ]]; then
 fi
 
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
-INPUT="$(realpath "$1")"
 FULL="${2:-}"
 
-[[ -f "$INPUT" ]] || { echo "No existe: $INPUT" >&2; exit 1; }
+[[ -f "$1" ]] || { echo "No existe: $1" >&2; exit 1; }
+INPUT="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 
 echo "== Archivo: $INPUT"
-echo "== Tamaño: $(du -h "$INPUT" | cut -f1) ($(stat -c %s "$INPUT") bytes)"
+echo "== Tamaño: $(du -h "$INPUT" | cut -f1) ($(wc -c < "$INPUT" | tr -d ' ') bytes)"
 
 # Lee el chunk JSON de la cabecera GLB (magic glTF, versión 2, longitud, chunk JSON).
 node -e '

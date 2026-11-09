@@ -267,5 +267,165 @@
     "level": "advanced",
     "massKg": 9, "powerW": 40, "costMUSD": 6, "dataMbitPerDay": 30000, "scienceValue": 80, "reliability": 0.96, "devMonths": 12,
     "groundResolutionAt500KmM": 20, "requiredPointingDeg": 0.5
+  },
+  {
+    "id": "structure-heavy-bus",
+    "subsystem": "structure",
+    "name": { "es": "Plataforma de gran satélite", "en": "Large satellite bus" },
+    "description": { "es": "Chasis de aluminio y titanio con un cilindro central, para naves de hasta 2 toneladas y veinte piezas.", "en": "Aluminium and titanium frame with a central cylinder, for spacecraft up to 2 tonnes and twenty parts." },
+    "why": { "es": "Aguanta instrumentos enormes y mucha electrónica, pero pesa 140 kg antes de montar nada y tarda casi un año en construirse.", "en": "It carries huge instruments and lots of electronics, but it weighs 140 kg before anything is mounted and takes almost a year to build." },
+    "level": "advanced",
+    "massKg": 140, "powerW": 0, "costMUSD": 12, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.998, "devMonths": 10,
+    "maxSupportedMassKg": 2000, "mountSlots": 20
+  },
+  {
+    "id": "structure-shielded-bus",
+    "subsystem": "structure",
+    "name": { "es": "Plataforma blindada contra radiación", "en": "Radiation-shielded bus" },
+    "description": { "es": "Plataforma grande con paredes gruesas de aluminio y tántalo que protegen la electrónica de las partículas del espacio.", "en": "Large bus with thick aluminium and tantalum walls that shield the electronics from space particles." },
+    "why": { "es": "El blindaje hace que casi nada falle por la radiación, pero añade 120 kg y casi duplica el precio de la plataforma.", "en": "The shielding means almost nothing fails because of radiation, but it adds 120 kg and nearly doubles the price of the bus." },
+    "level": "advanced",
+    "massKg": 260, "powerW": 0, "costMUSD": 20, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.9995, "devMonths": 12,
+    "maxSupportedMassKg": 2200, "mountSlots": 20
+  },
+  {
+    "id": "power-large-array",
+    "subsystem": "power",
+    "name": { "es": "Alas solares gigantes", "en": "Giant solar wings" },
+    "description": { "es": "Dos alas de varios metros que se despliegan en cascada y se orientan hacia el Sol.", "en": "Two multi-metre wings that unfold in stages and track the Sun." },
+    "why": { "es": "Dan 400 W con un solo equipo, lo que hace falta para transpondedores o telescopios, pero el despliegue es delicado y caro.", "en": "They give 400 W from a single unit, which is what transponders or telescopes need, but the deployment is delicate and costly." },
+    "level": "advanced",
+    "massKg": 14, "powerW": 0, "costMUSD": 4.5, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.985, "devMonths": 8,
+    "solarGenerationW": 400
+  },
+  {
+    "id": "power-deep-space-wings",
+    "subsystem": "power",
+    "name": { "es": "Paneles solares para espacio profundo", "en": "Deep-space solar panels" },
+    "description": { "es": "Alas enormes con células de baja luminosidad, pensadas para lugares donde el Sol llega más débil, como Marte.", "en": "Huge wings with low-light cells, meant for places where sunlight is weaker, such as Mars." },
+    "why": { "es": "Lejos del Sol hace falta mucha más área para la misma energía: son grandes, pesados y más frágiles que los paneles normales.", "en": "Far from the Sun you need much more area for the same power: they are large, heavy and more fragile than normal panels." },
+    "level": "advanced",
+    "massKg": 40, "powerW": 0, "costMUSD": 8, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.96, "devMonths": 10,
+    "solarGenerationW": 300
+  },
+  {
+    "id": "power-rtg",
+    "subsystem": "power",
+    "name": { "es": "Generador de radioisótopos (RTG)", "en": "Radioisotope generator (RTG)" },
+    "description": { "es": "Una pila nuclear sellada que convierte el calor de la desintegración de plutonio en 110 W de electricidad, de día y de noche.", "en": "A sealed nuclear battery that turns the heat of decaying plutonium into 110 W of electricity, day and night." },
+    "why": { "es": "No depende del Sol y casi nunca falla, pero es pesado, carísimo y tarda años en conseguirse.", "en": "It does not depend on the Sun and almost never fails, but it is heavy, very expensive and takes years to obtain." },
+    "level": "advanced",
+    "massKg": 45, "powerW": 0, "costMUSD": 30, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.998, "devMonths": 24,
+    "solarGenerationW": 110
+  },
+  {
+    "id": "battery-xl",
+    "subsystem": "battery",
+    "name": { "es": "Batería de gran capacidad 1200 Wh", "en": "Large-capacity battery 1200 Wh" },
+    "description": { "es": "Banco de celdas de ion-litio con gestión térmica propia para naves de varios cientos de vatios.", "en": "Lithium-ion cell bank with its own thermal management for spacecraft using hundreds of watts." },
+    "why": { "es": "Guarda cuatro veces más que la de 300 Wh para aguantar eclipses largos, a cambio de 8,5 kg y 3 millones.", "en": "It stores four times more than the 300 Wh one to survive long eclipses, in exchange for 8.5 kg and 3 million." },
+    "level": "advanced",
+    "massKg": 8.5, "powerW": 0, "costMUSD": 3, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.985, "devMonths": 6,
+    "batteryCapacityWh": 1200, "maxDepthOfDischarge": 0.5
+  },
+  {
+    "id": "comms-high-gain-antenna",
+    "subsystem": "comms",
+    "name": { "es": "Antena de gran ganancia X/Ka", "en": "X/Ka high-gain antenna" },
+    "description": { "es": "Parábola orientable de 2,4 m con transmisor X/Ka de 120 Mbit/s, la que usan las sondas del espacio profundo.", "en": "Steerable 2.4 m dish with a 120 Mbit/s X/Ka transmitter, the kind deep-space probes use." },
+    "why": { "es": "Concentra la señal como un foco para que llegue lejos y vaya rápido, pero pesa, gasta 80 W y hay que apuntarla bien.", "en": "It focuses the signal like a spotlight so it travels far and fast, but it is heavy, uses 80 W and must be pointed well." },
+    "level": "advanced",
+    "massKg": 18, "powerW": 80, "costMUSD": 9, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.98, "devMonths": 8,
+    "downlinkMbps": 120
+  },
+  {
+    "id": "comms-ka-band",
+    "subsystem": "comms",
+    "name": { "es": "Transpondedor de enlace banda Ka", "en": "Ka-band link transponder" },
+    "description": { "es": "Equipo de banda Ka de 300 Mbit/s con amplificadores de tubo, el que usan los satélites de internet.", "en": "300 Mbit/s Ka-band unit with tube amplifiers, the kind internet satellites use." },
+    "why": { "es": "Mueve centenares de megabits por segundo, lo que pide un satélite de telecomunicaciones, pero gasta 140 W y calienta mucho.", "en": "It moves hundreds of megabits per second, which a telecom satellite needs, but it draws 140 W and runs hot." },
+    "level": "advanced",
+    "massKg": 14, "powerW": 140, "costMUSD": 7, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.97, "devMonths": 9,
+    "downlinkMbps": 300
+  },
+  {
+    "id": "obc-rad-hard",
+    "subsystem": "obc",
+    "name": { "es": "Computadora blindada de gran memoria", "en": "Shielded high-memory computer" },
+    "description": { "es": "Computadora redundante resistente a radiación con 192 GB (1 500 000 Mbit) de memoria.", "en": "Redundant radiation-hardened computer with 192 GB (1,500,000 Mbit) of memory." },
+    "why": { "es": "Guarda tres veces más datos que la avanzada y casi nunca se reinicia por la radiación, pero cuesta el doble y gasta 8 W.", "en": "It stores three times more data than the advanced one and almost never reboots because of radiation, but costs twice as much and uses 8 W." },
+    "level": "advanced",
+    "massKg": 1.5, "powerW": 8, "costMUSD": 1.6, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.996, "devMonths": 6,
+    "storageMbit": 1500000
+  },
+  {
+    "id": "thermal-heat-pipe-large",
+    "subsystem": "thermal",
+    "name": { "es": "Radiadores de tubos de calor", "en": "Heat-pipe radiators" },
+    "description": { "es": "Paneles con tubos de calor que reparten y expulsan hasta 800 W al espacio.", "en": "Panels with heat pipes that spread and radiate up to 800 W into space." },
+    "why": { "es": "Hacen falta cuando los equipos suman cientos de vatios, porque todo lo que se gasta acaba convertido en calor que hay que tirar.", "en": "They are needed when equipment adds up to hundreds of watts, because everything you use ends up as heat you must throw away." },
+    "level": "advanced",
+    "massKg": 18, "powerW": 15, "costMUSD": 2.8, "dataMbitPerDay": 0, "scienceValue": 0, "reliability": 0.985, "devMonths": 6,
+    "thermalDissipationW": 800
+  },
+  {
+    "id": "payload-transponder-ku",
+    "subsystem": "payload",
+    "name": { "es": "Transpondedor de telecomunicaciones", "en": "Telecom transponder" },
+    "description": { "es": "Repetidor de banda Ku que recibe señales desde tierra, las amplifica y las reenvía: tv, radio y datos para una región.", "en": "Ku-band repeater that receives signals from the ground, amplifies them and sends them back: TV, radio and data for a region." },
+    "why": { "es": "Es el corazón de un satélite de comunicaciones: mueve mucho tráfico, pero cada transpondedor gasta unos 280 W de potencia.", "en": "It is the heart of a communications satellite: it moves a lot of traffic, but each transponder draws about 280 W." },
+    "level": "basic",
+    "massKg": 55, "powerW": 280, "costMUSD": 20, "dataMbitPerDay": 120000, "scienceValue": 35, "reliability": 0.985, "devMonths": 14,
+    "requiredPointingDeg": 0.5
+  },
+  {
+    "id": "payload-transponder-hts",
+    "subsystem": "payload",
+    "name": { "es": "Transpondedor de alta capacidad (HTS)", "en": "High-throughput transponder (HTS)" },
+    "description": { "es": "Carga útil multihaz de banda Ka que reutiliza frecuencias en decenas de haces estrechos.", "en": "Multi-beam Ka-band payload that reuses frequencies across dozens of narrow beams." },
+    "why": { "es": "Mueve más de tres veces el tráfico de uno normal con un solo equipo, a cambio de 800 W, más masa y casi dos años de desarrollo.", "en": "It moves more than three times the traffic of a normal one with a single unit, at the cost of 800 W, more mass and almost two years of development." },
+    "level": "advanced",
+    "massKg": 110, "powerW": 800, "costMUSD": 48, "dataMbitPerDay": 420000, "scienceValue": 70, "reliability": 0.965, "devMonths": 22,
+    "requiredPointingDeg": 0.5
+  },
+  {
+    "id": "payload-optical-telescope",
+    "subsystem": "payload",
+    "name": { "es": "Telescopio óptico de 60 cm", "en": "60 cm optical telescope" },
+    "description": { "es": "Espejo primario de 60 cm de carburo de silicio con detectores de luz visible e infrarroja cercana.", "en": "60 cm silicon carbide primary mirror with visible and near-infrared detectors." },
+    "why": { "es": "Un espejo grande recoge luz de estrellas muy débiles, pero necesita mantenerse quieto con 0,05° de precisión y pesa 85 kg.", "en": "A big mirror gathers light from very faint stars, but it must stay steady to 0.05° and weighs 85 kg." },
+    "level": "advanced",
+    "massKg": 85, "powerW": 90, "costMUSD": 30, "dataMbitPerDay": 40000, "scienceValue": 75, "reliability": 0.96, "devMonths": 22,
+    "groundResolutionAt500KmM": 0.8, "requiredPointingDeg": 0.05
+  },
+  {
+    "id": "payload-spectrograph",
+    "subsystem": "payload",
+    "name": { "es": "Espectrógrafo de campo amplio", "en": "Wide-field spectrograph" },
+    "description": { "es": "Instrumento que descompone la luz de cada estrella en colores para medir su composición y su movimiento.", "en": "Instrument that splits the light of each star into colours to measure its composition and motion." },
+    "why": { "es": "Revela de qué están hechas las estrellas y los planetas, pero solo funciona si el telescopio apunta fino y quieto.", "en": "It reveals what stars and planets are made of, but it only works if the telescope points steadily and finely." },
+    "level": "advanced",
+    "massKg": 25, "powerW": 45, "costMUSD": 12, "dataMbitPerDay": 15000, "scienceValue": 50, "reliability": 0.97, "devMonths": 14,
+    "requiredPointingDeg": 0.1
+  },
+  {
+    "id": "payload-thermal-radiometer",
+    "subsystem": "payload",
+    "name": { "es": "Radiómetro térmico avanzado", "en": "Advanced thermal radiometer" },
+    "description": { "es": "Mide la temperatura de la superficie con 0,1 K de sensibilidad; sirve para ver el hielo oculto o las rocas calientes.", "en": "Measures surface temperature with 0.1 K sensitivity; useful for spotting hidden ice or hot rocks." },
+    "why": { "es": "Distingue de día y de noche qué está frío o caliente, y por eso encuentra hielo en cráteres sombríos; necesita un enfriador de 35 W.", "en": "It tells what is cold or warm by day and night, which is why it finds ice in shadowed craters; it needs a 35 W cooler." },
+    "level": "advanced",
+    "massKg": 14, "powerW": 35, "costMUSD": 9, "dataMbitPerDay": 4000, "scienceValue": 40, "reliability": 0.97, "devMonths": 12,
+    "groundResolutionAt500KmM": 120, "requiredPointingDeg": 0.5
+  },
+  {
+    "id": "payload-surface-rover",
+    "subsystem": "payload",
+    "name": { "es": "Rover de exploración Aurora G9", "en": "Aurora G9 exploration rover" },
+    "description": { "es": "Vehículo caminante de exploración Aurora G9: baja a la superficie, perfora muestras y analiza el suelo.", "en": "Aurora G9 walking exploration vehicle: it descends to the surface, drills samples and analyses the soil." },
+    "why": { "es": "Aporta ciencia desde el suelo que ningún orbitador logra, pero añade 95 kg, gasta 55 W y es la pieza que más se estropea.", "en": "It brings ground science no orbiter can match, but it adds 95 kg, draws 55 W and is the part most likely to break." },
+    "level": "advanced",
+    "massKg": 95, "powerW": 55, "costMUSD": 26, "dataMbitPerDay": 3500, "scienceValue": 60, "reliability": 0.94, "devMonths": 20,
+    "model": "aurora_g9_expedition_walker_mech.glb"
   }
 ]

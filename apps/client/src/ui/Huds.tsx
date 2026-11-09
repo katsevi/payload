@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Crosshair, HelpCircle, Settings as SettingsIcon } from 'lucide-react';
+import { BookOpen, Crosshair, Eye, HelpCircle, Settings as SettingsIcon, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { catalog } from '@payload/shared';
 import { lt, tr } from '../i18n';
@@ -12,16 +12,23 @@ import { LimitingSummary, MissionSelectors } from './DesignPanel';
 import { Modal, Panel, fmt, useScenario, usePointerLocked } from './common';
 import { ResourcePanel } from './ResourcePanel';
 import type { PhaseName } from '../app/missionMachine';
+import { HELP_KEY, requestHelp } from '../app/useGlobalKeys';
+import { TONE_TEXT, eventTone } from './eventTone';
+import type { SimEvent } from '@payload/shared';
+import { ZeroGMascot } from '../mascot/ZeroGMascot';
+import { InstrumentView } from '../instrument/InstrumentView';
 
 export function TopBar({ phase }: { phase: PhaseName }) {
   const { t } = useTranslation();
   const setOverlay = useUi((s) => s.setOverlay);
-  const toggleHelp = useUi((s) => s.toggleHelp);
   return (
     <div className="absolute right-3 top-3 z-20 flex items-center gap-2">
       <span className="num hidden text-xs uppercase tracking-widest text-slate-400 sm:inline">{t(`phase.${phase}`)}</span>
-      <button className="btn !p-2" onClick={toggleHelp} aria-label={t('common.help')} title={`${t('common.help')} (H)`}>
+      <button className="btn !p-2" onClick={() => requestHelp(phase)} aria-label={t('common.help')} title={`${t('common.help')} (H)`}>
         <HelpCircle size={16} />
+      </button>
+      <button className="btn !p-2" onClick={() => useUi.getState().openGlossary()} aria-label={t('menu.glossary')} title={`${t('menu.glossary')} (G)`}>
+        <BookOpen size={16} />
       </button>
       <button className="btn !p-2" onClick={() => setOverlay('settings')} aria-label={t('common.settings')} title={t('common.settings')}>
         <SettingsIcon size={16} />
@@ -30,9 +37,6 @@ export function TopBar({ phase }: { phase: PhaseName }) {
   );
 }
 
-const HELP_KEY: Record<PhaseName, string> = {
-  menu: 'menu', briefing: 'briefing', design: 'hangar', review: 'review', launch: 'launch', operation: 'operation', report: 'report',
-};
 
 export function HelpOverlay({ phase }: { phase: PhaseName }) {
   const { t } = useTranslation();
@@ -96,9 +100,10 @@ export function HangarHud({ onReview }: { onReview: () => void }) {
       )}
       <div className="absolute bottom-3 right-3 z-20 flex flex-col items-end gap-2">
         <div className="num text-[11px] text-slate-400">
-          <span className="kbd">WASD</span> {t('keys.move')} · <span className="kbd">V</span> {t('keys.view')} · <span className="kbd">E</span> {t('keys.interact')} · <span className="kbd">Tab</span> {t('keys.resources')}
+          <span className="kbd">WASD</span> {t('keys.move')} · <span className="kbd">V</span> {t('keys.view')} · <span className="kbd">E</span> {t('keys.interact')} · <span className="kbd">Tab</span> {t('keys.resources')} · <span className="kbd">G</span> {t('menu.glossary')}
         </div>
         <div className="flex gap-2">
+          <button className="btn" onClick={() => setOverlay('advisors')}><Users size={14} className="mr-1 inline" />{t('advisors.open')}</button>
           <button className="btn" onClick={() => setOverlay('console')}>{t('hangar.console')}</button>
           <button className="btn btn-primary" onClick={onReview}>{t('hangar.requestReview')}</button>
         </div>
@@ -153,6 +158,7 @@ export function LaunchHud({ onSkip }: { onSkip: () => void }) {
         <div className="num mt-2 text-xs uppercase tracking-widest text-slate-300">{t('launch.title')} · {view === 'third' ? t('launch.chase') : t('launch.tower')}</div>
         {phase === 'countdown' && ok === false && <span className="sr-only">{t('launch.standby')}</span>}
       </div>
+      <ZeroGMascot />
       <div className="absolute bottom-3 right-3 z-20 flex items-center gap-3">
         <span className="num text-[11px] text-slate-400"><span className="kbd">V</span> {t('keys.view')}</span>
         <button className="btn" onClick={onSkip}>{t('launch.skip')}</button>
@@ -163,8 +169,8 @@ export function LaunchHud({ onSkip }: { onSkip: () => void }) {
 
 /** Eclipse y contacto ocurren cientos de veces: ya los muestra el HUD, así que el registro solo lista el resto (últimos 30, el más reciente primero). */
 const NOISY = new Set(['eclipse-enter', 'eclipse-exit', 'contact-start', 'contact-end']);
-export function importantEvents(events: LoggedEvent[], max = 30): LoggedEvent[] {
-  const out: LoggedEvent[] = [];
+export function importantEvents<E extends SimEvent = LoggedEvent>(events: readonly E[], max = 30): E[] {
+  const out: E[] = [];
   for (let i = events.length - 1; i >= 0 && out.length < max; i--) {
     const e = events[i]!;
     if (!NOISY.has(e.type)) out.push(e);
@@ -190,8 +196,10 @@ export function OperationHud({ onFinish }: { onFinish: () => void }) {
   const accel = useSim((s) => s.accel);
   const finished = useSim((s) => s.finished);
   const seed = useSim((s) => s.seed);
+  const pre = useSim((s) => s.preLaunch);
   const setAccel = useSim((s) => s.setAccel);
   const view = useUi((s) => s.view);
+  const instrument = useUi((s) => s.instrument);
   const sc = useScenario();
   const logEvents = useMemo(() => importantEvents(events), [events]);
   const hasPayload = useDesign((s) => s.componentIds.some((id) => catalog.components.find((c) => c.id === id)?.subsystem === 'payload'));
@@ -199,7 +207,8 @@ export function OperationHud({ onFinish }: { onFinish: () => void }) {
   const capturing = view === 'first' && hasPayload && !snap.inEclipse;
   return (
     <>
-      {view === 'first' && (
+      {instrument && <InstrumentView />}
+      {view === 'first' && !instrument && (
         <div className="pointer-events-none absolute inset-8 z-10 border border-accent/60">
           <div className="num absolute left-2 top-2 text-xs text-accent">{t('operation.viewfinder')}</div>
           <div className={`num absolute right-2 top-2 text-xs ${capturing ? 'text-ok' : 'text-slate-400'}`}>● {capturing ? t('operation.capturing') : t('operation.idle')}</div>
@@ -212,6 +221,11 @@ export function OperationHud({ onFinish }: { onFinish: () => void }) {
             <span>{t('operation.seed')}</span>
             <span>{seed}</span>
           </div>
+          {pre && (pre.delayMonths > 0 || pre.budgetCutPct > 0) && (
+            <div className="num mb-1 text-[11px] text-warn">
+              {t('operation.preLaunch', { months: fmt(pre.delayMonths), pct: fmt(pre.budgetCutPct, 0) })}
+            </div>
+          )}
           <div className="num flex justify-between text-sm">
             <span>{t('operation.day')}</span>
             <span className="text-accent">{fmt(snap.day, 1)}{sc ? ` ${t('operation.of')} ${sc.operationDays}` : ''}</span>
@@ -234,7 +248,7 @@ export function OperationHud({ onFinish }: { onFinish: () => void }) {
           <ul className="num max-h-40 space-y-1 overflow-auto text-[11px]" aria-live="polite">
             {logEvents.length === 0 && <li className="text-slate-500">{t('operation.noEvents')}</li>}
             {logEvents.map((e) => (
-              <li key={e.id}>
+              <li key={e.id} className={TONE_TEXT[eventTone(e.type)]}>
                 <span className="text-slate-500">{t('operation.dayShort')}{fmt(e.tSeconds / 86400, 2)}</span> {tr(e.message)}
               </li>
             ))}
@@ -252,6 +266,9 @@ export function OperationHud({ onFinish }: { onFinish: () => void }) {
         </div>
         <div className="flex items-center gap-3">
           <span className="num text-[11px] text-slate-400"><span className="kbd">V</span> {view === 'third' ? t('operation.view.third') : t('operation.view.first')}</span>
+          <button className={`btn ${instrument ? 'btn-primary' : ''}`} onClick={() => useUi.getState().toggleInstrument()} aria-pressed={instrument} title={t('instrument.toggle')}>
+            <Eye size={14} className="mr-1 inline" /><span className="kbd mr-1">I</span>{t('instrument.button')}
+          </button>
           <button className="btn btn-primary" onClick={onFinish}>{t('operation.finish')}</button>
         </div>
       </div>

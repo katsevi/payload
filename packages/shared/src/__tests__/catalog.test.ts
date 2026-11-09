@@ -11,7 +11,7 @@ const raw = () => structuredClone({ components: componentsJson, orbits: orbitsJs
 describe('catálogo', () => {
   it('se valida al importar y tiene el contenido mínimo de la fase 0', () => {
     expect(catalog.components.length).toBeGreaterThanOrEqual(24);
-    expect(catalog.components.length).toBeLessThanOrEqual(30);
+    expect(catalog.components.length).toBeLessThanOrEqual(50);
     const subsystems: SubsystemId[] = ['structure', 'power', 'battery', 'comms', 'obc', 'adcs', 'thermal', 'payload'];
     for (const s of subsystems) expect(catalog.components.some((c) => c.subsystem === s)).toBe(true);
     expect(catalog.components.some((c) => c.level === 'basic')).toBe(true);
@@ -19,7 +19,7 @@ describe('catálogo', () => {
     expect(catalog.components.filter((c) => c.subsystem === 'payload').length).toBeGreaterThanOrEqual(4);
     expect(catalog.orbits.map((o) => o.id).sort()).toEqual(['GEO', 'HEO', 'LEO', 'MEO', 'SSO', 'TLI']);
     expect(catalog.launchers.length).toBeGreaterThanOrEqual(3);
-    expect(catalog.launchers.length).toBeLessThanOrEqual(4);
+    expect(catalog.launchers.length).toBeLessThanOrEqual(8);
   });
 
   it('las estructuras declaran masa máxima y puntos de montaje; la cámara térmica consume ~60 W', () => {

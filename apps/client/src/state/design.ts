@@ -1,12 +1,16 @@
 import { create } from 'zustand';
 import { catalog, type MissionDesign, type OrbitId, type ValidationIssue } from '@payload/shared';
+import { useProgress } from './progress';
 
 interface DesignState extends MissionDesign {
   /** Componente que el jugador lleva en las manos (hangar 3D). */
   heldId: string | null;
   /** Bloqueos de la última revisión No-Go (se muestran al volver al hangar). */
   lastIssues: ValidationIssue[];
-  /** Nº de intento (0 = primero); la semilla de la simulación es defaultSeed + intento. */
+  /**
+   * Nº de intento del escenario; la semilla de la simulación es defaultSeed + intento. Sale del contador
+   * persistido de `useProgress`, así que no se repite entre partidas (ni al volver del menú).
+   */
   attempt: number;
   nextAttempt: () => void;
   startScenario: (scenarioId?: string) => void;
@@ -29,17 +33,19 @@ export const useDesign = create<DesignState>((set, get) => ({
   heldId: null,
   lastIssues: [],
   attempt: 0,
-  nextAttempt: () => set((s) => ({ attempt: s.attempt + 1 })),
-  startScenario: (scenarioId) =>
+  nextAttempt: () => set((s) => ({ attempt: useProgress.getState().claimAttempt(s.scenarioId) })),
+  startScenario: (scenarioId) => {
+    const id = scenarioId ?? catalog.scenarios[0]?.id ?? '';
     set({
-      scenarioId: scenarioId ?? catalog.scenarios[0]?.id ?? '',
+      scenarioId: id,
       componentIds: [],
       orbitId: null,
       launcherId: null,
       heldId: null,
       lastIssues: [],
-      attempt: 0,
-    }),
+      attempt: useProgress.getState().claimAttempt(id),
+    });
+  },
   add: (id) => set((s) => ({ componentIds: [...s.componentIds, id] })),
   removeOne: (id) =>
     set((s) => {

@@ -16,6 +16,8 @@ export interface OrbitShape {
   /** Igual que `at`, escribiendo en `out` (sin asignar memoria; para usar cada frame). */
   atTo: (theta: number, out: { set: (x: number, y: number, z: number) => unknown }) => void;
   apogeeR: number;
+  /** Coordenada X del centro de la elipse (perigeo en +X ⇒ centro en −a·e). */
+  centerX: number;
 }
 
 export function orbitShape(perigeeKm: number, apogeeKm: number, inclinationDeg: number): OrbitShape {
@@ -36,5 +38,24 @@ export function orbitShape(perigeeKm: number, apogeeKm: number, inclinationDeg: 
     const z = r * Math.sin(theta);
     out.set(r * Math.cos(theta), -z * Math.sin(incRad), z * Math.cos(incRad));
   };
-  return { a, e, incRad, at, atTo, apogeeR: ra };
+  return { a, e, incRad, at, atTo, apogeeR: ra, centerX: -a * e };
+}
+
+/**
+ * Arco de eclipse en anomalía verdadera [desde, hasta] (rad). El motor centra el eclipse en la fase media
+ * 0.5 con ancho `eclipseFraction` (en tiempo); se convierte con la ecuación de Kepler del motor
+ * (`trueAnomalyFromMeanAnomaly`, se inyecta para no duplicar la fórmula). En circulares: π ± π·f.
+ */
+export function eclipseArc(
+  eclipseFraction: number,
+  eccentricity: number,
+  trueAnomalyFromMean: (meanAnomalyRad: number, e: number) => number,
+): [number, number] {
+  if (!(eclipseFraction > 0)) return [Math.PI, Math.PI];
+  const half = Math.PI * Math.min(1, eclipseFraction);
+  const e = Math.max(0, Math.min(0.99, eccentricity));
+  const from = trueAnomalyFromMean(Math.PI - half, e);
+  let to = trueAnomalyFromMean(Math.PI + half, e);
+  if (to < from) to += Math.PI * 2;
+  return [from, to];
 }

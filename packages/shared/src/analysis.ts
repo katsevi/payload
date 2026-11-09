@@ -24,6 +24,12 @@ export const MAX_LIFETIME_YEARS = 30;
 /** Altitud de referencia de groundResolutionAt500KmM (km). */
 export const RESOLUTION_REFERENCE_ALTITUDE_KM = 500;
 
+/** Ajustes de eventos pre-operación (retraso y recorte), ver `rollPreLaunchEvents`. */
+export interface DesignAdjustments {
+  delayMonths?: number;
+  budgetCutMUSD?: number;
+}
+
 export interface DesignAnalysis {
   design: MissionDesign;
   scenario: ScenarioDef;
@@ -59,11 +65,17 @@ export interface DesignAnalysis {
   launcherCostMUSD: number;
   opsCostMUSD: number;
   totalCostMUSD: number;
+  /** Presupuesto disponible tras un posible recorte (MUSD). */
+  budgetAvailableMUSD: number;
+  budgetCutMUSD: number;
 
   componentDevMonths: number;
   slowestComponent: ComponentDef | null;
   leadMonths: number;
+  /** Calendario total, incluido el retraso de lanzamiento. */
   scheduleMonths: number;
+  /** Retraso de lanzamiento aplicado (meses). */
+  delayMonths: number;
 
   dataGeneratedMbitPerDay: number;
   storageMbit: number;
@@ -78,6 +90,8 @@ export interface DesignAnalysis {
   bestImager: ComponentDef | null;
   bestPointingDeg: number | null;
   thermalDissipationW: number;
+  /** (disipación − consumo) / disipación; −Infinity si consume sin control térmico; null si no consume. */
+  thermalMargin: number | null;
 
   systemReliability: number;
   radiationFactor: number;
@@ -95,7 +109,7 @@ export function resolutionAtAltitude(c: ComponentDef, altitudeKm: number | null)
   return (c.groundResolutionAt500KmM * h) / RESOLUTION_REFERENCE_ALTITUDE_KM;
 }
 
-export function analyzeDesign(design: MissionDesign, cat: Catalog): DesignAnalysis {
+export function analyzeDesign(design: MissionDesign, cat: Catalog, adjust: DesignAdjustments = {}): DesignAnalysis {
   const scenario = getScenario(design.scenarioId, cat);
   const byId = new Map(cat.components.map((c) => [c.id, c] as const));
 
@@ -143,6 +157,8 @@ export function analyzeDesign(design: MissionDesign, cat: Catalog): DesignAnalys
   const opsCostMUSD =
     (scenario.operationsCostMUSDPerYear ?? DEFAULT_OPS_COST_MUSD_PER_YEAR) * scenario.requirements.minLifetimeYears;
   const totalCostMUSD = componentsCostMUSD + launcherCostMUSD + opsCostMUSD;
+  const budgetCutMUSD = Math.max(0, adjust.budgetCutMUSD ?? 0);
+  const budgetAvailableMUSD = Math.max(0, scenario.budgetMUSD - budgetCutMUSD);
 
   // ── Tiempo: la pieza más lenta marca el ritmo + integración por pieza + espera del lanzador
   const slowestComponent = components.reduce<ComponentDef | null>(
@@ -154,7 +170,8 @@ export function analyzeDesign(design: MissionDesign, cat: Catalog): DesignAnalys
       ? (slowestComponent?.devMonths ?? 0) + INTEGRATION_MONTHS_PER_COMPONENT * components.length
       : 0;
   const leadMonths = launcher?.leadTimeMonths ?? 0;
-  const scheduleMonths = componentDevMonths + leadMonths;
+  const delayMonths = Math.max(0, adjust.delayMonths ?? 0);
+  const scheduleMonths = componentDevMonths + leadMonths + delayMonths;
 
   // ── Datos y comunicaciones
   const dataGeneratedMbitPerDay = sum(bySubsystem.payload.map((c) => c.dataMbitPerDay));
@@ -184,6 +201,8 @@ export function analyzeDesign(design: MissionDesign, cat: Catalog): DesignAnalys
   const pointing = bySubsystem.adcs.map((c) => c.pointingAccuracyDeg ?? Infinity);
   const bestPointingDeg = pointing.length > 0 ? Math.min(...pointing) : null;
   const thermalDissipationW = sum(bySubsystem.thermal.map((c) => c.thermalDissipationW ?? 0));
+  const thermalMargin =
+    powerW <= 0 ? null : thermalDissipationW > 0 ? (thermalDissipationW - powerW) / thermalDissipationW : -Infinity;
 
   // ── Vida útil = min(arrastre, fiabilidad degradada por radiación)
   //   R_sys = Π r_i (cada pieza puede fallar); R_eff = R_sys^(1 + K·radiación)
@@ -209,10 +228,10 @@ export function analyzeDesign(design: MissionDesign, cat: Catalog): DesignAnalys
     mountedCount, mountSlots, massKg, structureMaxMassKg, launcherCapacityKg,
     powerW, payloadPowerW, busPowerW: powerW - payloadPowerW, biggestConsumer, solarGenerationW, sunFraction,
     avgGenerationW, batteryCapacityWh, batteryUsableWh, eclipseEnergyWh,
-    componentsCostMUSD, launcherCostMUSD, opsCostMUSD, totalCostMUSD,
-    componentDevMonths, slowestComponent, leadMonths, scheduleMonths,
+    componentsCostMUSD, launcherCostMUSD, opsCostMUSD, totalCostMUSD, budgetAvailableMUSD, budgetCutMUSD,
+    componentDevMonths, slowestComponent, leadMonths, scheduleMonths, delayMonths,
     dataGeneratedMbitPerDay, storageMbit, radio, downlinkMbps, totalContactMinPerDay, downlinkCapacityMbitPerDay,
-    scienceValue, altitudeKm, groundResolutionM, bestImager, bestPointingDeg, thermalDissipationW,
+    scienceValue, altitudeKm, groundResolutionM, bestImager, bestPointingDeg, thermalDissipationW, thermalMargin,
     systemReliability, radiationFactor, reliabilityLifetimeYears, dragLifetimeYears, lifetimeYears,
   };
 }

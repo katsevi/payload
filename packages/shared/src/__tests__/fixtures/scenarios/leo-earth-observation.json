@@ -1,0 +1,14 @@
+{
+  "scenarioId": "leo-earth-observation",
+  "valid": [
+    { "name": "ok-cubesat-leo", "prototype": "ok-cubesat-leo" },
+    { "name": "ok-microsat-sso-hires", "prototype": "ok-microsat-sso-hires" },
+    { "name": "ok-microsat-leo-thermal", "prototype": "ok-microsat-leo-thermal" }
+  ],
+  "failing": [
+    { "name": "fail-battery-eclipse", "prototype": "fail-battery-eclipse", "cause": "battery" },
+    { "name": "fail-mass-rideshare", "prototype": "fail-mass-rideshare", "cause": "mass-launcher" },
+    { "name": "fail-data-uhf", "prototype": "fail-data-uhf", "cause": "req-downlink" },
+    { "name": "fail-budget-gold-plated", "prototype": "fail-budget-gold-plated", "cause": "budget" }
+  ]
+}

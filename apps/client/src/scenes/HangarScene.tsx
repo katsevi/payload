@@ -17,6 +17,8 @@ import {
   SUBSYSTEM_COLOR, layoutBoxes, type BoxItem,
 } from './hangarLayout';
 import { Ship } from './Ship';
+import { HangarAudio } from '../audio/HangarAudio';
+import { hasRover } from '../instrument/instrumentLogic';
 
 const H = ROOM.half;
 
@@ -286,6 +288,13 @@ function ShipView() {
   return <Ship componentIds={ids} />;
 }
 
+/** El rover Aurora G9 (componente con `model` del mecha) aparece junto a la nave cuando está en el diseño. */
+function MountedRover() {
+  const ids = useDesign((s) => s.componentIds);
+  if (!hasRover(ids)) return null;
+  return <WalkerExhibit position={[SHIP_POS[0] + 2.6, 0, SHIP_POS[2] + 1.9]} rotation={[0, -0.7, 0]} size={1.9} delayMs={300} />;
+}
+
 export function HangarScene() {
   const shadows = useSettings((s) => s.shadows);
   const scenarioId = useDesign((s) => s.scenarioId);
@@ -308,6 +317,8 @@ export function HangarScene() {
         <MissionConsole />
         <ShipView />
         <WalkerExhibit position={[-9.5, 0, 9]} rotation={[0, 0.8, 0]} size={4.5} />
+        <MountedRover />
+        <HangarAudio />
         <HeldBox />
         <Interaction boxes={boxes} />
         <PlayerController start={PLAYER_START} />

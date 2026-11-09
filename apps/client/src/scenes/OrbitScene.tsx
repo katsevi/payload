@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, type ElementRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Line, OrbitControls, Stars } from '@react-three/drei';
 import { Vector3, type Group, type PerspectiveCamera } from 'three';
-import { catalog, computeOrbitParams, type OrbitDef } from '@payload/shared';
+import { catalog, computeOrbitParams, orbitEccentricity, trueAnomalyFromMeanAnomaly, type OrbitDef } from '@payload/shared';
 import { ErizonStation, GalaxyBackdrop } from '../models/Models';
 import { useDesign } from '../state/design';
 import { getLiveSnapshot, useSim } from '../state/sim';
 import { useUi } from '../state/ui';
 import { buildEarthGeometry } from './earth';
-import { EARTH_R, orbitShape } from './orbitMath';
+import { EARTH_R, eclipseArc, orbitShape } from './orbitMath';
 import { Ship } from './Ship';
 
 function Earth() {
@@ -52,16 +52,14 @@ function Orbit({ def }: { def: OrbitDef }) {
   const { points, eclipsePts } = useMemo(() => {
     const shape = orbitShape(def.perigeeKm, def.apogeeKm, def.inclinationDeg);
     const N = 160;
-    const ef = computeOrbitParams(def).eclipseFraction;
-    const half = Math.PI * ef; // eclipse centrado en θ = π (cara nocturna)
     const pts: Vector3[] = [];
+    for (let i = 0; i <= N; i++) pts.push(new Vector3(...shape.at((i / N) * Math.PI * 2)));
+    // El motor pone el eclipse en la fase MEDIA 0.5 ± f/2 (en tiempo); en el dibujo se convierte a
+    // anomalía verdadera, así en órbitas elípticas el arco de sombra se estrecha cerca del apogeo.
+    const [from, to] = eclipseArc(computeOrbitParams(def).eclipseFraction, orbitEccentricity(def), trueAnomalyFromMeanAnomaly);
     const ecl: Vector3[] = [];
-    for (let i = 0; i <= N; i++) {
-      const th = (i / N) * Math.PI * 2;
-      const p = new Vector3(...shape.at(th));
-      pts.push(p);
-      if (Math.abs(th - Math.PI) <= half) ecl.push(p);
-    }
+    const M = 32;
+    if (to > from) for (let i = 0; i <= M; i++) ecl.push(new Vector3(...shape.at(from + ((to - from) * i) / M)));
     return { points: pts, eclipsePts: ecl };
   }, [def]);
   return (
@@ -86,8 +84,11 @@ function SpacecraftAndCamera({ def }: { def: OrbitDef }) {
   // Al volver a la cámara orbital, reencuadrar la vista general.
   useEffect(() => {
     if (view === 'third') {
-      camera.position.set(0, shape.apogeeR * 0.9, shape.apogeeR * 1.9 + 6);
-      controls.current?.target.set(0, 0, 0);
+      // Encuadre centrado en la elipse (en circulares, la Tierra): el perigeo está en +X, el centro en −a·e.
+      const cx = shape.centerX;
+      const span = Math.max(shape.apogeeR, shape.a);
+      camera.position.set(cx, span * 0.9, span * 1.9 + 6);
+      controls.current?.target.set(cx, 0, 0);
       controls.current?.update();
     }
     camPos.current.copy(camera.position);
@@ -99,6 +100,8 @@ function SpacecraftAndCamera({ def }: { def: OrbitDef }) {
     const dt = Math.min(delta, 0.1);
     useSim.getState().tick(dt);
     const snap = getLiveSnapshot();
+    // orbitPhase = anomalía verdadera / 2π (desde el perigeo): se usa directamente como ángulo de la
+    // cónica. La nave va rápida cerca del perigeo y lenta en el apogeo (2.ª ley de Kepler).
     const phase = snap?.orbitPhase ?? 0;
     const p = tmp.p;
     shape.atTo(phase * Math.PI * 2, p);
@@ -112,6 +115,7 @@ function SpacecraftAndCamera({ def }: { def: OrbitDef }) {
       // Vista a través del instrumento: desde la nave, mirando al nadir y ligeramente hacia delante.
       tmp.want.copy(p).addScaledVector(tmp.out.copy(p).normalize(), 0.35);
       camPos.current.lerp(tmp.want, 1 - Math.exp(-dt * 6));
+      // Punto "por delante" a ángulo fijo; en elípticas cerca del apogeo se adelanta menos en tiempo.
       shape.atTo((phase + 0.03) * Math.PI * 2, tmp.ahead);
       look.current.lerp(tmp.ahead.multiplyScalar(0.92), 1 - Math.exp(-dt * 6));
       camera.position.copy(camPos.current);

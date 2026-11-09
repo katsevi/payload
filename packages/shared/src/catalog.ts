@@ -7,12 +7,25 @@ import componentsJson from '../catalog/componentes.json';
 import orbitsJson from '../catalog/orbitas.json';
 import launchersJson from '../catalog/lanzadores.json';
 import scenariosJson from '../catalog/escenarios.json';
+import glossaryJson from '../catalog/glosario.json';
+import mascotJson from '../catalog/mascota.json';
+import academyJson from '../catalog/academia.json';
 import type { Catalog, ComponentDef, LauncherDef, OrbitDef, OrbitId, ScenarioDef, SubsystemId } from './types';
 
 // ─── Esquema ────────────────────────────────────────────────────────────────
 
 const ORBIT_IDS = ['LEO', 'SSO', 'MEO', 'GEO', 'HEO', 'TLI'] as const;
 const SUBSYSTEMS = ['structure', 'power', 'battery', 'comms', 'obc', 'adcs', 'thermal', 'payload'] as const;
+const RESOURCES = ['mass', 'power', 'battery', 'budget', 'data', 'comms', 'time', 'lifetime'] as const;
+const EXPRESSIONS = ['happy', 'thinking', 'worried', 'celebrating'] as const;
+const ENVIRONMENT_EVENTS = ['solar-storm', 'debris-avoidance', 'reaction-wheel-failure'] as const;
+/** Tipos de SimEvent válidos en un disparador `event:<tipo>` de la mascota. */
+export const SIM_EVENT_TYPES = [
+  'launch-success', 'launch-failure', 'eclipse-enter', 'eclipse-exit', 'contact-start', 'contact-end', 'battery-low',
+  'battery-depleted', 'storage-full', 'solar-storm', 'reaction-wheel-failure', 'debris-avoidance', 'component-failure',
+  'mission-complete', 'overheating', 'launch-delay', 'budget-cut',
+] as const;
+const MISSION_PHASES = ['briefing', 'design', 'review', 'launch', 'operation', 'report'] as const;
 
 const localized = z.strictObject({ es: z.string().min(1), en: z.string().min(1) });
 const id = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'debe ser kebab-case (a-z, 0-9 y guiones)');
@@ -128,6 +141,73 @@ const scenarioSchema = z.strictObject({
     }),
   defaultSeed: z.number().int().nonnegative(),
   operationsCostMUSDPerYear: nonNeg.optional(),
+  eventTuning: z
+    .strictObject({
+      environmentChancePerDay: probability.optional(),
+      environmentWeights: z.partialRecord(z.enum(ENVIRONMENT_EVENTS), nonNeg).optional(),
+      overheatingChancePerDay: probability.optional(),
+      componentFailureAcceleration: nonNeg.optional(),
+      launchDelayChance: probability.optional(),
+      launchDelayMonths: z
+        .strictObject({ min: z.number().int().nonnegative(), max: z.number().int().nonnegative() })
+        .refine((r) => r.min <= r.max, { message: 'min debe ser <= max' })
+        .optional(),
+      budgetCutChance: probability.optional(),
+      budgetCutPct: z
+        .strictObject({ min: z.number().int().min(0).max(100), max: z.number().int().min(0).max(100) })
+        .refine((r) => r.min <= r.max, { message: 'min debe ser <= max' })
+        .optional(),
+    })
+    .optional(),
+});
+
+// ─── Contenido pedagógico (fase 2) ──────────────────────────────────────────
+
+const glossarySchema = z.strictObject({
+  id,
+  term: localized,
+  definition: localized,
+  why: localized.optional(),
+  related: z.array(id).optional(),
+});
+
+/** `<tipo>:<valor>`; el valor se comprueba según el tipo en las referencias cruzadas. */
+const triggerSchema = z
+  .string()
+  .regex(
+    /^(event|resource-over|resource-tight|phase|academy|help|review|report):[a-z0-9]+(-[a-z0-9]+)*$/,
+    'disparador inválido: usa <tipo>:<valor> (event, resource-over, resource-tight, phase, academy, help, review, report)',
+  );
+
+const mascotSchema = z.strictObject({
+  id,
+  name: localized,
+  description: localized.optional(),
+  model: z.string().min(1).optional(),
+  expressions: z.array(z.enum(EXPRESSIONS)).min(1),
+  sprite2d: z.string().min(1).optional(),
+  dialogues: z.array(z.strictObject({ id, trigger: triggerSchema, expression: z.enum(EXPRESSIONS), text: localized })).min(1),
+});
+
+const academySchema = z.strictObject({
+  id,
+  scenarioId: id,
+  title: localized,
+  mascotId: id.optional(),
+  steps: z
+    .array(
+      z.strictObject({
+        id,
+        resource: z.enum([...RESOURCES, 'intro', 'launch', 'operation', 'report']),
+        title: localized,
+        body: localized,
+        goal: z.strictObject({
+          type: z.enum(['add-component', 'select-orbit', 'select-launcher', 'resource-ok', 'go', 'manual']),
+          value: z.string().min(1).optional(),
+        }),
+      }),
+    )
+    .min(1),
 });
 
 const catalogSchema = z.strictObject({
@@ -135,6 +215,9 @@ const catalogSchema = z.strictObject({
   orbits: z.array(orbitSchema),
   launchers: z.array(launcherSchema),
   scenarios: z.array(scenarioSchema),
+  glossary: z.array(glossarySchema).optional(),
+  mascot: mascotSchema.optional(),
+  academy: academySchema.optional(),
 });
 
 // ─── Validación ─────────────────────────────────────────────────────────────
@@ -198,6 +281,83 @@ function crossReferenceErrors(cat: Catalog): string[] {
       if (!orbitIds.has(o)) errors.push(`launchers (id "${l.id}").capacityKg: la órbita "${o}" no existe en el catálogo`);
     }
   }
+  errors.push(...pedagogyErrors(cat, { componentIds, orbitIds, launcherIds }));
+  return errors;
+}
+
+/** Referencias cruzadas del glosario, la mascota y la Academia. */
+function pedagogyErrors(
+  cat: Catalog,
+  ids: { componentIds: Set<string>; orbitIds: Set<string>; launcherIds: Set<string> },
+): string[] {
+  const errors: string[] = [];
+  const dupes = (kind: string, list: string[]) => {
+    const seen = new Set<string>();
+    for (const x of list) {
+      if (seen.has(x)) errors.push(`${kind}: id duplicado "${x}"`);
+      seen.add(x);
+    }
+  };
+  if (cat.glossary) {
+    dupes('glossary', cat.glossary.map((g) => g.id));
+    const gids = new Set(cat.glossary.map((g) => g.id));
+    for (const g of cat.glossary) {
+      for (const r of g.related ?? []) {
+        if (!gids.has(r)) errors.push(`glossary (id "${g.id}").related: la entrada "${r}" no existe`);
+        if (r === g.id) errors.push(`glossary (id "${g.id}").related: no puede referirse a sí misma`);
+      }
+    }
+  }
+  const academySteps = new Set(cat.academy?.steps.map((st) => st.id) ?? []);
+  if (cat.mascot) {
+    const m = cat.mascot;
+    dupes('mascot.dialogues', m.dialogues.map((d) => d.id));
+    const expressions = new Set<string>(m.expressions);
+    const resources = new Set<string>(RESOURCES);
+    const events = new Set<string>(SIM_EVENT_TYPES);
+    const phases = new Set<string>(MISSION_PHASES);
+    for (const d of m.dialogues) {
+      const where = `mascot.dialogues (id "${d.id}")`;
+      if (!expressions.has(d.expression)) errors.push(`${where}.expression: "${d.expression}" no está en mascot.expressions`);
+      const sep = d.trigger.indexOf(':');
+      const kind = d.trigger.slice(0, sep);
+      const value = d.trigger.slice(sep + 1);
+      const bad = (what: string) => errors.push(`${where}.trigger: ${what} "${value}" no existe`);
+      if (kind === 'event' && !events.has(value)) bad('el tipo de evento');
+      if ((kind === 'resource-over' || kind === 'resource-tight') && !resources.has(value)) bad('el recurso');
+      if (kind === 'phase' && !phases.has(value)) bad('la fase');
+      if (kind === 'review' && value !== 'go' && value !== 'no-go') bad('el resultado (go | no-go)');
+      if (kind === 'report' && value !== 'success' && value !== 'failure') bad('el desenlace (success | failure)');
+      if (kind === 'academy' && cat.academy && !academySteps.has(value)) bad('el paso de la Academia');
+    }
+  }
+  if (cat.academy) {
+    const ac = cat.academy;
+    dupes('academy.steps', ac.steps.map((st) => st.id));
+    if (!cat.scenarios.some((sc) => sc.id === ac.scenarioId)) errors.push(`academy.scenarioId: el escenario "${ac.scenarioId}" no existe`);
+    if (ac.mascotId !== undefined && cat.mascot?.id !== ac.mascotId) {
+      errors.push(`academy.mascotId: la mascota "${ac.mascotId}" no es la del catálogo`);
+    }
+    const subsystems = new Set<string>(SUBSYSTEMS);
+    const resources = new Set<string>(RESOURCES);
+    for (const st of ac.steps) {
+      const where = `academy.steps (id "${st.id}").goal`;
+      const v = st.goal.value;
+      if (v === undefined) {
+        if (st.goal.type === 'resource-ok' && !resources.has(st.resource)) {
+          errors.push(`${where}: resource-ok sin value necesita un "resource" que sea un recurso`);
+        }
+        continue;
+      }
+      if (st.goal.type === 'add-component' && !subsystems.has(v) && !ids.componentIds.has(v)) {
+        errors.push(`${where}.value: "${v}" no es un componente ni un subsistema`);
+      }
+      if (st.goal.type === 'select-orbit' && !ids.orbitIds.has(v)) errors.push(`${where}.value: la órbita "${v}" no existe`);
+      if (st.goal.type === 'select-launcher' && !ids.launcherIds.has(v)) errors.push(`${where}.value: el lanzador "${v}" no existe`);
+      if (st.goal.type === 'resource-ok' && !resources.has(v)) errors.push(`${where}.value: el recurso "${v}" no existe`);
+      if (st.goal.type === 'go' || st.goal.type === 'manual') errors.push(`${where}.value: "${st.goal.type}" no admite value`);
+    }
+  }
   return errors;
 }
 
@@ -222,6 +382,9 @@ export const catalog: Catalog = parseCatalog({
   orbits: orbitsJson,
   launchers: launchersJson,
   scenarios: scenariosJson,
+  glossary: glossaryJson,
+  mascot: mascotJson,
+  academy: academyJson,
 });
 
 // ─── Búsquedas ──────────────────────────────────────────────────────────────

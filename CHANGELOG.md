@@ -5,6 +5,44 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+## [0.2.0] - 2026-11-08
+
+Fase 2 (contenido y aprendizaje). Estado, métricas y acciones pendientes: `docs/STATUS.md`. Decisiones: ADR 0008.
+
+### Añadido
+
+#### `@payload/shared`
+- Eventos aleatorios ponderados por dificultad (`EVENT_TABLES`, `ScenarioDef.eventTuning`): sobrecalentamiento, falla de componente (fiabilidad x radiación; degradan sin destruir), retraso de lanzamiento y recorte de presupuesto (`rollPreLaunchEvents`, `MissionSimOptions.preLaunch`, tercer argumento de `computeBudgets`). `deriveSeed` para flujos de azar separados.
+- Rueda de reacción con star tracker: apuntado de respaldo 1°/2°/5° (`wheelBackupPointingDeg`).
+- Fase orbital de Kepler (`orbitPhase`, `meanPhase`, `altitudeKm`; `solveKeplerEquation`, `trueAnomalyFromMeanAnomaly`, `orbitPhaseAt`).
+- Contenido pedagógico como datos zod: `glosario.json`, `mascota.json`, `academia.json` (`catalog.glossary/mascot/academy`, opcionales); `adviseByRole`, `pickMascotDialogue`, `evaluateAcademyStep`, `getGlossaryEntry`.
+- Catálogo: 5 escenarios de campaña + `academy-cubesat-leo`, 43 componentes (16 nuevos, incl. `payload-surface-rover`), 7 lanzadores (Zorzal, Pampero, Jaguar), 28 entradas de glosario, mascota original Orbi (74 diálogos) y Academia de 21 pasos.
+- Fixtures por escenario (`src/__tests__/fixtures/scenarios/`) y `scenarios.test.ts`; 237 tests en 16 archivos.
+- ADR 0008.
+
+#### `@payload/client`
+- Selector de escenarios, intento persistente por escenario (`state/progress.ts`) y fase `prelaunch` con `PreLaunchScreen`.
+- Mascota (`src/mascot`, tecla `H`), Academia (`src/academy`), asesores por rol y glosario (tecla `G`).
+- Audio procedural con Web Audio (`src/audio`): música adaptativa de 5 capas, 13 efectos, emisores 3D, buses y volúmenes, silenciar, subtítulos de sonido y flashes visuales.
+- Vista del instrumento (tecla `I`, `src/instrument`) y `SurfaceScene` con Aurora G9 en las misiones lunar y Marte.
+- 67 tests en 5 archivos (`phase2.test.ts`, `phase2b.test.ts`).
+
+#### `assets/`
+- Aurora G9 como `payload-surface-rover`; secciones Aurora fase 2 y Audio en `CREDITS.md`; `.gitattributes` con `*.ogg binary`.
+
+### Cambiado
+- Puntuación: penalización por agotamientos de batería (`energyCriterion`; `warn-power-storm` 91,7 -> 63,2 con la semilla por defecto) y criterio de vida lineal 75 % -> 100 % (`lifetimeCriterion`).
+- `orbitPhase` pasa a ser la anomalía verdadera / 2π (antes fase uniforme); el tiempo de la simulación sigue en anomalía media, así que los presupuestos no cambian (ADR 0008 §6).
+- La semilla de una partida es `defaultSeed + intento`, con el intento persistido por escenario (antes se reiniciaba a 0).
+- `OrbitScene` dibuja la órbita de Kepler con arco de eclipse; cotas de `catalog.test` subidas (<= 50 componentes, <= 8 lanzadores).
+- Skill `3d-models` portable (sin `stat -c` ni `realpath`) y con sección "Usar un modelo en una escena"; `CREDITS.md` corregido (columna Cambios).
+
+### Corregido
+- Incoherencia entre falla de rueda y ADCS; Academia saltable (revisión bloqueada hasta `step-go`); paso de lanzamiento (`step-launch`); "Rediseñar" en la Academia; desenfoque de la vista del instrumento; el rover contaba en `payloadCount`; fugas de listeners del audio; consumo de CPU de la música (se paran capas con volumen 0).
+
+### Problemas conocidos
+Ver `docs/STATUS.md`: hito con estudiantes sin hacer; audio sin escuchar; lanzamiento, `PreLaunchScreen` y superficie sin verificar en pantalla; chunk `HangarScene` 2,28 MB; mascota sin modelo 3D; Rise no incluida (requiere autorización de NASA).
+
 ## [0.1.0] - 2026-11-07
 
 Fases 0 (preproducción) y 1 (rebanada vertical en solitario). Estado y acciones pendientes: `docs/STATUS.md`.

@@ -45,5 +45,277 @@
       "collaboration": 0.1
     },
     "defaultSeed": 20260101
+  },
+  {
+    "id": "academy-cubesat-leo",
+    "name": {
+      "es": "Academia: primer CubeSat",
+      "en": "Academy: first CubeSat"
+    },
+    "briefing": {
+      "es": "Misión de entrenamiento. Construye un pequeño CubeSat que fotografíe la Tierra con al menos 60 m de detalle, baje 2000 Mbit de datos al día y funcione 2 años. Tienes 20 millones de dólares y 30 meses: hay margen de sobra para aprender sin prisas.",
+      "en": "Training mission. Build a small CubeSat that photographs Earth with at least 60 m detail, downloads 2000 Mbit of data per day and works for 2 years. You have 20 million dollars and 30 months: plenty of room to learn without rushing."
+    },
+    "why": {
+      "es": "Un escenario holgado y sin imprevistos para conocer cada recurso uno a uno antes de las misiones de verdad.",
+      "en": "A roomy scenario with no surprises to get to know each resource one by one before the real missions."
+    },
+    "missionType": "earth-observation",
+    "difficulty": "basic",
+    "budgetMUSD": 20,
+    "maxDevMonths": 30,
+    "requirements": {
+      "maxGroundResolutionM": 60,
+      "minDownlinkMbitPerDay": 2000,
+      "minLifetimeYears": 2,
+      "minScienceValue": 20
+    },
+    "allowedOrbits": [
+      "LEO",
+      "SSO"
+    ],
+    "allowedLaunchers": [
+      "launcher-albatros",
+      "launcher-colibri"
+    ],
+    "allowedComponents": [
+      "structure-cubesat-6u",
+      "structure-cubesat-12u",
+      "structure-microsat",
+      "structure-smallsat",
+      "power-body-mounted",
+      "power-deployable",
+      "power-high-efficiency",
+      "battery-small",
+      "battery-medium",
+      "battery-large",
+      "comms-uhf",
+      "comms-s-band",
+      "comms-x-band",
+      "obc-basic",
+      "obc-advanced",
+      "adcs-magnetorquers",
+      "adcs-reaction-wheels",
+      "adcs-star-tracker",
+      "thermal-passive",
+      "thermal-radiator",
+      "thermal-active",
+      "payload-multispectral-basic",
+      "payload-hires-camera",
+      "payload-thermal-camera",
+      "payload-radiometer",
+      "payload-ais-receiver",
+      "payload-hyperspectral"
+    ],
+    "groundStations": 2,
+    "operationDays": 7,
+    "eventsEnabled": false,
+    "operationsCostMUSDPerYear": 0.5,
+    "weights": {
+      "objectives": 0.5,
+      "science": 0.2,
+      "efficiency": 0.2,
+      "collaboration": 0.1
+    },
+    "defaultSeed": 20260201
+  },
+  {
+    "id": "geo-telecom-connect",
+    "name": {
+      "es": "Una señal para todos",
+      "en": "A Signal for Everyone"
+    },
+    "briefing": {
+      "es": "Una región de montañas y selvas sigue sin internet ni televisión: no hay cables ni antenas que lleguen hasta allí. Tu misión es diseñar un satélite de telecomunicaciones que reenvíe al menos 200 000 Mbit de tráfico al día durante 4 años con un servicio de calidad (60 puntos de «valor de servicio»: dos transpondedores normales lo logran). Lo natural es la órbita geoestacionaria, donde el satélite parece quieto sobre la región, pero también puedes estudiar la órbita media o la muy elíptica. Tienes 170 millones de dólares y 42 meses. Los transpondedores gastan cientos de vatios: cuida la energía, el calor y la sombra de la Tierra.",
+      "en": "A region of mountains and jungle still has no internet or television: no cables or antennas reach it. Your mission is to design a telecommunications satellite that relays at least 200,000 Mbit of traffic per day for 4 years with quality service (60 points of 'service value': two normal transponders reach it). The natural choice is geostationary orbit, where the satellite seems fixed above the region, but you can also study medium or highly elliptical orbits. You have 170 million dollars and 42 months. Transponders draw hundreds of watts: watch power, heat and Earth's shadow."
+    },
+    "why": {
+      "es": "Un satélite de telecomunicaciones es un gran consumidor de energía que debe quedarse quieto sobre una zona: la órbita geoestacionaria lo permite, pero está a 36 000 km, exige un cohete grande y la radiación acorta la vida de las piezas.",
+      "en": "A telecom satellite is a big power consumer that must stay put over one area: geostationary orbit allows it, but it lies 36,000 km away, needs a big rocket and radiation shortens the life of the parts."
+    },
+    "missionType": "telecom",
+    "difficulty": "intermediate",
+    "budgetMUSD": 170,
+    "maxDevMonths": 42,
+    "requirements": {
+      "minDownlinkMbitPerDay": 200000,
+      "minLifetimeYears": 4,
+      "minScienceValue": 60
+    },
+    "allowedOrbits": ["GEO", "MEO", "HEO"],
+    "allowedLaunchers": ["launcher-pampero", "launcher-condor", "launcher-jaguar", "launcher-quetzal"],
+    "allowedComponents": [
+      "structure-smallsat", "structure-heavy-bus", "structure-shielded-bus",
+      "power-high-efficiency", "power-large-array",
+      "battery-large", "battery-xl",
+      "comms-x-band", "comms-ka-band",
+      "obc-advanced", "obc-rad-hard",
+      "adcs-reaction-wheels", "adcs-star-tracker",
+      "thermal-active", "thermal-heat-pipe-large",
+      "payload-transponder-ku", "payload-transponder-hts"
+    ],
+    "groundStations": 2,
+    "operationDays": 30,
+    "eventsEnabled": true,
+    "operationsCostMUSDPerYear": 3,
+    "weights": {
+      "objectives": 0.45,
+      "science": 0.1,
+      "efficiency": 0.35,
+      "collaboration": 0.1
+    },
+    "defaultSeed": 20260303,
+    "eventTuning": {
+      "componentFailureAcceleration": 20,
+      "launchDelayChance": 0.3
+    }
+  },
+  {
+    "id": "space-telescope-deep-sky",
+    "name": {
+      "es": "Un ojo en el cielo oscuro",
+      "en": "An Eye on the Dark Sky"
+    },
+    "briefing": {
+      "es": "Los astrónomos quieren un telescopio espacial que mire estrellas débiles sin que la atmósfera borre su luz. Necesitan al menos 100 puntos de ciencia (un telescopio y un espectrógrafo juntos los alcanzan), 50 000 Mbit de datos bajados cada día y 5 años de vida. Los instrumentos exigen un apuntado finísimo: sin rastreador estelar, la mitad de los datos sale borrosa. Tienes 120 millones de dólares y 40 meses. Puedes elegir la órbita baja, la heliosíncrona o la muy elíptica.",
+      "en": "Astronomers want a space telescope that looks at faint stars without the atmosphere washing out their light. They need at least 100 science points (a telescope and a spectrograph together reach that), 50,000 Mbit of data downloaded every day and 5 years of life. The instruments demand very fine pointing: without a star tracker, half of the data comes out blurred. You have 120 million dollars and 40 months. You can choose low, sun-synchronous or highly elliptical orbit."
+    },
+    "why": {
+      "es": "Un telescopio es pesado, caro y muy sensible: solo ve nítido si la nave está casi inmóvil, así que el apuntado, la energía y los datos mandan más que el cohete.",
+      "en": "A telescope is heavy, expensive and very sensitive: it only sees sharply if the spacecraft is almost motionless, so pointing, power and data matter more than the rocket."
+    },
+    "missionType": "space-telescope",
+    "difficulty": "advanced",
+    "budgetMUSD": 120,
+    "maxDevMonths": 40,
+    "requirements": {
+      "minDownlinkMbitPerDay": 50000,
+      "minLifetimeYears": 5,
+      "minScienceValue": 100
+    },
+    "allowedOrbits": ["LEO", "SSO", "HEO"],
+    "allowedLaunchers": ["launcher-zorzal", "launcher-pampero", "launcher-condor", "launcher-jaguar"],
+    "allowedComponents": [
+      "structure-smallsat", "structure-heavy-bus", "structure-shielded-bus",
+      "power-high-efficiency", "power-large-array",
+      "battery-medium", "battery-large", "battery-xl",
+      "comms-s-band", "comms-x-band", "comms-high-gain-antenna",
+      "obc-basic", "obc-advanced", "obc-rad-hard",
+      "adcs-magnetorquers", "adcs-reaction-wheels", "adcs-star-tracker",
+      "thermal-radiator", "thermal-active", "thermal-heat-pipe-large",
+      "payload-optical-telescope", "payload-spectrograph"
+    ],
+    "groundStations": 2,
+    "operationDays": 30,
+    "eventsEnabled": true,
+    "operationsCostMUSDPerYear": 0.8,
+    "weights": {
+      "objectives": 0.4,
+      "science": 0.35,
+      "efficiency": 0.15,
+      "collaboration": 0.1
+    },
+    "defaultSeed": 20260406,
+    "eventTuning": {
+      "environmentChancePerDay": 0.1,
+      "environmentWeights": { "reaction-wheel-failure": 1 },
+      "componentFailureAcceleration": 30
+    }
+  },
+  {
+    "id": "lunar-polar-scout",
+    "name": {
+      "es": "Hielo en la sombra",
+      "en": "Ice in the Shadows"
+    },
+    "briefing": {
+      "es": "En los cráteres del polo sur de la Luna, donde el Sol nunca llega, podría haber hielo de agua: combustible y bebida para futuras bases. Diseña una sonda que viaje en trayectoria de transferencia lunar, cartografíe el terreno con al menos 15 m de detalle, reúna 90 puntos de ciencia, baje 12 000 Mbit al día y dure 3 años. Si quieres ir más lejos, puedes llevar el rover de exploración Aurora G9 como carga útil de superficie: suma mucha ciencia, pero pesa y gasta energía. Tienes 130 millones de dólares y 42 meses. Ojo: el eclipse allí dura dos horas y media.",
+      "en": "In the craters of the Moon's south pole, where the Sun never shines, there may be water ice: fuel and drink for future bases. Design a probe that travels on a trans-lunar trajectory, maps the terrain with at least 15 m detail, gathers 90 science points, downloads 12,000 Mbit per day and lasts 3 years. If you want to go further, you can carry the Aurora G9 exploration rover as an optional surface payload: it adds a lot of science, but it is heavy and power-hungry. You have 130 million dollars and 42 months. Beware: the eclipse there lasts two and a half hours."
+    },
+    "why": {
+      "es": "Ir a la Luna exige un cohete potente y una nave que sobreviva a eclipses largos lejos de casa; cada kilo extra, como el del rover, obliga a un lanzador más grande y caro.",
+      "en": "Going to the Moon takes a powerful rocket and a spacecraft that survives long eclipses far from home; every extra kilo, like the rover's, forces a bigger and pricier launcher."
+    },
+    "missionType": "lunar-exploration",
+    "difficulty": "intermediate",
+    "budgetMUSD": 130,
+    "maxDevMonths": 42,
+    "requirements": {
+      "maxGroundResolutionM": 15,
+      "minDownlinkMbitPerDay": 12000,
+      "minLifetimeYears": 3,
+      "minScienceValue": 90
+    },
+    "allowedOrbits": ["TLI"],
+    "allowedLaunchers": ["launcher-pampero", "launcher-condor", "launcher-jaguar", "launcher-quetzal"],
+    "allowedComponents": [
+      "structure-smallsat", "structure-heavy-bus", "structure-shielded-bus",
+      "power-high-efficiency", "power-large-array", "power-rtg",
+      "battery-medium", "battery-large", "battery-xl",
+      "comms-s-band", "comms-x-band", "comms-high-gain-antenna",
+      "obc-advanced", "obc-rad-hard",
+      "adcs-reaction-wheels", "adcs-star-tracker",
+      "thermal-radiator", "thermal-active", "thermal-heat-pipe-large",
+      "payload-multispectral-basic", "payload-hires-camera", "payload-thermal-radiometer", "payload-radiometer", "payload-surface-rover"
+    ],
+    "groundStations": 2,
+    "operationDays": 30,
+    "eventsEnabled": true,
+    "operationsCostMUSDPerYear": 1,
+    "weights": {
+      "objectives": 0.4,
+      "science": 0.3,
+      "efficiency": 0.2,
+      "collaboration": 0.1
+    },
+    "defaultSeed": 20260501
+  },
+  {
+    "id": "mars-aurora-expedition",
+    "name": {
+      "es": "Aurora llega a Marte",
+      "en": "Aurora Reaches Mars"
+    },
+    "briefing": {
+      "es": "La agencia quiere enviar a Marte una expedición completa: un orbitador que cartografíe con 20 m de detalle y, si te atreves, el rover de exploración Aurora G9 como carga útil de superficie. Hace falta reunir 100 puntos de ciencia, bajar 25 000 Mbit al día con una sola estación terrestre y funcionar 4 años. El modelo no incluye una órbita marciana, así que la misión usa la transferencia de salida (TLI) como la más cercana: la nave va lejos de la Tierra, con poco sol y mucha radiación. Tienes 185 millones de dólares y 48 meses. Sin margen para el error.",
+      "en": "The agency wants to send a full expedition to Mars: an orbiter that maps with 20 m detail and, if you dare, the Aurora G9 exploration rover as a surface payload. You must gather 100 science points, download 25,000 Mbit per day with a single ground station and operate for 4 years. The model has no Martian orbit, so the mission uses the departure transfer (TLI) as the closest one: the spacecraft goes far from Earth, with little sunlight and lots of radiation. You have 185 million dollars and 48 months. No room for error."
+    },
+    "why": {
+      "es": "Marte es lo más lejano del juego: la luz solar es débil, la radiación castiga y el viaje es largo, así que la fiabilidad, la fuente de energía y el calendario deciden la misión.",
+      "en": "Mars is the farthest thing in the game: sunlight is weak, radiation punishes and the trip is long, so reliability, the power source and the schedule decide the mission."
+    },
+    "missionType": "mars-exploration",
+    "difficulty": "advanced",
+    "budgetMUSD": 185,
+    "maxDevMonths": 48,
+    "requirements": {
+      "maxGroundResolutionM": 20,
+      "minDownlinkMbitPerDay": 25000,
+      "minLifetimeYears": 4,
+      "minScienceValue": 100
+    },
+    "allowedOrbits": ["TLI"],
+    "allowedLaunchers": ["launcher-condor", "launcher-jaguar", "launcher-quetzal"],
+    "allowedComponents": [
+      "structure-heavy-bus", "structure-shielded-bus",
+      "power-large-array", "power-deep-space-wings", "power-rtg",
+      "battery-large", "battery-xl",
+      "comms-x-band", "comms-high-gain-antenna",
+      "obc-advanced", "obc-rad-hard",
+      "adcs-reaction-wheels", "adcs-star-tracker",
+      "thermal-active", "thermal-heat-pipe-large",
+      "payload-multispectral-basic", "payload-hires-camera", "payload-hyperspectral", "payload-thermal-radiometer", "payload-spectrograph", "payload-surface-rover"
+    ],
+    "groundStations": 1,
+    "operationDays": 30,
+    "eventsEnabled": true,
+    "operationsCostMUSDPerYear": 2,
+    "weights": {
+      "objectives": 0.45,
+      "science": 0.3,
+      "efficiency": 0.15,
+      "collaboration": 0.1
+    },
+    "defaultSeed": 20260602
   }
 ]

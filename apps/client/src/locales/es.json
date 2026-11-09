@@ -21,7 +21,10 @@
     "settings": "Ajustes",
     "credits": "Créditos",
     "language": "Idioma",
-    "tagline": "Diseña, lanza y opera tu misión"
+    "tagline": "Diseña, lanza y opera tu misión",
+    "academy": "Academia",
+    "academyDone": "Academia completada",
+    "glossary": "Glosario"
   },
   "lang": {
     "es": "Español",
@@ -35,7 +38,16 @@
     "sensitivity": "Sensibilidad del ratón",
     "accessible2D": "Modo accesible 2D",
     "accessible2DHint": "Hace todo el diseño desde paneles 2D, sin moverte en 3D.",
-    "shadows": "Sombras (calidad gráfica)"
+    "shadows": "Sombras (calidad gráfica)",
+    "mascot": "Mascota guía",
+    "mascotHint": "Comentarios y ayuda con H. Desactívala si ya conoces el juego.",
+    "audio": "Audio",
+    "muteAll": "Silenciar todo",
+    "volMusic": "Volumen de música",
+    "volSfx": "Volumen de efectos",
+    "volAlerts": "Volumen de avisos y voz",
+    "soundCaptions": "Subtítulos de sonido",
+    "soundCaptionsHint": "Muestra textos como [alarma de batería] cuando suena un aviso. Los avisos importantes siempre destellan en pantalla."
   },
   "credits": {
     "title": "Créditos",
@@ -45,7 +57,7 @@
     "source": "Fuente: Sketchfab",
     "usedFor": "Uso",
     "astronaut": "Avatar del jugador",
-    "walker": "Exhibición en el hangar",
+    "walker": "Exhibición en el hangar y rover de exploración lunar y marciana",
     "galaxy": "Fondo de menú y espacio",
     "erizon": "Estación espacial en órbita",
     "ncnd": "CC-BY-NC-ND: solo uso no comercial y sin obras derivadas.",
@@ -66,7 +78,8 @@
     "orbits": "Órbitas permitidas",
     "launchers": "Lanzadores permitidos",
     "start": "Ir al hangar",
-    "difficulty": "Dificultad"
+    "difficulty": "Dificultad",
+    "mascotTip": "Consejo de {{name}}"
   },
   "difficulty": {
     "basic": "Básica",
@@ -184,7 +197,8 @@
     "chase": "Cámara de persecución",
     "tower": "Vista desde la torre",
     "standby": "En espera",
-    "orbitInsertion": "Inserción en órbita"
+    "orbitInsertion": "Inserción en órbita",
+    "zeroG": "Gravedad cero"
   },
   "operation": {
     "title": "Operación de la misión",
@@ -219,7 +233,8 @@
     "mbit": "Mbit",
     "noEvents": "Sin eventos todavía.",
     "dayShort": "D",
-    "seed": "Semilla"
+    "seed": "Semilla",
+    "preLaunch": "Retraso +{{months}} meses · recorte −{{pct}} %"
   },
   "report": {
     "title": "Informe de la misión",
@@ -248,7 +263,9 @@
       "info": "Info",
       "warning": "Aviso",
       "failure": "Fallo"
-    }
+    },
+    "events": "Eventos de la misión",
+    "preLaunchSummary": "Antes del lanzamiento: retraso de {{months}} meses y recorte del {{pct}} %."
   },
   "help": {
     "title": "Controles",
@@ -259,7 +276,7 @@
     "hangar": "WASD moverse · ratón mirar · V cambiar 1ª/3ª persona · E interactuar (tomar, montar, consola) · Q devolver · Tab panel de recursos · Esc soltar el ratón · H ayuda",
     "review": "Revisa los motivos. Con Go puedes autorizar el lanzamiento.",
     "launch": "V alterna cámara de persecución y vista desde la torre · H ayuda",
-    "operation": "V alterna cámara orbital y vista a través del instrumento · arrastra para orbitar la cámara · usa los controles de tiempo · H ayuda",
+    "operation": "V alterna cámara orbital y vista a través del instrumento · I abre la vista del instrumento principal · arrastra para orbitar la cámara · usa los controles de tiempo · H ayuda",
     "report": "Revisa la cadena de causas y rediseña."
   },
   "keys": {
@@ -279,6 +296,170 @@
     "review": "Revisión",
     "launch": "Lanzamiento",
     "operation": "Operación",
-    "report": "Informe"
+    "report": "Informe",
+    "prelaunch": "Pre-lanzamiento"
+  },
+  "scenarios": {
+    "title": "Elige una misión",
+    "intro": "Cada escenario pide cosas distintas: compara tipo, dificultad y presupuesto antes de empezar.",
+    "empty": "No hay escenarios de campaña en el catálogo.",
+    "type": "Tipo",
+    "attempts": "Intentos",
+    "play": "Jugar"
+  },
+  "missionType": {
+    "earth-observation": "Observación de la Tierra",
+    "telecom": "Telecomunicaciones",
+    "space-telescope": "Telescopio espacial",
+    "lunar-exploration": "Exploración lunar",
+    "mars-exploration": "Exploración de Marte"
+  },
+  "mascot": {
+    "dismiss": "Cerrar mensaje",
+    "expression": {
+      "happy": "contenta",
+      "thinking": "pensativa",
+      "worried": "preocupada",
+      "celebrating": "celebrando"
+    }
+  },
+  "academy": {
+    "exit": "Salir",
+    "stepOf": "Paso {{n}} de {{total}}",
+    "completed": "¡Academia completada!",
+    "completedText": "Ya conoces todos los recursos. Prueba una misión de la campaña.",
+    "backToMenu": "Volver al menú",
+    "objective": "Objetivo:",
+    "met": "¡Hecho!",
+    "next": "Siguiente",
+    "finish": "Terminar la Academia",
+    "focus": "en foco",
+    "wait": {
+      "hangar": "Continúa al hangar para este paso.",
+      "operation": "Pide la revisión Go/No-Go y lanza para continuar.",
+      "report": "Termina la operación para ver el informe.",
+      "launch": "Pide la revisión Go/No-Go y autoriza el lanzamiento: este paso se vive en la plataforma."
+    },
+    "goal": {
+      "addAny": "monta cualquier pieza.",
+      "addSubsystem": "monta una pieza de {{name}}.",
+      "addComponent": "monta «{{name}}».",
+      "selectOrbit": "elige la órbita {{name}}.",
+      "selectAnyOrbit": "elige una órbita.",
+      "selectLauncher": "elige el lanzador {{name}}.",
+      "selectAnyLauncher": "elige un lanzador.",
+      "resourceOk": "deja «{{name}}» fuera del rojo.",
+      "go": "consigue el Go en la revisión.",
+      "manual": "lee y pulsa Siguiente."
+    },
+    "incomplete": "Academia sin terminar",
+    "incompleteText": "Te saltaste algunos pasos. Vuelve a entrar en la Academia y complétalos para darla por superada.",
+    "reviewLocked": "Aún no: completa los pasos de la Academia antes de pedir la revisión Go/No-Go."
+  },
+  "advisors": {
+    "title": "Asesores del equipo",
+    "none": "Sin consejos: monta alguna pieza.",
+    "open": "Asesores",
+    "role": {
+      "director": "Dirección de vuelo",
+      "engineering": "Ingeniería",
+      "science": "Ciencia",
+      "operations": "Operaciones"
+    }
+  },
+  "glossary": {
+    "title": "Glosario",
+    "search": "Buscar término…",
+    "why": "¿Por qué importa?",
+    "related": "Relacionados",
+    "backToList": "Volver a la lista",
+    "empty": "Ningún término coincide con la búsqueda.",
+    "unavailable": "El catálogo no trae glosario."
+  },
+  "prelaunch": {
+    "title": "Antes del lanzamiento",
+    "intro": "La revisión dio Go, pero el mundo real no espera: estos imprevistos afectan a tu misión.",
+    "delay": "Retraso del lanzamiento",
+    "cut": "Recorte de presupuesto",
+    "overrun": "Ahora se excede: {{list}}. No anula la misión, pero penaliza la puntuación.",
+    "continue": "Continuar al lanzamiento"
+  },
+  "event": {
+    "launch-success": "Lanzamiento",
+    "launch-failure": "Fallo de lanzamiento",
+    "eclipse-enter": "Eclipse",
+    "eclipse-exit": "Sol",
+    "contact-start": "Contacto",
+    "contact-end": "Fin de contacto",
+    "battery-low": "Batería baja",
+    "battery-depleted": "Batería agotada",
+    "storage-full": "Memoria llena",
+    "solar-storm": "Tormenta solar",
+    "reaction-wheel-failure": "Falla de rueda",
+    "debris-avoidance": "Basura espacial",
+    "component-failure": "Falla de componente",
+    "mission-complete": "Misión completada",
+    "overheating": "Sobrecalentamiento",
+    "launch-delay": "Retraso",
+    "budget-cut": "Recorte"
+  },
+  "sound": {
+    "mount": "[pieza montada]",
+    "unmount": "[pieza retirada]",
+    "batteryAlarm": "[alarma de batería]",
+    "contact": "[pitido de contacto con la estación]",
+    "radioStatic": "[estática de radio]",
+    "countdownTick": "[pitido de cuenta atrás]",
+    "liftoff": "[rugido de los motores]",
+    "separation": "[separación de etapas]",
+    "explosion": "[explosión]",
+    "success": "[tono de éxito]",
+    "complete": "[misión completada]"
+  },
+  "instrument": {
+    "title": "Vista del instrumento",
+    "viewfinder": "VISOR DEL INSTRUMENTO PRINCIPAL",
+    "scale": "Resolución en suelo: {{res}} m por píxel",
+    "instrument": "Instrumento principal",
+    "looking": "Observando",
+    "groundRes": "Resolución en suelo",
+    "noResolution": "No aplica (sin óptica de suelo)",
+    "target": {
+      "earth": "La Tierra",
+      "stars": "Campo de estrellas",
+      "moon": "Superficie lunar",
+      "mars": "Superficie de Marte"
+    },
+    "condition": {
+      "nominal": "Imagen nominal",
+      "eclipse": "Eclipse: imagen oscura",
+      "degraded": "Apuntado degradado",
+      "lost": "Instrumento perdido",
+      "noInstrument": "Sin instrumento"
+    },
+    "hint": {
+      "nominal": "El instrumento apunta bien y hay luz: cada paso suma datos útiles.",
+      "eclipse": "La Tierra tapa al Sol: sin luz el sensor no ve y la nave vive de la batería.",
+      "degraded": "Una rueda de reacción o la unidad de actitud falló: el apuntado empeora y la imagen sale borrosa y temblorosa.",
+      "lost": "No llegan más imágenes. Revisa el registro de eventos para ver qué falló.",
+      "noInstrument": "Tu diseño no lleva instrumentos: no hay nada que mirar."
+    },
+    "lost": {
+      "payload": "INSTRUMENTO PERDIDO",
+      "mission": "SIN SEÑAL: MISIÓN TERMINADA EN FALLO"
+    },
+    "eclipseBanner": "Eclipse: sin luz solar",
+    "openSurface": "Ver la superficie",
+    "exit": "Salir",
+    "button": "Instrumento",
+    "toggle": "Ver a través del instrumento principal"
+  },
+  "surface": {
+    "title": {
+      "moon": "Superficie lunar · Aurora G9",
+      "mars": "Superficie de Marte · Aurora G9"
+    },
+    "description": "Vista breve del rover Aurora G9 caminando por el terreno. Sus datos ya cuentan en el panel de la misión.",
+    "close": "Cerrar la vista de superficie"
   }
 }

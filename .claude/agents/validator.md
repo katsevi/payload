@@ -12,5 +12,6 @@ Procedimiento:
 2. Ejecuta `pnpm validate` (typecheck + test + build) y reporta la salida real de cualquier fallo.
 3. Revisa las reglas no negociables: motor TS puro, sin `Math.random`/`Date.now` en `packages/shared/src`,
    claves i18n idénticas en es/en, contenido en el catálogo y no en código, assets registrados en `assets/CREDITS.md`.
+   Verifica también que cada escenario tenga su fixture (`scenarios.test.ts`) y que la mascota no sea Rise sin autorización documentada.
 4. Comprueba cada punto del checklist de la fase contra el código (cita archivo:línea).
 5. Entrega un informe con: ✅ cumplido, ⚠️ parcial, ❌ falta — ordenado por gravedad, con evidencia.

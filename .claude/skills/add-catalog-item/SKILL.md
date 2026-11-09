@@ -15,6 +15,9 @@ Los tipos están en `packages/shared/src/types.ts` (`ComponentDef`, `OrbitDef`, 
 | Lanzador | `packages/shared/catalog/lanzadores.json` |
 | Escenario | `packages/shared/catalog/escenarios.json` |
 
+Contenido pedagógico opcional (también datos, ver `packages/shared/CLAUDE.md`): `glosario.json`
+(`catalog.glossary`), `mascota.json` (mascota intercambiable; Orbi), `academia.json` (pasos de la Academia).
+
 Pasos:
 1. Copia una entrada existente del mismo tipo como plantilla; usa un `id` kebab-case único.
 2. Rellena `name`, `description` y `why` en **es y en** (el "¿por qué?" en 1-2 frases sencillas).
@@ -22,9 +25,12 @@ Pasos:
    Valores plausibles y simplificados.
 4. Si es un escenario, referencia solo ids que existan en `allowedOrbits`, `allowedLaunchers`
    y `allowedComponents`.
-5. Comprueba:
+5. Si es un **escenario**, crea su fixture `packages/shared/src/__tests__/fixtures/scenarios/<id>.json`
+   (>= 2 diseños `valid` y >= 2 `failing` con `cause` distinta; formato en `fixtures.ts`). Ajusta la
+   dificultad con `eventTuning` del escenario. Sin fixture, `scenarios.test.ts` falla.
+6. Comprueba:
    ```bash
    pnpm --filter @payload/shared test   # valida esquema, referencias y balance
    pnpm proto                           # mira los compromisos en terminal
    ```
-6. Si el contenido nuevo cambia el balance de un escenario, anótalo en `docs/STATUS.md`.
+7. Si el contenido nuevo cambia el balance de un escenario, anótalo en `docs/STATUS.md`.

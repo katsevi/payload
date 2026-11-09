@@ -6,6 +6,7 @@ import {
 import { missionMachine } from '../app/missionMachine';
 import { useDesign } from '../state/design';
 import { useSim } from '../state/sim';
+import { campaignScenarios } from '../ui/catalogViews';
 
 /** ¿Está implementado el motor? (mientras sean stubs, los tests de integración se omiten) */
 function engineReady(): boolean {
@@ -23,7 +24,7 @@ const ready = engineReady();
 
 /** Busca un diseño Go combinando un componente por subsistema (suficiente para comprobar la integración). */
 function findGoDesign(): MissionDesign | null {
-  const sc = catalog.scenarios[0]!;
+  const sc = campaignScenarios()[0]!;
   const comps = componentsForScenario(sc.id, catalog);
   const by = (s: SubsystemId) => comps.filter((c) => c.subsystem === s);
   const subs: SubsystemId[] = ['power', 'battery', 'comms', 'obc', 'adcs', 'thermal', 'payload'];
@@ -81,7 +82,15 @@ describe.skipIf(!ready)('integración con el motor real', () => {
     d.setLauncher(design!.launcherId);
     a.send({ type: 'REQUEST_REVIEW' });
     a.send({ type: 'LAUNCH' });
+    // Tras el Go se sortean los eventos pre-lanzamiento: si hay alguno se muestra la fase prelaunch.
+    const pre = useSim.getState().preLaunch;
+    expect(pre).not.toBeNull();
+    if (pre!.events.length > 0) {
+      expect(a.getSnapshot().value).toBe('prelaunch');
+      a.send({ type: 'CONFIRM_LAUNCH' });
+    }
     expect(a.getSnapshot().value).toBe('launch');
+    expect(useSim.getState().preLaunch).toEqual(pre);
     expect(useSim.getState().snapshot).not.toBeNull();
     a.send({ type: 'LAUNCH_DONE' });
     if (useSim.getState().launchOk) {
