@@ -1,7 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { catalog, computeBudgets, getScenario, type BudgetReport, type MissionDesign, type ScenarioDef } from '@payload/shared';
 import { currentLocale } from '../i18n';
-import { useDesign } from '../state/design';
 
 export const fmt = (n: number, digits = 1): string =>
   Number.isFinite(n) ? n.toLocaleString(currentLocale(), { maximumFractionDigits: digits }) : '—';
@@ -15,29 +13,6 @@ export function Panel({ title, children, className = '' }: { title?: string; chi
   );
 }
 
-export function useScenario(): ScenarioDef | undefined {
-  const id = useDesign((s) => s.scenarioId);
-  try {
-    return getScenario(id, catalog);
-  } catch {
-    return catalog.scenarios.find((s) => s.id === id) ?? catalog.scenarios[0];
-  }
-}
-
-/** Presupuestos del diseño actual (se recalcula en cada cambio del hangar). */
-export function useBudgets(): BudgetReport | null {
-  const scenarioId = useDesign((s) => s.scenarioId);
-  const componentIds = useDesign((s) => s.componentIds);
-  const orbitId = useDesign((s) => s.orbitId);
-  const launcherId = useDesign((s) => s.launcherId);
-  try {
-    const d: MissionDesign = { scenarioId, componentIds, orbitId, launcherId };
-    return scenarioId ? computeBudgets(d, catalog) : null;
-  } catch {
-    return null;
-  }
-}
-
 /** true mientras el ratón está capturado (pointer lock) por el canvas. */
 export function usePointerLocked(): boolean {
   const [locked, setLocked] = useState(false);
@@ -49,7 +24,7 @@ export function usePointerLocked(): boolean {
   return locked;
 }
 
-export function Modal({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+export function Modal({ children, onClose, wide = false }: { children: ReactNode; onClose: () => void; wide?: boolean }) {
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.code === 'Escape' && onClose();
     window.addEventListener('keydown', k);
@@ -57,7 +32,7 @@ export function Modal({ children, onClose }: { children: ReactNode; onClose: () 
   }, [onClose]);
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true">
-      <div className="max-h-full w-full max-w-2xl overflow-auto">{children}</div>
+      <div className={`max-h-full w-full overflow-auto ${wide ? "max-w-5xl" : "max-w-2xl"}`}>{children}</div>
     </div>
   );
 }

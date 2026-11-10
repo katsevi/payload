@@ -1,6 +1,6 @@
 # @payload/api
 
-Marcador de la **fase 4 (pulido y lanzamiento)**. Hoy no tiene código. Aquí vivirá la API con
-NestJS + Prisma + PostgreSQL: cuentas, diseños guardados y rankings.
+Marcador de la **fase 5 (pulido y lanzamiento)**. Hoy no tiene código. Aquí vivirá la API de rankings y
+persistencia (NestJS + Prisma + PostgreSQL).
 
-Plan y criterios: [`docs/phases/fase-4.md`](../../docs/phases/fase-4.md) · Arquitectura: [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).
+Plan y criterios: [`docs/phases/fase-5.md`](../../docs/phases/fase-5.md) · Arquitectura: [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md).

@@ -1,56 +1,34 @@
-# Fase 3 · Multijugador
+# Fase 3 · Economía y progresión
 
-**Objetivo:** hasta 4 jugadores cooperando en una misma misión, cada uno con su rol, sobre un servidor autoritativo.
+Pilar del plan: *economía y progresión (mejoras)*. Diseño previsto: `docs/GDD.md` § 11. No iniciada.
+Requiere la fase 2 (sin superficie no hay nada que vender).
 
-**Hito de salida:** *cuatro jugadores estables en una misión*.
+**Hito:** en una partida de 20 minutos el jugador compra al menos dos mejoras y se nota que la nave es
+otra; dos partidas seguidas acaban con mejoras distintas.
 
-**Prerrequisito:** fase 2 validada (hecho).
+## Punto de partida
 
-**Estado:** hecha · validada con observaciones (2026-11-09). **El hito humano está pendiente**: jugar una misión completa con 4 personas reales en 4 navegadores/equipos distintos (hasta ahora solo con 3-4 clientes SDK en `localhost`, un navegador real y la sala de ejemplo `?room=demo`). Ver el apartado "Resultado".
-
-## Punto de partida (estado al terminar la fase 2)
-
-Qué existe y debe **reutilizarse** (no reescribir). Estado y acciones humanas: `docs/STATUS.md`.
-
-- **Motor determinista y puro** (`packages/shared`): `computeBudgets`, `reviewGoNoGo`, `createMissionSim`/`runMission`, `scoreMission`, `buildReport`. Misma semilla = mismo resultado, sin importar cómo se trocee `step()`. Semilla del cliente = `defaultSeed + intento`.
-- **Flujo que debe reproducir el servidor:** diseño válido → Go → `rollPreLaunchEvents(design, cat, seed)` → `createMissionSim(design, cat, { seed, preLaunch })` → `step(dt)` → `scoreMission`/`buildReport`. Los eventos están pre-sorteados con flujos separados (`deriveSeed`), así que cliente y servidor coinciden.
-- **Roles:** `adviseByRole` y `ADVISOR_ROLES`/`ROLE_RESOURCES` (`advisors.ts`) ya definen los 4 roles y los recursos que vigila cada uno (claves `sim:advisor.*`). Con menos de 4 jugadores, un jugador agrupa roles.
-- **Contrato:** `packages/shared/src/types.ts` (solo cambios aditivos; ADR si se rompe). `MessageRef` para todo texto; el cliente traduce.
-- **Mascota y Academia** son datos (`catalog.mascot`, `catalog.academy`) con lógica pura en `apps/client/src/{mascot,academy}`. Decidir qué ve cada rol en una sala (una sola mascota por sala).
-- **Cliente:** `useSim`, `useDesign` y `missionMachine` (XState, con fase `prelaunch`) llaman al motor en local; hay que poner detrás una interfaz común (local vs sala). La Academia y el intento persistente (`state/progress.ts`) son solitario.
-- **Tests de referencia:** `simulation.test.ts` (determinismo) y `scenarios.test.ts` + fixtures por escenario (diseños válidos/fallidos listos para probar paridad servidor-motor).
-- **Pendiente heredado de la fase 2:** hito con estudiantes, escucha del audio, revisión visual; `orbitPhase` es anomalía verdadera (ADR 0008 §6).
-- (Al empezar la fase) `apps/game-server` era un marcador; agente de apoyo: `.claude/agents/game-server.md`.
+- El servicio de estación de la fase 1 (`NodeKindDef.service`: repostar, +casco, +repuestos, gratis y una vez) es el sustituto provisional de la tienda.
+- Las cifras de la nave ya son datos (`catalog/naves.json`): una mejora es un cambio sobre `ShipDef`.
 
 ## Alcance previsto
 
-- **Servidor de juego** con Colyseus (0.18): salas de hasta 4, estado autoritativo que **corre el mismo motor** de `packages/shared`; los clientes solo envían acciones ("agregar instrumento", "votar Go"); reconexión y emparejamiento. Redis para presencia y escalado.
-- **Roles:** Director/a de misión, Ingeniería de nave, Ciencia y carga útil, Operaciones y comunicaciones; combinación de roles con menos de 4 jugadores.
-- **Colaboración:** solicitudes de recursos visibles para todos, presupuestos asignados por subsistema (reasignar requiere negociar), **Go/No-Go compartido** con voto por rol y motivo del No-Go, eventos en operación que exigen a varios roles.
-- **Sala de control compartida** con avatares (astronauta del proyecto), chat de texto, *pings* sobre la nave y voz opcional por WebRTC.
-- **Puntuación de colaboración** (solicitudes resueltas, tiempo de respuesta a eventos).
-- Modo cooperativo.
+### Motor
 
-## Entregables previstos
+- [ ] Créditos y carga a bordo; la masa de la carga encarece cada salto.
+- [ ] Mercado por estación: precios de venta de minerales y muestras, con variación por sector.
+- [ ] Tienda: combustible, reparación de casco, repuestos (sustituye al servicio gratuito).
+- [ ] Mejoras de nave por datos (`catalog/mejoras.json`): depósito, escudos, motores de salto, reactor.
+- [ ] Mejoras de equipo personal: traje, tanque de oxígeno, jetpack.
+- [ ] Cada mejora con su coste oculto (masa, consumo eléctrico, precio): no hay mejoras gratis.
+- [ ] Destinos lejanos que exigen mejores motores.
 
-- [x] `apps/game-server` con sala `MissionRoom` y esquema de estado sincronizado.
-- [x] Capa de cliente que alterna entre motor local (solitario) y servidor (sala) con la misma interfaz.
-- [x] Roles, permisos por rol y solicitudes de recursos.
-- [x] Go/No-Go con votación.
-- [x] Sala de control con avatares, chat y pings; voz opcional (voz opcional no implementada; pings en la vista orbital tampoco).
-- [x] Tests de integración servidor-motor (mismo resultado que el motor local con la misma semilla).
+### Cliente
 
-## Criterios de aceptación previstos
+- [ ] Terminal de estación (vender, comprar, mejorar) con poca letra y comparación antes/después.
+- [ ] La nave cambia de aspecto con las mejoras.
 
-- [x] Cuatro clientes completan una misión sin desincronizaciones (`network.test.ts` con 4 clientes SDK y `room-e2e.test.ts`; falta la prueba con 4 personas reales, ver hito).
-- [x] El resultado de una sala es idéntico al de `runMission` con el mismo diseño y semilla.
-- [x] Un cliente que se desconecta puede volver a la sala y recupera el estado.
-- [x] Un No-Go exige motivo y devuelve a todos al diseño.
-- [x] `pnpm validate` en verde, incluidos los tests del servidor.
+## Riesgos
 
-## Resultado
-
-- **Validación independiente 2026-11-09:** segunda pasada y verificación de N1-N6; `pnpm validate --force --concurrency=1` en verde (11/11 tareas, 0 en caché). Tests: `@payload/shared` 335, `@payload/client` 122, `@payload/game-server` 78 (535 en total). Paridad: la sala produce el mismo `MissionResult` que `runMission` con todos los fixtures válidos.
-- **Hito de salida (*cuatro jugadores estables en una misión*):** pendiente de prueba humana con 4 personas en equipos distintos (red local); ver `docs/STATUS.md`, acciones 11-14.
-- **Fuera de alcance / pendiente:** voz WebRTC (opcional, no implementada), pings en la vista orbital, Redis (ADR 0010).
-- **Documentos:** contrato en [`docs/MULTIPLAYER.md`](../MULTIPLAYER.md); decisiones en [ADR 0009](../adr/0009-servidor-autoritativo-colyseus.md) y [ADR 0010](../adr/0010-presencia-y-escalado.md); servidor en [`apps/game-server/README.md`](../../apps/game-server/README.md); estado en [`docs/STATUS.md`](../STATUS.md).
+- Que la tienda vuelva a ser una pantalla de leer tablas. Máximo una línea por mejora y efecto visible.
+- Balance: con permadeath, el progreso se pierde entero; hay que decidir si algo persiste entre partidas.

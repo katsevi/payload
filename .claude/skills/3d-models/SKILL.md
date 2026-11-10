@@ -5,6 +5,22 @@ description: Inspeccionar, optimizar, añadir o auditar modelos GLB/glTF de Payl
 
 # Modelos 3D en Payload
 
+## Relación con las skills `threejs-*`
+
+Las skills `threejs-*` (instaladas con `npx skills add cloudai-x/threejs-skills`, registradas en
+`skills-lock.json`) son guías genéricas de three.js. Úsalas como referencia técnica:
+`threejs-asset-pipeline` (gltf-transform, compresión), `threejs-loaders` (carga y liberación),
+`threejs-react-three-fiber` (R3F/Drei), `threejs-performance`, `threejs-materials`, etc.
+
+**Esta skill manda sobre ellas en todo lo que toque assets de Payload:**
+
+- Geometría con **meshopt**, no Draco (Drei ya configura el decodificador meshopt; no añadas `DRACOLoader`).
+- Nunca `optimize` sobre `programme_erizon.glb` (CC-BY-NC-ND): solo `meshopt` (`--preserve`).
+- `--simplify false` siempre, aunque los ejemplos genéricos simplifiquen.
+- Nada de `gltfjsx` sobre modelos ND (genera un derivado). En CC-BY, si se usa, se indica en `CREDITS.md`.
+- Usa `pnpm exec gltf-transform` (v4.5.1 fijada en el repo), no `npx @gltf-transform/cli` (bajaría otra versión).
+- Todo modelo pasa por `assets/CREDITS.md` y la pantalla de créditos.
+
 ## Estructura de `assets/`
 
 - `assets/models/source/`: originales de Sketchfab. **Nunca se modifican.** Se conservan en git.

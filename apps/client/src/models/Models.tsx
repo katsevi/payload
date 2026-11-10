@@ -80,7 +80,7 @@ export function AstronautModel({ height = 1.8, ...g }: { height?: number } & Gro
   );
 }
 
-/** Exhibición del mecha: carga diferida (el GLB es pesado) para no frenar el arranque del hangar. */
+/** Mecha Aurora G9 con carga diferida (el GLB es pesado). Sin uso en la fase 1: reservado para la superficie (fase 2). */
 export function WalkerExhibit({ size = 4, delayMs = 2500, ...g }: { size?: number; delayMs?: number } & GroupProps) {
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -103,7 +103,7 @@ export function WalkerExhibit({ size = 4, delayMs = 2500, ...g }: { size?: numbe
   );
 }
 
-/** Consola de mando del hangar (GLB ligero, ~0.5 MB). `fallback` se muestra mientras carga o si falla. */
+/** Consola del timón (GLB ligero, ~0.5 MB). `fallback` se muestra mientras carga o si falla. */
 export function ConsoleModel({ height = 1.6, fallback, ...g }: { height?: number; fallback: ReactNode } & GroupProps) {
   return (
     <group {...g}>
@@ -136,7 +136,7 @@ export function GalaxyBackdrop({ width = 400, ...g }: { width?: number } & Group
   );
 }
 
-/** Estación anular Erizon (~43 × 10 unidades originales, 7.6 MB): carga diferida solo en la escena orbital. */
+/** Estación anular Erizon (~43 × 10 unidades originales, 7.6 MB): carga diferida; se ve por la proa al atracar en una estación. */
 export function ErizonStation({ size = 43, delayMs = 3000, ...g }: { size?: number; delayMs?: number } & GroupProps) {
   const [ready, setReady] = useState(false);
   useEffect(() => {

@@ -1,34 +1,29 @@
 {
   "app": {
     "title": "PAYLOAD",
-    "subtitle": "Simulador de diseño de misiones espaciales"
+    "subtitle": "Tripulación de exploración"
   },
   "common": {
     "back": "Volver",
     "close": "Cerrar",
-    "on": "Sí",
-    "off": "No",
-    "none": "—",
-    "loading": "Cargando…",
-    "help": "Ayuda",
-    "settings": "Ajustes",
     "menu": "Menú",
     "continue": "Continuar",
-    "unlimited": "Ilimitada"
-  },
-  "menu": {
-    "play": "Jugar",
     "settings": "Ajustes",
-    "credits": "Créditos",
-    "language": "Idioma",
-    "tagline": "Diseña, lanza y opera tu misión",
-    "academy": "Academia",
-    "academyDone": "Academia completada",
-    "glossary": "Glosario"
+    "help": "Ayuda"
   },
   "lang": {
     "es": "Español",
     "en": "English"
+  },
+  "menu": {
+    "tagline": "Viaja · Repara · Sobrevive",
+    "play": "Nueva expedición",
+    "settings": "Ajustes",
+    "credits": "Créditos",
+    "language": "Idioma",
+    "best": "Mejor expedición: {{sectors}} sectores · {{score}} puntos",
+    "goal": "Lleva la nave hasta el portal de salto. Si el casco o el oxígeno llegan a cero, se acabó.",
+    "coop": "Cooperativo 1-4 en una fase posterior"
   },
   "settings": {
     "title": "Ajustes",
@@ -36,18 +31,13 @@
     "fov": "Campo de visión",
     "headBob": "Balanceo de cabeza",
     "sensitivity": "Sensibilidad del ratón",
-    "accessible2D": "Modo accesible 2D",
-    "accessible2DHint": "Hace todo el diseño desde paneles 2D, sin moverte en 3D.",
-    "shadows": "Sombras (calidad gráfica)",
-    "mascot": "Mascota guía",
-    "mascotHint": "Comentarios y ayuda con H. Desactívala si ya conoces el juego.",
     "audio": "Audio",
     "muteAll": "Silenciar todo",
     "volMusic": "Volumen de música",
     "volSfx": "Volumen de efectos",
-    "volAlerts": "Volumen de avisos y voz",
+    "volAlerts": "Volumen de avisos",
     "soundCaptions": "Subtítulos de sonido",
-    "soundCaptionsHint": "Muestra textos como [alarma de batería] cuando suena un aviso. Los avisos importantes siempre destellan en pantalla."
+    "soundCaptionsHint": "Muestra textos como [alarma] cuando suena un aviso. Los avisos importantes siempre destellan en pantalla."
   },
   "credits": {
     "title": "Créditos",
@@ -56,665 +46,172 @@
     "license": "Licencia",
     "source": "Fuente: Sketchfab",
     "usedFor": "Uso",
-    "astronaut": "Avatar del jugador",
-    "walker": "Exhibición en el hangar y rover de exploración lunar y marciana",
-    "galaxy": "Fondo de menú y espacio",
-    "erizon": "Estación espacial en órbita",
+    "astronaut": "Tripulante (avatar del jugador)",
+    "walker": "Reservado para la exploración de superficie (fase 2)",
+    "galaxy": "Fondo del menú y holograma del mapa estelar",
+    "erizon": "Estación espacial vista desde la nave",
+    "console": "Timón de la nave",
     "ncnd": "CC-BY-NC-ND: solo uso no comercial y sin obras derivadas.",
     "modifiedCompressed": "Modificado: compresión meshopt y texturas WebP.",
     "modifiedMeshopt": "Modificado: compresión meshopt.",
-    "modifiedTechnical": "Modificado técnicamente: compresión meshopt y cuantización de vértices; geometría y texturas sin cambios.",
-    "console": "Consola de misión del hangar"
+    "modifiedTechnical": "Modificado técnicamente: compresión meshopt y cuantización de vértices; geometría y texturas sin cambios."
   },
-  "briefing": {
-    "title": "Briefing de la misión",
-    "requirements": "Requisitos medibles",
-    "constraints": "Presupuesto y límites",
-    "budget": "Presupuesto",
-    "devMonths": "Plazo de desarrollo",
-    "months": "meses",
-    "groundStations": "Estaciones terrestres",
-    "operationDays": "Días de operación",
-    "orbits": "Órbitas permitidas",
-    "launchers": "Lanzadores permitidos",
-    "start": "Ir al hangar",
-    "difficulty": "Dificultad",
-    "mascotTip": "Consejo de {{name}}"
+  "station": {
+    "helm": "Timón",
+    "map": "Mapa estelar",
+    "power": "Panel de energía"
   },
-  "difficulty": {
-    "basic": "Básica",
-    "intermediate": "Intermedia",
-    "advanced": "Avanzada"
+  "marker": {
+    "evade": "¡Al timón!"
   },
-  "req": {
-    "maxGroundResolutionM": "Resolución en suelo (máx.)",
-    "minDownlinkMbitPerDay": "Datos bajados por día (mín.)",
-    "minLifetimeYears": "Vida útil (mín.)",
-    "maxRevisitDays": "Revisita (máx.)",
-    "minScienceValue": "Valor científico (mín.)"
-  },
-  "unit": {
-    "m": "m",
-    "mbitDay": "Mbit/día",
-    "years": "años",
-    "days": "días",
-    "musd": "M$",
-    "kg": "kg",
-    "w": "W",
-    "wh": "Wh",
-    "km": "km"
-  },
-  "subsystem": {
-    "structure": "Estructura",
-    "power": "Energía solar",
-    "battery": "Baterías",
-    "comms": "Comunicaciones",
-    "obc": "Computadora de a bordo",
-    "adcs": "Control de actitud",
-    "thermal": "Térmico",
-    "payload": "Instrumentos"
-  },
-  "hangar": {
-    "title": "Hangar de integración",
-    "console": "Consola de misión",
-    "ship": "Nave",
-    "shelf": "Estante",
-    "holding": "Llevas",
-    "empty": "Manos libres",
-    "orbit": "Órbita",
-    "launcher": "Lanzador",
-    "choose": "— elegir —",
-    "requestReview": "Solicitar revisión Go/No-Go",
-    "mounted": "Montado",
-    "components": "Componentes",
-    "noStructure": "Sin estructura: monta primero un bus.",
-    "capture": "Haz clic en la escena para capturar el ratón",
-    "resources": "Recursos",
-    "mountedList": "Componentes montados",
-    "add": "Añadir",
-    "remove": "Quitar",
-    "returnItem": "Devolver",
-    "backToConsole": "Cerrar consola",
-    "noGoReasons": "La revisión anterior fue No-Go:",
-    "pause": "Pausa",
-    "accessibleTitle": "Diseño de la misión (modo 2D)",
-    "budgetSummary": "Resumen de recursos",
-    "count": "Cantidad"
+  "hud": {
+    "hull": "Casco",
+    "oxygen": "Oxígeno",
+    "fuel": "Combustible",
+    "power": "Energía",
+    "spares": "Repuestos",
+    "sector": "Sector {{sector}}",
+    "score": "{{score}} pts",
+    "docked": "Atracada en {{node}}",
+    "transit": "Rumbo a {{node}}",
+    "eta": "{{seconds}} s",
+    "stopped": "Detenida",
+    "overload": "Sobrecarga",
+    "blackout": "Apagón",
+    "impactIn": "Impacto en {{seconds}} s",
+    "impactEvaded": "Esquivado",
+    "clickToPlay": "Haz clic para mover la cámara",
+    "helpHint": "H · ayuda"
   },
   "prompt": {
-    "pick": "Tomar",
-    "mount": "Montar en la nave",
-    "unmount": "Desmontar el último",
-    "console": "Usar la consola",
-    "returnItem": "Devolver al estante",
-    "hand": "Llevas",
-    "swap": "Cambiar por",
-    "shipEmpty": "La nave está vacía: lleva un componente"
+    "hold": "Mantén",
+    "press": "Pulsa",
+    "fix": {
+      "fire": "Apagar el fuego",
+      "short": "Rearmar el disyuntor",
+      "leak": "Sellar la fuga"
+    },
+    "repair": "Reparar con repuesto (quedan {{spares}})",
+    "repairNoSpares": "Dañado · sin repuestos",
+    "evade": "Maniobra evasiva",
+    "helm": "Timón · sin impactos a la vista",
+    "throttle": "Cambiar régimen",
+    "map": "Abrir el mapa estelar",
+    "power": "Abrir el panel de energía"
   },
-  "resources": {
-    "title": "Panel de recursos",
-    "limiting": "Limita la misión",
-    "why": "¿Por qué?",
-    "margin": "Margen",
-    "mass": "Masa",
-    "power": "Potencia",
-    "battery": "Batería",
-    "budget": "Presupuesto",
-    "data": "Datos",
-    "comms": "Comunicaciones",
-    "time": "Plazo",
-    "lifetime": "Vida útil",
-    "status": {
-      "ok": "OK",
-      "tight": "Justo",
-      "over": "Excedido"
-    }
-  },
-  "review": {
-    "title": "Revisión Go/No-Go",
-    "go": "GO",
-    "nogo": "NO-GO",
-    "goText": "Todos los sistemas listos para el lanzamiento.",
-    "nogoText": "Hay bloqueos que resolver antes de lanzar.",
-    "backToHangar": "Volver al hangar",
-    "launch": "Autorizar lanzamiento",
-    "noIssues": "Sin observaciones.",
-    "severity": {
-      "blocker": "Bloqueo",
-      "warning": "Aviso",
-      "info": "Info"
-    }
-  },
-  "launch": {
-    "title": "Plataforma de lanzamiento",
-    "countdown": "T-",
-    "liftoff": "Despegue",
-    "stageSep": "Separación de etapas",
-    "ascent": "Ascenso",
-    "failure": "Anomalía en el lanzamiento",
-    "success": "Inserción orbital confirmada",
-    "skip": "Saltar secuencia",
-    "chase": "Cámara de persecución",
-    "tower": "Vista desde la torre",
-    "standby": "En espera",
-    "orbitInsertion": "Inserción en órbita",
-    "zeroG": "Gravedad cero"
-  },
-  "operation": {
-    "title": "Operación de la misión",
-    "pause": "Pausa",
+  "map": {
+    "title": "Mapa estelar · sector {{sector}}",
+    "here": "Estás aquí",
+    "goal": "Portal de salto",
+    "select": "Elige un destino conectado con tu posición.",
+    "inTransit": "En pleno salto: {{pct}} %",
+    "distance": "Distancia",
+    "ly": "{{value}} al",
+    "fuel": "Combustible",
     "time": "Tiempo",
-    "battery": "Batería",
-    "dataStored": "Datos almacenados",
-    "dataDownlinked": "Datos bajados",
-    "dataLost": "Datos perdidos",
-    "contact": "En contacto",
-    "noContact": "Sin contacto",
-    "eclipse": "Eclipse",
-    "sunlight": "Luz solar",
-    "day": "Día de misión",
-    "of": "de",
-    "log": "Registro de eventos",
-    "finish": "Terminar y ver informe",
-    "view": {
-      "third": "Cámara orbital",
-      "first": "A través del instrumento"
+    "seconds": "{{value}} s",
+    "risk": "Riesgo",
+    "riskLevel": {
+      "0": "Tranquilo",
+      "1": "Moderado",
+      "2": "Peligroso",
+      "3": "Extremo"
     },
-    "status": {
-      "nominal": "Nominal",
-      "degraded": "Degradada",
-      "failed": "Fallida",
-      "complete": "Completa"
-    },
-    "ended": "La misión ha terminado.",
-    "viewfinder": "VISOR DEL INSTRUMENTO",
-    "capturing": "Capturando datos",
-    "idle": "Sin captura",
-    "mbit": "Mbit",
-    "noEvents": "Sin eventos todavía.",
-    "dayShort": "D",
-    "seed": "Semilla",
-    "preLaunch": "Retraso +{{months}} meses · recorte −{{pct}} %"
+    "notEnough": "No llegas",
+    "jump": "Saltar a {{node}}",
+    "cache": "Contenedor a la deriva",
+    "visited": "Visitado",
+    "landable": "Superficie explorable (fase 2)",
+    "service": "Servicio de estación",
+    "serviceHint": "Reposta, repara el casco y da repuestos. Una vez por estación.",
+    "serviceUsed": "Servicio ya utilizado",
+    "sensorsDown": "Sin sensores: no hay datos de riesgo ni contenedores",
+    "throttle": "Régimen de motores",
+    "throttleHint": {
+      "eco": "Lento y barato. Más tiempo para reaccionar.",
+      "cruise": "Equilibrado.",
+      "burn": "Rápido y caro. Sobrecarga el reactor si no apagas algo."
+    }
   },
-  "report": {
-    "title": "Informe de la misión",
-    "total": "Puntuación total",
-    "breakdown": "Desglose",
-    "objectives": "Objetivos",
-    "science": "Ciencia",
-    "efficiency": "Eficiencia",
-    "collaboration": "Colaboración",
-    "weight": "peso",
-    "chain": "Cadena de causas",
-    "because": "Porque",
-    "suggestion": "Sugerencia",
-    "dataSummary": "Resumen de datos",
-    "launchResult": "Lanzamiento",
-    "launchOk": "Exitoso",
-    "launchFail": "Fallido",
-    "daysOperated": "Días operados",
-    "minBattery": "Batería mínima",
-    "redesign": "Rediseñar y simular otra vez",
-    "menu": "Menú",
-    "status": "Estado final",
-    "noSim": "No hay resultado disponible.",
-    "sev": {
-      "success": "Éxito",
-      "info": "Info",
-      "warning": "Aviso",
-      "failure": "Fallo"
+  "power": {
+    "title": "Panel de energía",
+    "balance": "{{demand}} / {{supply}} kW",
+    "hint": "Si pides más de lo que da el reactor, el reactor se daña.",
+    "draw": "{{kw}} kW",
+    "health": "{{pct}} %",
+    "state": {
+      "online": "En línea",
+      "off": "Apagado",
+      "shorted": "En corto",
+      "broken": "Averiado",
+      "noPower": "Sin energía"
     },
-    "events": "Eventos de la misión",
-    "preLaunchSummary": "Antes del lanzamiento: retraso de {{months}} meses y recorte del {{pct}} %."
+    "role": {
+      "engines": "Sin motores la nave no avanza",
+      "lifeSupport": "Regenera el oxígeno",
+      "shields": "Absorben los impactos",
+      "nav": "Avisan de los impactos y leen el mapa"
+    },
+    "toggle": "Tecla {{key}}"
+  },
+  "end": {
+    "lostTitle": "Expedición perdida",
+    "wonTitle": "¡Sector {{sector}} superado!",
+    "newBest": "¡Nueva mejor marca!",
+    "sectors": "Sectores superados",
+    "jumps": "Saltos",
+    "distance": "Distancia recorrida",
+    "fixed": "Averías resueltas",
+    "evaded": "Impactos esquivados",
+    "hits": "Impactos recibidos",
+    "time": "Tiempo",
+    "score": "Puntuación",
+    "retry": "Nueva expedición",
+    "next": "Saltar al sector {{sector}}",
+    "nextHint": "La nave sigue como está: los daños y el combustible no se reinician."
+  },
+  "pause": {
+    "title": "Pausa",
+    "resume": "Seguir",
+    "quit": "Abandonar expedición"
   },
   "help": {
-    "title": "Controles",
-    "hint": "H: ayuda",
-    "toggle": "Mostrar/ocultar esta ayuda",
-    "menu": "Elige Jugar para comenzar. Cambia el idioma arriba.",
-    "briefing": "Lee los requisitos y pulsa «Ir al hangar».",
-    "hangar": "WASD moverse · ratón mirar · V cambiar 1ª/3ª persona · E interactuar (tomar, montar, consola) · Q devolver · Tab panel de recursos · Esc soltar el ratón · H ayuda",
-    "review": "Revisa los motivos. Con Go puedes autorizar el lanzamiento.",
-    "launch": "V alterna cámara de persecución y vista desde la torre · H ayuda",
-    "operation": "V alterna cámara orbital y vista a través del instrumento · I abre la vista del instrumento principal · arrastra para orbitar la cámara · usa los controles de tiempo · H ayuda",
-    "report": "Revisa la cadena de causas y rediseña.",
-    "lobby": "Espera a tu equipo y elige tu rol. Quien es anfitrión empieza la misión cuando los cuatro roles están cubiertos. H ayuda · G glosario",
-    "team": "En sala: T chat · R solicitudes · P marcar (en el hangar, mira una pieza o un punto) · la barra superior muestra tus roles y la conexión."
+    "title": "Cómo se juega",
+    "goal": "Salta de destino en destino hasta el portal sin perder el casco, el oxígeno, el combustible ni el reactor.",
+    "move": "Moverte",
+    "run": "Correr",
+    "look": "Mirar",
+    "interact": "Usar un puesto (mantener para arreglar)",
+    "alt": "Cambiar el régimen en el timón",
+    "view": "Cambiar 1ª / 3ª persona",
+    "pause": "Pausa",
+    "tips": {
+      "fire": "El fuego destroza el sistema y el casco, y se propaga.",
+      "leak": "Una fuga vacía el oxígeno en poco más de un minuto.",
+      "short": "Un corto apaga su sistema; si lo dejas, se incendia.",
+      "impact": "Con sensores verás venir los impactos: corre al timón.",
+      "power": "A régimen máximo no hay energía para todo: decide qué apagas."
+    }
   },
   "keys": {
-    "move": "Moverse",
-    "look": "Mirar",
-    "view": "Cambiar vista",
-    "interact": "Interactuar",
-    "resources": "Recursos"
-  },
-  "errors": {
-    "modelFallback": "No se pudo cargar un modelo 3D; se muestra una forma simple."
-  },
-  "phase": {
-    "menu": "Menú",
-    "briefing": "Briefing",
-    "design": "Diseño",
-    "review": "Revisión",
-    "launch": "Lanzamiento",
-    "operation": "Operación",
-    "report": "Informe",
-    "prelaunch": "Pre-lanzamiento",
-    "lobby": "Sala de espera"
-  },
-  "scenarios": {
-    "title": "Elige una misión",
-    "intro": "Cada escenario pide cosas distintas: compara tipo, dificultad y presupuesto antes de empezar.",
-    "empty": "No hay escenarios de campaña en el catálogo.",
-    "type": "Tipo",
-    "attempts": "Intentos",
-    "play": "Jugar"
-  },
-  "missionType": {
-    "earth-observation": "Observación de la Tierra",
-    "telecom": "Telecomunicaciones",
-    "space-telescope": "Telescopio espacial",
-    "lunar-exploration": "Exploración lunar",
-    "mars-exploration": "Exploración de Marte"
-  },
-  "mascot": {
-    "dismiss": "Cerrar mensaje",
-    "expression": {
-      "happy": "contenta",
-      "thinking": "pensativa",
-      "worried": "preocupada",
-      "celebrating": "celebrando"
-    }
-  },
-  "academy": {
-    "exit": "Salir",
-    "stepOf": "Paso {{n}} de {{total}}",
-    "completed": "¡Academia completada!",
-    "completedText": "Ya conoces todos los recursos. Prueba una misión de la campaña.",
-    "backToMenu": "Volver al menú",
-    "objective": "Objetivo:",
-    "met": "¡Hecho!",
-    "next": "Siguiente",
-    "finish": "Terminar la Academia",
-    "focus": "en foco",
-    "wait": {
-      "hangar": "Continúa al hangar para este paso.",
-      "operation": "Pide la revisión Go/No-Go y lanza para continuar.",
-      "report": "Termina la operación para ver el informe.",
-      "launch": "Pide la revisión Go/No-Go y autoriza el lanzamiento: este paso se vive en la plataforma."
-    },
-    "goal": {
-      "addAny": "monta cualquier pieza.",
-      "addSubsystem": "monta una pieza de {{name}}.",
-      "addComponent": "monta «{{name}}».",
-      "selectOrbit": "elige la órbita {{name}}.",
-      "selectAnyOrbit": "elige una órbita.",
-      "selectLauncher": "elige el lanzador {{name}}.",
-      "selectAnyLauncher": "elige un lanzador.",
-      "resourceOk": "deja «{{name}}» fuera del rojo.",
-      "go": "consigue el Go en la revisión.",
-      "manual": "lee y pulsa Siguiente."
-    },
-    "incomplete": "Academia sin terminar",
-    "incompleteText": "Te saltaste algunos pasos. Vuelve a entrar en la Academia y complétalos para darla por superada.",
-    "reviewLocked": "Aún no: completa los pasos de la Academia antes de pedir la revisión Go/No-Go."
-  },
-  "advisors": {
-    "title": "Asesores del equipo",
-    "none": "Sin consejos: monta alguna pieza.",
-    "open": "Asesores",
-    "role": {
-      "director": "Dirección de vuelo",
-      "engineering": "Ingeniería",
-      "science": "Ciencia",
-      "operations": "Operaciones"
-    }
-  },
-  "glossary": {
-    "title": "Glosario",
-    "search": "Buscar término…",
-    "why": "¿Por qué importa?",
-    "related": "Relacionados",
-    "backToList": "Volver a la lista",
-    "empty": "Ningún término coincide con la búsqueda.",
-    "unavailable": "El catálogo no trae glosario."
-  },
-  "prelaunch": {
-    "title": "Antes del lanzamiento",
-    "intro": "La revisión dio Go, pero el mundo real no espera: estos imprevistos afectan a tu misión.",
-    "delay": "Retraso del lanzamiento",
-    "cut": "Recorte de presupuesto",
-    "overrun": "Ahora se excede: {{list}}. No anula la misión, pero penaliza la puntuación.",
-    "continue": "Continuar al lanzamiento"
-  },
-  "event": {
-    "launch-success": "Lanzamiento",
-    "launch-failure": "Fallo de lanzamiento",
-    "eclipse-enter": "Eclipse",
-    "eclipse-exit": "Sol",
-    "contact-start": "Contacto",
-    "contact-end": "Fin de contacto",
-    "battery-low": "Batería baja",
-    "battery-depleted": "Batería agotada",
-    "storage-full": "Memoria llena",
-    "solar-storm": "Tormenta solar",
-    "reaction-wheel-failure": "Falla de rueda",
-    "debris-avoidance": "Basura espacial",
-    "component-failure": "Falla de componente",
-    "mission-complete": "Misión completada",
-    "overheating": "Sobrecalentamiento",
-    "launch-delay": "Retraso",
-    "budget-cut": "Recorte"
+    "move": "WASD",
+    "run": "Mayús",
+    "look": "Ratón",
+    "interact": "E",
+    "alt": "Q",
+    "view": "V",
+    "pause": "Esc",
+    "help": "H"
   },
   "sound": {
-    "mount": "[pieza montada]",
-    "unmount": "[pieza retirada]",
-    "batteryAlarm": "[alarma de batería]",
-    "contact": "[pitido de contacto con la estación]",
-    "radioStatic": "[estática de radio]",
-    "countdownTick": "[pitido de cuenta atrás]",
-    "liftoff": "[rugido de los motores]",
-    "separation": "[separación de etapas]",
-    "explosion": "[explosión]",
-    "success": "[tono de éxito]",
-    "complete": "[misión completada]"
-  },
-  "instrument": {
-    "title": "Vista del instrumento",
-    "viewfinder": "VISOR DEL INSTRUMENTO PRINCIPAL",
-    "scale": "Resolución en suelo: {{res}} m por píxel",
-    "instrument": "Instrumento principal",
-    "looking": "Observando",
-    "groundRes": "Resolución en suelo",
-    "noResolution": "No aplica (sin óptica de suelo)",
-    "target": {
-      "earth": "La Tierra",
-      "stars": "Campo de estrellas",
-      "moon": "Superficie lunar",
-      "mars": "Superficie de Marte"
-    },
-    "condition": {
-      "nominal": "Imagen nominal",
-      "eclipse": "Eclipse: imagen oscura",
-      "degraded": "Apuntado degradado",
-      "lost": "Instrumento perdido",
-      "noInstrument": "Sin instrumento"
-    },
-    "hint": {
-      "nominal": "El instrumento apunta bien y hay luz: cada paso suma datos útiles.",
-      "eclipse": "La Tierra tapa al Sol: sin luz el sensor no ve y la nave vive de la batería.",
-      "degraded": "Una rueda de reacción o la unidad de actitud falló: el apuntado empeora y la imagen sale borrosa y temblorosa.",
-      "lost": "No llegan más imágenes. Revisa el registro de eventos para ver qué falló.",
-      "noInstrument": "Tu diseño no lleva instrumentos: no hay nada que mirar."
-    },
-    "lost": {
-      "payload": "INSTRUMENTO PERDIDO",
-      "mission": "SIN SEÑAL: MISIÓN TERMINADA EN FALLO"
-    },
-    "eclipseBanner": "Eclipse: sin luz solar",
-    "openSurface": "Ver la superficie",
-    "exit": "Salir",
-    "button": "Instrumento",
-    "toggle": "Ver a través del instrumento principal"
-  },
-  "surface": {
-    "title": {
-      "moon": "Superficie lunar · Aurora G9",
-      "mars": "Superficie de Marte · Aurora G9"
-    },
-    "description": "Vista breve del rover Aurora G9 caminando por el terreno. Sus datos ya cuentan en el panel de la misión.",
-    "close": "Cerrar la vista de superficie"
-  },
-  "room": {
-    "connection": {
-      "idle": "Sin sala",
-      "connecting": "Conectando…",
-      "connected": "Conectado",
-      "reconnecting": "Reconectando…",
-      "disconnected": "Desconectado",
-      "error": "Error de conexión"
-    },
-    "status": {
-      "reconnecting": "Se perdió la conexión con la sala. Reconectando…",
-      "reconnected": "Conexión recuperada: sigues en la sala."
-    },
-    "error": {
-      "join": "No se pudo entrar en la sala.",
-      "notFound": "No hay ninguna sala abierta con ese código.",
-      "rejected": "La sala no admite más jugadores o la misión ya empezó.",
-      "unreachable": "No se pudo contactar con el servidor de juego. Comprueba tu conexión.",
-      "resume": "No se pudo volver a la sala anterior.",
-      "lost": "Se perdió la conexión con la sala. Has vuelto al menú.",
-      "closed": "La sala se cerró. Has vuelto al menú.",
-      "server": "El servidor de la sala informó de un error.",
-      "invalidScenario": "Ese escenario no existe.",
-      "academyScenario": "La Academia es solo para una persona: elige una misión de campaña.",
-      "invalidAttempt": "El intento de la sala no es válido.",
-      "invalidSeed": "La semilla de la sala no es válida.",
-      "roomNotInLobby": "La misión de esa sala ya empezó: solo se puede entrar mientras está en la sala de espera.",
-      "roomFull": "La sala está llena.",
-      "alreadyJoined": "Ya estás en esa sala.",
-      "locked": "La sala está llena o la misión ya empezó: pide un código nuevo al anfitrión."
-    },
-    "notice": {
-      "requestCreated": "Se envió una solicitud al rol responsable: espera su respuesta."
-    },
-    "name": "Tu nombre",
-    "namePlaceholder": "Jugador",
-    "playerN": "Jugador {{n}}",
-    "you": "tú",
-    "host": "Anfitrión",
-    "leave": "Salir de la sala",
-    "unknownPlayer": "Alguien",
-    "entry": {
-      "open": "Jugar en equipo",
-      "title": "Jugar en equipo",
-      "intro": "Hasta 4 personas diseñan y operan una misión juntas, cada una con un rol. Crea una sala privada y comparte el código, únete con un código o busca una partida rápida.",
-      "scenario": "Misión",
-      "coop": "Cooperativo",
-      "create": "Crear sala privada",
-      "quick": "Partida rápida",
-      "resume": "Volver a la sala",
-      "code": "Código de la sala",
-      "codePlaceholder": "Pega aquí el código",
-      "join": "Unirse con código",
-      "players": "{{min}}-{{max}} jugadores"
-    },
-    "lobby": {
-      "title": "Sala de espera",
-      "code": "Código de la sala",
-      "copy": "Copiar el código",
-      "copied": "Código copiado",
-      "shareHint": "Comparte este código para que tu equipo se una.",
-      "players": "Jugadores",
-      "noRole": "Sin rol todavía",
-      "combineHint": "Con menos de 4 jugadores, los roles se combinan: una persona puede llevar varios.",
-      "rename": "Cambiar tu nombre",
-      "renameBtn": "Cambiar",
-      "roles": "Roles del equipo",
-      "rolesIntro": "Cada rol decide sobre una parte de la misión y vigila ciertos recursos. Reclama el tuyo.",
-      "watches": "Vigila",
-      "heldBy": "Lo lleva",
-      "free": "Libre",
-      "taken": "Otra persona lo tiene",
-      "release": "Soltar rol",
-      "claim": "Reclamar rol",
-      "missing": "Faltan por cubrir: {{roles}}.",
-      "autoAssign": "Repartir roles",
-      "start": "Empezar misión",
-      "waitHost": "Esperando a que el anfitrión empiece la misión."
-    },
-    "role": {
-      "director": "Dirección de vuelo",
-      "engineering": "Ingeniería",
-      "science": "Ciencia",
-      "operations": "Operaciones"
-    },
-    "roleCard": {
-      "director": {
-        "decides": "Decide la órbita y el lanzador, reparte el presupuesto, confirma el lanzamiento y termina la operación. Resuelve solicitudes de presupuesto y tiempo."
-      },
-      "engineering": {
-        "decides": "Monta estructura, energía, baterías, computadora, control de actitud y térmico. Resuelve solicitudes de masa, energía y batería."
-      },
-      "science": {
-        "decides": "Elige los instrumentos de la carga útil: lo que la misión viene a medir. Pide recursos a los demás roles cuando los necesita."
-      },
-      "operations": {
-        "decides": "Monta las comunicaciones y controla el tiempo de la operación. Resuelve solicitudes de datos, comunicaciones y vida útil."
-      },
-      "noResources": "ninguno: pide a los demás"
-    },
-    "bar": {
-      "badge": "{{n}} pendientes",
-      "myRoles": "Mis roles",
-      "players": "Jugadores conectados"
-    },
-    "chat": {
-      "title": "Chat del equipo",
-      "history": "Historial del chat",
-      "empty": "Aún no hay mensajes.",
-      "placeholder": "Escribe un mensaje…",
-      "send": "Enviar"
-    },
-    "time": {
-      "s": "hace {{n}} s",
-      "min": "hace {{n}} min",
-      "h": "hace {{n}} h"
-    },
-    "requests": {
-      "title": "Solicitudes",
-      "intro": "Cuando algo que pides afecta a un recurso de otro rol, esa persona decide. Todas las solicitudes las ve todo el equipo.",
-      "new": "Nueva solicitud",
-      "resource": "Recurso",
-      "amount": "Cantidad",
-      "subsystem": "Subsistema",
-      "anySubsystem": "(cualquiera)",
-      "note": "Nota",
-      "badAmount": "La cantidad debe ser un número mayor que 0.",
-      "send": "Enviar solicitud",
-      "open": "Abiertas",
-      "noneOpen": "No hay solicitudes abiertas.",
-      "resolved": "Resueltas",
-      "noneResolved": "Aún no hay solicitudes resueltas.",
-      "status": {
-        "open": "Abierta",
-        "approved": "Aprobada",
-        "rejected": "Rechazada",
-        "withdrawn": "Retirada"
-      },
-      "chain": "Ya la aprobó: {{approved}}. Falta la decisión de: {{pending}}.",
-      "resolutionNote": "Respuesta",
-      "notePlaceholder": "Nota opcional (p. ej. propón otra solución)",
-      "approve": "Aprobar",
-      "reject": "Rechazar",
-      "withdraw": "Retirar mi solicitud",
-      "cooldown": "Acabas de enviar una solicitud: espera un momento antes de pedir otra."
-    },
-    "budget": {
-      "title": "Presupuesto",
-      "introEdit": "Reparte el dinero para piezas entre los subsistemas. Si una pieza pasa de lo asignado, pedirá tu aprobación.",
-      "introRead": "Reparto del presupuesto por subsistema. Lo decide la Dirección de vuelo.",
-      "available": "Disponible para piezas",
-      "noAllocation": "sin reparto: sin topes",
-      "subsystem": "Subsistema",
-      "assigned": "Asignado",
-      "spent": "Gastado",
-      "total": "Total repartido",
-      "suggest": "Reparto sugerido",
-      "apply": "Aplicar reparto",
-      "clear": "Quitar reparto"
-    },
-    "pings": {
-      "title": "Marcar",
-      "point": "un punto del hangar",
-      "intro": "Señala algo al equipo. En el hangar, mira una pieza o un punto y pulsa P.",
-      "subsystems": "Subsistemas",
-      "resources": "Recursos",
-      "recent": "Marcas recientes",
-      "none": "Nadie ha marcado nada todavía.",
-      "marked": "marcó"
-    },
-    "alerts": {
-      "title": "Alerta de equipo",
-      "timeout": "La alerta se cierra sola a los {{s}} s",
-      "left": "{{s}} s",
-      "required": "Deben responder",
-      "pending": "pendiente",
-      "answered": "respondió",
-      "respond": "Responder como {{role}}"
-    },
-    "vote": {
-      "title": "Votación Go/No-Go",
-      "go": "Go",
-      "nogo": "No-Go",
-      "pending": "Pendiente",
-      "by": "Votó: {{name}}",
-      "mine": "Mis votos",
-      "noRole": "No tienes rol: no puedes votar.",
-      "sendGo": "Go",
-      "sendNoGo": "Enviar No-Go",
-      "reasonTitle": "Motivo del No-Go ({{role}})",
-      "reasonHint": "Un No-Go necesita un motivo: así el equipo sabe qué corregir.",
-      "noteRequired": "Explica el motivo (obligatorio)",
-      "noteOptional": "Nota (opcional)",
-      "error": {
-        "code": "Elige un motivo para el No-Go.",
-        "note": "Con «otro motivo» debes escribir una nota."
-      }
-    },
-    "lastNoGo": {
-      "vote": "El equipo votó No-Go. Estos son los motivos:",
-      "review": "La revisión técnica dio No-Go. Esto hay que corregir:"
-    },
-    "report": {
-      "title": "Colaboración del equipo",
-      "collabScore": "Puntuación de colaboración",
-      "missionScore": "Puntuación de la misión",
-      "teamScore": "Puntuación de equipo",
-      "row": {
-        "requests": "Solicitudes resueltas",
-        "requestTime": "Tiempo medio de respuesta a solicitudes",
-        "alerts": "Alertas respondidas a tiempo",
-        "alertTime": "Tiempo medio de respuesta a alertas"
-      },
-      "why": "La colaboración mide cuánto tardó el equipo en resolver solicitudes y alertas: coordinarse bien pesa tanto como diseñar bien, porque en una misión real nadie decide solo.",
-      "onlyDirector": "Solo la Dirección de vuelo puede rediseñar"
-    },
-    "prelaunch": {
-      "waiting": "Esperando a {{role}} para confirmar el lanzamiento."
-    },
-    "operation": {
-      "pausedByAlert": "Pausado por alerta",
-      "timeLocked": "El tiempo lo controlan Dirección y Operaciones. Aceleración actual: {{accel}}",
-      "onlyDirector": "Solo la Dirección de vuelo termina la operación"
-    },
-    "keys": {
-      "ping": "marcar",
-      "chat": "chat",
-      "requests": "solicitudes"
-    },
-    "perm": {
-      "request": "Pedirá permiso"
-    },
-    "quote": "«{{text}}»",
-    "leaveConfirm": {
-      "title": "¿Salir de la sala?",
-      "body": "La misión ya empezó: si sales no podrás volver a entrar en esta sala y tus roles pasarán al resto del equipo.",
-      "stay": "Quedarme",
-      "leave": "Salir de la sala"
-    },
-    "retry": {
-      "title": "Se perdió la conexión",
-      "body": "Tu lugar en la sala se guarda {{seconds}} s más.",
-      "button": "Reintentar",
-      "dismiss": "Descartar",
-      "expired": "Se acabó el tiempo para volver a la sala."
-    },
-    "duration": {
-      "s": "{{n}} s",
-      "min": "{{n}} min",
-      "minS": "{{min}} min {{s}} s"
-    }
+    "fixed": "[reparado]",
+    "alarm": "[alarma]",
+    "ok": "[confirmación]",
+    "sparks": "[chispas]",
+    "warnTick": "[aviso de impacto]",
+    "jump": "[motores de salto]",
+    "clunk": "[atraque]",
+    "impact": "[impacto]",
+    "success": "[sector superado]"
   }
 }

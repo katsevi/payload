@@ -1,6 +1,0 @@
-{
-  "scenarioId": "leo-earth-observation",
-  "componentIds": ["structure-cubesat-12u", "payload-multispectral-basic", "obc-basic", "comms-uhf", "adcs-magnetorquers", "thermal-passive", "battery-medium", "power-deployable", "power-body-mounted"],
-  "orbitId": "LEO",
-  "launcherId": "launcher-albatros"
-}

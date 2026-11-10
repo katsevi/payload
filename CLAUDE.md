@@ -1,44 +1,48 @@
 # Payload — guía para Claude Code
 
-**Payload** es un simulador 3D web (TypeScript + React Three Fiber) donde 1-4 jugadores diseñan,
-lanzan y operan una misión espacial, alternando primera y tercera persona. El objetivo educativo es
-entender los compromisos del diseño de misiones: cada decisión mueve masa, energía, presupuesto,
-datos, comunicaciones y vida útil.
+**Payload** es un juego cooperativo 3D web (TypeScript + React Three Fiber) de supervivencia y gestión de
+recursos espaciales para 1-4 jugadores. La tripulación de una nave exploradora viaja de destino en
+destino, mantiene viva la nave en tiempo real (casco, oxígeno, combustible, energía), baja a superficies
+peligrosas, vende lo que recoge y mejora la nave. Con permadeath. Los compromisos de ingeniería (potencia,
+combustible, masa, motores, riesgo) se entienden jugando, no leyendo.
 
-Este repositorio lo usan **varias personas y varias sesiones de Claude**. Antes de cambiar algo,
-lee este archivo, el `CLAUDE.md` del paquete que vas a tocar y `docs/STATUS.md` (estado actual).
+> El juego se rehízo el 2026-11-09 (ADR 0011). Antes era un simulador de diseño de misiones; esa versión
+> está en la etiqueta `v0.3.0-simulador` y su documentación en `docs/archivo/`. No la tomes como referencia
+> del código actual.
+
+Este repositorio lo usan **varias personas y varias sesiones de Claude**. Antes de cambiar algo, lee este
+archivo, el `CLAUDE.md` del paquete que vas a tocar y `docs/STATUS.md` (estado actual).
 
 ## Estado del roadmap
 
 | Fase | Contenido | Estado |
 | --- | --- | --- |
-| 0 · Preproducción | GDD, catálogo JSON, prototipo en hoja de cálculo | Entregables hechos · hito pendiente de prueba en papel (ver `docs/phases/fase-0.md`) |
-| 1 · Rebanada vertical en solitario | Hangar 1ª/3ª persona, 1 escenario LEO, panel de recursos, motor con tests, lanzamiento, operación, informe | Hecha · validada con observaciones (ver `docs/STATUS.md`) |
-| 2 · Contenido y aprendizaje | 5 escenarios, 6 órbitas, eventos, Academia con mascota guía (Orbi; Rise solo con autorización), audio | Hecha · validada con observaciones · hito pendiente de prueba con estudiantes (ver `docs/phases/fase-2.md`) |
-| 3 · Multijugador | Colyseus, roles, solicitudes, Go/No-Go compartido, sala de control, chat y pings | Hecha · validada con observaciones · hito pendiente de prueba con 4 personas reales (ver `docs/phases/fase-3.md`); voz WebRTC opcional no implementada |
-| 4 · Pulido y lanzamiento | Rankings, guardar/comparar, AWS, Sentry, E2E | Pendiente (`apps/api` es un marcador) |
+| 1 · Viaje y nave (en solitario) | Mapa estelar, saltos, combustible, interior caminable 1ª/3ª persona, sistemas, averías en tiempo real, permadeath | Implementada · pendiente de validación independiente y de prueba con jugadores (ver `docs/phases/fase-1.md`) |
+| 2 · Exploración de superficie | Descenso y aterrizaje, jetpack, oxígeno personal, recolección | Pendiente |
+| 3 · Economía y progresión | Venta en estaciones, mejoras de nave y equipo | Pendiente |
+| 4 · Cooperativo 1-4 | Servidor autoritativo, roles (piloto, ingeniero, gestor de recursos, explorador) | Pendiente (`apps/game-server` es un marcador) |
+| 5 · Pulido y lanzamiento | Rankings, mando/táctil, E2E, despliegue | Pendiente (`apps/api` es un marcador) |
 
-El plan original completo está en `docs/plan-original/plan-juego-misiones-espaciales.md`. Más documentación:
-`docs/STATUS.md` (estado y acciones pendientes), `docs/ARCHITECTURE.md`, `docs/MULTIPLAYER.md` (contrato del multijugador), `docs/CONTRIBUTING.md` y `CHANGELOG.md`.
+Plan: `docs/plan/plan-tripulacion-de-exploracion.md`. Diseño: `docs/GDD.md`. Más documentación:
+`docs/STATUS.md` (estado y pendientes), `docs/ARCHITECTURE.md`, `docs/phases/`, `docs/CONTRIBUTING.md` y `CHANGELOG.md`.
 
 ## Mapa del monorepo
 
 ```text
 payload/
 ├─ apps/
-│  ├─ client/        # React 19 + R3F v9 + Drei + Rapier + Vite (escenas, UI, i18n)
-│  ├─ game-server/   # Fase 3: servidor Colyseus autoritativo (corre el mismo motor)
-│  └─ api/           # Fase 4: NestJS + Prisma (marcador)
+│  ├─ client/        # React 19 + R3F v9 + Drei + Rapier + Vite (escenas, interfaz, audio, i18n)
+│  ├─ game-server/   # marcador: servidor del cooperativo (fase 4)
+│  └─ api/           # marcador: rankings y persistencia (fase 5)
 ├─ packages/
-│  └─ shared/        # tipos, motor de simulación, mecánica orbital (TS puro, con tests)
-│     ├─ catalog/    # componentes, orbitas, lanzadores, escenarios + glosario, mascota, academia (.json)
+│  └─ shared/        # motor del juego: tipos, generador de sectores, partida (TS puro, con tests)
+│     ├─ catalog/    # naves, averias, destinos, sectores (.json)
 │     └─ locales/    # textos del motor (namespace i18n `sim`) en es/en
 ├─ assets/
 │  ├─ models/source/ # modelos .glb ORIGINALES (nunca se modifican)
 │  ├─ web/           # publicDir de Vite: web/models/*.glb optimizados → URL /models/<archivo>.glb
 │  └─ CREDITS.md     # autor, fuente y licencia de cada asset
-├─ prototype/        # Fase 0: prototipo de compromisos (CLI + hoja de cálculo)
-├─ docs/             # GDD, fases, ADRs, ARCHITECTURE, CONTRIBUTING, STATUS
+├─ docs/             # plan, GDD, fases, ADR, ARCHITECTURE, CONTRIBUTING, STATUS, archivo/
 └─ .claude/          # agentes y skills (settings.json compartido opcional: ver docs/CONTRIBUTING.md)
 ```
 
@@ -46,55 +50,59 @@ payload/
 
 ```bash
 pnpm install          # Node >= 22 (ver .nvmrc), pnpm 11
-pnpm dev              # cliente en http://localhost:5173
-pnpm dev:server       # servidor de juego en ws://localhost:2567 (PORT, HOST, PAYLOAD_ALLOW_SEED=1)
+pnpm dev              # cliente en http://localhost:5173  (?play=1&seed=7 entra directo a la partida)
 pnpm test             # tests de todos los paquetes (Vitest)
 pnpm typecheck        # tsc --noEmit en todos los paquetes
 pnpm build            # build de producción
 pnpm validate         # typecheck + test + build (lo que debe pasar antes de entregar)
-pnpm proto            # prototipo de compromisos de la fase 0 en terminal
+pnpm balance          # informe de balance con tripulante simulado (200 partidas; admite `pnpm balance 500 5`)
 pnpm --filter @payload/shared test:watch   # TDD del motor
-pnpm --filter @payload/shared bench        # rendimiento del motor (fuera de los tests)
 ```
 
 ## Reglas del proyecto (no negociables)
 
 1. **El motor es TS puro.** `packages/shared` no importa React, Three.js, DOM ni APIs de Node en `src/`.
-   Debe poder correr igual en el navegador (solitario) y en el servidor de juego (fase 3).
+   Debe poder correr igual en el navegador (solitario) y en el servidor de juego (fase 4).
 2. **El contrato es `packages/shared/src/types.ts`.** Solo cambios aditivos; un cambio que rompa
    exige ADR en `docs/adr/` y actualizar a todos los consumidores en el mismo cambio.
-3. **Contenido en datos, no en código.** Componentes, órbitas, lanzadores y escenarios viven en
-   `packages/shared/catalog/*.json` y se validan con zod. Añadir contenido no debe requerir tocar código.
+3. **Contenido en datos, no en código.** Naves, averías, destinos y reglas de sector viven en
+   `packages/shared/catalog/*.json` y se validan con zod. Ajustar el balance no debe requerir tocar código.
 4. **Determinismo.** Toda aleatoriedad del motor pasa por `createRng(seed)`. Prohibido `Math.random()`
-   y `Date.now()` en `packages/shared/src`.
+   y `Date.now()` en `packages/shared/src`. El tiempo avanza en pasos fijos; toda decisión del jugador
+   entra como `RunAction`.
 5. **Bilingüe desde el día 1.** Español por defecto, inglés completo. Nada de texto visible
    hardcodeado: UI en `apps/client/src/locales/{es,en}.json` (namespace `ui`), motor en
    `packages/shared/locales/{es,en}.json` (namespace `sim`), contenido en `LocalizedText` del catálogo.
-   Un test comprueba que ambos idiomas tienen las mismas claves.
-6. **Educativo:** cada valor tiene su "¿por qué?". El motor devuelve `MessageRef` (clave + parámetros),
-   nunca texto final.
+   Hay tests de paridad de claves en ambos paquetes.
+6. **Se juega, no se lee.** Los compromisos se sienten en la mecánica. El motor devuelve `MessageRef`
+   (clave + parámetros), nunca texto final, y cada mensaje cabe en una línea (los tests limitan su
+   longitud). Nada de pantallas de lectura obligatoria, tutoriales de texto ni paneles explicativos.
 7. **Licencias de assets.** Todo asset nuevo se registra en `assets/CREDITS.md` con autor, fuente y
    licencia. Ver la skill `3d-models` antes de tocar modelos. Atención: `programme_erizon.glb` es
    CC-BY-NC-ND (sin uso comercial, sin derivados).
-8. **Rise** (mascota de Artemis II) requiere autorización de NASA; no la añadas sin revisar
-   `docs/GDD.md` § Mascota. El sistema de mascota debe permitir cambiarla por una propia.
+8. **Rise** (mascota de Artemis II) requiere autorización de NASA; no la añadas. Hoy el juego no tiene
+   mascota; si se añade una, debe poder cambiarse por una propia (`docs/GDD.md` § 12).
 9. **Antes de dar algo por terminado:** `pnpm validate` en verde y `docs/STATUS.md` actualizado.
 
 ## Convenciones de código
 
 - TypeScript estricto (`noUncheckedIndexedAccess`). Nada de `any` salvo justificado con comentario.
-- Unidades en los nombres (`massKg`, `powerW`, `costMUSD`, `periodMin`).
+- Unidades en los nombres (`distanceLy`, `powerSupplyKw`, `oxygenPct`, `repairS`).
 - Código e identificadores en inglés; textos, docs y comentarios de dominio en español.
 - Commits: Conventional Commits (`feat(shared): ...`, `fix(client): ...`, `docs: ...`).
-- Ramas: `feat/<fase>-<tema>`, p. ej. `feat/f2-academia-rise`.
+- Ramas: `feat/<fase>-<tema>`, p. ej. `feat/f2-superficie`.
 
 ## Trabajar en equipo con Claude
 
 - **Agentes del proyecto** (`.claude/agents/`): `sim-engine` (motor), `client-3d` (cliente R3F),
   `content-designer` (catálogo y balance), `asset-pipeline` (modelos 3D), `validator` (revisión
-  previa a entregar), `docs-writer` (documentación), `game-server` (servidor Colyseus, fase 3). Úsalos para delegar en la parte que les toca.
+  previa a entregar), `docs-writer` (documentación), `game-server` (servidor del cooperativo, fase 4).
+  Úsalos para delegar en la parte que les toca.
 - **Skills del proyecto** (`.claude/skills/`): `3d-models` (inspeccionar/optimizar GLB),
-  `validate` (validación completa), `add-catalog-item` (añadir contenido al catálogo).
+  `validate` (validación completa), `add-catalog-item` (añadir o ajustar contenido del catálogo).
+  Además, las skills genéricas `threejs-*` (de `cloudai-x/threejs-skills`, en `skills-lock.json`) son
+  la referencia técnica de three.js/R3F. Si chocan con este archivo o con `3d-models`, mandan las reglas del proyecto.
+  Actualízalas con `npx skills update -p`.
 - `docs/STATUS.md` es el traspaso entre sesiones: qué se hizo, qué falta, decisiones recientes.
   Actualízalo al terminar una tarea relevante.
 - Decisiones de arquitectura: un ADR corto en `docs/adr/NNNN-titulo.md`.

@@ -5,9 +5,67 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+### Añadido
+
+#### `@payload/client`
+- Capa gráfica procedural `src/gfx/`: texturas de canvas, materiales compartidos, `Builder` (piezas fusionadas en una malla por material), ruido GLSL y shaders de nave, efectos y espacio. Sin assets ni dependencias nuevas.
+- El destino del salto se ve acercarse por la proa en el último tramo del viaje.
+- Depuración: `__payload.teleport(x, z)` y `?body=<tipo>` para revisar la escena.
+
+#### Herramientas
+- Skills genéricas de three.js `threejs-*` (13, de `cloudai-x/threejs-skills`) en `.claude/skills/`, fijadas en `skills-lock.json`. La skill `3d-models` se mantiene y prevalece en assets (meshopt, licencias, ERIZON ND).
+
+### Cambiado
+
+#### `@payload/client`
+- Rediseño visual de la nave: casco con cuadernas, vigas, conductos, cristales y mirador de proa; los ocho puestos remodelados y mostrando el estado del motor (palancas, medidor de carga, radar, galones de régimen, palas de los motores); reflejos de entorno y sombras de contacto. Distribución, colisiones e interacción sin cambios.
+- Efectos de avería nuevos (llamas, pavesas, humo, chispas, arcos, chorro de gas) y luminarias por zona.
+- Exterior nuevo: cielo de nebulosas por sector, estrella cercana, planetas procedurales con atmósfera y anillos, luna con cráteres, asteroides instanciados, nebulosa, pecio y portal con vórtice. Menú con el mismo cielo.
+- `ShipInterior.tsx` se divide: el casco queda ahí y los puestos pasan a `ShipStations.tsx`; los cuerpos celestes, a `SpaceBodies.tsx`.
+
+## [0.4.0] - 2026-11-10
+
+**Reinicio del juego.** Payload deja de ser un simulador de diseño de misiones y pasa a ser un cooperativo
+de supervivencia en una nave exploradora (plan: `docs/plan/plan-tripulacion-de-exploracion.md`; decisión:
+ADR 0011). Esta versión es la **fase 1 nueva: viaje interplanetario y nave, en solitario**. La versión
+anterior queda en la etiqueta `v0.3.0-simulador` y su documentación en `docs/archivo/v0.3-simulador/`.
+
+### Añadido
+
+#### `@payload/shared`
+- Contrato nuevo (`types.ts`): nave, sistemas, régimen de motores, averías, sector, `RunState`, `RunAction`, `RunEvent`.
+- Catálogo nuevo en JSON con zod: `naves.json`, `averias.json`, `destinos.json` (estación, planeta, luna, campo de asteroides, nebulosa, nave abandonada, portal) y `sectores.json`.
+- `generateSector` / `isSectorSolvable`: mapa de sector determinista con ruta completable garantizada.
+- `createRun`: partida en tiempo real con paso fijo de 0,1 s y determinista. Viaje por régimen (económico, crucero, máxima), energía con sobrecarga y apagón, fuego que se propaga, cortocircuitos que se incendian, fugas de oxígeno, impactos con aviso y maniobra evasiva, escudos, repuestos, servicio de estación, contenedores a la deriva, portal y sectores crecientes, permadeath (casco, oxígeno, nave varada) y puntuación.
+- Mensajes del motor en es/en, todos de una línea.
+- Tripulante simulado para balance (`src/__tests__/bot.ts`) y comando `pnpm balance`.
+- 69 tests en 6 archivos.
+
+#### `@payload/client`
+- Interior de la nave caminable en 1ª/3ª persona: puente (timón, mapa estelar, navegación), cubierta media (soporte vital, escudos) y sala de máquinas (panel de energía, reactor, motores).
+- Interacción por proximidad con E (pulsar o mantener) y Q; mapa estelar; panel de energía (teclas 1-4); HUD mínimo; pantallas de menú, ayuda, pausa y fin de sector/expedición; mejor marca guardada.
+- Efectos: fuego, chispas, gas, luces de alarma por zona, estelas del salto, sacudida en impactos, carteles en el mundo y el destino visible por la proa (la estación ERIZON al atracar en una estación).
+- Audio procedural adaptado: efectos por evento del motor y música según el peligro.
+- 22 tests en 2 archivos.
+
+### Cambiado
+- Regla 6 del proyecto: del «¿por qué?» escrito de cada valor a «se juega, no se lee» (mensajes de una línea).
+- `PlayerController`: límites de cámara por parámetro, sacudida, y física con paso variable (corrige que el personaje fuera más lento en pantallas de 120/144 Hz).
+- Roadmap nuevo en `docs/phases/` (5 fases) y documentación reescrita: README, GDD, ARCHITECTURE, STATUS, CONTRIBUTING, `CLAUDE.md` de cada paquete, agentes y skills.
+
+### Eliminado
+- Motor de diseño de misiones (presupuestos, Go/No-Go, simulación orbital, puntuación, informe, asesores, pedagogía, lógica de equipo) y su catálogo (componentes, órbitas, lanzadores, escenarios, glosario, mascota Orbi, Academia).
+- Prototipo de la fase 0 (`prototype/`, `pnpm proto`) y `pnpm --filter @payload/shared bench`.
+- Cliente anterior (hangar, lanzamiento, órbita, sala, Academia, mascota, vista del instrumento, modo accesible 2D).
+- Servidor Colyseus: `apps/game-server` vuelve a ser un marcador hasta la fase 4; se quita `pnpm dev:server`.
+- Dependencias: `xstate`, `@xstate/react`, `@colyseus/*`, `@react-three/postprocessing`, `exceljs`.
+
+> Las entradas siguientes describen el simulador anterior (ver `docs/archivo/v0.3-simulador/`); los
+> documentos que citan se movieron allí.
+
 ## [0.3.0] - 2026-11-09
 
-Fase 3 (multijugador). Estado, métricas y acciones pendientes: `docs/STATUS.md`. Contrato: `docs/MULTIPLAYER.md`. Decisiones: ADR 0009 y 0010.
+Fase 3 (multijugador). Contrato: `docs/archivo/v0.3-simulador/MULTIPLAYER.md`. Decisiones: ADR 0009 y 0010.
 
 ### Añadido
 

@@ -40,29 +40,3 @@ canvas { display: block; }
   animation: cue-flash .9s ease-out forwards;
 }
 @keyframes cue-flash { 0% { opacity: 1; } 100% { opacity: 0; } }
-
-/* Mascota como indicador de gravedad cero en el lanzamiento */
-.zero-g-float { animation: zero-g-float 6s ease-in-out infinite; }
-@keyframes zero-g-float {
-  0%   { transform: translate(0, 0) rotate(-6deg); }
-  25%  { transform: translate(10px, -16px) rotate(5deg); }
-  50%  { transform: translate(-6px, -26px) rotate(-3deg); }
-  75%  { transform: translate(-12px, -10px) rotate(7deg); }
-  100% { transform: translate(0, 0) rotate(-6deg); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .zero-g-float { animation: none; }
-}
-
-/* Vista del instrumento con apuntado degradado */
-.instrument-shake { animation: instrument-shake .35s steps(2, end) infinite; }
-@keyframes instrument-shake {
-  0%   { transform: translate(0, 0) scale(1.03); }
-  25%  { transform: translate(-5px, 3px) scale(1.03); }
-  50%  { transform: translate(4px, -4px) scale(1.03); }
-  75%  { transform: translate(-3px, -2px) scale(1.03); }
-  100% { transform: translate(2px, 4px) scale(1.03); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .instrument-shake { animation: none; }
-}

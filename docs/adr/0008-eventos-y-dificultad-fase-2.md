@@ -1,6 +1,6 @@
 # 0008 · Eventos aleatorios por dificultad, penalización de agotamientos y fase de Kepler
 
-- Estado: aceptada
+- Estado: sustituida por 0011 (el motor al que se refiere ya no existe)
 - Fecha: 2026-11-08
 
 ## Contexto

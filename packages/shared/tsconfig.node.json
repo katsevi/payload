@@ -1,7 +1,7 @@
 {
-  // Tests (src/__tests__), scripts/, configuración de Vitest y prototipo: aquí sí hay tipos de Node.
+  // Tests (src/__tests__), scripts/, y configuración de Vitest: aquí sí hay tipos de Node.
   "extends": "./tsconfig.json",
   "compilerOptions": { "types": ["node"] },
-  "include": ["src", "catalog", "scripts", "vitest.config.ts", "../../prototype"],
+  "include": ["src", "catalog", "scripts", "vitest.config.ts"],
   "exclude": []
 }

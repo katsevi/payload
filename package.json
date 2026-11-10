@@ -1,20 +1,19 @@
 {
   "name": "payload",
   "private": true,
-  "version": "0.1.0",
-  "description": "Payload \u2014 simulador 3D web de dise\u00f1o de misiones espaciales (1-4 jugadores)",
+  "version": "0.4.0",
+  "description": "Payload — juego cooperativo 3D web de supervivencia y gestión de recursos espaciales (1-4 jugadores)",
   "packageManager": "pnpm@11.25.0",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "dev": "turbo run dev --filter=@payload/client",
-    "dev:server": "turbo run dev --filter=@payload/game-server",
     "build": "turbo run build",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "validate": "turbo run typecheck test build",
-    "proto": "pnpm --filter @payload/shared proto"
+    "balance": "pnpm --filter @payload/shared balance"
   },
   "devDependencies": {
     "@gltf-transform/cli": "^4.5.1",

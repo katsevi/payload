@@ -1,34 +1,29 @@
 {
   "app": {
     "title": "PAYLOAD",
-    "subtitle": "Space mission design simulator"
+    "subtitle": "Exploration crew"
   },
   "common": {
     "back": "Back",
     "close": "Close",
-    "on": "Yes",
-    "off": "No",
-    "none": "—",
-    "loading": "Loading…",
-    "help": "Help",
-    "settings": "Settings",
     "menu": "Menu",
     "continue": "Continue",
-    "unlimited": "Unlimited"
-  },
-  "menu": {
-    "play": "Play",
     "settings": "Settings",
-    "credits": "Credits",
-    "language": "Language",
-    "tagline": "Design, launch and operate your mission",
-    "academy": "Academy",
-    "academyDone": "Academy completed",
-    "glossary": "Glossary"
+    "help": "Help"
   },
   "lang": {
     "es": "Español",
     "en": "English"
+  },
+  "menu": {
+    "tagline": "Travel · Repair · Survive",
+    "play": "New expedition",
+    "settings": "Settings",
+    "credits": "Credits",
+    "language": "Language",
+    "best": "Best expedition: {{sectors}} sectors · {{score}} points",
+    "goal": "Take the ship to the jump gate. If the hull or the oxygen hits zero, it is over.",
+    "coop": "1-4 player co-op in a later phase"
   },
   "settings": {
     "title": "Settings",
@@ -36,18 +31,13 @@
     "fov": "Field of view",
     "headBob": "Head bob",
     "sensitivity": "Mouse sensitivity",
-    "accessible2D": "2D accessible mode",
-    "accessible2DHint": "Do the whole design from 2D panels, without moving in 3D.",
-    "shadows": "Shadows (graphics quality)",
-    "mascot": "Guide mascot",
-    "mascotHint": "Comments and help with H. Turn it off if you already know the game.",
     "audio": "Audio",
     "muteAll": "Mute all",
     "volMusic": "Music volume",
     "volSfx": "Effects volume",
-    "volAlerts": "Alerts and voice volume",
+    "volAlerts": "Alerts volume",
     "soundCaptions": "Sound captions",
-    "soundCaptionsHint": "Shows text such as [battery alarm] when a warning sounds. Important warnings always flash on screen."
+    "soundCaptionsHint": "Shows text such as [alarm] when a warning sounds. Important warnings always flash on screen."
   },
   "credits": {
     "title": "Credits",
@@ -56,665 +46,172 @@
     "license": "License",
     "source": "Source: Sketchfab",
     "usedFor": "Used for",
-    "astronaut": "Player avatar",
-    "walker": "Hangar exhibit and lunar and Mars exploration rover",
-    "galaxy": "Menu and space backdrop",
-    "erizon": "Space station in orbit",
+    "astronaut": "Crew member (player avatar)",
+    "walker": "Reserved for surface exploration (phase 2)",
+    "galaxy": "Menu backdrop and star map hologram",
+    "erizon": "Space station seen from the ship",
+    "console": "Ship helm",
     "ncnd": "CC-BY-NC-ND: non-commercial use only, no derivatives.",
     "modifiedCompressed": "Modified: meshopt compression and WebP textures.",
     "modifiedMeshopt": "Modified: meshopt compression.",
-    "modifiedTechnical": "Technically modified: meshopt compression and vertex quantization; geometry and textures unchanged.",
-    "console": "Hangar mission console"
+    "modifiedTechnical": "Technically modified: meshopt compression and vertex quantization; geometry and textures unchanged."
   },
-  "briefing": {
-    "title": "Mission briefing",
-    "requirements": "Measurable requirements",
-    "constraints": "Budget and limits",
-    "budget": "Budget",
-    "devMonths": "Development time",
-    "months": "months",
-    "groundStations": "Ground stations",
-    "operationDays": "Operation days",
-    "orbits": "Allowed orbits",
-    "launchers": "Allowed launchers",
-    "start": "Go to the hangar",
-    "difficulty": "Difficulty",
-    "mascotTip": "Tip from {{name}}"
+  "station": {
+    "helm": "Helm",
+    "map": "Star map",
+    "power": "Power panel"
   },
-  "difficulty": {
-    "basic": "Basic",
-    "intermediate": "Intermediate",
-    "advanced": "Advanced"
+  "marker": {
+    "evade": "To the helm!"
   },
-  "req": {
-    "maxGroundResolutionM": "Ground resolution (max.)",
-    "minDownlinkMbitPerDay": "Data downlinked per day (min.)",
-    "minLifetimeYears": "Lifetime (min.)",
-    "maxRevisitDays": "Revisit (max.)",
-    "minScienceValue": "Science value (min.)"
-  },
-  "unit": {
-    "m": "m",
-    "mbitDay": "Mbit/day",
-    "years": "years",
-    "days": "days",
-    "musd": "M$",
-    "kg": "kg",
-    "w": "W",
-    "wh": "Wh",
-    "km": "km"
-  },
-  "subsystem": {
-    "structure": "Structure",
-    "power": "Solar power",
-    "battery": "Batteries",
-    "comms": "Communications",
-    "obc": "Onboard computer",
-    "adcs": "Attitude control",
-    "thermal": "Thermal",
-    "payload": "Instruments"
-  },
-  "hangar": {
-    "title": "Integration hangar",
-    "console": "Mission console",
-    "ship": "Spacecraft",
-    "shelf": "Shelf",
-    "holding": "Carrying",
-    "empty": "Hands free",
-    "orbit": "Orbit",
-    "launcher": "Launcher",
-    "choose": "— choose —",
-    "requestReview": "Request Go/No-Go review",
-    "mounted": "Mounted",
-    "components": "Components",
-    "noStructure": "No structure: mount a bus first.",
-    "capture": "Click the scene to capture the mouse",
-    "resources": "Resources",
-    "mountedList": "Mounted components",
-    "add": "Add",
-    "remove": "Remove",
-    "returnItem": "Return",
-    "backToConsole": "Close console",
-    "noGoReasons": "The previous review was No-Go:",
-    "pause": "Pause",
-    "accessibleTitle": "Mission design (2D mode)",
-    "budgetSummary": "Resource summary",
-    "count": "Quantity"
+  "hud": {
+    "hull": "Hull",
+    "oxygen": "Oxygen",
+    "fuel": "Fuel",
+    "power": "Power",
+    "spares": "Spares",
+    "sector": "Sector {{sector}}",
+    "score": "{{score}} pts",
+    "docked": "Docked at {{node}}",
+    "transit": "Heading to {{node}}",
+    "eta": "{{seconds}} s",
+    "stopped": "Stopped",
+    "overload": "Overload",
+    "blackout": "Blackout",
+    "impactIn": "Impact in {{seconds}} s",
+    "impactEvaded": "Evaded",
+    "clickToPlay": "Click to move the camera",
+    "helpHint": "H · help"
   },
   "prompt": {
-    "pick": "Pick up",
-    "mount": "Mount on the spacecraft",
-    "unmount": "Remove the last one",
-    "console": "Use the console",
-    "returnItem": "Put back on the shelf",
-    "hand": "Carrying",
-    "swap": "Swap for",
-    "shipEmpty": "The spacecraft is empty: bring a component"
+    "hold": "Hold",
+    "press": "Press",
+    "fix": {
+      "fire": "Put out the fire",
+      "short": "Reset the breaker",
+      "leak": "Seal the leak"
+    },
+    "repair": "Repair with a spare ({{spares}} left)",
+    "repairNoSpares": "Damaged · no spares",
+    "evade": "Evasive maneuver",
+    "helm": "Helm · no impacts in sight",
+    "throttle": "Change throttle",
+    "map": "Open the star map",
+    "power": "Open the power panel"
   },
-  "resources": {
-    "title": "Resource panel",
-    "limiting": "Limits the mission",
-    "why": "Why?",
-    "margin": "Margin",
-    "mass": "Mass",
-    "power": "Power",
-    "battery": "Battery",
-    "budget": "Budget",
-    "data": "Data",
-    "comms": "Communications",
-    "time": "Schedule",
-    "lifetime": "Lifetime",
-    "status": {
-      "ok": "OK",
-      "tight": "Tight",
-      "over": "Exceeded"
-    }
-  },
-  "review": {
-    "title": "Go/No-Go review",
-    "go": "GO",
-    "nogo": "NO-GO",
-    "goText": "All systems ready for launch.",
-    "nogoText": "There are blockers to resolve before launch.",
-    "backToHangar": "Back to the hangar",
-    "launch": "Authorize launch",
-    "noIssues": "No findings.",
-    "severity": {
-      "blocker": "Blocker",
-      "warning": "Warning",
-      "info": "Info"
-    }
-  },
-  "launch": {
-    "title": "Launch pad",
-    "countdown": "T-",
-    "liftoff": "Liftoff",
-    "stageSep": "Stage separation",
-    "ascent": "Ascent",
-    "failure": "Launch anomaly",
-    "success": "Orbital insertion confirmed",
-    "skip": "Skip sequence",
-    "chase": "Chase camera",
-    "tower": "Tower view",
-    "standby": "Standing by",
-    "orbitInsertion": "Orbit insertion",
-    "zeroG": "Zero gravity"
-  },
-  "operation": {
-    "title": "Mission operations",
-    "pause": "Pause",
+  "map": {
+    "title": "Star map · sector {{sector}}",
+    "here": "You are here",
+    "goal": "Jump gate",
+    "select": "Pick a destination linked to your position.",
+    "inTransit": "Mid-jump: {{pct}} %",
+    "distance": "Distance",
+    "ly": "{{value}} ly",
+    "fuel": "Fuel",
     "time": "Time",
-    "battery": "Battery",
-    "dataStored": "Data stored",
-    "dataDownlinked": "Data downlinked",
-    "dataLost": "Data lost",
-    "contact": "In contact",
-    "noContact": "No contact",
-    "eclipse": "Eclipse",
-    "sunlight": "Sunlight",
-    "day": "Mission day",
-    "of": "of",
-    "log": "Event log",
-    "finish": "Finish and view report",
-    "view": {
-      "third": "Orbital camera",
-      "first": "Through the instrument"
+    "seconds": "{{value}} s",
+    "risk": "Risk",
+    "riskLevel": {
+      "0": "Calm",
+      "1": "Moderate",
+      "2": "Dangerous",
+      "3": "Extreme"
     },
-    "status": {
-      "nominal": "Nominal",
-      "degraded": "Degraded",
-      "failed": "Failed",
-      "complete": "Complete"
-    },
-    "ended": "The mission has ended.",
-    "viewfinder": "INSTRUMENT VIEWFINDER",
-    "capturing": "Capturing data",
-    "idle": "Not capturing",
-    "mbit": "Mbit",
-    "noEvents": "No events yet.",
-    "dayShort": "D",
-    "seed": "Seed",
-    "preLaunch": "Delay +{{months}} months · cut −{{pct}}%"
+    "notEnough": "Out of reach",
+    "jump": "Jump to {{node}}",
+    "cache": "Drifting container",
+    "visited": "Visited",
+    "landable": "Explorable surface (phase 2)",
+    "service": "Station service",
+    "serviceHint": "Refuels, repairs the hull and gives spares. Once per station.",
+    "serviceUsed": "Service already used",
+    "sensorsDown": "No sensors: no risk or container data",
+    "throttle": "Engine throttle",
+    "throttleHint": {
+      "eco": "Slow and cheap. More time to react.",
+      "cruise": "Balanced.",
+      "burn": "Fast and costly. Overloads the reactor unless you switch something off."
+    }
   },
-  "report": {
-    "title": "Mission report",
-    "total": "Total score",
-    "breakdown": "Breakdown",
-    "objectives": "Objectives",
-    "science": "Science",
-    "efficiency": "Efficiency",
-    "collaboration": "Collaboration",
-    "weight": "weight",
-    "chain": "Chain of causes",
-    "because": "Because",
-    "suggestion": "Suggestion",
-    "dataSummary": "Data summary",
-    "launchResult": "Launch",
-    "launchOk": "Successful",
-    "launchFail": "Failed",
-    "daysOperated": "Days operated",
-    "minBattery": "Minimum battery",
-    "redesign": "Redesign and simulate again",
-    "menu": "Menu",
-    "status": "Final status",
-    "noSim": "No result available.",
-    "sev": {
-      "success": "Success",
-      "info": "Info",
-      "warning": "Warning",
-      "failure": "Failure"
+  "power": {
+    "title": "Power panel",
+    "balance": "{{demand}} / {{supply}} kW",
+    "hint": "Ask for more than the reactor gives and the reactor takes damage.",
+    "draw": "{{kw}} kW",
+    "health": "{{pct}} %",
+    "state": {
+      "online": "Online",
+      "off": "Off",
+      "shorted": "Shorted",
+      "broken": "Broken",
+      "noPower": "No power"
     },
-    "events": "Mission events",
-    "preLaunchSummary": "Before launch: {{months}}-month delay and {{pct}}% budget cut."
+    "role": {
+      "engines": "Without engines the ship does not move",
+      "lifeSupport": "Regenerates oxygen",
+      "shields": "Absorb impacts",
+      "nav": "Warns of impacts and reads the map"
+    },
+    "toggle": "Key {{key}}"
+  },
+  "end": {
+    "lostTitle": "Expedition lost",
+    "wonTitle": "Sector {{sector}} cleared!",
+    "newBest": "New best run!",
+    "sectors": "Sectors cleared",
+    "jumps": "Jumps",
+    "distance": "Distance travelled",
+    "fixed": "Incidents fixed",
+    "evaded": "Impacts evaded",
+    "hits": "Impacts taken",
+    "time": "Time",
+    "score": "Score",
+    "retry": "New expedition",
+    "next": "Jump to sector {{sector}}",
+    "nextHint": "The ship carries on as it is: damage and fuel do not reset."
+  },
+  "pause": {
+    "title": "Paused",
+    "resume": "Resume",
+    "quit": "Abandon expedition"
   },
   "help": {
-    "title": "Controls",
-    "hint": "H: help",
-    "toggle": "Show/hide this help",
-    "menu": "Choose Play to start. Change the language at the top.",
-    "briefing": "Read the requirements and press \"Go to the hangar\".",
-    "hangar": "WASD move · mouse look · V switch 1st/3rd person · E interact (pick up, mount, console) · Q put back · Tab resource panel · Esc release mouse · H help",
-    "review": "Review the findings. With Go you can authorize the launch.",
-    "launch": "V toggles chase camera and tower view · H help",
-    "operation": "V toggles orbital camera and view through the instrument · I opens the main instrument view · drag to orbit the camera · use the time controls · H help",
-    "report": "Review the chain of causes and redesign.",
-    "lobby": "Wait for your team and pick your role. The host starts the mission once all four roles are covered. H help · G glossary",
-    "team": "In a room: T chat · R requests · P mark (in the hangar, look at a part or a spot) · the top bar shows your roles and the connection."
+    "title": "How to play",
+    "goal": "Jump from destination to destination to the gate. Keep the hull, oxygen, fuel and reactor alive.",
+    "move": "Move",
+    "run": "Run",
+    "look": "Look",
+    "interact": "Use a station (hold to fix)",
+    "alt": "Change throttle at the helm",
+    "view": "Switch 1st / 3rd person",
+    "pause": "Pause",
+    "tips": {
+      "fire": "Fire wrecks the system and the hull, and it spreads.",
+      "leak": "A leak drains the oxygen in just over a minute.",
+      "short": "A short shuts its system down; leave it and it catches fire.",
+      "impact": "With sensors you see impacts coming: run to the helm.",
+      "power": "At full burn there is not enough power for everything: choose what to switch off."
+    }
   },
   "keys": {
-    "move": "Move",
-    "look": "Look",
-    "view": "Switch view",
-    "interact": "Interact",
-    "resources": "Resources"
-  },
-  "errors": {
-    "modelFallback": "A 3D model could not be loaded; a simple shape is shown."
-  },
-  "phase": {
-    "menu": "Menu",
-    "briefing": "Briefing",
-    "design": "Design",
-    "review": "Review",
-    "launch": "Launch",
-    "operation": "Operation",
-    "report": "Report",
-    "prelaunch": "Pre-launch",
-    "lobby": "Lobby"
-  },
-  "scenarios": {
-    "title": "Choose a mission",
-    "intro": "Each scenario asks for different things: compare type, difficulty and budget before you start.",
-    "empty": "There are no campaign scenarios in the catalog.",
-    "type": "Type",
-    "attempts": "Attempts",
-    "play": "Play"
-  },
-  "missionType": {
-    "earth-observation": "Earth observation",
-    "telecom": "Telecommunications",
-    "space-telescope": "Space telescope",
-    "lunar-exploration": "Lunar exploration",
-    "mars-exploration": "Mars exploration"
-  },
-  "mascot": {
-    "dismiss": "Dismiss message",
-    "expression": {
-      "happy": "happy",
-      "thinking": "thinking",
-      "worried": "worried",
-      "celebrating": "celebrating"
-    }
-  },
-  "academy": {
-    "exit": "Exit",
-    "stepOf": "Step {{n}} of {{total}}",
-    "completed": "Academy completed!",
-    "completedText": "You now know every resource. Try a campaign mission.",
-    "backToMenu": "Back to menu",
-    "objective": "Goal:",
-    "met": "Done!",
-    "next": "Next",
-    "finish": "Finish the Academy",
-    "focus": "in focus",
-    "wait": {
-      "hangar": "Go on to the hangar for this step.",
-      "operation": "Request the Go/No-Go review and launch to continue.",
-      "report": "Finish operations to see the report.",
-      "launch": "Request the Go/No-Go review and authorize the launch: this step happens on the pad."
-    },
-    "goal": {
-      "addAny": "mount any part.",
-      "addSubsystem": "mount a {{name}} part.",
-      "addComponent": "mount “{{name}}”.",
-      "selectOrbit": "choose the {{name}} orbit.",
-      "selectAnyOrbit": "choose an orbit.",
-      "selectLauncher": "choose the {{name}} launcher.",
-      "selectAnyLauncher": "choose a launcher.",
-      "resourceOk": "keep “{{name}}” out of the red.",
-      "go": "get a Go at the review.",
-      "manual": "read and press Next."
-    },
-    "incomplete": "Academy not finished",
-    "incompleteText": "You skipped some steps. Enter the Academy again and complete them to pass it.",
-    "reviewLocked": "Not yet: finish the Academy steps before requesting the Go/No-Go review."
-  },
-  "advisors": {
-    "title": "Team advisors",
-    "none": "No advice yet: mount some parts.",
-    "open": "Advisors",
-    "role": {
-      "director": "Flight director",
-      "engineering": "Engineering",
-      "science": "Science",
-      "operations": "Operations"
-    }
-  },
-  "glossary": {
-    "title": "Glossary",
-    "search": "Search a term…",
-    "why": "Why does it matter?",
-    "related": "Related",
-    "backToList": "Back to the list",
-    "empty": "No term matches the search.",
-    "unavailable": "The catalog has no glossary."
-  },
-  "prelaunch": {
-    "title": "Before launch",
-    "intro": "The review gave a Go, but the real world does not wait: these surprises affect your mission.",
-    "delay": "Launch delay",
-    "cut": "Budget cut",
-    "overrun": "Now exceeded: {{list}}. It does not cancel the mission, but it lowers the score.",
-    "continue": "Continue to launch"
-  },
-  "event": {
-    "launch-success": "Launch",
-    "launch-failure": "Launch failure",
-    "eclipse-enter": "Eclipse",
-    "eclipse-exit": "Sunlight",
-    "contact-start": "Contact",
-    "contact-end": "Contact end",
-    "battery-low": "Battery low",
-    "battery-depleted": "Battery depleted",
-    "storage-full": "Storage full",
-    "solar-storm": "Solar storm",
-    "reaction-wheel-failure": "Wheel failure",
-    "debris-avoidance": "Space debris",
-    "component-failure": "Component failure",
-    "mission-complete": "Mission complete",
-    "overheating": "Overheating",
-    "launch-delay": "Delay",
-    "budget-cut": "Budget cut"
+    "move": "WASD",
+    "run": "Shift",
+    "look": "Mouse",
+    "interact": "E",
+    "alt": "Q",
+    "view": "V",
+    "pause": "Esc",
+    "help": "H"
   },
   "sound": {
-    "mount": "[part mounted]",
-    "unmount": "[part removed]",
-    "batteryAlarm": "[battery alarm]",
-    "contact": "[station contact beep]",
-    "radioStatic": "[radio static]",
-    "countdownTick": "[countdown beep]",
-    "liftoff": "[engines roaring]",
-    "separation": "[stage separation]",
-    "explosion": "[explosion]",
-    "success": "[success chime]",
-    "complete": "[mission complete]"
-  },
-  "instrument": {
-    "title": "Instrument view",
-    "viewfinder": "MAIN INSTRUMENT VIEWFINDER",
-    "scale": "Ground resolution: {{res}} m per pixel",
-    "instrument": "Main instrument",
-    "looking": "Observing",
-    "groundRes": "Ground resolution",
-    "noResolution": "Not applicable (no ground optics)",
-    "target": {
-      "earth": "Earth",
-      "stars": "Star field",
-      "moon": "Lunar surface",
-      "mars": "Martian surface"
-    },
-    "condition": {
-      "nominal": "Nominal image",
-      "eclipse": "Eclipse: dark image",
-      "degraded": "Degraded pointing",
-      "lost": "Instrument lost",
-      "noInstrument": "No instrument"
-    },
-    "hint": {
-      "nominal": "The instrument points well and there is light: every pass adds useful data.",
-      "eclipse": "Earth blocks the Sun: without light the sensor sees nothing and the craft lives on its battery.",
-      "degraded": "A reaction wheel or the attitude unit failed: pointing gets worse and the image turns blurry and shaky.",
-      "lost": "No more images are coming in. Check the event log to see what failed.",
-      "noInstrument": "Your design carries no instruments: there is nothing to look at."
-    },
-    "lost": {
-      "payload": "INSTRUMENT LOST",
-      "mission": "NO SIGNAL: MISSION ENDED IN FAILURE"
-    },
-    "eclipseBanner": "Eclipse: no sunlight",
-    "openSurface": "View the surface",
-    "exit": "Exit",
-    "button": "Instrument",
-    "toggle": "View through the main instrument"
-  },
-  "surface": {
-    "title": {
-      "moon": "Lunar surface · Aurora G9",
-      "mars": "Martian surface · Aurora G9"
-    },
-    "description": "A short look at the Aurora G9 rover walking across the terrain. Its data already counts in the mission panel.",
-    "close": "Close the surface view"
-  },
-  "room": {
-    "connection": {
-      "idle": "No room",
-      "connecting": "Connecting…",
-      "connected": "Connected",
-      "reconnecting": "Reconnecting…",
-      "disconnected": "Disconnected",
-      "error": "Connection error"
-    },
-    "status": {
-      "reconnecting": "Connection to the room was lost. Reconnecting…",
-      "reconnected": "Connection restored: you are still in the room."
-    },
-    "error": {
-      "join": "Could not join the room.",
-      "notFound": "There is no open room with that code.",
-      "rejected": "The room is full or the mission has already started.",
-      "unreachable": "Could not reach the game server. Check your connection.",
-      "resume": "Could not return to the previous room.",
-      "lost": "The connection to the room was lost. You are back at the menu.",
-      "closed": "The room was closed. You are back at the menu.",
-      "server": "The room server reported an error.",
-      "invalidScenario": "That scenario does not exist.",
-      "academyScenario": "The Academy is for one person only: pick a campaign mission.",
-      "invalidAttempt": "The room attempt is not valid.",
-      "invalidSeed": "The room seed is not valid.",
-      "roomNotInLobby": "That room's mission has already started: you can only join while it is in the waiting room.",
-      "roomFull": "The room is full.",
-      "alreadyJoined": "You are already in that room.",
-      "locked": "The room is full or the mission has already started: ask the host for a new code."
-    },
-    "notice": {
-      "requestCreated": "A request was sent to the responsible role: wait for their answer."
-    },
-    "name": "Your name",
-    "namePlaceholder": "Player",
-    "playerN": "Player {{n}}",
-    "you": "you",
-    "host": "Host",
-    "leave": "Leave the room",
-    "unknownPlayer": "Someone",
-    "entry": {
-      "open": "Play as a team",
-      "title": "Play as a team",
-      "intro": "Up to 4 people design and operate a mission together, each with a role. Create a private room and share the code, join with a code, or look for a quick match.",
-      "scenario": "Mission",
-      "coop": "Co-op",
-      "create": "Create private room",
-      "quick": "Quick match",
-      "resume": "Back to the room",
-      "code": "Room code",
-      "codePlaceholder": "Paste the code here",
-      "join": "Join with code",
-      "players": "{{min}}-{{max}} players"
-    },
-    "lobby": {
-      "title": "Waiting room",
-      "code": "Room code",
-      "copy": "Copy the code",
-      "copied": "Code copied",
-      "shareHint": "Share this code so your team can join.",
-      "players": "Players",
-      "noRole": "No role yet",
-      "combineHint": "With fewer than 4 players, roles are combined: one person can take several.",
-      "rename": "Change your name",
-      "renameBtn": "Change",
-      "roles": "Team roles",
-      "rolesIntro": "Each role decides on one part of the mission and watches certain resources. Claim yours.",
-      "watches": "Watches",
-      "heldBy": "Held by",
-      "free": "Free",
-      "taken": "Someone else has it",
-      "release": "Release role",
-      "claim": "Claim role",
-      "missing": "Still uncovered: {{roles}}.",
-      "autoAssign": "Assign roles",
-      "start": "Start mission",
-      "waitHost": "Waiting for the host to start the mission."
-    },
-    "role": {
-      "director": "Flight Director",
-      "engineering": "Engineering",
-      "science": "Science",
-      "operations": "Operations"
-    },
-    "roleCard": {
-      "director": {
-        "decides": "Decides the orbit and launcher, splits the budget, confirms the launch and ends the operation. Resolves budget and time requests."
-      },
-      "engineering": {
-        "decides": "Mounts structure, power, batteries, computer, attitude control and thermal. Resolves mass, power and battery requests."
-      },
-      "science": {
-        "decides": "Chooses the payload instruments: what the mission is there to measure. Asks the other roles for resources when needed."
-      },
-      "operations": {
-        "decides": "Mounts communications and controls operation time. Resolves data, communications and lifetime requests."
-      },
-      "noResources": "none: ask the others"
-    },
-    "bar": {
-      "badge": "{{n}} pending",
-      "myRoles": "My roles",
-      "players": "Connected players"
-    },
-    "chat": {
-      "title": "Team chat",
-      "history": "Chat history",
-      "empty": "No messages yet.",
-      "placeholder": "Write a message…",
-      "send": "Send"
-    },
-    "time": {
-      "s": "{{n}} s ago",
-      "min": "{{n}} min ago",
-      "h": "{{n}} h ago"
-    },
-    "requests": {
-      "title": "Requests",
-      "intro": "When something you ask for affects another role's resource, that person decides. The whole team sees every request.",
-      "new": "New request",
-      "resource": "Resource",
-      "amount": "Amount",
-      "subsystem": "Subsystem",
-      "anySubsystem": "(any)",
-      "note": "Note",
-      "badAmount": "The amount must be a number greater than 0.",
-      "send": "Send request",
-      "open": "Open",
-      "noneOpen": "No open requests.",
-      "resolved": "Resolved",
-      "noneResolved": "No resolved requests yet.",
-      "status": {
-        "open": "Open",
-        "approved": "Approved",
-        "rejected": "Rejected",
-        "withdrawn": "Withdrawn"
-      },
-      "chain": "Already approved by: {{approved}}. Waiting for: {{pending}}.",
-      "resolutionNote": "Reply",
-      "notePlaceholder": "Optional note (e.g. propose another solution)",
-      "approve": "Approve",
-      "reject": "Reject",
-      "withdraw": "Withdraw my request",
-      "cooldown": "You just sent a request: wait a moment before asking for another."
-    },
-    "budget": {
-      "title": "Budget",
-      "introEdit": "Split the money for parts across subsystems. A part that goes over its share will ask for your approval.",
-      "introRead": "Budget split by subsystem. The Flight Director decides it.",
-      "available": "Available for parts",
-      "noAllocation": "no split: no limits",
-      "subsystem": "Subsystem",
-      "assigned": "Assigned",
-      "spent": "Spent",
-      "total": "Total split",
-      "suggest": "Suggested split",
-      "apply": "Apply split",
-      "clear": "Remove split"
-    },
-    "pings": {
-      "title": "Mark",
-      "point": "a spot in the hangar",
-      "intro": "Point something out to the team. In the hangar, look at a part or a spot and press P.",
-      "subsystems": "Subsystems",
-      "resources": "Resources",
-      "recent": "Recent marks",
-      "none": "Nobody has marked anything yet.",
-      "marked": "marked"
-    },
-    "alerts": {
-      "title": "Team alert",
-      "timeout": "The alert closes by itself after {{s}} s",
-      "left": "{{s}} s",
-      "required": "Must respond",
-      "pending": "pending",
-      "answered": "answered",
-      "respond": "Respond as {{role}}"
-    },
-    "vote": {
-      "title": "Go/No-Go vote",
-      "go": "Go",
-      "nogo": "No-Go",
-      "pending": "Pending",
-      "by": "Voted by: {{name}}",
-      "mine": "My votes",
-      "noRole": "You have no role: you cannot vote.",
-      "sendGo": "Go",
-      "sendNoGo": "Send No-Go",
-      "reasonTitle": "No-Go reason ({{role}})",
-      "reasonHint": "A No-Go needs a reason so the team knows what to fix.",
-      "noteRequired": "Explain the reason (required)",
-      "noteOptional": "Note (optional)",
-      "error": {
-        "code": "Pick a reason for the No-Go.",
-        "note": "With \"other reason\" you must write a note."
-      }
-    },
-    "lastNoGo": {
-      "vote": "The team voted No-Go. These are the reasons:",
-      "review": "The technical review said No-Go. This needs fixing:"
-    },
-    "report": {
-      "title": "Team collaboration",
-      "collabScore": "Collaboration score",
-      "missionScore": "Mission score",
-      "teamScore": "Team score",
-      "row": {
-        "requests": "Requests resolved",
-        "requestTime": "Average time to answer requests",
-        "alerts": "Alerts answered on time",
-        "alertTime": "Average time to answer alerts"
-      },
-      "why": "Collaboration measures how fast the team resolved requests and alerts: coordinating well weighs as much as designing well, because in a real mission nobody decides alone.",
-      "onlyDirector": "Only the Flight Director can redesign"
-    },
-    "prelaunch": {
-      "waiting": "Waiting for {{role}} to confirm the launch."
-    },
-    "operation": {
-      "pausedByAlert": "Paused by alert",
-      "timeLocked": "Time is controlled by Director and Operations. Current speed: {{accel}}",
-      "onlyDirector": "Only the Flight Director ends the operation"
-    },
-    "keys": {
-      "ping": "mark",
-      "chat": "chat",
-      "requests": "requests"
-    },
-    "perm": {
-      "request": "Will ask permission"
-    },
-    "quote": "“{{text}}”",
-    "leaveConfirm": {
-      "title": "Leave the room?",
-      "body": "The mission has already started: if you leave you cannot rejoin this room and your roles will pass to the rest of the team.",
-      "stay": "Stay",
-      "leave": "Leave the room"
-    },
-    "retry": {
-      "title": "Connection lost",
-      "body": "Your place in the room is kept for {{seconds}} s more.",
-      "button": "Retry",
-      "dismiss": "Dismiss",
-      "expired": "Time is up to return to the room."
-    },
-    "duration": {
-      "s": "{{n}} s",
-      "min": "{{n}} min",
-      "minS": "{{min}} min {{s}} s"
-    }
+    "fixed": "[repaired]",
+    "alarm": "[alarm]",
+    "ok": "[confirmation]",
+    "sparks": "[sparks]",
+    "warnTick": "[impact warning]",
+    "jump": "[jump engines]",
+    "clunk": "[docking]",
+    "impact": "[impact]",
+    "success": "[sector cleared]"
   }
 }

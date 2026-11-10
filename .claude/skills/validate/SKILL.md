@@ -16,6 +16,8 @@ Ejecuta en orden desde la raíz del repo y detente a reportar en el primer fallo
 3. Paridad i18n: los tests de `packages/shared` y `apps/client` comparan las claves de `es` y `en`;
    si fallan, añade la clave que falta en el otro idioma.
 4. Assets: cada archivo de `assets/models/` aparece en `assets/CREDITS.md`.
-5. Si cerraste una tarea relevante, `docs/STATUS.md` está actualizado.
+5. Si tocaste el motor o `packages/shared/catalog/*.json`: `pnpm balance` y compara con las cifras de `docs/STATUS.md`.
+6. Si tocaste la escena 3D: no hay tests de renderizado; ábrela (`pnpm dev`, `?play=1&seed=7`) o di que no se comprobó en pantalla.
+7. Si cerraste una tarea relevante, `docs/STATUS.md` está actualizado.
 
 Para una revisión independiente y más profunda, delega en el agente `validator`.

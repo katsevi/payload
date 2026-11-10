@@ -1,6 +1,0 @@
-{
-  "scenarioId": "leo-earth-observation",
-  "componentIds": ["structure-smallsat", "payload-hires-camera", "payload-hyperspectral", "comms-x-band", "obc-advanced", "adcs-star-tracker", "thermal-active", "battery-large", "power-high-efficiency", "power-high-efficiency", "power-high-efficiency"],
-  "orbitId": "LEO",
-  "launcherId": "launcher-colibri"
-}

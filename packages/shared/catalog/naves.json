@@ -1,0 +1,55 @@
+{
+  "ships": [
+    {
+      "id": "ship-colibri",
+      "name": {
+        "es": "Colibrí",
+        "en": "Hummingbird"
+      },
+      "hullMax": 100,
+      "fuelCapacity": 100,
+      "startFuel": 100,
+      "startSpares": 3,
+      "maxSpares": 6,
+      "reactorOutputKw": 110,
+      "systemDrawKw": {
+        "engines": 40,
+        "lifeSupport": 20,
+        "shields": 30,
+        "nav": 10
+      },
+      "cruiseSpeedLyPerS": 0.5,
+      "fuelPerLy": 0.9,
+      "damagedEngineFuelPenalty": 0.5,
+      "evadeFuel": 3,
+      "crewO2UsePctPerS": 0.25,
+      "o2RegenPctPerS": 0.7,
+      "shieldAbsorb": 0.65,
+      "shieldWearPctPerHit": 6,
+      "overloadReactorDamagePctPerS": 1,
+      "throttles": [
+        {
+          "id": "eco",
+          "speedMult": 0.65,
+          "fuelMult": 0.7,
+          "engineDrawMult": 0.6,
+          "wearMult": 0.5
+        },
+        {
+          "id": "cruise",
+          "speedMult": 1,
+          "fuelMult": 1,
+          "engineDrawMult": 1,
+          "wearMult": 1
+        },
+        {
+          "id": "burn",
+          "speedMult": 1.6,
+          "fuelMult": 1.6,
+          "engineDrawMult": 1.6,
+          "wearMult": 2.2
+        }
+      ]
+    }
+  ]
+}

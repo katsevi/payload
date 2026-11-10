@@ -1,301 +1,200 @@
-# Payload — Documento de diseño del juego (GDD)
+# Payload — documento de diseño (GDD v2)
 
-> Versión de fase 0 · 7 de noviembre de 2026 · Basado en `docs/plan-original/plan-juego-misiones-espaciales.md`.
-> **Payload** es el nombre definitivo (antes "Control de Misión", título de trabajo).
-> Este documento describe diseño e intención; el estado real de la implementación está en `docs/STATUS.md`.
+Diseño del juego vigente desde el 2026-11-09. Plan de partida: `docs/plan/plan-tripulacion-de-exploracion.md`.
+Por qué se rehízo el juego: `docs/adr/0011-reinicio-tripulacion-de-exploracion.md`. El GDD del simulador
+anterior está en `docs/archivo/v0.3-simulador/GDD.md`.
 
-Leyenda de alcance: **[F1]** entra en la fase 1 (rebanada vertical en solitario) · **[F2]**, **[F3]**, **[F4]** fases posteriores. Ver el resumen en [§ 14](#14-alcance-por-fase).
+Leyenda: **[F1]** existe hoy (fase 1) · **[F2] [F3] [F4] [F5]** diseño previsto para esa fase.
 
-## 1. Visión y pilares
+## 1. Concepto
 
-**Visión.** Payload es un simulador 3D web, en TypeScript y React Three Fiber, donde de 1 a 4 jugadores diseñan, lanzan y operan una misión espacial completa, alternando entre primera y tercera persona. El jugador debe terminar entendiendo que **cada decisión mueve la masa, la energía, el presupuesto, los datos, las comunicaciones y la vida útil**.
+Cooperativo de supervivencia y gestión de recursos espaciales para 1-4 jugadores. Sois la tripulación de
+una nave exploradora: viajáis de destino en destino, bajáis a superficies peligrosas a recoger materiales,
+los vendéis y mejoráis la nave. Todo ocurre en tiempo real y con **permadeath**: si la nave se destruye o
+la tripulación muere, la expedición se acaba y se empieza de cero.
 
-**Pilares**
+Tono: party game tenso, no simulador. Se entiende en un minuto y se pierde por decisiones propias.
 
-| Pilar | Qué significa | Cómo lo comprobamos |
+## 2. Pilares
+
+1. **Los compromisos se sienten, no se leen.** Cada decisión de ingeniería (régimen de motores, reparto
+   de energía, ruta, repuestos) cambia lo que pasa en los 30 segundos siguientes. No hay pantallas de
+   lectura obligatoria; los mensajes caben en una línea.
+2. **El espacio físico manda.** Los sistemas son lugares de la nave. Arreglar algo exige ir hasta allí, y
+   no se llega a todo: de ahí nace la cooperación.
+3. **Riesgo contra recompensa.** Lo más valioso está donde es más fácil morir.
+4. **Partidas cortas, mucha rejugabilidad.** Un sector dura unos 4 minutos; cada partida tiene su semilla.
+
+## 3. Ciclo de juego
+
+| Paso | Qué hace el jugador | Fase |
 | --- | --- | --- |
-| Los compromisos son el juego | No hay una respuesta única: hay varias soluciones válidas y varias formas de fallar | El catálogo permite ≥ 2 diseños válidos y fallos por causas distintas (tests del motor) |
-| Cada valor tiene su "¿por qué?" | Ningún número aparece sin explicación de 1-2 frases | Todo recurso del panel lleva un `MessageRef` explicativo |
-| Se aprende iterando | El informe devuelve al diseño: rediseñar y volver a simular | Bucle Informe → Hangar siempre disponible |
-| Corre en el navegador | Sin instalación; WebGL 2 de base | Meta de 60 FPS en una laptop de gama media |
-| Bilingüe y accesible | Español por defecto, inglés completo; todo lo 3D tiene alternativa 2D | Test de paridad de claves es/en; modo de panel 2D |
+| Planificar | Mapa estelar: destino, régimen de motores, repostar | F1 |
+| Viajar | Mantener viva la nave en el salto: impactos, fuego, cortos, fugas | F1 |
+| Aterrizar y explorar | Bajar a la superficie con jetpack y oxígeno limitado, recoger materiales | F2 |
+| Regresar y mejorar | Vender, reparar y comprar mejoras en estaciones | F3 |
 
-**No es:** un simulador de vuelo con física real de maniobras, ni un juego de acción. El modelo orbital es deliberadamente simplificado (Kepler) con valores plausibles.
+En la fase 1 el ciclo es planificar → viajar → llegar (estación o contenedor a la deriva) hasta alcanzar
+el **portal de salto** del sector; cruzarlo lleva a un sector más largo y peligroso con la misma nave.
 
-## 2. Público
+## 4. La nave [F1]
 
-Estudiantes y aspirantes a ingeniería, de nivel básico a avanzado, en español e inglés. El jugador elige idioma al iniciar y puede cambiarlo en Ajustes en cualquier momento. La dificultad (componentes básicos o avanzados, eventos, restricciones) ajusta la curva.
+Interior caminable en 1ª o 3ª persona. La proa mira a −Z. Distribución en `apps/client/src/game/layout.ts`.
 
-## 3. Bucle de juego
-
-Una partida recorre ocho etapas; el informe lleva de vuelta al diseño.
-
-```mermaid
-flowchart TD
-    A["Objetivo de la misión<br/><small>Briefing en sala de control · 1ª persona</small>"] --> B["Requisitos<br/><small>Resolución, cobertura, datos, vida útil</small>"]
-    B --> C["Diseño e integración de la nave<br/><small>Hangar · 1ª y 3ª persona</small>"]
-    C --> D["Órbita y lanzador<br/><small>Mapa orbital · 3ª persona</small>"]
-    D --> E{"Revisión Go/No-Go"}
-    E -- "No-Go: volver al hangar" --> C
-    E -- "Go: todos los roles aprueban" --> F["Lanzamiento<br/><small>Torre o a bordo · 1ª y 3ª persona</small>"]
-    F --> G["Operación y eventos<br/><small>Consolas en 1ª · nave en órbita en 3ª</small>"]
-    G --> H["Informe y puntuación<br/><small>Cadena de causas y ranking</small>"]
-    H -- "Rediseñar y simular otra vez" --> C
-    style C fill:#e3eefb,stroke:#2f7bd8,stroke-width:2px
-```
-
-Las fases del flujo en el contrato (`MissionPhase`) son: `briefing → design → review → launch → operation → report`. Un No-Go regresa al hangar sin lanzar y el informe explica qué falló y por qué. **[F1]** implementa el bucle completo en solitario.
-
-## 4. Cámaras y controles
-
-La primera persona se usa donde el jugador *hace*; la tercera, donde *observa*. Ambas comparten el controlador de personaje, así que cambiar de vista no cambia la física.
-
-| Espacio | Primera persona | Tercera persona | Fase |
-| --- | --- | --- | --- |
-| Hangar / sala limpia | Caminar, tomar componentes de los estantes y encajarlos en la nave | Cámara sobre el hombro; vista libre alrededor de la nave | F1 |
-| Sala de control | Sentarse en la consola y usar pantallas interactivas | Ver la sala y a los compañeros | F1 (consola básica) · F3 (equipo) |
-| Plataforma de lanzamiento | Vista desde la torre o a bordo | Cámara de persecución, separación de etapas | F1 (cámara de persecución simple) |
-| Órbita / operación | Vista "a través del instrumento" | Cámara orbital con la Tierra; mapa con traza de la órbita | F1 (3ª persona orbital) · F2 (vista del instrumento) |
-
-**Controles**
-
-- Teclado y ratón: `WASD` + ratón con *pointer lock*; `V` alterna primera/tercera persona; `E` interactuar; `Tab` panel de recursos; `H` ayuda de la mascota **[F2]**.
-- Mando (Gamepad API) y táctil como soporte secundario **[F4]**.
-- Transición suave entre vistas (0.3–0.5 s).
-
-**Confort:** deslizador de FOV, balanceo de cabeza desactivable, giro por pasos. **Modo accesible:** todo lo que se hace en primera persona se puede hacer desde un panel 2D **[F1: panel de recursos y diseño 2D]**.
-
-**Implementación prevista:** controlador cinemático de Rapier (`@react-three/rapier`); `PointerLockControls` y `KeyboardControls` de Drei en primera persona, `CameraControls` en tercera. *ecctrl* es una alternativa a evaluar.
-
-## 5. Modos de juego y roles
-
-| Modo | Jugadores | Qué aporta | Fase |
-| --- | --- | --- | --- |
-| Academia (tutorial) | 1 | Rise enseña cada recurso con una mini-misión (CubeSat en órbita baja) | F2 |
-| Campaña de escenarios | 1–4 | Misiones con dificultad creciente | F1 (1 escenario) · F2 (5) |
-| Cooperativo | 2–4 | Un equipo, una misión, cada quien con su rol | F3 |
-| Competitivo | 2+ equipos | Mismo objetivo, gana la mejor puntuación | F4 |
-| Sandbox | 1–4 | Sin presupuesto ni límites predefinidos | F4 |
-
-| Rol | Decide sobre | Vigila |
-| --- | --- | --- |
-| Director/a de misión | Objetivo, requisitos, órbita, lanzador, aprobación final | Presupuesto, tiempo de desarrollo |
-| Ingeniería de nave | Estructura, paneles, baterías, computadora, actitud, térmico | Masa, energía |
-| Ciencia y carga útil | Instrumentos y plan de observación | Valor científico, datos generados |
-| Operaciones y comunicaciones | Antenas, estaciones, contactos, respuesta a eventos | Enlace de datos, vida útil |
-
-Con menos de cuatro jugadores los roles se combinan. **En solitario [F1]** el jugador asume los cuatro roles y, en fases siguientes, un asesor por rol (controlado por el juego) da recomendaciones **[F2]**.
-
-**Colaboración [F3]:** solicitudes de recursos entre roles (p. ej. Ciencia pide +40 W; Ingeniería aprueba o propone otra solución), presupuestos asignados por subsistema, revisión Go/No-Go con voto por rol y motivo obligatorio del No-Go, eventos que exigen acción de varios roles, chat, *pings* y voz opcional (WebRTC). La puntuación incluye una parte de colaboración.
-
-## 6. Mascota guía: Rise y plan B
-
-Rise, la mascota lunar de Artemis II (peluche con forma de Luna sonriente y gorra azul y verde, diseñado por Lucas Ye para el concurso Moon Mascot de NASA y Freelancer), guía la Academia **[F2]**. En la misión real fue el indicador de gravedad cero, lo que encaja con el propósito educativo.
-
-| Momento | Qué hace |
+| Zona | Puestos |
 | --- | --- |
-| Academia | Presenta cada recurso con una mini-misión y señala en 3D el componente o consola |
-| Hangar y sala de control | Flota junto al jugador; con `H` da ayuda contextual |
-| Panel de recursos | Muestra el "¿por qué?" y cambia de expresión cuando un recurso entra en rojo |
-| Lanzamiento | Indicador de gravedad cero: flota al llegar a microgravedad, con ficha explicativa |
-| Informe | Narra la cadena de causas y sugiere qué rediseñar |
+| Puente | **Timón** (régimen de motores, maniobra evasiva) · **Mapa estelar** (ruta, servicio de estación) · **Navegación** (sensores) |
+| Cubierta media | **Soporte vital** · **Escudos** |
+| Sala de máquinas | **Panel de energía** · **Reactor** · **Motores** |
 
-Personalidad: expresiones (contenta, pensativa, preocupada, celebrando), frases cortas, nunca solo "correcto/incorrecto", voz y textos es/en con subtítulos, desactivable para jugadores avanzados. Diálogos en JSON por idioma, disparados por eventos del motor.
+Del timón al reactor hay unos 4 s corriendo. El aviso de un impacto a crucero llega con 8 s: da para ir
+al timón, pero no para ir, volver y además apagar un fuego. Un test (`game.test.ts`) vigila esa relación.
 
-### Mascota
+### Recursos
 
-**Derechos de uso (paso obligatorio antes de publicar).** El diseño de Rise **no es de dominio público**: NASA tiene los derechos y puede permitir reproducciones si se siguen sus guías de mercancía.
+| Recurso | Baja por | Sube por | A cero |
+| --- | --- | --- | --- |
+| Casco | Impactos, fuego | Servicio de estación | Nave destruida |
+| Oxígeno | Tripulación, fugas, fuego | Soporte vital en línea | Tripulación muerta |
+| Combustible | Saltos, maniobras evasivas | Estaciones, contenedores | Nave varada |
+| Energía | (demanda de los sistemas encendidos) | Salud del reactor | Apagón: nada funciona |
+| Repuestos | Reparar sistemas | Estaciones, contenedores | Los daños ya no se arreglan |
 
-- Acción: pedir autorización escrita a NASA antes de publicar el juego o presentarlo en un concurso; no sugerir respaldo de NASA. Esto no es asesoría legal: confirmar con quien organice el reto.
-- **Plan B:** el sistema de mascota debe funcionar igual con una **mascota original propia**: se cambian el modelo, las animaciones y los diálogos sin tocar código. Por eso la mascota se diseña como un *paquete de datos* (modelo GLB, morph targets de expresiones, animaciones, diálogos en JSON, versión 2D) intercambiable.
-- Hasta tener autorización, **no se incluye Rise en el repositorio**; en F2 se implementa primero con una mascota genérica propia.
+### Sistemas
 
-## 7. Sistemas del juego
+Cinco sistemas con salud 0-100 %: reactor, motores, soporte vital, escudos y navegación. Todos menos el
+reactor se pueden apagar en el panel de energía.
 
-Todo descansa en un motor de simulación TypeScript puro, separado de los gráficos, que corre igual en el navegador (solitario) y en el servidor (multijugador, [F3]). Componentes, órbitas, lanzadores y escenarios viven en JSON validado con zod: agregar contenido no requiere tocar código.
+- **Reactor (110 kW):** su potencia cae con su salud. Si la demanda supera a la potencia hay
+  **sobrecarga** y el reactor se daña 1 %/s hasta que alguien apague algo. Un corto en el reactor es un apagón.
+- **Motores (40 kW a crucero):** dañados van más lentos y gastan más. Sin motores la nave no avanza.
+- **Soporte vital (20 kW):** regenera 0,7 % de O₂ por segundo; la tripulación gasta 0,25.
+- **Escudos (30 kW):** absorben el 65 % de cada impacto y evitan daños internos; cada golpe los desgasta.
+- **Navegación (10 kW):** sin sensores no hay aviso de impactos ni datos de riesgo en el mapa.
 
-### 7.1 Objetivo y requisitos
+### Régimen de motores
 
-Tipos de misión (`MissionType`): observación de la Tierra, telecomunicaciones, telescopio espacial, exploración lunar y de Marte. Del objetivo salen requisitos medibles (`ScenarioRequirements`): resolución en suelo máxima, bajada mínima de datos por día, vida útil mínima, revisita máxima, valor científico mínimo. **[F1]** incluye un escenario de observación de la Tierra en LEO; los demás tipos llegan en F2.
-
-### 7.2 Nave y carga útil
-
-Subsistemas (`SubsystemId`): estructura, energía (paneles), baterías, comunicaciones, computadora de a bordo (obc), control de actitud (adcs), térmico e instrumentos (payload).
-
-| Atributo de componente | Unidad | Nota |
-| --- | --- | --- |
-| Masa | kg | Suma contra capacidad del lanzador y de la estructura |
-| Consumo | W | Medio en operación; paneles = 0 |
-| Costo | M USD | Contra presupuesto del escenario |
-| Datos | Mbit/día | Solo instrumentos |
-| Valor científico | 0–100 | Solo instrumentos |
-| Fiabilidad | 0–1 | Probabilidad de no fallar en vida nominal |
-| Nivel | básico / avanzado | Según dificultad |
-| Desarrollo | meses | Tiempo de integración |
-
-Más atributos por subsistema (generación solar, capacidad y profundidad de descarga de batería, tasa de bajada, almacenamiento, masa soportada, precisión de apuntado, disipación térmica, resolución en suelo y apuntado requerido de instrumentos). La definición exacta es `ComponentDef` en `packages/shared/src/types.ts`.
-
-### 7.3 Órbita y lanzador
-
-Órbitas (`OrbitId`): LEO, SSO, MEO, GEO, HEO y TLI (transferencia lunar). Cada una cambia revisita, fracción de eclipse (afecta energía), minutos de contacto con estaciones, radiación y vida por arrastre. **[F1]**: solo LEO (y los lanzadores que llegan a ella); **[F2]**: las seis.
-
-Cada lanzador tiene capacidad de carga **por órbita**, costo, fiabilidad y plazo. El juego valida que masa y órbita sean compatibles con el lanzador antes de permitir el Go.
-
-**Modelo orbital (Kepler simplificado):**
-
-$$
-T = 2\pi \sqrt{\frac{a^{3}}{\mu}}, \qquad \mu_{\oplus} = 398\,600\ \text{km}^3/\text{s}^2, \qquad a = R_\oplus + h
-$$
-
-Con $R_\oplus = 6371$ km. De ahí salen, en el peor caso (beta = 0):
-
-- Fracción de eclipse $\approx \dfrac{1}{\pi}\arcsin\!\left(\dfrac{R_\oplus}{R_\oplus + h}\right)$ y minutos de eclipse = $T \times$ fracción.
-- Órbitas por día = $1440 / T_{min}$ y minutos de contacto por día con una estación.
-
-Referencia: LEO a 400 km tiene $T \approx 92.6$ min (92.4 min con $R = 6371$) y ≈ 39 % del periodo en sombra.
-
-### 7.4 Recursos (presupuestos de ingeniería)
-
-Panel en tiempo real: cada recurso es una barra con **margen** `(disponible − usado) / disponible` y estado `ok` / `tight` / `over`; el recurso que más limita se marca en rojo.
-
-| Recurso | Comparación | Qué se aprende |
-| --- | --- | --- |
-| Masa | total vs capacidad del lanzador y de la estructura | Cada kg cuesta |
-| Energía | generación media (paneles × luz) vs consumo | Los paneles no generan en eclipse |
-| Batería | consumo × minutos de eclipse vs capacidad útil (DoD) | La batería cubre el eclipse |
-| Presupuesto | componentes + lanzamiento (+ operación) vs presupuesto | Costo total del ciclo |
-| Datos | generados por día vs capacidad de bajada | Lo que no se baja se pierde |
-| Comunicaciones | tasa × contactos × estaciones vs requerido | El enlace es un recurso |
-| Tiempo | meses de desarrollo vs máximo | Calendario |
-| Vida útil | requerida vs por arrastre/fiabilidad | La órbita limita la vida |
-
-### 7.5 Simulación y eventos
-
-- Avance acelerado (1× a 10 000×) y pausa; paso fijo interno, **determinista**: mismo diseño, catálogo y semilla → mismo resultado, sin importar cómo se trocee el avance.
-- **[F1]**: lanzamiento (éxito/fallo por fiabilidad), eclipse/contacto, batería, almacenamiento y bajada de datos, fallas de componentes.
-- **[F2]**: eventos aleatorios ponderados por dificultad: falla de rueda de reacción, tormenta solar, basura espacial (evasión), retraso de lanzamiento, recorte de presupuesto.
-- La semilla permite comparar diseños de forma justa; el escenario trae una semilla por defecto.
-
-### 7.6 Puntuación
-
-$$
-S = w_1 \cdot \text{objetivos} + w_2 \cdot \text{ciencia} + w_3 \cdot \text{eficiencia} + w_4 \cdot \text{colaboración}
-$$
-
-Cada componente es 0–100; los pesos `w` cambian por escenario. La eficiencia premia márgenes sanos (ni sobrado ni al límite). En solitario la colaboración tiene peso 0 o neutro. Rankings por escenario, guardar, compartir por enlace y comparar diseños lado a lado: **[F4]**.
-
-### 7.7 Valor educativo
-
-- Cada valor tiene un "¿por qué?" (1-2 frases, lenguaje sencillo). **[F1]**
-- Informe post-misión con cadena de causas: "la batería se agotó en el eclipse **porque** el instrumento consume 60 W **y** la órbita pasa 35 min en sombra", con sugerencia de rediseño. **[F1]**
-- Glosario y fichas presentadas por la mascota (altitud orbital, carga útil, tasa de datos, enlace). **[F2]**
-- El motor devuelve claves i18n con parámetros (`MessageRef`), nunca texto final.
-
-## 8. Arte y assets
-
-Estilo: realista simplificado (*low-poly* limpio, buena iluminación) que se vea bien en laptops modestas. Formato único: **glTF/GLB** comprimido (meshopt vía gltf-transform; texturas KTX2 cuando convenga).
-
-### 8.1 Modelos del proyecto
-
-| Modelo | Archivo (`assets/models/source/`) | Uso en el juego | Autor | Licencia |
+| Régimen | Velocidad | Combustible | Consumo de motores | Desgaste |
 | --- | --- | --- | --- | --- |
-| Astronauta | `astronaut_by_jungle_jim.glb` | **Avatar** del jugador (visible en 3ª persona y en el equipo [F3]) | Jungle Jim | CC-BY-4.0 |
-| Aurora G9 Expedition Walker | `aurora_g9_expedition_walker_mech.glb` | **Exhibición en el hangar**; futuro vehículo de exploración (misiones lunar/Marte) | Jungle Jim | CC-BY-4.0 |
-| Our Milky Way galaxy | `our_milky_way_galaxy.glb` | **Fondo del menú** y del espacio en la escena orbital | aditya299792 | CC-BY-4.0 |
-| Programme ERIZON | `programme_erizon.glb` | **Estación espacial de fondo** en la escena orbital | nejenabinupa | **CC-BY-NC-ND-4.0** |
+| Económico | ×0,65 | ×0,7 | 24 kW | ×0,5 |
+| Crucero | ×1 | ×1 | 40 kW | ×1 |
+| Máxima | ×1,6 | ×1,6 | 64 kW | ×2,2 |
 
-Fuentes en Sketchfab (URL completas en `assets/CREDITS.md`). Los tres CC-BY exigen atribución visible (pantalla de créditos); además, nada de esto implica respaldo de los autores.
+Con todo encendido, crucero pide 100 kW (cabe) y máxima 124 kW (no cabe: hay que apagar escudos o
+sensores). Ir rápido además acorta el aviso de los impactos, porque los sensores avisan por distancia.
 
-> **Aviso ERIZON (CC-BY-NC-ND).** La licencia prohíbe **uso comercial** y **obras derivadas**. Consecuencias: (1) el juego no puede monetizarse mientras use este modelo; (2) no se puede modificar su geometría ni materiales: la **optimización técnica** (compresión/cuantización meshopt) es una zona gris que debe revisarse con quien organice el reto o con el autor, y si hay duda se sirve el original o se sustituye; (3) mantenerlo **aislado y fácil de retirar** (un solo componente de escena, sin dependencias de gameplay); (4) si el proyecto pasa a ser comercial, sustituirlo por un modelo propio o con licencia compatible. Esto no es asesoría legal.
+## 5. Averías y peligros [F1]
 
-Pesos de los originales: ERIZON ≈ 32 MB y Aurora G9 ≈ 23 MB, por lo que **requieren optimización** antes de servirse (ver ADR 0006).
-
-### 8.2 Otros recursos
-
-| Recurso | Fuente | Nota |
+| Avería | Efecto | Arreglo (mantener E junto al sistema) |
 | --- | --- | --- |
-| Naves, cohetes, estaciones adicionales | NASA 3D Resources (sin copyright; sin logotipos NASA) | Opcional |
-| Componentes modulares con *sockets* | Modelado propio (Blender) | Paneles, antenas, instrumentos |
-| Hangar y sala de control | Blender + kits CC0 | Interiores modulares |
-| Tierra, Luna, Marte | Texturas públicas de NASA | Esfera con color, nubes, luces nocturnas |
-| Iluminación | HDRI de Poly Haven (CC0) | Reflejos en metal |
-| Interfaz | `Html` de Drei / render a textura; iconos Lucide | Consolas 3D muestran la misma UI que los paneles 2D |
-| Tipografía | Space Grotesk, Inter, JetBrains Mono (OFL) | Estilo consola |
+| **Fuego** | −2,5 %/s al sistema, −0,35/s al casco, −0,5 %/s de O₂; a los 35 s salta a otro sistema | 3,5 s |
+| **Cortocircuito** | El sistema se apaga; a los 28 s se convierte en fuego | 2,5 s |
+| **Fuga de O₂** | −1,4 %/s de oxígeno | 3 s |
+| **Impacto** | 8-18 de casco. Con escudos, el 35 %. Sin escudos, además daña un sistema y puede abrir una fuga | Evadir en el timón (0,7 s, 3 de combustible) |
 
-Regla: todo asset se registra en `assets/CREDITS.md` (autor, fuente, licencia). Solo CC0, dominio público, CC-BY (con atribución) o licencia comercial verificada; CC-NC/ND solo con la salvedad de arriba. **[F1]**: hangar con kit simple y componentes con geometría primitiva o modelos propios sencillos.
+Los **sistemas dañados** se reparan con un kit de repuestos (4 s, +50 % de salud).
 
-## 9. Audio
+Los peligros de cada salto se sortean al iniciarlo según el destino (un campo de asteroides trae impactos;
+una nebulosa, cortos y fuegos) y el sector. Además hay averías por **desgaste**, más frecuentes a máxima.
 
-Web Audio API: sonido posicional (`PositionalAudio`) en hangar y sala de control, Howler.js para música e interfaz. **[F1]**: efectos mínimos de interfaz (clic, encaje, error) y ambiente del hangar. **[F2]**: música adaptativa por capas (diseño, lanzamiento, operación, crisis, éxito/fracaso), voces y efectos 3D completos.
+## 6. El sector [F1]
 
-Decisiones: **realismo educativo** (en el vacío no hay sonido; en 3ª persona exterior solo ambiente amortiguado y el tutorial lo explica); audio de NASA permitido siguiendo sus guías y sin sugerir respaldo; formatos Opus/WebM con respaldo AAC; ≈ −16 LUFS; canales separados música/efectos/voz; **subtítulos para toda voz y señal visual para toda alarma**.
+Mapa generado por semilla: estación de salida, 4-7 columnas de 2-3 destinos y el portal. Solo se puede
+saltar entre destinos enlazados. Siempre hay una estación intermedia y el generador garantiza que existe
+una ruta completable a régimen económico.
 
-## 10. Interfaz e idiomas
+| Destino | Peligro al acercarse | Qué ofrece |
+| --- | --- | --- |
+| Estación | Bajo | Servicio una vez: depósito lleno, +40 de casco, +2 repuestos |
+| Planeta / Luna | Medio | A veces un contenedor. Superficie explorable [F2] |
+| Campo de asteroides | Impactos (alto) | Contenedor casi seguro y grande. Superficie explorable [F2] |
+| Nebulosa | Cortos y fuegos | Contenedor con mucho combustible |
+| Nave abandonada | Fugas e impactos | Contenedor seguro con repuestos |
+| Portal de salto | Medio | Fin del sector |
 
-- UI 2D en React 19 + Tailwind + Radix/shadcn; consolas diegéticas con la misma UI.
-- **Bilingüe desde el día 1** (ADR 0005): `es` por defecto, `en` completo. Namespaces `ui` (cliente) y `sim` (motor); contenido del catálogo en `LocalizedText`. Un test garantiza que ambos idiomas tienen las mismas claves.
-- Tipografía y estilo de consola de control; unidades siempre visibles.
+Cada sector suma un 40 % de peligro y, cada dos, una columna más.
 
-## 11. Accesibilidad
+## 7. Compromisos de ingeniería (lo que pide el reto)
 
-Modo de panel 2D equivalente a la primera persona; FOV ajustable, sin balanceo de cabeza, giro por pasos; subtítulos y señales visuales para alarmas; no depender solo del color (estado con texto/icono además de verde/ámbar/rojo); teclado completo en menús. Auditoría y mando/táctil: **[F4]**.
+| Decisión | Se gana | Se paga |
+| --- | --- | --- |
+| Régimen máximo | Menos tiempo expuesto | Combustible, energía, desgaste, menos margen de reacción |
+| Apagar escudos | 30 kW libres | Cada impacto duele casi el triple y rompe cosas |
+| Apagar sensores | 10 kW libres | Impactos sin aviso, mapa a ciegas |
+| Ruta corta por asteroides | Combustible y botín | Casco |
+| Ruta por estaciones | Reparación y depósito lleno | Distancia y tiempo |
+| Gastar un repuesto ahora | Sistema recuperado | Puede faltar cuando falle el reactor |
+| Evadir | El casco | 3 de combustible y dejar lo que estabas haciendo |
+| **[F3]** Carga a bordo | Dinero | Masa: más combustible por salto |
+| **[F3]** Motores mejores | Alcance | Consumo eléctrico y precio |
 
-## 12. Stack técnico (resumen)
+## 8. Roles de la tripulación
 
-TypeScript en todo el monorepo (pnpm + Turborepo, ADR 0001); React Three Fiber v9 + Drei + Rapier (ADR 0002); Zustand y XState en el cliente; i18next; Vitest y Playwright; Colyseus [F3]; NestJS + Prisma + PostgreSQL + Redis [F4]; AWS y Sentry [F4]. Alternativa descartada: Babylon.js. Arquitectura: el motor en `packages/shared` corre en el navegador (solitario) y en el servidor autoritativo (multijugador); los clientes solo envían acciones.
+| Rol | Puesto | En la fase 1 (solitario) | En cooperativo [F4] |
+| --- | --- | --- | --- |
+| Piloto | Timón | Régimen y maniobra evasiva | Además aterrizaje y despegue [F2] |
+| Ingeniero | Toda la nave | Apagar fuegos, rearmar cortos, sellar fugas, reparar | Igual, a tiempo completo |
+| Gestor de recursos | Panel de energía, mapa | Reparto de energía, ruta, combustible | Igual; decide qué se sacrifica |
+| Explorador / científico | Superficie | — | Lidera las salidas [F2] |
 
-```mermaid
-flowchart LR
-    subgraph NAV["Navegador del jugador"]
-        UI["Interfaz React"]
-        ESC["Escena 3D (R3F, Drei, Rapier)"]
-        AUD["Audio"]
-        SIM1["Motor de simulación (solitario)"]
-    end
-    CDN["CDN (assets)"] -- HTTPS --> NAV
-    NAV <-- WebSocket --> GS["Servidor de juego (Colyseus) · F3"]
-    NAV -- "HTTP/REST" --> API["API (NestJS + Prisma) · F4"]
-    GS --> RED[("Redis")]
-    API --> PG[("PostgreSQL")]
-    GS -- "guarda resultados" --> API
-    style SIM1 fill:#e3eefb,stroke:#2f7bd8,stroke-width:2px
-```
+En solitario una persona hace los cuatro papeles y no llega a todo: esa escasez es la que el cooperativo
+resuelve repartiendo puestos. Con 2-3 jugadores los roles se agrupan.
 
-## 13. Riesgos
+## 9. Permadeath y puntuación [F1]
 
-| Riesgo | Mitigación |
+Se pierde por casco a cero, oxígeno a cero o nave varada (sin combustible para ningún salto, o sin
+motores/reactor ni repuestos). La partida se reinicia entera; solo se guarda la mejor marca.
+
+Puntuación: 1000 por sector + 50 por salto + 20 por avería resuelta + 30 por impacto esquivado + años luz.
+
+Balance con tripulante simulado (`pnpm balance`, 200 partidas): atendiendo las averías se supera el
+sector 1 casi siempre y el 4 entre el 35 % y el 75 % según lo rápido que se llegue a los puestos; sin
+atender nada se supera el sector 1 un 6 % de las veces.
+
+## 10. Controles e interfaz [F1]
+
+| Tecla | Acción |
 | --- | --- |
-| Alcance demasiado grande | Rebanada vertical primero; multijugador y modos extra después |
-| Rendimiento en laptops y móviles | WebGL 2, LOD, assets optimizados (los originales pesan decenas de MB), calidad automática |
-| Mareo en primera persona | FOV ajustable, sin balanceo, panel 2D |
-| Desincronización multijugador | Servidor autoritativo con el mismo motor [F3] |
-| Realismo vs diversión | Modelos simplificados; pruebas de juego en cada fase (prototipo en papel en la fase 0) |
-| Licencias | Registro en `assets/CREDITS.md`; ERIZON es NC-ND; Rise requiere autorización de NASA |
+| WASD / flechas, Mayús | Moverse, correr |
+| Ratón | Mirar (clic para capturar el ratón) |
+| E | Usar el puesto cercano; **mantener** para arreglar, reparar o evadir |
+| Q | Cambiar el régimen (en el timón) |
+| 1-4 | Encender/apagar sistemas (con el panel de energía abierto) |
+| V | 1ª / 3ª persona |
+| H | Ayuda |
+| Esc | Pausa |
 
-## 14. Alcance por fase
+Interfaz: cuatro barras (casco, oxígeno, combustible, energía) y repuestos; estado del viaje; cuenta
+atrás del impacto; lista de averías abiertas; carteles en el mundo que se ven a través de los mamparos.
+Luces de alarma por zona. Todo aviso sonoro tiene equivalente visual (destello y subtítulo opcional).
 
-| Fase | Entra | Hito de salida |
-| --- | --- | --- |
-| 0 · Preproducción | GDD, catálogo JSON inicial, prototipos en papel y hoja de cálculo | Los compromisos son divertidos en papel |
-| **1 · Rebanada vertical en solitario** | Hangar 1ª/3ª persona (avatar astronauta, Aurora G9 de exhibición); **un** escenario de observación en **LEO**; panel de recursos con "¿por qué?"; motor con tests y semilla; revisión Go/No-Go; lanzamiento; operación acelerada con eclipses/contactos/datos; informe con cadena de causas; es/en; fondo Vía Láctea y estación ERIZON en la escena orbital | Una misión completa jugable de principio a fin |
-| 2 · Contenido y aprendizaje | 5 escenarios, 6 órbitas, más lanzadores, eventos aleatorios, dificultad, Academia con mascota (Rise o propia), glosario, música adaptativa | Pruebas de juego con estudiantes |
-| 3 · Multijugador | Colyseus, salas de 4, roles, solicitudes de recursos, Go/No-Go compartido, avatares, chat, voz opcional | Cuatro jugadores estables en una misión |
-| 4 · Pulido y lanzamiento | Rendimiento, accesibilidad, rankings, guardar/comparar/compartir, sandbox y competitivo, AWS, Sentry, E2E, mando/táctil | Lanzamiento |
+## 11. Fases siguientes (diseño previsto)
 
-Fuera de la fase 1: multijugador, cuentas, rankings, mascota, música adaptativa, eventos aleatorios complejos, móviles. Si el objetivo es un hackatón, la entrega mínima es la fase 1 más una sala cooperativa básica de la fase 3.
+- **[F2] Superficie.** Desde un destino explorable se desciende; el aterrizaje lo ejecuta el piloto y un
+  aterrizaje brusco daña casco y sistemas. En tierra: gravedad propia de cada mundo, jetpack con
+  combustible, oxígeno personal, materiales de distinto valor cada vez más lejos de la nave, tormentas y
+  terreno inestable. Si muere toda la tripulación en la superficie, se pierde la partida. Se reutiliza el
+  mecha Aurora G9 como vehículo.
+- **[F3] Economía.** Las estaciones compran minerales y muestras y venden combustible, reparaciones y
+  mejoras (depósitos, escudos, motores de salto, trajes, tanques de O₂, jetpacks). El servicio gratuito
+  de estación de la fase 1 desaparece. La carga pesa.
+- **[F4] Cooperativo 1-4.** Servidor autoritativo que corre el mismo motor (ADR 0009), roles, voz o
+  pings, y dificultad escalada con el número de jugadores.
+- **[F5] Pulido.** Rankings, mando y táctil, despliegue, pruebas E2E.
 
-## 15. Preguntas abiertas
+## 12. Assets y licencias
 
-Del plan original:
+Modelos en uso: astronauta (tripulante), consola (timón), galaxia (menú y holograma del mapa) y estación
+ERIZON (se ve al atracar en una estación; CC-BY-NC-ND: sin uso comercial ni derivados). El mecha Aurora
+G9 está reservado para la fase 2. El audio es procedural. Detalle en `assets/CREDITS.md`.
 
-- ¿Hay fecha de entrega o es para un hackatón con jurado? Define cuánto del roadmap entra en la primera entrega. **Responsable: por definir.**
-- ¿Cuántas personas desarrollan y quién cubre arte 3D y audio? **Responsable: por definir.**
-- ¿Debe funcionar en móviles o basta con escritorio? **Responsable: por definir.**
+Mascota: el juego nuevo no tiene. Si se añade una, **Rise** (Artemis II) sigue necesitando autorización
+escrita de NASA y el sistema debe permitir cambiarla por una propia.
 
-Surgidas al preparar este GDD:
+## 13. Preguntas abiertas
 
-- ¿El proyecto será comercial? Condiciona el uso de `programme_erizon.glb` (CC-BY-NC-ND) y la mascota. **Responsable: por definir.**
-- ¿Se obtendrá autorización de NASA para Rise o se parte directamente de una mascota propia? **Responsable: por definir.**
-- ¿La optimización técnica (compresión) de ERIZON cuenta como obra derivada para el organizador? **Responsable: por definir.**
-- ~~¿Cómo se trata el tiempo de operación en el presupuesto?~~ **Resuelta:** `ScenarioDef.operationsCostMUSDPerYear` (1 M USD/año si no se define) × `minLifetimeYears` se suma al presupuesto.
-- ¿Quién y cuándo ejecuta la prueba en papel con personas reales (hito de la fase 0)? **Responsable: por definir.**
+1. ¿El portal de salto encaja con "regresar a estaciones seguras" del plan, o el sector debe ser de ida y
+   vuelta a una base? (Hoy: de ida; cada sector empieza en una estación.)
+2. ¿Cuánta ayuda en la primera partida? Hoy hay una pantalla de ayuda (H) y carteles; no hay tutorial.
+3. ¿Dificultad en solitario frente a 4 jugadores? Pendiente de la fase 4.
+4. ¿Se sustituye ERIZON antes de cualquier uso comercial?

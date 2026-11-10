@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
 import { MathUtils, Vector3, type Group, type PerspectiveCamera } from 'three';
 import { AstronautModel } from '../models/Models';
-import { publishAvatarPose } from '../net/avatar';
+import { fx as viewFx, getRun } from '../game/runStore';
 import { useSettings } from '../state/settings';
 import { useUi } from '../state/ui';
 import { attachKeyboard, isDown } from './input';
@@ -16,7 +16,6 @@ const RUN = 5.5;
 const GRAVITY = -12;
 const EYE = 1.6;
 const TRANSITION_S = 0.4;
-const ROOM = 12.6; // límite para que la cámara en 3ª persona no atraviese las paredes
 
 const smooth = (x: number) => x * x * (3 - 2 * x);
 
@@ -24,7 +23,16 @@ const smooth = (x: number) => x * x * (3 - 2 * x);
  * Personaje con controlador cinemático de Rapier. El mismo cuerpo sirve a la 1ª y 3ª persona:
  * cambiar de vista (V) solo mueve la cámara, nunca la física.
  */
-export function PlayerController({ start = [0, 0, 9] as [number, number, number] }) {
+export interface CameraBounds {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+  maxY: number;
+}
+
+/** `bounds`: límites para que la cámara en 3ª persona no atraviese el casco. */
+export function PlayerController({ start, bounds }: { start: readonly [number, number, number]; bounds: CameraBounds }) {
   const body = useRef<RapierRigidBody>(null);
   const avatar = useRef<Group>(null);
   const { world } = useRapier();
@@ -57,7 +65,7 @@ export function PlayerController({ start = [0, 0, 9] as [number, number, number]
 
   // Teclado, ratón (pointer lock) y estado inicial.
   useEffect(() => {
-    playerState.pos.set(...start);
+    playerState.pos.set(start[0], start[1], start[2]);
     playerState.yaw = 0;
     playerState.pitch = 0;
     const detach = attachKeyboard();
@@ -76,6 +84,11 @@ export function PlayerController({ start = [0, 0, 9] as [number, number, number]
     };
     canvas.addEventListener('click', onClick);
     document.addEventListener('mousemove', onMove);
+    // Solo desarrollo: `__payload.teleport(x, z)` coloca al tripulante (capturas y revisión de la escena).
+    if (import.meta.env.DEV) {
+      const teleport = (x: number, z: number) => body.current?.setTranslation({ x, y: 0.85, z }, true);
+      Object.assign(((window as unknown as { __payload?: object }).__payload ??= {}), { teleport });
+    }
     return () => {
       detach();
       canvas.removeEventListener('click', onClick);
@@ -102,7 +115,8 @@ export function PlayerController({ start = [0, 0, 9] as [number, number, number]
     t.current += dt;
     const ui = useUi.getState();
     const settings = useSettings.getState();
-    const blocked = ui.overlay !== null || ui.inputBlocked;
+    const phase = getRun()?.state.phase;
+    const blocked = ui.overlay !== null || phase === 'lost' || phase === 'won';
 
     // ── Movimiento ──
     let fx = 0;
@@ -147,9 +161,9 @@ export function PlayerController({ start = [0, 0, 9] as [number, number, number]
     right.set(cy, 0, -sy);
     pivot.set(feet.x, feet.y + 1.55, feet.z).addScaledVector(right, 0.55);
     tpPos.copy(pivot).addScaledVector(dir, -3.2);
-    tpPos.x = MathUtils.clamp(tpPos.x, -ROOM, ROOM);
-    tpPos.z = MathUtils.clamp(tpPos.z, -ROOM, ROOM);
-    tpPos.y = MathUtils.clamp(tpPos.y, 0.3, 7.4);
+    tpPos.x = MathUtils.clamp(tpPos.x, bounds.minX, bounds.maxX);
+    tpPos.z = MathUtils.clamp(tpPos.z, bounds.minZ, bounds.maxZ);
+    tpPos.y = MathUtils.clamp(tpPos.y, 0.3, bounds.maxY);
     want.copy(fpPos).lerp(tpPos, e);
     if (!camInit.current) {
       camPos.current.copy(want);
@@ -158,6 +172,13 @@ export function PlayerController({ start = [0, 0, 9] as [number, number, number]
     // Seguimiento amortiguado (casi rígido en 1ª persona).
     camPos.current.lerp(want, 1 - Math.exp(-dt * (e > 0.01 ? 14 : 40)));
     camera.position.copy(camPos.current);
+    // Sacudida por impactos (decae sola; la fija el almacén de la partida).
+    if (viewFx.shake > 0.001) {
+      const k = viewFx.shake * 0.12;
+      camera.position.x += Math.sin(t.current * 71) * k;
+      camera.position.y += Math.sin(t.current * 93) * k;
+      viewFx.shake *= Math.exp(-dt * 3.5);
+    } else viewFx.shake = 0;
     lookAt.copy(fpPos).addScaledVector(dir, 10).lerp(tmp.copy(pivot).addScaledVector(dir, 10), e);
     camera.lookAt(lookAt);
     const cam = camera as PerspectiveCamera;
@@ -180,8 +201,6 @@ export function PlayerController({ start = [0, 0, 9] as [number, number, number]
       av.position.y += moving ? Math.abs(Math.sin(t.current * 9)) * 0.04 : 0;
     }
 
-    // ── Sala: pose del avatar para los demás (≤ 10 Hz, solo si cambió; en solitario no hace nada) ──
-    publishAvatarPose(feet.x, feet.y, feet.z, avatarYaw.current);
   });
 
   return (

@@ -1,408 +1,88 @@
 {
-  "unit": {
-    "kg": "kg",
-    "W": "W",
-    "Wh": "Wh",
-    "MUSD": "M USD",
-    "Mbit": "Mbit",
-    "Mbit/d": "Mbit/día",
-    "months": "meses",
-    "years": "años"
+  "system": {
+    "reactor": "el reactor",
+    "engines": "los motores",
+    "lifeSupport": "el soporte vital",
+    "shields": "los escudos",
+    "nav": "navegación"
   },
-  "resource": {
-    "mass": "Masa",
-    "power": "Energía",
-    "battery": "Batería",
-    "budget": "Presupuesto",
-    "data": "Almacenamiento de datos",
-    "comms": "Comunicaciones",
-    "time": "Tiempo",
-    "lifetime": "Vida útil"
+  "systemName": {
+    "reactor": "Reactor",
+    "engines": "Motores",
+    "lifeSupport": "Soporte vital",
+    "shields": "Escudos",
+    "nav": "Navegación"
   },
-  "status": {
-    "ok": "Margen sano",
-    "tight": "Margen justo",
-    "over": "Excedido"
+  "throttle": {
+    "eco": "Económico",
+    "cruise": "Crucero",
+    "burn": "Máxima"
   },
-  "budget": {
-    "mass": {
-      "launcher": "La nave pesa {{massKg}} kg y $t(catalog.{{launcher}}) puede subir {{capacityKg}} kg a $t(catalog.{{orbit}}). Cuanto más alta la órbita, menos carga lleva el cohete.",
-      "structure": "La nave pesa {{massKg}} kg y la estructura $t(catalog.{{structure}}) aguanta como máximo {{capacityKg}} kg.",
-      "unreachable": "$t(catalog.{{launcher}}) no puede llegar a $t(catalog.{{orbit}}): elige otro lanzador u otra órbita. La nave pesa {{massKg}} kg.",
-      "missing": "La nave pesa {{massKg}} kg. Elige estructura, órbita y lanzador para saber cuánto puedes llevar."
-    },
-    "power": {
-      "balance": "Consumes {{consumptionW}} W. Los paneles dan {{generationW}} W al sol, pero solo hay sol el {{sunPct}} % de cada órbita: de media generan {{avgGenerationW}} W.",
-      "noOrbit": "Consumes {{consumptionW}} W y los paneles dan {{generationW}} W al sol. Elige una órbita para saber cuánto tiempo pasarás a la sombra."
-    },
-    "battery": {
-      "eclipse": "En la sombra de la Tierra ({{eclipseMin}} min) la nave gasta {{consumptionW}} W solo de la batería: necesita {{needWh}} Wh. La batería tiene {{capacityWh}} Wh, pero para no estropearse solo se usan {{usableWh}} Wh.",
-      "noOrbit": "La batería tiene {{capacityWh}} Wh ({{usableWh}} Wh útiles). Elige una órbita para saber cuánto dura la sombra."
-    },
-    "budget": {
-      "total": "Piezas {{componentsMUSD}} M + lanzamiento {{launcherMUSD}} M + operación {{opsMUSD}} M = {{totalMUSD}} M USD de {{budgetMUSD}} M disponibles.",
-      "cut": "Piezas {{componentsMUSD}} M + lanzamiento {{launcherMUSD}} M + operación {{opsMUSD}} M = {{totalMUSD}} M USD. Tras un recorte de {{cutMUSD}} M, de los {{originalMUSD}} M iniciales quedan {{budgetMUSD}} M disponibles."
-    },
-    "data": {
-      "storage": "Los instrumentos generan {{generatedMbitPerDay}} Mbit al día y la computadora guarda {{storageMbit}} Mbit. Conviene poder guardar al menos un día por si se pierde alguna pasada."
-    },
-    "comms": {
-      "downlink": "Con {{stations}} estaciones hay {{contactMin}} min de contacto al día; a {{downlinkMbps}} Mbit/s se pueden bajar {{capacityMbitPerDay}} Mbit/día. Los instrumentos generan {{generatedMbitPerDay}} Mbit/día: lo que no se baja se pierde.",
-      "noRadio": "Sin radio no se puede bajar nada, y los instrumentos generan {{generatedMbitPerDay}} Mbit/día.",
-      "noOrbit": "Elige una órbita para calcular los contactos con las estaciones. Los instrumentos generan {{generatedMbitPerDay}} Mbit/día."
-    },
-    "time": {
-      "schedule": "La pieza más lenta, $t(catalog.{{component}}), marca el ritmo; con la integración son {{devMonths}} meses de desarrollo, más {{leadMonths}} meses de espera del lanzador: {{totalMonths}} de {{maxMonths}} meses.",
-      "empty": "Aún no hay piezas que construir. Espera del lanzador: {{leadMonths}} meses; tienes {{maxMonths}} meses.",
-      "delayed": "Desarrollo {{devMonths}} meses + espera del lanzador {{leadMonths}} meses + retraso imprevisto {{delayMonths}} meses = {{totalMonths}} de {{maxMonths}} meses."
-    },
-    "lifetime": {
-      "drag": "El roce con la atmósfera en $t(catalog.{{orbit}}) hace caer la nave en {{dragYears}} años, antes de que fallen sus piezas (unos {{reliabilityYears}} años). Vida útil: {{lifetimeYears}} años; se piden {{requiredYears}}.",
-      "reliability": "Cada pieza puede fallar: la probabilidad de que todas funcionen es del {{reliabilityPct}} % en la vida nominal, y la radiación lo empeora. Vida útil estimada: {{lifetimeYears}} años; se piden {{requiredYears}}.",
-      "empty": "Monta piezas para estimar la vida útil. Se piden {{requiredYears}} años."
-    }
+  "incident": {
+    "fire": "Fuego",
+    "short": "Cortocircuito",
+    "leak": "Fuga de O₂"
   },
-  "review": {
-    "noStructure": "Falta una estructura: es el esqueleto donde se monta todo lo demás.",
-    "noPower": "Faltan paneles solares: sin ellos la nave se queda sin energía en pocas horas.",
-    "noBattery": "Falta una batería: en la sombra de la Tierra no hay sol y la nave se apagaría.",
-    "noComms": "Falta una radio: sin ella no podrás recibir ni un solo dato.",
-    "noObc": "Falta la computadora de a bordo: controla la nave y guarda los datos.",
-    "noPayload": "No hay ningún instrumento: la misión no tendría nada que observar.",
-    "multipleStructures": "Hay {{count}} estructuras: una nave solo puede tener una.",
-    "mountSlots": "Hay {{used}} piezas montadas, pero $t(catalog.{{structure}}) solo tiene {{slots}} puntos de montaje.",
-    "unknownComponent": "La pieza «{{id}}» no existe en el catálogo.",
-    "componentNotAllowed": "$t(catalog.{{component}}) no está disponible en esta misión.",
-    "noOrbit": "Elige una órbita.",
-    "unknownOrbit": "La órbita «{{id}}» no existe en el catálogo.",
-    "orbitNotAllowed": "$t(catalog.{{orbit}}) no está permitida en esta misión.",
-    "noLauncher": "Elige un lanzador.",
-    "unknownLauncher": "El lanzador «{{id}}» no existe en el catálogo.",
-    "launcherNotAllowed": "$t(catalog.{{launcher}}) no está disponible en esta misión.",
-    "launcherCannotReach": "$t(catalog.{{launcher}}) no puede llegar a $t(catalog.{{orbit}}).",
-    "massLauncher": "La nave pesa {{massKg}} kg, pero $t(catalog.{{launcher}}) solo sube {{capacityKg}} kg a $t(catalog.{{orbit}}).",
-    "massStructure": "La nave pesa {{massKg}} kg, pero $t(catalog.{{structure}}) solo aguanta {{capacityKg}} kg.",
-    "budget": "La misión cuesta {{totalMUSD}} M USD y solo hay {{budgetMUSD}} M.",
-    "power": "Consumes {{consumptionW}} W pero de media solo generas {{avgGenerationW}} W: la batería se vaciaría órbita tras órbita.",
-    "battery": "La sombra dura {{eclipseMin}} min y con {{consumptionW}} W necesitas {{needWh}} Wh, pero la batería solo da {{usableWh}} Wh útiles.",
-    "time": "La nave estaría lista para lanzar en {{totalMonths}} meses, y el plazo es de {{maxMonths}}.",
-    "tight": {
-      "mass": "Margen justo de masa: solo queda un {{marginPct}} %. Se recomienda dejar al menos un 15 %.",
-      "power": "Margen justo de energía: solo queda un {{marginPct}} %. Se recomienda dejar al menos un 15 %.",
-      "battery": "Margen justo de batería: solo queda un {{marginPct}} %. Se recomienda dejar al menos un 15 %.",
-      "budget": "Margen justo de presupuesto: solo queda un {{marginPct}} %. Se recomienda dejar al menos un 15 %.",
-      "data": "Margen justo de almacenamiento de datos: solo queda un {{marginPct}} %. Se recomienda dejar al menos un 15 %.",
-      "comms": "Margen justo de comunicaciones: solo queda un {{marginPct}} %. Se recomienda dejar al menos un 15 %.",
-      "time": "Margen justo de tiempo: solo queda un {{marginPct}} %. Se recomienda dejar al menos un 15 %.",
-      "lifetime": "Margen justo de vida útil: solo queda un {{marginPct}} %. Se recomienda dejar al menos un 15 %."
-    },
-    "reqResolution": "Desde esta altura la mejor cámara ve detalles de {{resolutionM}} m, y se piden {{requiredM}} m o menos.",
-    "reqResolutionNone": "Ningún instrumento toma imágenes, y se pide una resolución de {{requiredM}} m.",
-    "reqDownlink": "Solo llegarían {{achievedMbitPerDay}} Mbit/día a tierra, y se piden {{requiredMbitPerDay}}.",
-    "reqScience": "El valor científico es {{science}} y se pide al menos {{required}}.",
-    "reqLifetime": "La vida útil estimada es de {{lifetimeYears}} años y se piden {{requiredYears}}.",
-    "reqRevisit": "Esta órbita repite pasada cada {{revisitDays}} días y se pide como máximo {{maxDays}}.",
-    "commsCapacity": "Se generan {{generatedMbitPerDay}} Mbit/día pero solo se pueden bajar {{capacityMbitPerDay}}: el resto se acumulará y acabará perdiéndose.",
-    "storage": "Se generan {{generatedMbitPerDay}} Mbit al día y la memoria solo guarda {{storageMbit}} Mbit.",
-    "pointing": "$t(catalog.{{component}}) necesita apuntar con {{requiredDeg}}° de precisión, pero el control de actitud solo logra {{accuracyDeg}}°: sus imágenes saldrán movidas.",
-    "pointingNoAdcs": "$t(catalog.{{component}}) necesita apuntar con {{requiredDeg}}° de precisión y no hay control de actitud.",
-    "thermal": "La electrónica produce {{powerW}} W de calor y el control térmico solo disipa {{dissipationW}} W: la nave se sobrecalentará.",
-    "stormRisk": "Energía muy justa: una tormenta solar ({{hours}} h con un {{pct}} % menos de sol) dejaría un déficit de {{deficitWh}} Wh más {{eclipseWh}} Wh de eclipse, y la batería solo da {{usableWh}} Wh útiles. En operación bajaría de su descarga segura, se desgastaría y podría fallar.",
-    "allClear": "Todo en orden: márgenes sanos y requisitos cumplidos. ¡Go!"
+  "hazard": {
+    "impact": "Impactos",
+    "short": "Cortocircuitos",
+    "fire": "Incendios",
+    "leak": "Fugas"
   },
   "event": {
-    "launchSuccess": "¡Despegue! $t(catalog.{{launcher}}) deja la nave en $t(catalog.{{orbit}}).",
-    "launchFailure": "Fallo del lanzador $t(catalog.{{launcher}}) (fiabilidad {{reliabilityPct}} %). La nave se ha perdido.",
-    "launchScrubbed": "Lanzamiento cancelado: falta elegir órbita o lanzador.",
-    "launchScrubbedUnreachable": "Lanzamiento cancelado: $t(catalog.{{launcher}}) no puede llegar a $t(catalog.{{orbit}}).",
-    "launchScrubbedMass": "Lanzamiento cancelado: la nave pesa {{massKg}} kg y $t(catalog.{{launcher}}) solo puede con {{capacityKg}} kg.",
-    "eclipseEnter": "Entrando en la sombra de la Tierra ({{eclipseMin}} min sin sol).",
-    "eclipseExit": "Saliendo de la sombra: los paneles vuelven a cargar.",
-    "contactStart": "Contacto con estación terrestre: bajando datos a {{downlinkMbps}} Mbit/s.",
-    "contactEnd": "Fin del contacto. Total bajado: {{downlinkedMbit}} Mbit.",
-    "batteryLow": "Batería al {{pct}} %, por debajo de su descarga segura ({{floorPct}} %): cada minuto así la desgasta.",
-    "batteryDepleted": "¡Batería agotada! La nave se apaga y entra en modo seguro. Agotamiento n.º {{count}}: la batería queda al {{capacityPct}} % de su capacidad.",
-    "batteryFailed": "La batería ha quedado inservible tras {{count}} descargas completas. Misión perdida.",
-    "powerLost": "La nave lleva {{hours}} h sin energía y no se recupera. Misión perdida.",
-    "storageFull": "Memoria llena ({{storageMbit}} Mbit): los datos nuevos se pierden.",
-    "solarStorm": "Tormenta solar: los paneles generan un {{pct}} % menos durante {{hours}} h.",
-    "debrisAvoidance": "Alerta de basura espacial: maniobra de esquiva, instrumentos apagados {{hours}} h.",
-    "reactionWheelFailure": "Falla una rueda de reacción: el apuntado empeora a {{backupDeg}}°.",
-    "missionComplete": "¡Misión cumplida! {{days}} días de operación completados.",
-    "batteryWornOut": "La batería se ha desgastado por descargas profundas: solo le queda el {{capacityPct}} % de su capacidad y ya no sostiene la nave. Misión perdida.",
-    "launchDelay": "Retraso de lanzamiento: un problema en la integración retrasa la ventana {{months}} meses. Calendario: {{totalMonths}} de {{maxMonths}} meses.",
-    "budgetCut": "Recorte de presupuesto del {{pct}} %: la agencia retira {{cutMUSD}} M USD. Quedan {{budgetMUSD}} M USD y la misión cuesta {{totalMUSD}} M USD.",
-    "overheating": "Sobrecalentamiento: la nave genera {{powerW}} W de calor y el control térmico solo disipa {{dissipationW}} W. Modo seguro térmico: instrumentos apagados {{hours}} h.",
-    "componentFailure": {
-      "payload": "Falla $t(catalog.{{component}}): el instrumento deja de funcionar. Quedan {{remaining}} instrumento(s) operativos.",
-      "comms": "Falla $t(catalog.{{component}}): sin otra radio, se pasa a la antena de baja ganancia ({{downlinkMbps}} Mbit/s).",
-      "commsBackup": "Falla $t(catalog.{{component}}): la otra radio toma el relevo a {{downlinkMbps}} Mbit/s.",
-      "obc": "Falla $t(catalog.{{component}}): parte de la memoria se pierde y quedan {{storageMbit}} Mbit de almacenamiento.",
-      "adcs": "Falla $t(catalog.{{component}}): el apuntado pasa a {{accuracyDeg}}°.",
-      "isolated": "Falla $t(catalog.{{component}}): la protección de fallos la aísla y la nave pasa {{hours}} h en modo seguro mientras el equipo de tierra lo revisa."
-    }
+    "jump": "Rumbo a {{node}} · {{distanceLy}} al",
+    "arrived": "Llegada a {{node}}",
+    "incident": {
+      "fire": "¡Fuego en $t(system.{{system}})!",
+      "short": "Cortocircuito en $t(system.{{system}})",
+      "leak": "¡Fuga de oxígeno en $t(system.{{system}})!"
+    },
+    "fixed": {
+      "fire": "Fuego apagado en $t(system.{{system}})",
+      "short": "Corto reparado en $t(system.{{system}})",
+      "leak": "Fuga sellada en $t(system.{{system}})"
+    },
+    "escalated": "¡El corto en $t(system.{{system}}) se ha incendiado!",
+    "fireSpread": "¡El fuego alcanza $t(system.{{system}})!",
+    "impactWarning": "¡Impacto inminente! Evade desde el timón",
+    "impactHit": "¡Impacto directo! Casco −{{damage}} · daños en $t(system.{{system}})",
+    "impactShielded": "Los escudos frenan el impacto · casco −{{damage}}",
+    "impactEvaded": "Impacto esquivado",
+    "overload": "¡Sobrecarga del reactor! Apaga algún sistema",
+    "blackout": "¡Apagón! El reactor no da energía",
+    "systemDown": "$t(systemName.{{system}}): fuera de servicio",
+    "systemRepaired": "$t(systemName.{{system}}): reparado",
+    "service": "Servicio de estación: +{{fuel}} combustible · +{{hull}} casco · +{{spares}} repuestos",
+    "cache": "Contenedor recuperado: +{{fuel}} combustible · +{{spares}} repuestos",
+    "lowOxygen": "Oxígeno bajo",
+    "lowFuel": "Combustible bajo",
+    "lowHull": "Casco crítico",
+    "sectorCleared": "¡Sector {{sector}} superado!",
+    "newSector": "Sector {{sector}}"
   },
-  "report": {
-    "score": "Puntuación total: {{total}} (objetivos {{objectives}}, ciencia {{science}}, eficiencia {{efficiency}}).",
-    "launch": {
-      "success": "$t(catalog.{{launcher}}) puso la nave en $t(catalog.{{orbit}}) sin problemas.",
-      "failure": "El lanzador $t(catalog.{{launcher}}) falló y la nave se perdió.",
-      "scrubbedMass": "No se pudo lanzar: la nave pesa {{massKg}} kg y $t(catalog.{{launcher}}) solo puede con {{capacityKg}} kg.",
-      "scrubbedUnreachable": "No se pudo lanzar: $t(catalog.{{launcher}}) no llega a $t(catalog.{{orbit}}).",
-      "scrubbed": "No se pudo lanzar: falta elegir órbita o lanzador."
-    },
-    "mission": {
-      "complete": "La nave completó sus {{days}} días de operación.",
-      "failed": "La misión terminó antes de tiempo: {{days}} de {{plannedDays}} días."
-    },
-    "power": {
-      "lost": "La nave se quedó sin energía y no pudo recuperarse."
-    },
-    "battery": {
-      "depleted": "La batería se agotó en el eclipse porque $t(catalog.{{component}}) consume {{powerW}} W y la órbita pasa {{eclipseMin}} min en sombra.",
-      "depletedSurvived": "La batería se agotó {{count}} veces; la nave sobrevivió en modo seguro, perdiendo tiempo de observación. $t(catalog.{{component}}) consume {{powerW}} W y la sombra dura {{eclipseMin}} min.",
-      "ok": "La energía alcanzó en todo momento: la batería nunca bajó del {{minPct}} %.",
-      "wornOut": "La batería quedó inservible ({{capacityPct}} % de capacidad) porque bajó demasiadas veces de su descarga segura: $t(catalog.{{component}}) consume {{powerW}} W y la órbita pasa {{eclipseMin}} min en sombra.",
-      "deepDischarge": "La batería bajó {{count}} veces de su descarga segura y perdió capacidad (le queda alrededor del {{capacityPct}} %)."
-    },
-    "data": {
-      "met": "Llegaron a tierra {{achievedMbitPerDay}} Mbit/día de media (se pedían {{requiredMbitPerDay}}).",
-      "below": "Solo llegaron a tierra {{achievedMbitPerDay}} Mbit/día de media y se pedían {{requiredMbitPerDay}}.",
-      "lost": "Se perdieron {{lostMbit}} Mbit de datos ({{pct}} %) porque no dio tiempo a bajarlos."
-    },
-    "resolution": {
-      "met": "Las imágenes muestran detalles de {{resolutionM}} m (se pedían {{requiredM}} m).",
-      "below": "Las imágenes solo muestran detalles de {{resolutionM}} m y se pedían {{requiredM}} m.",
-      "none": "Ningún instrumento tomó imágenes y se pedía una resolución de {{requiredM}} m."
-    },
-    "lifetime": {
-      "met": "Vida útil estimada de {{lifetimeYears}} años (se pedían {{requiredYears}}).",
-      "below": "La nave solo durará unos {{lifetimeYears}} años y se pedían {{requiredYears}}."
-    },
-    "science": {
-      "met": "Valor científico {{science}} (mínimo {{required}}).",
-      "below": "El valor científico fue {{science}} y se pedía al menos {{required}}."
-    },
-    "event": {
-      "solarStorm": "Hubo {{count}} tormenta(s) solar(es) durante la misión.",
-      "reactionWheel": "Una rueda de reacción falló durante la misión.",
-      "debris": "Hubo {{count}} maniobra(s) para esquivar basura espacial ({{hours}} h sin observar cada una).",
-      "overheating": "La nave se sobrecalentó {{count}} vez/veces y apagó los instrumentos {{hours}} h cada una.",
-      "componentFailure": "Fallaron {{count}} pieza(s) durante la operación."
-    },
-    "margin": {
-      "tight": {
-        "mass": "El margen de masa quedó justo ({{marginPct}} %).",
-        "power": "El margen de energía quedó justo ({{marginPct}} %).",
-        "battery": "El margen de batería quedó justo ({{marginPct}} %).",
-        "budget": "El margen de presupuesto quedó justo ({{marginPct}} %).",
-        "data": "El margen de almacenamiento de datos quedó justo ({{marginPct}} %).",
-        "comms": "El margen de comunicaciones quedó justo ({{marginPct}} %).",
-        "time": "El margen de tiempo quedó justo ({{marginPct}} %).",
-        "lifetime": "El margen de vida útil quedó justo ({{marginPct}} %)."
-      },
-      "over": {
-        "mass": "El recurso masa quedó excedido ({{marginPct}} %).",
-        "power": "El recurso energía quedó excedido ({{marginPct}} %).",
-        "battery": "El recurso batería quedó excedido ({{marginPct}} %).",
-        "budget": "El recurso presupuesto quedó excedido ({{marginPct}} %).",
-        "data": "El recurso almacenamiento de datos quedó excedido ({{marginPct}} %).",
-        "comms": "El recurso comunicaciones quedó excedido ({{marginPct}} %).",
-        "time": "El recurso tiempo quedó excedido ({{marginPct}} %).",
-        "lifetime": "El recurso vida útil quedó excedido ({{marginPct}} %)."
-      }
-    },
-    "prelaunch": {
-      "delay": "El lanzamiento se retrasó {{months}} meses: el calendario quedó en {{totalMonths}} de {{maxMonths}} meses.",
-      "budgetCut": "Un recorte del {{pct}} % ({{cutMUSD}} M USD) dejó {{budgetMUSD}} M USD para una misión de {{totalMUSD}} M USD."
-    }
+  "loss": {
+    "hull": "La nave se ha desintegrado",
+    "oxygen": "La tripulación se ha quedado sin oxígeno",
+    "stranded": "La nave ha quedado a la deriva"
   },
-  "cause": {
-    "launcherReliability": "$t(catalog.{{launcher}}) tiene una fiabilidad del {{reliabilityPct}} %: falla {{failPct}} de cada 100 lanzamientos.",
-    "heaviest": "La pieza más pesada es $t(catalog.{{component}}) ({{massKg}} kg).",
-    "eclipse": "En $t(catalog.{{orbit}}) cada vuelta dura {{periodMin}} min y {{eclipseMin}} de ellos son en sombra.",
-    "consumer": "$t(catalog.{{component}}) es la pieza que más consume: {{powerW}} W.",
-    "eclipseEnergy": "Con {{consumptionW}} W durante {{eclipseMin}} min de sombra hacen falta {{needWh}} Wh.",
-    "batteryUsable": "La batería tiene {{capacityWh}} Wh, pero solo {{usableWh}} Wh se pueden usar sin dañarla.",
-    "powerBalance": "De media los paneles generan {{avgGenerationW}} W y la nave consume {{consumptionW}} W: queda poca energía para recargar.",
-    "solarStorm": "Una tormenta solar redujo la generación un {{pct}} %.",
-    "downlinkCapacity": "$t(catalog.{{component}}) transmite a {{downlinkMbps}} Mbit/s durante {{contactMin}} min de contacto al día con {{stations}} estaciones: {{capacityMbitPerDay}} Mbit/día como máximo.",
-    "noRadio": "No hay radio para bajar los datos.",
-    "dataGenerated": "Los instrumentos solo generan {{generatedMbitPerDay}} Mbit/día.",
-    "storageFull": "La memoria de {{storageMbit}} Mbit se llenó y se perdieron {{lostMbit}} Mbit.",
-    "missionEndedEarly": "La misión solo duró {{days}} días.",
-    "resolutionAltitude": "$t(catalog.{{component}}) ve {{res500M}} m a 500 km; a {{altitudeKm}} km eso son {{resolutionM}} m (cuanto más alto, menos detalle).",
-    "dragLifetime": "El roce con la atmósfera en $t(catalog.{{orbit}}) hace caer la nave en {{dragYears}} años.",
-    "reliabilityLifetime": "La probabilidad de que todas las piezas funcionen es del {{reliabilityPct}} % y la radiación ({{radiationPct}} %) la reduce: unos {{reliabilityYears}} años.",
-    "wheelPointing": "Sin la rueda, los magnetopares solo apuntan con {{backupDeg}}° y las cámaras exigentes pierden la mitad de sus imágenes útiles.",
-    "deepDischarge": "Por debajo de la descarga segura la batería pierde un {{wearPct}} % de capacidad por hora.",
-    "noScheduleMargin": "El calendario original ya ocupaba {{nominalMonths}} de {{maxMonths}} meses: no quedaba margen para imprevistos.",
-    "noBudgetMargin": "La misión costaba {{totalMUSD}} M USD de {{originalMUSD}} M: casi sin reserva para un recorte.",
-    "thermalMargin": "La nave genera {{powerW}} W de calor y el control térmico disipa {{dissipationW}} W (margen {{marginPct}} %). Con poco margen, cualquier pico la calienta de más.",
-    "reliabilityRadiation": "La probabilidad de que todas las piezas funcionen es del {{reliabilityPct}} %, y la radiación de $t(catalog.{{orbit}}) ({{radiationPct}} %) acelera los fallos."
-  },
-  "suggest": {
-    "reliableLauncher": "Prueba con un lanzador más fiable, o vuelve a intentarlo: la mala suerte también existe.",
-    "reduceMass": "Quita peso o elige un lanzador más potente que $t(catalog.{{launcher}}).",
-    "launcherForOrbit": "Elige un lanzador que llegue a esa órbita.",
-    "pickOrbitLauncher": "Elige una órbita y un lanzador en el mapa orbital.",
-    "biggerBattery": "Necesitas al menos {{needWh}} Wh útiles y tienes {{usableWh}}: añade batería o reduce el consumo de $t(catalog.{{component}}).",
-    "powerMargin": "Añade paneles solares para recargar más rápido y tener margen ante imprevistos.",
-    "morePanels": "Añade paneles solares: generar más de lo que consumes es lo primero.",
-    "betterRadio": "Usa una radio más rápida (banda S o X) o genera menos datos.",
-    "moreData": "Añade un instrumento que genere más datos.",
-    "addImager": "Añade una cámara.",
-    "lowerOrbitOrCamera": "Baja la órbita o usa una cámara con mejor resolución.",
-    "higherOrbit": "Sube a una órbita más alta, donde la atmósfera frena menos.",
-    "moreReliable": "Usa piezas más fiables o menos piezas: cada una es un punto de fallo.",
-    "addInstrument": "Añade otro instrumento para aumentar el valor científico.",
-    "fixFailureFirst": "Primero resuelve lo que hizo terminar la misión antes de tiempo: sin nave no hay datos.",
-    "redundancy": "Un apuntado con margen (o piezas de respaldo) hace la misión más robusta.",
-    "scheduleMargin": "Deja margen en el calendario (piezas más rápidas de construir o un lanzador con menos espera): los retrasos son habituales.",
-    "budgetMargin": "Guarda una reserva de presupuesto (las agencias suelen pedir un 10-20 %): los recortes pasan.",
-    "betterThermal": "Usa un control térmico que disipe al menos un 15 % más que el consumo, o reduce el consumo."
-  },
-  "advisor": {
-    "director": {
-      "go": "Directora de misión: el diseño pasa la revisión. Si los márgenes te convencen, da el Go.",
-      "noGo": "Directora de misión: hay {{blockers}} problema(s) que impiden lanzar. Resuélvelos antes de pedir el Go.",
-      "over": {
-        "budget": "Directora de misión: nos pasamos del presupuesto un {{overPct}} %. La agencia no aprobará la misión así.",
-        "time": "Directora de misión: el calendario se pasa un {{overPct}} %. Llegaríamos tarde a la ventana de lanzamiento."
-      },
-      "tight": {
-        "budget": "Directora de misión: solo queda un {{marginPct}} % de presupuesto. Un recorte nos dejaría fuera.",
-        "time": "Directora de misión: solo hay un {{marginPct}} % de margen en el calendario. Un retraso nos haría llegar tarde."
-      }
-    },
-    "engineering": {
-      "over": {
-        "mass": "Ingeniería: la nave pesa un {{overPct}} % más de lo que se puede lanzar o sostener. Quita peso o cambia de lanzador o estructura.",
-        "power": "Ingeniería: consumimos un {{overPct}} % más de lo que generan los paneles de media. Sin más paneles la batería se vaciará.",
-        "battery": "Ingeniería: la batería no aguanta la sombra; le falta un {{overPct}} % de energía útil."
-      },
-      "tight": {
-        "mass": "Ingeniería: la masa va justa ({{marginPct}} % de margen).",
-        "power": "Ingeniería: la energía va justa ({{marginPct}} % de margen); una tormenta solar nos pondría en apuros.",
-        "battery": "Ingeniería: la batería va justa en el eclipse ({{marginPct}} % de margen)."
-      },
-      "stormRisk": "Ingeniería: si llega una tormenta solar necesitaríamos {{deficitWh}} Wh extra y la batería solo da {{usableWh}} Wh útiles.",
-      "thermal": "Ingeniería: generamos {{powerW}} W de calor y solo disipamos {{dissipationW}} W. Riesgo de sobrecalentamiento.",
-      "thermalTight": "Ingeniería: el control térmico va justo ({{marginPct}} % de margen); en operación podría sobrecalentarse.",
-      "mountSlots": "Ingeniería: hay {{used}} piezas para {{slots}} puntos de montaje.",
-      "missing": "Ingeniería: faltan {{count}} subsistema(s) imprescindible(s) para volar.",
-      "ok": "Ingeniería: masa, energía y batería con margen sano. La nave se sostiene."
-    },
-    "science": {
-      "noPayload": "Ciencia: sin instrumentos no hay misión. Monta al menos uno.",
-      "resolution": "Ciencia: no llegamos al detalle pedido ({{requiredM}} m). Baja la órbita o usa una cámara mejor.",
-      "science": "Ciencia: el valor científico es {{science}} y se piden {{required}}. Añade o mejora instrumentos.",
-      "revisit": "Ciencia: pasamos por el mismo sitio cada {{revisitDays}} días y se piden {{maxDays}}.",
-      "pointing": "Ciencia: $t(catalog.{{component}}) necesita apuntar con {{requiredDeg}}° y el control de actitud no llega.",
-      "ok": "Ciencia: los instrumentos cumplen los requisitos (valor científico {{science}})."
-    },
-    "operations": {
-      "over": {
-        "data": "Operaciones: un día de datos no cabe en la memoria (excede un {{overPct}} %). Si perdemos una pasada, perdemos datos.",
-        "comms": "Operaciones: generamos un {{overPct}} % más de datos de los que podemos bajar. Lo que no baje se pierde.",
-        "lifetime": "Operaciones: la nave no durará lo que pide la misión (le falta un {{overPct}} %)."
-      },
-      "tight": {
-        "data": "Operaciones: la memoria va justa ({{marginPct}} % de margen).",
-        "comms": "Operaciones: el enlace con tierra va justo ({{marginPct}} % de margen).",
-        "lifetime": "Operaciones: la vida útil va justa ({{marginPct}} % de margen)."
-      },
-      "downlink": "Operaciones: bajaríamos {{achievedMbitPerDay}} Mbit al día y se piden {{requiredMbitPerDay}}.",
-      "ok": "Operaciones: datos, enlace y vida útil con margen. Podremos operar la nave."
-    }
-  },
-  "team": {
-    "role": {
-      "director": "Dirección de vuelo",
-      "engineering": "Ingeniería",
-      "science": "Ciencia",
-      "operations": "Operaciones"
-    },
-    "phase": {
-      "lobby": "Sala de espera",
-      "briefing": "Briefing",
-      "design": "Diseño",
-      "review": "Revisión Go/No-Go",
-      "prelaunch": "Antes del lanzamiento",
-      "launch": "Lanzamiento",
-      "operation": "Operación",
-      "report": "Informe"
-    },
-    "subsystem": {
-      "structure": "Estructura",
-      "power": "Energía solar",
-      "battery": "Baterías",
-      "comms": "Comunicaciones",
-      "obc": "Computadora de a bordo",
-      "adcs": "Control de actitud",
-      "thermal": "Térmico",
-      "payload": "Instrumentos"
-    },
-    "noGoReason": {
-      "mass": "Masa",
-      "power": "Energía",
-      "battery": "Batería",
-      "budget": "Presupuesto",
-      "data": "Almacenamiento de datos",
-      "comms": "Comunicaciones",
-      "time": "Tiempo",
-      "lifetime": "Vida útil",
-      "requirements": "No cumple los requisitos de la misión",
-      "risk": "El riesgo es demasiado alto",
-      "other": "Otro motivo"
-    },
-    "reject": {
-      "phase": "Eso no se puede hacer en la fase «$t(team.phase.{{phase}})».",
-      "permission": "Esa decisión le corresponde al rol $t(team.role.{{role}}).",
-      "notHost": "Solo el anfitrión de la sala puede hacerlo.",
-      "roleTaken": "Otra persona ya tiene el rol $t(team.role.{{role}}).",
-      "missingRoles": "Aún faltan {{count}} rol(es) por cubrir, por ejemplo $t(team.role.{{role}}). Cada rol necesita a alguien conectado.",
-      "noRole": "Primero elige un rol en el equipo.",
-      "notYourRole": "No tienes el rol $t(team.role.{{role}}).",
-      "invalidId": "«{{id}}» no existe en el catálogo.",
-      "componentNotAllowed": "Esta misión no permite usar «$t(catalog.{{component}})».",
-      "orbitNotAllowed": "Esta misión no permite usar «$t(catalog.{{orbit}})».",
-      "launcherNotAllowed": "Esta misión no permite el lanzador «$t(catalog.{{launcher}})».",
-      "componentAbsent": "No hay ninguna pieza «$t(catalog.{{component}})» montada.",
-      "allocationUnknown": "«{{id}}» no es un subsistema de la nave.",
-      "allocationInvalid": "La asignación del subsistema «$t(team.subsystem.{{subsystem}})» debe ser un número igual o mayor que 0.",
-      "allocationOverBudget": "El reparto suma {{totalMUSD}} M USD, pero para piezas solo quedan {{availableMUSD}} M USD (el resto paga el lanzador y la operación).",
-      "invalidAmount": "La cantidad pedida debe ser mayor que 0.",
-      "ownResource": "Tú ya decides sobre «$t(resource.{{resource}})»: no hace falta pedir permiso.",
-      "requestNotFound": "Esa solicitud no existe.",
-      "requestClosed": "Esa solicitud ya está cerrada.",
-      "notRequestOwner": "Esta solicitud la resuelve el rol $t(team.role.{{role}}).",
-      "notRequester": "Solo quien hizo la solicitud puede retirarla.",
-      "voteGoBlocked": "No se puede votar Go: la revisión técnica da No-Go.",
-      "voteNeedsReason": "Un No-Go necesita un motivo: elige qué recurso o qué riesgo te preocupa.",
-      "voteNeedsNote": "Si eliges «Otro motivo», escribe una nota breve para el equipo.",
-      "alertNotFound": "Esa alerta no existe.",
-      "alertClosed": "Esa alerta ya está cerrada.",
-      "alertRole": "Esta alerta no necesita respuesta del rol $t(team.role.{{role}}).",
-      "alertAcked": "El rol $t(team.role.{{role}}) ya respondió a esta alerta.",
-      "timeScale": "Velocidad de tiempo no válida: {{accel}}×.",
-      "emptyText": "El texto está vacío.",
-      "rateLimited": "Vas muy rápido: espera un momento.",
-      "invalidAction": "Acción no válida.",
-      "tooManyComponents": "La nave ya tiene el máximo de {{max}} piezas: quita alguna antes de montar otra.",
-      "tooManyRequests": "Ya tienes {{max}} solicitudes abiertas: espera a que te respondan o retira alguna.",
-      "requestPending": "Ya pediste permiso para eso: espera a que el equipo responda tu solicitud.",
-      "notEnoughPlayers": "Esta es una misión de equipo: necesitan al menos {{min}} personas conectadas para empezar.",
-      "requestRateLimited": "Espera {{seconds}} s antes de hacer otra solicitud: la pieza no se montó y no se envió nada."
-    },
-    "request": {
-      "resourceUp": "Este cambio añade {{amount}} $t(unit.{{unit}}) a «$t(resource.{{resource}})» y lo pasa de «$t(status.{{before}})» a «$t(status.{{after}})». Eso lo decide el rol $t(team.role.{{toRole}}).",
-      "resourceDown": "Este cambio resta {{amount}} $t(unit.{{unit}}) a lo disponible de «$t(resource.{{resource}})» y lo pasa de «$t(status.{{before}})» a «$t(status.{{after}})». Eso lo decide el rol $t(team.role.{{toRole}}).",
-      "allocation": "Con este cambio el subsistema «$t(team.subsystem.{{subsystem}})» gastaría {{usedMUSD}} M USD: {{amount}} M USD más de lo asignado ({{allocatedMUSD}} M USD). Eso lo decide el rol $t(team.role.{{toRole}}).",
-      "explicit": "El rol $t(team.role.{{fromRole}}) pide más «$t(resource.{{resource}})» al rol $t(team.role.{{toRole}}).",
-      "explicitAmount": "El rol $t(team.role.{{fromRole}}) pide {{amount}} $t(unit.{{unit}}) más de «$t(resource.{{resource}})» al rol $t(team.role.{{toRole}}).",
-      "explicitSubsystem": "El rol $t(team.role.{{fromRole}}) pide más «$t(resource.{{resource}})» para el subsistema «$t(team.subsystem.{{subsystem}})».",
-      "explicitSubsystemAmount": "El rol $t(team.role.{{fromRole}}) pide {{amount}} $t(unit.{{unit}}) más de «$t(resource.{{resource}})» para el subsistema «$t(team.subsystem.{{subsystem}})»."
-    }
+  "reject": {
+    "runOver": "La partida ha terminado",
+    "notAtGate": "Aún no has llegado al portal",
+    "sectorCleared": "Sector superado: salta al siguiente",
+    "inTransit": "No se puede en pleno salto",
+    "notInTransit": "Solo durante un salto",
+    "noRoute": "No hay ruta directa a ese destino",
+    "enginesDown": "Motores fuera de servicio",
+    "enginesOff": "Los motores están apagados",
+    "notEnoughFuel": "Combustible insuficiente",
+    "reactorAlwaysOn": "El reactor no se puede apagar",
+    "noIncident": "Esa avería ya no existe",
+    "noDamage": "El sistema no tiene daños",
+    "noSpares": "No quedan repuestos",
+    "noWarning": "No hay ningún impacto que esquivar",
+    "noService": "Aquí no hay servicio de estación",
+    "serviceUsed": "Esta estación ya te ha atendido",
+    "serviceNotNeeded": "La nave no necesita servicio",
+    "invalid": "Acción no válida"
   }
 }
