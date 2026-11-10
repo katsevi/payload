@@ -540,5 +540,213 @@
       "launch-window",
       "mass-budget"
     ]
+  },
+  {
+    "id": "team-go-no-go-vote",
+    "term": {
+      "es": "Votación Go/No-Go del equipo",
+      "en": "Go/No-Go team vote"
+    },
+    "definition": {
+      "es": "Revisión en la que cada rol del equipo vota Go o No-Go según los riesgos de su área. Se lanza solo si los cuatro votan Go; un No-Go lleva siempre un motivo.",
+      "en": "In this review each team role votes Go or No-Go depending on the risks in their area. You launch only if all four vote Go; a No-Go always comes with a reason."
+    },
+    "why": {
+      "es": "Un No-Go no es un fracaso: es la revisión haciendo su trabajo. Parar a tiempo y arreglar el motivo cuesta mucho menos que perder la nave.",
+      "en": "A No-Go is not a failure: it is the review doing its job. Stopping in time and fixing the reason costs far less than losing the spacecraft."
+    },
+    "related": [
+      "go-no-go",
+      "launch-window",
+      "mission-roles"
+    ]
+  },
+  {
+    "id": "mission-roles",
+    "term": {
+      "es": "Roles del equipo de misión",
+      "en": "Mission team roles"
+    },
+    "definition": {
+      "es": "Reparto del trabajo en cuatro responsabilidades: Dirección de vuelo, Ingeniería de nave, Ciencia y carga útil, y Operaciones y comunicaciones. Con menos jugadores, uno lleva varios roles.",
+      "en": "The work is split into four responsibilities: Flight Direction, Spacecraft Engineering, Science and Payload, and Operations and Communications. With fewer players, one person holds several roles."
+    },
+    "why": {
+      "es": "Nadie controla todos los recursos a la vez. Cada rol vigila los suyos y los demás dependen de él, igual que en un equipo de misión real.",
+      "en": "Nobody controls every resource at once. Each role watches its own and the others depend on them, just like in a real mission team."
+    },
+    "related": [
+      "flight-direction",
+      "spacecraft-engineering",
+      "science-payload-role",
+      "operations-comms-role",
+      "control-room"
+    ]
+  },
+  {
+    "id": "flight-direction",
+    "term": {
+      "es": "Dirección de vuelo",
+      "en": "Flight Direction"
+    },
+    "definition": {
+      "es": "Rol que decide la órbita, el lanzador y el reparto del dinero, confirma el lanzamiento y gestiona el presupuesto y el calendario de la misión.",
+      "en": "Role that decides the orbit, the launcher and how the money is shared, confirms the launch and manages the mission's budget and schedule."
+    },
+    "why": {
+      "es": "Alguien tiene que mirar el conjunto: una pieza que a Ingeniería le parece estupenda puede hacer que la misión no se pueda pagar ni terminar a tiempo.",
+      "en": "Someone has to look at the whole picture: a part Engineering loves may make the mission unaffordable or too late."
+    },
+    "related": [
+      "mission-roles",
+      "budget-allocation",
+      "resource-request",
+      "mass-budget"
+    ]
+  },
+  {
+    "id": "spacecraft-engineering",
+    "term": {
+      "es": "Ingeniería de nave",
+      "en": "Spacecraft Engineering"
+    },
+    "definition": {
+      "es": "Rol que monta la estructura, la energía, la batería, la computadora, el apuntado y el control térmico, y vigila la masa, la energía y la batería.",
+      "en": "Role that builds the structure, power, battery, computer, pointing and thermal control, and watches mass, power and battery."
+    },
+    "why": {
+      "es": "Estos tres recursos se tiran unos de otros: más energía pide más paneles, que pesan y obligan a un cohete más grande.",
+      "en": "These three resources pull on each other: more power calls for more panels, which weigh more and force a bigger rocket."
+    },
+    "related": [
+      "mission-roles",
+      "mass-budget",
+      "power-budget",
+      "solar-panel"
+    ]
+  },
+  {
+    "id": "science-payload-role",
+    "term": {
+      "es": "Ciencia y carga útil",
+      "en": "Science and Payload"
+    },
+    "definition": {
+      "es": "Rol que elige los instrumentos de la misión y cuida que tengan energía, apuntado y datos suficientes para dar su valor científico.",
+      "en": "Role that chooses the mission's instruments and makes sure they have enough power, pointing and data to deliver their science value."
+    },
+    "why": {
+      "es": "Los instrumentos son la razón de la misión, pero también lo que más gasta: por eso Ciencia pide recursos a los demás con más frecuencia.",
+      "en": "Instruments are the reason for the mission, but also what uses the most: that is why Science asks the others for resources most often."
+    },
+    "related": [
+      "mission-roles",
+      "payload",
+      "pointing",
+      "resource-request"
+    ]
+  },
+  {
+    "id": "operations-comms-role",
+    "term": {
+      "es": "Operaciones y comunicaciones",
+      "en": "Operations and Communications"
+    },
+    "definition": {
+      "es": "Rol que monta la antena, planea el tiempo de operación y vigila que los datos lleguen a tierra y que la nave dure lo previsto.",
+      "en": "Role that mounts the antenna, plans the operation time and makes sure the data reach the ground and the spacecraft lasts as long as planned."
+    },
+    "why": {
+      "es": "Un dato que no baja a tierra es como si no se hubiera medido: el enlace y las pasadas sobre las estaciones limitan lo que ve el equipo científico.",
+      "en": "A datum that never reaches the ground is as if it had not been measured: the link and the passes over the stations limit what the science team sees."
+    },
+    "related": [
+      "mission-roles",
+      "data-rate",
+      "link",
+      "ground-station"
+    ]
+  },
+  {
+    "id": "resource-request",
+    "term": {
+      "es": "Solicitud de recursos",
+      "en": "Resource request"
+    },
+    "definition": {
+      "es": "Petición a otro rol cuando una pieza empeoraría un recurso que él gestiona. Quien lo gestiona la aprueba o la rechaza, y se negocia con razones.",
+      "en": "A petition to another role when a part would worsen a resource that role manages. Whoever manages it approves or rejects it, and it is negotiated with reasons."
+    },
+    "why": {
+      "es": "Los recursos de la nave son compartidos. Pedir y responder rápido, aprobando o rechazando, es lo que mantiene la misión equilibrada.",
+      "en": "The spacecraft's resources are shared. Asking and answering quickly, approving or rejecting, is what keeps the mission balanced."
+    },
+    "related": [
+      "mission-roles",
+      "mass-budget",
+      "power-budget",
+      "budget-allocation"
+    ]
+  },
+  {
+    "id": "budget-allocation",
+    "term": {
+      "es": "Reparto del presupuesto",
+      "en": "Budget allocation"
+    },
+    "definition": {
+      "es": "División del dinero para piezas entre los subsistemas (energía, comunicaciones, carga útil...). Cada parte lleva su margen, y una reserva sin repartir cubre imprevistos.",
+      "en": "Splitting of the money for parts among the subsystems (power, communications, payload...). Each share has its margin, and an unallocated reserve covers surprises."
+    },
+    "why": {
+      "es": "Repartir antes evita discusiones tarde: cada equipo sabe cuánto puede gastar, y si una pieza se pasa, hay que pedir más a Dirección.",
+      "en": "Sharing out early avoids late arguments: each team knows how much it can spend, and if a part goes over it must ask Direction for more."
+    },
+    "related": [
+      "flight-direction",
+      "resource-request",
+      "mass-budget"
+    ]
+  },
+  {
+    "id": "anomaly-response-time",
+    "term": {
+      "es": "Tiempo de respuesta a anomalías",
+      "en": "Anomaly response time"
+    },
+    "definition": {
+      "es": "Lo que tarda el equipo en reconocer y atender un problema a bordo, como una tormenta solar o la falla de una rueda de reacción.",
+      "en": "How long the team takes to notice and handle a problem on board, such as a solar storm or a failed reaction wheel."
+    },
+    "why": {
+      "es": "En una misión real, minutos de diferencia pueden salvar una pieza o perder el enlace. Por eso los equipos practican y reparten quién responde a qué.",
+      "en": "In a real mission, minutes can save a part or lose the link. That is why teams practice and agree who answers what."
+    },
+    "related": [
+      "safe-mode",
+      "radiation",
+      "reliability",
+      "control-room"
+    ]
+  },
+  {
+    "id": "control-room",
+    "term": {
+      "es": "Sala de control",
+      "en": "Control room"
+    },
+    "definition": {
+      "es": "Lugar donde el equipo de misión sigue la nave en tiempo real. Cada consola muestra los recursos y alertas que le tocan a un rol.",
+      "en": "Place where the mission team follows the spacecraft in real time. Each console shows the resources and alerts belonging to one role."
+    },
+    "why": {
+      "es": "Ver lo mismo y hablarlo en voz alta evita que dos personas decidan cosas contradictorias sobre una nave que está a miles de kilómetros.",
+      "en": "Seeing the same thing and talking it out loud keeps two people from making contradictory decisions about a spacecraft thousands of kilometres away."
+    },
+    "related": [
+      "mission-roles",
+      "anomaly-response-time",
+      "ground-station"
+    ]
   }
 ]

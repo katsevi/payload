@@ -109,4 +109,39 @@ describe('catálogo', () => {
       expect(() => parseCatalog(r)).toThrow(/launchers\[0\].*name\.en/);
     });
   });
+
+  describe('escenarios de equipo (fase 3, campo opcional `team`)', () => {
+    const withTeam = (team: unknown) => {
+      const r = raw();
+      (r.scenarios[0] as Record<string, unknown>).team = team;
+      return r;
+    };
+
+    it('hay al menos un escenario de equipo y todos tienen rangos válidos (enteros 1-4, min <= max)', () => {
+      const teams = catalog.scenarios.filter((s) => s.team !== undefined);
+      expect(teams.length).toBeGreaterThanOrEqual(1);
+      for (const s of teams) {
+        const { minPlayers, maxPlayers } = s.team!;
+        expect(Number.isInteger(minPlayers) && Number.isInteger(maxPlayers), s.id).toBe(true);
+        expect(minPlayers, s.id).toBeGreaterThanOrEqual(1);
+        expect(minPlayers, s.id).toBeLessThanOrEqual(maxPlayers);
+        expect(maxPlayers, s.id).toBeLessThanOrEqual(4);
+      }
+    });
+
+    it('acepta enteros 1-4 con minPlayers <= maxPlayers', () => {
+      for (const team of [{ minPlayers: 1, maxPlayers: 4 }, { minPlayers: 2, maxPlayers: 2 }, { minPlayers: 4, maxPlayers: 4 }]) {
+        expect(parseCatalog(withTeam(team)).scenarios[0]!.team).toEqual(team);
+      }
+    });
+
+    it('rechaza min > max, valores fuera de 1-4, no enteros y campos de más, con la ruta del escenario', () => {
+      expect(() => parseCatalog(withTeam({ minPlayers: 3, maxPlayers: 2 }))).toThrow(/scenarios\[0\].*team\.minPlayers: minPlayers debe ser <= maxPlayers/);
+      expect(() => parseCatalog(withTeam({ minPlayers: 0, maxPlayers: 2 }))).toThrow(/team\.minPlayers: minPlayers debe estar entre 1 y 4/);
+      expect(() => parseCatalog(withTeam({ minPlayers: 2, maxPlayers: 5 }))).toThrow(/team\.maxPlayers: maxPlayers debe estar entre 1 y 4/);
+      expect(() => parseCatalog(withTeam({ minPlayers: 1.5, maxPlayers: 4 }))).toThrow(/team\.minPlayers/);
+      expect(() => parseCatalog(withTeam({ minPlayers: 2 }))).toThrow(/team\.maxPlayers/);
+      expect(() => parseCatalog(withTeam({ minPlayers: 2, maxPlayers: 4, roles: 4 }))).toThrow(/roles/);
+    });
+  });
 });

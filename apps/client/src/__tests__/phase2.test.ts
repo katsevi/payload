@@ -26,9 +26,9 @@ const fixtures = import.meta.glob('../../../../packages/shared/src/__tests__/fix
 const academyFixture = Object.values(fixtures).find((f) => f.scenarioId === academyScenarioId());
 
 describe('selector de escenarios', () => {
-  it('lista todos los escenarios del catálogo menos la Academia, en orden', () => {
+  it('lista todos los escenarios del catálogo menos la Academia y los de equipo, en orden', () => {
     const ids = campaignScenarios().map((s) => s.id);
-    const expected = catalog.scenarios.map((s) => s.id).filter((id) => id !== academyScenarioId());
+    const expected = catalog.scenarios.filter((s) => s.id !== academyScenarioId() && !s.team).map((s) => s.id);
     expect(ids).toEqual(expected);
     expect(ids).not.toContain(academyScenarioId());
     expect(ids.length).toBeGreaterThan(0);
@@ -72,7 +72,7 @@ describe.skipIf(!academyDef() || !academyFixture)('Academia jugable de principio
       } else {
         // waiting: avanzar la fase de la misión (hangar → revisión → lanzamiento → operación → informe)
         const next: Record<PhaseName, PhaseName> = {
-          menu: 'briefing', briefing: 'design', design: 'review', review: 'prelaunch', prelaunch: 'launch', launch: 'operation', operation: 'report', report: 'report',
+          menu: 'briefing', lobby: 'briefing', briefing: 'design', design: 'review', review: 'prelaunch', prelaunch: 'launch', launch: 'operation', operation: 'report', report: 'report',
         };
         if (phase === 'design') {
           expect(academyAllowsReview(steps, index)).toBe(true);

@@ -19,6 +19,11 @@ interface SayOptions {
   /** Clave ui que se muestra si la mascota no tiene diálogo para el disparador. */
   fallbackKey?: string;
   fallbackExpression?: MascotExpression;
+  /**
+   * Variante fija del diálogo (sala: la decide el servidor en `MascotCue.variant`, así todos ven el mismo
+   * texto). Sin ella, la variante rota localmente; con ella, la rotación local no cambia.
+   */
+  variant?: number;
 }
 
 interface MascotState {
@@ -48,10 +53,10 @@ export const useMascot = create<MascotState>((set, get) => ({
     const t = now();
     const last = lastSaid.get(trigger);
     if (!opts.force && last !== undefined && t - last < MASCOT_COOLDOWN_MS) return false;
-    const variant = variants.get(trigger) ?? 0;
+    const variant = opts.variant ?? variants.get(trigger) ?? 0;
     const d = dialogueFor(trigger, mascotDef(), variant);
     if (!d && !opts.fallbackKey) return false;
-    variants.set(trigger, variant + 1);
+    if (opts.variant === undefined) variants.set(trigger, variant + 1);
     lastSaid.set(trigger, t);
     const line: MascotLine = d
       ? { seq: ++seq, trigger, expression: d.expression, text: d.text }

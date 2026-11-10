@@ -10,6 +10,7 @@ import scenariosJson from '../catalog/escenarios.json';
 import glossaryJson from '../catalog/glosario.json';
 import mascotJson from '../catalog/mascota.json';
 import academyJson from '../catalog/academia.json';
+import { TEAM_MASCOT_TRIGGERS } from './constants';
 import type { Catalog, ComponentDef, LauncherDef, OrbitDef, OrbitId, ScenarioDef, SubsystemId } from './types';
 
 // ─── Esquema ────────────────────────────────────────────────────────────────
@@ -26,6 +27,8 @@ export const SIM_EVENT_TYPES = [
   'mission-complete', 'overheating', 'launch-delay', 'budget-cut',
 ] as const;
 const MISSION_PHASES = ['briefing', 'design', 'review', 'launch', 'operation', 'report'] as const;
+/** Roles del equipo para `role:<rol>` (= TEAM_ROLES de team.ts; copia local para no crear un ciclo de imports). */
+export const TEAM_ROLE_IDS = ['director', 'engineering', 'science', 'operations'] as const;
 
 const localized = z.strictObject({ es: z.string().min(1), en: z.string().min(1) });
 const id = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'debe ser kebab-case (a-z, 0-9 y guiones)');
@@ -159,6 +162,13 @@ const scenarioSchema = z.strictObject({
         .optional(),
     })
     .optional(),
+  team: z
+    .strictObject({
+      minPlayers: z.number().int().min(1, 'minPlayers debe estar entre 1 y 4').max(4, 'minPlayers debe estar entre 1 y 4'),
+      maxPlayers: z.number().int().min(1, 'maxPlayers debe estar entre 1 y 4').max(4, 'maxPlayers debe estar entre 1 y 4'),
+    })
+    .refine((t) => t.minPlayers <= t.maxPlayers, { message: 'minPlayers debe ser <= maxPlayers', path: ['minPlayers'] })
+    .optional(),
 });
 
 // ─── Contenido pedagógico (fase 2) ──────────────────────────────────────────
@@ -175,8 +185,8 @@ const glossarySchema = z.strictObject({
 const triggerSchema = z
   .string()
   .regex(
-    /^(event|resource-over|resource-tight|phase|academy|help|review|report):[a-z0-9]+(-[a-z0-9]+)*$/,
-    'disparador inválido: usa <tipo>:<valor> (event, resource-over, resource-tight, phase, academy, help, review, report)',
+    /^(event|resource-over|resource-tight|phase|academy|help|review|report|team|role):[a-z0-9]+(-[a-z0-9]+)*$/,
+    'disparador inválido: usa <tipo>:<valor> (event, resource-over, resource-tight, phase, academy, help, review, report, team, role)',
   );
 
 const mascotSchema = z.strictObject({
@@ -316,6 +326,8 @@ function pedagogyErrors(
     const resources = new Set<string>(RESOURCES);
     const events = new Set<string>(SIM_EVENT_TYPES);
     const phases = new Set<string>(MISSION_PHASES);
+    const teamTriggers = new Set<string>(TEAM_MASCOT_TRIGGERS);
+    const roles = new Set<string>(TEAM_ROLE_IDS);
     for (const d of m.dialogues) {
       const where = `mascot.dialogues (id "${d.id}")`;
       if (!expressions.has(d.expression)) errors.push(`${where}.expression: "${d.expression}" no está en mascot.expressions`);
@@ -329,6 +341,12 @@ function pedagogyErrors(
       if (kind === 'review' && value !== 'go' && value !== 'no-go') bad('el resultado (go | no-go)');
       if (kind === 'report' && value !== 'success' && value !== 'failure') bad('el desenlace (success | failure)');
       if (kind === 'academy' && cat.academy && !academySteps.has(value)) bad('el paso de la Academia');
+      if (kind === 'team' && !teamTriggers.has(value)) {
+        errors.push(`${where}.trigger: el disparador de equipo "${value}" no existe (usa: ${TEAM_MASCOT_TRIGGERS.join(', ')})`);
+      }
+      if (kind === 'role' && !roles.has(value)) {
+        errors.push(`${where}.trigger: el rol "${value}" no existe (usa: ${TEAM_ROLE_IDS.join(', ')})`);
+      }
     }
   }
   if (cat.academy) {

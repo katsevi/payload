@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
 import { MathUtils, Vector3, type Group, type PerspectiveCamera } from 'three';
 import { AstronautModel } from '../models/Models';
+import { publishAvatarPose } from '../net/avatar';
 import { useSettings } from '../state/settings';
 import { useUi } from '../state/ui';
 import { attachKeyboard, isDown } from './input';
@@ -178,6 +179,9 @@ export function PlayerController({ start = [0, 0, 9] as [number, number, number]
       av.rotation.set(moving ? 0.1 : 0, avatarYaw.current, moving ? Math.sin(t.current * 9) * 0.06 : 0);
       av.position.y += moving ? Math.abs(Math.sin(t.current * 9)) * 0.04 : 0;
     }
+
+    // ── Sala: pose del avatar para los demás (≤ 10 Hz, solo si cambió; en solitario no hace nada) ──
+    publishAvatarPose(feet.x, feet.y, feet.z, avatarYaw.current);
   });
 
   return (

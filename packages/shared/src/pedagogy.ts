@@ -11,6 +11,9 @@
  *   help:<contexto>               ayuda contextual con la tecla H (hangar, control-room, ...)
  *   review:go | review:no-go      resultado del Go/No-Go
  *   report:success | report:failure  desenlace en el informe
+ *   team:<valor>                  fase 3, sala multijugador: valor de TEAM_MASCOT_TRIGGERS (constants.ts),
+ *                                 p. ej. team:vote-no-go, team:request-open, team:alert
+ *   role:<TeamRole>               fase 3: presentación del rol (role:director, role:science, ...)
  */
 import { budgetsFromAnalysis } from './budgets';
 import { analyzeDesign } from './analysis';
@@ -21,7 +24,7 @@ import type {
 } from './types';
 
 export const MASCOT_TRIGGER_KINDS = [
-  'event', 'resource-over', 'resource-tight', 'phase', 'academy', 'help', 'review', 'report',
+  'event', 'resource-over', 'resource-tight', 'phase', 'academy', 'help', 'review', 'report', 'team', 'role',
 ] as const;
 export type MascotTriggerKind = (typeof MASCOT_TRIGGER_KINDS)[number];
 

@@ -5,6 +5,7 @@ import {
   ADVISOR_ROLES, adviseByRole, catalog, computeBudgets, getGlossaryEntry, reviewGoNoGo, type AdvisorRole, type RoleAdvice,
 } from '@payload/shared';
 import { currentLocale, lt, tr } from '../i18n';
+import { useVisibleAdvisorRoles } from '../net/roomStore';
 import { useDesign } from '../state/design';
 import { useUi } from '../state/ui';
 import { Modal, Panel } from './common';
@@ -34,16 +35,18 @@ export function useAdvice(): Record<AdvisorRole, RoleAdvice[]> | null {
   }, [scenarioId, componentIds, orbitId, launcherId]);
 }
 
+/** Asesores por rol: en solitario los cuatro; en sala solo los de mis roles (`useVisibleAdvisorRoles`). */
 export function AdvisorsPanel({ className = '' }: { className?: string }) {
   const { t } = useTranslation();
   const advice = useAdvice();
+  const roles = useVisibleAdvisorRoles();
   return (
     <Panel title={t('advisors.title')} className={className}>
       {!advice ? (
         <p className="text-sm text-slate-400">{t('advisors.none')}</p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {ADVISOR_ROLES.map((role) => (
+          {roles.map((role) => (
             <section key={role} aria-label={t(`advisors.role.${role}`)}>
               <h3 className="num mb-1 text-xs uppercase tracking-widest text-accent">{t(`advisors.role.${role}`)}</h3>
               <ul className="space-y-1">

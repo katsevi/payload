@@ -24,6 +24,7 @@ export function phaseTrigger(phase: PhaseName): string | null {
 /** Contexto de la ayuda `help:<contexto>` (tecla H) según la escena visible. */
 export const HELP_CONTEXT: Record<PhaseName, string> = {
   menu: 'control-room',
+  lobby: 'control-room',
   briefing: 'control-room',
   design: 'hangar',
   review: 'hangar',

@@ -1,6 +1,7 @@
 /**
  * Constantes del modelo de simulación (compartidas por simulation, review y report sin ciclos de
- * importación). Ver la cabecera de simulation.ts para el modelo completo.
+ * importación). Ver la cabecera de simulation.ts para el modelo completo. Al final, las de la sala
+ * multijugador (fase 3), aquí para que catalog.ts pueda validar disparadores sin importar team.ts.
  */
 import type { DifficultyLevel, EventTable } from './types';
 
@@ -102,3 +103,84 @@ export const EVENT_TABLES: Record<DifficultyLevel, EventTable> = {
 export const HEALTH_RNG_SALT = 0x4845414c;
 /** Sal para derivar el flujo de azar de los eventos pre-operación. */
 export const PRELAUNCH_RNG_SALT = 0x50524531;
+
+// ─── Fase 3: multijugador (ver docs/MULTIPLAYER.md y team.ts) ───────────────
+
+/** Aceleraciones permitidas en la sala (las mismas del solitario; 0 = pausa). */
+export const TEAM_TIME_SCALES = [0, 1, 10, 100, 1000, 10000] as const;
+
+/**
+ * Límites y umbrales de la sala. Los textos se miden en puntos de código tras `sanitizePlayerText`
+ * (el esquema zod los limita en unidades UTF-16, que nunca son menos).
+ */
+export const TEAM_LIMITS = {
+  /** Una nave, cuatro roles: más jugadores no tendrían rol. */
+  maxPlayers: 4,
+  nameMaxChars: 24,
+  /** Un tuit: suficiente para coordinarse sin convertir la sala en un foro. */
+  chatMaxChars: 280,
+  noteMaxChars: 280,
+  /** Ids de piezas, solicitudes y alertas en las acciones (protege el esquema de cadenas enormes). */
+  idMaxChars: 64,
+  /** Mensajes de chat y eventos que guarda el estado sincronizado (el resto se descarta). */
+  chatHistory: 50,
+  eventHistory: 200,
+  /** Espera a un cliente caído antes de repartir sus roles (allowReconnection). */
+  reconnectGraceS: 60,
+  /** Una alerta cierra sola a los 45 s: el juego no se queda congelado si alguien no responde. */
+  alertTimeoutS: 45,
+  /** Tope de la pantalla de lanzamiento: se pasa a operación aunque falte algún launch-done. */
+  launchScreenMaxS: 25,
+  /** Frecuencias sugeridas al servidor: avance de la simulación y poses de avatar (Hz). */
+  simTickHz: 10,
+  moveMaxHz: 10,
+  /** Intervalo mínimo entre mensajes de chat y entre pings de un mismo jugador (s). */
+  chatMinIntervalS: 1,
+  pingMinIntervalS: 2,
+  // Límites contra el crecimiento del estado sincronizado (checkTeamAction los aplica):
+  /** Solicitudes ABIERTAS por jugador: más allá, que espere respuesta o retire alguna. */
+  maxOpenRequestsPerPlayer: 5,
+  /**
+   * Intervalo mínimo (s) entre `request-resource` o acciones que generan solicitud de un mismo jugador.
+   * Lo aplica el servidor (límite de frecuencia); el motor no tiene reloj.
+   */
+  requestMinIntervalS: 2,
+  /**
+   * Ráfaga permitida: cubeta de `requestBurst` fichas que se repone a una ficha cada
+   * `requestMinIntervalS` (`takeRequestToken`). Tres clics rápidos pasan; un cuarto espera.
+   */
+  requestBurst: 3,
+  /**
+   * Solicitudes CERRADAS que conserva el estado (las abiertas nunca se purgan). Las purgadas siguen
+   * contando para la colaboración a través de `CollaborationInput.purged` (`purgeRequests`).
+   */
+  requestHistory: 100,
+  /** Piezas por diseño: el mayor diseño válido del catálogo usa ~15; 40 deja holgura sin dejar crecer el estado. */
+  maxComponents: 40,
+  // Colaboración (scoreCollaboration):
+  /** Responder una solicitud en ≤ 60 s vale el 100 %: una ronda de conversación. */
+  requestFullCreditS: 60,
+  /** A los 5 min la respuesta vale el mínimo (`requestSlowCredit`); dejarla abierta vale 0. */
+  requestSlowS: 300,
+  /** Responder tarde sigue siendo mejor que no responder. */
+  requestSlowCredit: 0.5,
+  /** Responder una alerta en ≤ 20 s vale el 100 % (leer el evento y pulsar). */
+  alertFullCreditS: 20,
+  /**
+   * La curva de alertas llega a 0 a los 70 s, así que responder justo al cierre por tiempo (45 s)
+   * vale 0,5 y no responder vale 0.
+   */
+  alertZeroCreditS: 70,
+} as const;
+
+/**
+ * Disparadores `team:<valor>` de la mascota en sala (lista cerrada; los valida catalog.ts).
+ * Los diálogos los escribe el contenido (catalog/mascota.json); la sala publica el disparador en `mascot`.
+ */
+export const TEAM_MASCOT_TRIGGERS = [
+  'lobby', 'player-joined', 'roles-combined', 'player-left', 'player-back', 'host-changed',
+  'allocation', 'request-open', 'request-approved', 'request-rejected',
+  'vote-open', 'vote-go', 'vote-no-go',
+  'alert', 'alert-answered', 'alert-timeout',
+  'ping', 'chat',
+] as const;

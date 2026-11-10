@@ -11,7 +11,9 @@ import { missionMachine } from './missionMachine';
  */
 export function devInitialSnapshot() {
   if (!import.meta.env.DEV) return undefined;
-  const phase = new URLSearchParams(location.search).get('phase');
+  const q = new URLSearchParams(location.search);
+  if (q.get('room') === 'demo') return undefined; // la sala de ejemplo (devRoom.ts) lleva su propia fase
+  const phase = q.get('phase');
   if (phase !== 'launch' && phase !== 'operation' && phase !== 'report') return undefined;
   try {
     const sc = campaignScenarios()[0] ?? catalog.scenarios[0]!;

@@ -32,6 +32,24 @@ pueden usar Node). Corre en el navegador (solitario) y en el servidor de juego (
 | `formatMessage` | `(ref, locale, cat?) => string` | Texto final sin i18next (prototipo, tests, servidor) |
 | `resolveMessageParams` | `(ref, locale, cat?) => params` | Params con nombres resueltos, para usos FUERA de las plantillas (no pasar a `t()`) |
 | `lookupSimKey`, `CATALOG_ID_PARAMS`, `TIGHT_MARGIN`, `RESOURCE_IDS` | | Utilidades y constantes |
+| `withCollaboration`, `scoreWeightSum` | `(score, colab) => ScoreBreakdown` · `(weights) => number` | Fase 3: puntuación de equipo aparte de `MissionResult`; con 100 devuelve el mismo total |
+| `combineRoles` | `(playerIds, prefs?) => Record<id, TeamRole[]>` | Reparto 1-4 jugadores; maximiza preferencias; determinista |
+| `missingRoles`, `hasPermission`, `roleForPermission` | `(players) => TeamRole[]` · `(roles, perm) => boolean` · `(perm) => TeamRole` | Roles sin jugador conectado; tabla `ROLE_PERMISSIONS` |
+| `checkTeamAction` | `(TeamActionContext, TeamAction) => TeamActionCheck` | `apply` · `request` (automática o `request-resource`) · `reject` con `team.reject.*` |
+| `applyDesignAction`, `actionImpact`, `isDesignAction` | `(design, action) => design` · `(before, after, cat?) => ResourceImpact[]` | Misma semántica que el store `useDesign` del cliente |
+| `sameTeamAction` | `(a, b) => boolean` | Igualdad estructural de acciones (detecta solicitudes duplicadas) |
+| `isTeamScenario` | `(scenario) => boolean` | `scenario.team.minPlayers >= 2` |
+| `buildResourceRequest`, `applyApprovedRequest`, `closeRequest`, `allocationAfterApproval` | ver `team.ts` | Ciclo de vida de solicitudes (aprobar puede encadenar a otro rol) |
+| `allocatableBudgetMUSD`, `defaultAllocation`, `validateAllocation`, `subsystemSpend` | `(scenario, cat?, launcherId?)` · `(scenario, cat?, {launcherId?, design?})` · `(alloc, scenario, cat?, launcherId?)` · `(design, alloc, cat?)` | Reparto del presupuesto por subsistema |
+| `validateVote`, `teamVoteFrom`, `tallyGoNoGo` | `(vote, engineGo) => MessageRef \| null` · `(action, playerId, atS) => TeamVote` · `(votes, review) => TeamPollResult` | Go/No-Go compartido |
+| `alertForEvent`, `alertSatisfied`, `ackAlert`, `alertTimedOut`, `closeAlert` | `(event, id, atS) => TeamAlert \| null` · … | Alertas de `EVENT_RESPONSE_ROLES` |
+| `scoreCollaboration` | `(CollaborationInput) => CollaborationScore` | Criterios `requests` y `alerts` (0-1); sin nada = 100; admite `purged` |
+| `purgeRequests` | `(requests, keepClosed = requestHistory, previous?) => { kept, purged }` | Tope del historial sin cambiar la nota |
+| `takeRequestToken` | `(bucket \| null, nowS) => RequestTokenResult` | Cubeta de fichas del límite de frecuencia de solicitudes |
+| `sanitizePlayerText` | `(text: unknown, maxChars) => string \| null` | Chat, nombres y notas |
+| `teamActionSchema`, `parseTeamAction` | zod (Standard Schema) · `(raw) => TeamAction \| null` | Valida el mensaje `action` del cliente |
+| `createRoomView`, `encodeRoomView`, `decodeRoomView` | `(init) => RoomView` · `(view) => RoomStateWire` · `(wire: unknown) => RoomView` | Estado Colyseus ↔ vista plana; `decode` nunca lanza |
+| `TEAM_ROLES`, `ROOM_PHASES`, `SUBSYSTEM_IDS`, `NO_GO_REASON_CODES`, `RESOURCE_UNITS`, `ROLE_SUBSYSTEMS`, `RESOURCE_OWNER`, `ROLE_PERMISSIONS`, `TEAM_ACTION_PHASES`, `EVENT_RESPONSE_ROLES`, `TEAM_LIMITS`, `TEAM_TIME_SCALES`, `TEAM_MASCOT_TRIGGERS` | | Datos y constantes de la sala (fase 3) |
 
 ## Contenido pedagógico (fase 2, `catalog/*.json`, campos OPCIONALES de `Catalog`)
 
@@ -40,6 +58,7 @@ pueden usar Node). Corre en el navegador (solitario) y en el servidor de juego (
   repo). Cambiar de mascota = cambiar el JSON. Disparadores `<tipo>:<valor>`, validados con zod:
   `event:<SimEventType>`, `resource-over:<ResourceId>`, `resource-tight:<ResourceId>`, `phase:<MissionPhase>`,
   `academy:<id de paso>`, `help:<contexto>` (libre: `hangar`, `control-room`…), `review:go|no-go`, `report:success|failure`.
+  Fase 3 (sala): `team:<valor de TEAM_MASCOT_TRIGGERS>` (lista cerrada en `constants.ts`) y `role:<TeamRole>`.
   Las expresiones de cada diálogo deben estar en `expressions`.
 - `academia.json` → `catalog.academy: AcademyDef` sobre el escenario `academy-cubesat-leo` (básico, sin eventos,
   holgado). Objetivos: `add-component` (id de pieza o de subsistema), `select-orbit`, `select-launcher`,
@@ -54,6 +73,56 @@ pueden usar Node). Corre en el navegador (solitario) y en el servidor de juego (
   batería/térmico aislados con 6 h de modo seguro). Sus claves: `event.componentFailure.<caso>`, tipo `component-failure`.
 - Un `time`/`budget` excedido SOLO por eventos pre-operación no anula la viabilidad: criterio `overrun-<id>`.
 - Probabilidades y rangos por dificultad en `EVENT_TABLES`; un escenario puede ajustarlos con `eventTuning`.
+
+## Multijugador (fase 3, `team.ts`, `teamWire.ts`; contrato en `docs/MULTIPLAYER.md`)
+
+- **Puro y sin reloj**: los tiempos (`atS`, `raisedAtS`…) son segundos de sala que pasa el servidor.
+  `MissionResult`, `runMission`, `scoreMission` y `buildReport` no cambian (paridad sala ↔ motor): la
+  colaboración va aparte, `teamScore = withCollaboration(result.score, scoreCollaboration(...).score)`.
+- **Roles**: `TeamRole = AdvisorRole`. `ROLE_SUBSYSTEMS` (piezas que monta cada rol), `RESOURCE_OWNER` (quién
+  resuelve cada recurso, coherente con `ROLE_RESOURCES`) y `ROLE_PERMISSIONS` (tabla del contrato).
+  `TEAM_ACTION_PHASES` dice en qué fases vale cada acción (`allocate-budget` también en `briefing`).
+- **Solicitudes automáticas** (`checkTeamAction`): una acción de diseño que empeora (ok→tight|over,
+  tight→over) un recurso evaluable (disponible > 0 antes y después) de un rol que el actor no tiene ⇒
+  `request` al dueño, `amount` = subida del uso (o bajada del disponible, p. ej. vida útil). Con reparto,
+  pasarse de la asignación del subsistema ⇒ `request` a `director` (`budget`, `subsystem`, exceso). Gana
+  la más grave: over > tight, orden de `RESOURCE_IDS`, a igualdad la del reparto. `request-resource`
+  (explícita) también devuelve `request`; el servidor crea ambas con `buildResourceRequest`.
+- **Límites del estado** (`TEAM_LIMITS`): `maxComponents` 40 (`add-component` y aprobaciones ⇒
+  `team.reject.tooManyComponents`); con `ctx.actorId`, una acción que crearía solicitud se rechaza si el
+  jugador ya tiene ABIERTA una con la misma acción en espera (`requestPending`, comparación con
+  `sameTeamAction`) o `maxOpenRequestsPerPlayer` (5) abiertas (`tooManyRequests`). Límite de frecuencia
+  (lo aplica el servidor con `takeRequestToken`): cubeta de `requestBurst` (3) fichas, una nueva cada
+  `requestMinIntervalS` (2 s); sin ficha ⇒ `team.reject.requestRateLimited` (`{ seconds }`).
+- **Historial con tope**: `purgeRequests(requests, requestHistory = 100, previous?)` conserva todas las
+  abiertas y ≤ 100 cerradas (purga primero retiradas, luego las resueltas más antiguas, solo como prefijo)
+  y devuelve `purged` (`PurgedRequestStats`), que se pasa a `scoreCollaboration({ requests: kept, purged })`
+  para obtener EXACTAMENTE la misma nota que con la lista completa (mismo orden de sumas; test con 600 pasos).
+- **Escenarios de equipo**: `ScenarioDef.team?: { minPlayers, maxPlayers }` (enteros 1-4, min ≤ max, zod).
+  Hoy `polar-ice-watch-team` (2-4); los tests no fijan la lista (añadir otro por JSON no rompe nada). `isTeamScenario` = `minPlayers >= 2`; `start-mission` con menos
+  jugadores conectados que `minPlayers` ⇒ `team.reject.notEnoughPlayers` (`{ min }`).
+- **Aprobar** (`applyApprovedRequest(state, req, cat, approverRoles)`): re-aplica la acción sobre el diseño
+  actual (`reject` con motivo si ya no tiene sentido), sube la asignación (`allocationAfterApproval`) y, si
+  la acción toca además un recurso de un tercer rol, devuelve `request` ENCADENADA (`approvedBy` acumula
+  los roles conformes; ≤ 4 pasos). Ej.: Ciencia + cámara térmica ⇒ Ingeniería (energía) ⇒ Operaciones
+  (comms) ⇒ Dirección (calendario) ⇒ aplicada.
+- **Reparto** (`defaultAllocation`): dinero para piezas (`allocatableBudgetMUSD` = presupuesto − operación −
+  lanzador elegido o el más barato que llega) en proporción al costo mediano de las piezas permitidas de
+  cada subsistema; con `{ design }` cubre primero lo ya montado. Subsistema sin asignación = sin tope.
+- **Votación**: `validateVote` (No-Go exige motivo; `other` exige nota; Go rechazado si el motor da No-Go),
+  `tallyGoNoGo` (cuenta el último voto de cada rol; un No-Go válido cierra; Go con los 4 y el motor en Go).
+- **Alertas**: `EVENT_RESPONSE_ROLES` (tormenta, rueda, basura, falla de componente, sobrecalentamiento,
+  batería agotada); `ackAlert` cierra al responder todos; `alertTimedOut` a los `TEAM_LIMITS.alertTimeoutS`.
+- **Colaboración** (`scoreCollaboration`): `requests` (resuelta ≤ 60 s = 1 → 0,5 a 300 s; abierta = 0;
+  retiradas no cuentan) y `alerts` (≤ 20 s = 1 → 0 a 70 s, así el cierre a 45 s vale 0,5; sin respuesta =
+  0). `score = 100 · media`; sin nada = 100. Umbrales en `TEAM_LIMITS`.
+- **Red**: `teamActionSchema` (zod estricto, Standard Schema para Colyseus; un test garantiza que su tipo
+  es `TeamAction`). `RoomStateWire` = solo primitivos, arrays de string y `players` (mapa de `PlayerWire`);
+  objetos y listas de objetos como JSON (`''` = null). Mapeo campo a campo en la cabecera de `teamWire.ts`.
+  Texto libre de jugadores: siempre por `sanitizePlayerText`.
+- Mensajes en `sim:team.*` (`team.reject.*`, `team.request.*`) con etiquetas `team.role|phase|subsystem|noGoReason.<id>`;
+  los roles, subsistemas, recursos, unidades y estados se anidan con `$t(team.role.{{role}})`, `$t(resource.{{resource}})`…
+  `locales.test.ts` barre la lógica de equipo y comprueba que todo se resuelve.
 
 ## Mensajes (`MessageRef`) y nombres del catálogo
 

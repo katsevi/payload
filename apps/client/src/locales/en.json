@@ -277,7 +277,9 @@
     "review": "Review the findings. With Go you can authorize the launch.",
     "launch": "V toggles chase camera and tower view · H help",
     "operation": "V toggles orbital camera and view through the instrument · I opens the main instrument view · drag to orbit the camera · use the time controls · H help",
-    "report": "Review the chain of causes and redesign."
+    "report": "Review the chain of causes and redesign.",
+    "lobby": "Wait for your team and pick your role. The host starts the mission once all four roles are covered. H help · G glossary",
+    "team": "In a room: T chat · R requests · P mark (in the hangar, look at a part or a spot) · the top bar shows your roles and the connection."
   },
   "keys": {
     "move": "Move",
@@ -297,7 +299,8 @@
     "launch": "Launch",
     "operation": "Operation",
     "report": "Report",
-    "prelaunch": "Pre-launch"
+    "prelaunch": "Pre-launch",
+    "lobby": "Lobby"
   },
   "scenarios": {
     "title": "Choose a mission",
@@ -461,5 +464,257 @@
     },
     "description": "A short look at the Aurora G9 rover walking across the terrain. Its data already counts in the mission panel.",
     "close": "Close the surface view"
+  },
+  "room": {
+    "connection": {
+      "idle": "No room",
+      "connecting": "Connecting…",
+      "connected": "Connected",
+      "reconnecting": "Reconnecting…",
+      "disconnected": "Disconnected",
+      "error": "Connection error"
+    },
+    "status": {
+      "reconnecting": "Connection to the room was lost. Reconnecting…",
+      "reconnected": "Connection restored: you are still in the room."
+    },
+    "error": {
+      "join": "Could not join the room.",
+      "notFound": "There is no open room with that code.",
+      "rejected": "The room is full or the mission has already started.",
+      "unreachable": "Could not reach the game server. Check your connection.",
+      "resume": "Could not return to the previous room.",
+      "lost": "The connection to the room was lost. You are back at the menu.",
+      "closed": "The room was closed. You are back at the menu.",
+      "server": "The room server reported an error.",
+      "invalidScenario": "That scenario does not exist.",
+      "academyScenario": "The Academy is for one person only: pick a campaign mission.",
+      "invalidAttempt": "The room attempt is not valid.",
+      "invalidSeed": "The room seed is not valid.",
+      "roomNotInLobby": "That room's mission has already started: you can only join while it is in the waiting room.",
+      "roomFull": "The room is full.",
+      "alreadyJoined": "You are already in that room.",
+      "locked": "The room is full or the mission has already started: ask the host for a new code."
+    },
+    "notice": {
+      "requestCreated": "A request was sent to the responsible role: wait for their answer."
+    },
+    "name": "Your name",
+    "namePlaceholder": "Player",
+    "playerN": "Player {{n}}",
+    "you": "you",
+    "host": "Host",
+    "leave": "Leave the room",
+    "unknownPlayer": "Someone",
+    "entry": {
+      "open": "Play as a team",
+      "title": "Play as a team",
+      "intro": "Up to 4 people design and operate a mission together, each with a role. Create a private room and share the code, join with a code, or look for a quick match.",
+      "scenario": "Mission",
+      "coop": "Co-op",
+      "create": "Create private room",
+      "quick": "Quick match",
+      "resume": "Back to the room",
+      "code": "Room code",
+      "codePlaceholder": "Paste the code here",
+      "join": "Join with code",
+      "players": "{{min}}-{{max}} players"
+    },
+    "lobby": {
+      "title": "Waiting room",
+      "code": "Room code",
+      "copy": "Copy the code",
+      "copied": "Code copied",
+      "shareHint": "Share this code so your team can join.",
+      "players": "Players",
+      "noRole": "No role yet",
+      "combineHint": "With fewer than 4 players, roles are combined: one person can take several.",
+      "rename": "Change your name",
+      "renameBtn": "Change",
+      "roles": "Team roles",
+      "rolesIntro": "Each role decides on one part of the mission and watches certain resources. Claim yours.",
+      "watches": "Watches",
+      "heldBy": "Held by",
+      "free": "Free",
+      "taken": "Someone else has it",
+      "release": "Release role",
+      "claim": "Claim role",
+      "missing": "Still uncovered: {{roles}}.",
+      "autoAssign": "Assign roles",
+      "start": "Start mission",
+      "waitHost": "Waiting for the host to start the mission."
+    },
+    "role": {
+      "director": "Flight Director",
+      "engineering": "Engineering",
+      "science": "Science",
+      "operations": "Operations"
+    },
+    "roleCard": {
+      "director": {
+        "decides": "Decides the orbit and launcher, splits the budget, confirms the launch and ends the operation. Resolves budget and time requests."
+      },
+      "engineering": {
+        "decides": "Mounts structure, power, batteries, computer, attitude control and thermal. Resolves mass, power and battery requests."
+      },
+      "science": {
+        "decides": "Chooses the payload instruments: what the mission is there to measure. Asks the other roles for resources when needed."
+      },
+      "operations": {
+        "decides": "Mounts communications and controls operation time. Resolves data, communications and lifetime requests."
+      },
+      "noResources": "none: ask the others"
+    },
+    "bar": {
+      "badge": "{{n}} pending",
+      "myRoles": "My roles",
+      "players": "Connected players"
+    },
+    "chat": {
+      "title": "Team chat",
+      "history": "Chat history",
+      "empty": "No messages yet.",
+      "placeholder": "Write a message…",
+      "send": "Send"
+    },
+    "time": {
+      "s": "{{n}} s ago",
+      "min": "{{n}} min ago",
+      "h": "{{n}} h ago"
+    },
+    "requests": {
+      "title": "Requests",
+      "intro": "When something you ask for affects another role's resource, that person decides. The whole team sees every request.",
+      "new": "New request",
+      "resource": "Resource",
+      "amount": "Amount",
+      "subsystem": "Subsystem",
+      "anySubsystem": "(any)",
+      "note": "Note",
+      "badAmount": "The amount must be a number greater than 0.",
+      "send": "Send request",
+      "open": "Open",
+      "noneOpen": "No open requests.",
+      "resolved": "Resolved",
+      "noneResolved": "No resolved requests yet.",
+      "status": {
+        "open": "Open",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "withdrawn": "Withdrawn"
+      },
+      "chain": "Already approved by: {{approved}}. Waiting for: {{pending}}.",
+      "resolutionNote": "Reply",
+      "notePlaceholder": "Optional note (e.g. propose another solution)",
+      "approve": "Approve",
+      "reject": "Reject",
+      "withdraw": "Withdraw my request",
+      "cooldown": "You just sent a request: wait a moment before asking for another."
+    },
+    "budget": {
+      "title": "Budget",
+      "introEdit": "Split the money for parts across subsystems. A part that goes over its share will ask for your approval.",
+      "introRead": "Budget split by subsystem. The Flight Director decides it.",
+      "available": "Available for parts",
+      "noAllocation": "no split: no limits",
+      "subsystem": "Subsystem",
+      "assigned": "Assigned",
+      "spent": "Spent",
+      "total": "Total split",
+      "suggest": "Suggested split",
+      "apply": "Apply split",
+      "clear": "Remove split"
+    },
+    "pings": {
+      "title": "Mark",
+      "point": "a spot in the hangar",
+      "intro": "Point something out to the team. In the hangar, look at a part or a spot and press P.",
+      "subsystems": "Subsystems",
+      "resources": "Resources",
+      "recent": "Recent marks",
+      "none": "Nobody has marked anything yet.",
+      "marked": "marked"
+    },
+    "alerts": {
+      "title": "Team alert",
+      "timeout": "The alert closes by itself after {{s}} s",
+      "left": "{{s}} s",
+      "required": "Must respond",
+      "pending": "pending",
+      "answered": "answered",
+      "respond": "Respond as {{role}}"
+    },
+    "vote": {
+      "title": "Go/No-Go vote",
+      "go": "Go",
+      "nogo": "No-Go",
+      "pending": "Pending",
+      "by": "Voted by: {{name}}",
+      "mine": "My votes",
+      "noRole": "You have no role: you cannot vote.",
+      "sendGo": "Go",
+      "sendNoGo": "Send No-Go",
+      "reasonTitle": "No-Go reason ({{role}})",
+      "reasonHint": "A No-Go needs a reason so the team knows what to fix.",
+      "noteRequired": "Explain the reason (required)",
+      "noteOptional": "Note (optional)",
+      "error": {
+        "code": "Pick a reason for the No-Go.",
+        "note": "With \"other reason\" you must write a note."
+      }
+    },
+    "lastNoGo": {
+      "vote": "The team voted No-Go. These are the reasons:",
+      "review": "The technical review said No-Go. This needs fixing:"
+    },
+    "report": {
+      "title": "Team collaboration",
+      "collabScore": "Collaboration score",
+      "missionScore": "Mission score",
+      "teamScore": "Team score",
+      "row": {
+        "requests": "Requests resolved",
+        "requestTime": "Average time to answer requests",
+        "alerts": "Alerts answered on time",
+        "alertTime": "Average time to answer alerts"
+      },
+      "why": "Collaboration measures how fast the team resolved requests and alerts: coordinating well weighs as much as designing well, because in a real mission nobody decides alone.",
+      "onlyDirector": "Only the Flight Director can redesign"
+    },
+    "prelaunch": {
+      "waiting": "Waiting for {{role}} to confirm the launch."
+    },
+    "operation": {
+      "pausedByAlert": "Paused by alert",
+      "timeLocked": "Time is controlled by Director and Operations. Current speed: {{accel}}",
+      "onlyDirector": "Only the Flight Director ends the operation"
+    },
+    "keys": {
+      "ping": "mark",
+      "chat": "chat",
+      "requests": "requests"
+    },
+    "perm": {
+      "request": "Will ask permission"
+    },
+    "quote": "“{{text}}”",
+    "leaveConfirm": {
+      "title": "Leave the room?",
+      "body": "The mission has already started: if you leave you cannot rejoin this room and your roles will pass to the rest of the team.",
+      "stay": "Stay",
+      "leave": "Leave the room"
+    },
+    "retry": {
+      "title": "Connection lost",
+      "body": "Your place in the room is kept for {{seconds}} s more.",
+      "button": "Retry",
+      "dismiss": "Dismiss",
+      "expired": "Time is up to return to the room."
+    },
+    "duration": {
+      "s": "{{n}} s",
+      "min": "{{n}} min",
+      "minS": "{{min}} min {{s}} s"
+    }
   }
 }

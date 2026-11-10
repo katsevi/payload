@@ -317,5 +317,54 @@
       "collaboration": 0.1
     },
     "defaultSeed": 20260602
+  },
+  {
+    "id": "polar-ice-watch-team",
+    "name": {
+      "es": "Vigías del hielo",
+      "en": "Ice Watchers"
+    },
+    "briefing": {
+      "es": "Misión de equipo para 2 a 4 personas. Un instituto polar quiere seguir cómo se derriten los glaciares con un satélite en órbita polar. Dirección de vuelo vigila que el presupuesto de 44 millones no se escape; Ingeniería de nave, que la masa y la energía cuadren con el cohete; Ciencia y carga útil, que el instrumento tenga potencia y apunte bien; Operaciones y comunicaciones, que las 25 000 Mbit de datos diarios lleguen a solo 2 estaciones. Ninguna área puede ganar sola: cada pieza que uno pide le quita margen a otro, así que negocien en voz alta, pidan recursos al compañero que los gestiona y voten el Go/No-Go juntos. Pueden saltar alertas durante la operación: respondan rápido.",
+      "en": "A team mission for 2 to 4 people. A polar institute wants to track how glaciers melt using a polar-orbit satellite. Flight Direction makes sure the 44 million budget does not run away; Spacecraft Engineering, that mass and power fit the rocket; Science and Payload, that the instrument has power and points well; Operations and Communications, that the 25,000 Mbit of daily data reach only 2 stations. No area can win alone: every part one person asks for takes margin from another, so negotiate out loud, request resources from the teammate who manages them and vote the Go/No-Go together. Alerts may pop up during operation: answer quickly."
+    },
+    "why": {
+      "es": "En una misión real nadie decide solo: el instrumento que gasta energía obliga a más paneles, más paneles pesan y encarecen el cohete, y más datos exigen más enlace. Por eso se negocia en equipo.",
+      "en": "In a real mission nobody decides alone: an instrument that uses power calls for more panels, more panels weigh more and make the rocket pricier, and more data demands more link. That is why the team negotiates."
+    },
+    "missionType": "earth-observation",
+    "difficulty": "intermediate",
+    "budgetMUSD": 44,
+    "maxDevMonths": 36,
+    "requirements": {
+      "maxGroundResolutionM": 30,
+      "minDownlinkMbitPerDay": 25000,
+      "minLifetimeYears": 3,
+      "maxRevisitDays": 5,
+      "minScienceValue": 100
+    },
+    "allowedOrbits": ["LEO", "SSO"],
+    "allowedLaunchers": ["launcher-zorzal", "launcher-pampero", "launcher-condor"],
+    "allowedComponents": ["structure-microsat", "structure-smallsat", "power-deployable", "power-high-efficiency", "power-large-array", "battery-medium", "battery-large", "battery-xl", "comms-s-band", "comms-x-band", "obc-basic", "obc-advanced", "adcs-magnetorquers", "adcs-reaction-wheels", "adcs-star-tracker", "thermal-passive", "thermal-radiator", "thermal-active", "payload-multispectral-basic", "payload-thermal-camera", "payload-hyperspectral", "payload-radiometer"],
+    "groundStations": 2,
+    "operationDays": 30,
+    "eventsEnabled": true,
+    "operationsCostMUSDPerYear": 1.5,
+    "weights": {
+      "objectives": 0.3,
+      "science": 0.25,
+      "efficiency": 0.2,
+      "collaboration": 0.25
+    },
+    "defaultSeed": 20260701,
+    "team": { "minPlayers": 2, "maxPlayers": 4 },
+    "eventTuning": {
+      "environmentChancePerDay": 0.15,
+      "environmentWeights": {
+        "solar-storm": 2,
+        "reaction-wheel-failure": 1,
+        "debris-avoidance": 1
+      }
+    }
   }
 ]

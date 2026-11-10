@@ -9,6 +9,12 @@ import { lt } from '../i18n';
 import { ConsoleModel, WalkerExhibit } from '../models/Models';
 import { PlayerController } from '../player/PlayerController';
 import { lookDir, playerState } from '../player/playerState';
+import { getSession, useSession } from '../net/sessionStore';
+import { canDo } from '../net/roomStore';
+import { useAddChecks } from '../room/hooks';
+import { pieceToReturn, pingPointFromRay } from '../room/roomUiLogic';
+import { useRoom } from '../net/roomStore';
+import { PingMarkers, RemoteAvatars } from './RoomAvatars';
 import { useDesign } from '../state/design';
 import { useSettings } from '../state/settings';
 import { useUi } from '../state/ui';
@@ -96,6 +102,9 @@ function Room() {
 
 function Shelves({ boxes }: { boxes: BoxItem[] }) {
   const { t } = useTranslation();
+  // En sala: las piezas que mi rol no puede montar se ven apagadas y las que pedirán permiso, con borde ámbar.
+  const ids = useMemo(() => boxes.map((b) => b.id), [boxes]);
+  const checks = useAddChecks(ids);
   return (
     <>
       {SHELVES.map((s) => (
@@ -116,19 +125,30 @@ function Shelves({ boxes }: { boxes: BoxItem[] }) {
               <meshStandardMaterial color="#6d7c8c" metalness={0.5} roughness={0.5} />
             </mesh>
           ))}
-          <Html position={[0, 2.85, 0.4]} center distanceFactor={9} style={{ pointerEvents: 'none' }}>
+          <Html zIndexRange={[9, 0]} position={[0, 2.85, 0.4]} center distanceFactor={9} style={{ pointerEvents: 'none' }}>
             <div className="num whitespace-nowrap rounded border border-[#1f3a5f] bg-[#0b1220]/85 px-2 py-0.5 text-xs text-[#38e1c0]">
               {t(`subsystem.${s.subsystem}`)}
             </div>
           </Html>
         </group>
       ))}
-      {boxes.map((b) => (
-        <mesh key={b.id} position={b.pos} castShadow>
-          <boxGeometry args={[0.5, 0.5, 0.5]} />
-          <meshStandardMaterial color={SUBSYSTEM_COLOR[b.subsystem]} roughness={0.5} metalness={0.2} />
-        </mesh>
-      ))}
+      {boxes.map((b) => {
+        const k = checks[b.id]?.kind;
+        return (
+          <group key={b.id} position={b.pos}>
+            <mesh castShadow>
+              <boxGeometry args={[0.5, 0.5, 0.5]} />
+              <meshStandardMaterial color={SUBSYSTEM_COLOR[b.subsystem]} roughness={0.5} metalness={0.2} transparent={k === 'reject'} opacity={k === 'reject' ? 0.3 : 1} />
+            </mesh>
+            {k === 'request' && (
+              <mesh>
+                <boxGeometry args={[0.56, 0.56, 0.56]} />
+                <meshBasicMaterial color="#f2b134" wireframe />
+              </mesh>
+            )}
+          </group>
+        );
+      })}
     </>
   );
 }
@@ -154,7 +174,7 @@ function MissionConsole() {
           </>
         }
       />
-      <Html position={[0, 1.95, 0]} center distanceFactor={9} style={{ pointerEvents: 'none' }}>
+      <Html zIndexRange={[9, 0]} position={[0, 1.95, 0]} center distanceFactor={9} style={{ pointerEvents: 'none' }}>
         <div className="num whitespace-nowrap rounded border border-[#1f3a5f] bg-[#0b1220]/85 px-2 py-0.5 text-xs text-[#38e1c0]">
           {t('hangar.console')}
         </div>
@@ -211,6 +231,8 @@ function Interaction({ boxes }: { boxes: BoxItem[] }) {
   const highlight = useRef<Mesh>(null);
   const aimed = useRef<BoxItem | null>(null);
   const near = useRef<'ship' | 'console' | null>(null);
+  /** Última pieza soltada sobre la nave en sala: si el servidor la rechaza, vuelve a la mano. */
+  const dropped = useRef<{ id: string; atMs: number } | null>(null);
   const tmp = useMemo(() => ({ head: new Vector3(), v: new Vector3(), dir: new Vector3(), }), []);
 
   useFrame(() => {
@@ -253,23 +275,54 @@ function Interaction({ boxes }: { boxes: BoxItem[] }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) return; // chat, notas…
       if (e.repeat || useUi.getState().overlay !== null || useUi.getState().inputBlocked) return;
       const d = useDesign.getState();
+      if (e.code === 'KeyP') {
+        // Ping al equipo (solo en sala): a la pieza apuntada o al punto al que se mira.
+        if (useSession.getState().room) {
+          const { pos } = playerState;
+          if (aimed.current) getSession().ping({ kind: 'component', id: aimed.current.id });
+          else {
+            lookDir(tmp.dir);
+            const p = pingPointFromRay([pos.x, pos.y + 1.6, pos.z], [tmp.dir.x, tmp.dir.y, tmp.dir.z]);
+            getSession().ping({ kind: 'point', position: p });
+          }
+        }
+        return;
+      }
       if (e.code === 'KeyQ') {
         d.hold(null);
       } else if (e.code === 'KeyE') {
         if (aimed.current) d.hold(aimed.current.id);
         else if (near.current === 'console') useUi.getState().setOverlay('console');
         else if (near.current === 'ship') {
+          // Montar/desmontar pasa por la sesión (en sala lo decide el servidor); lo que se lleva en la mano es local.
           if (d.heldId) {
-            d.add(d.heldId);
-            d.hold(null);
-          } else d.popLast();
+            // En sala, `canDo` decide antes de enviar (permiso, solicitud pendiente, límites): el rechazo se explica.
+            const pre = useSession.getState().room ? canDo({ type: 'add-component', componentId: d.heldId }) : null;
+            if (pre?.kind === 'reject') useUi.getState().showNotice({ tone: 'warn', ref: pre.reason });
+            else {
+              dropped.current = { id: d.heldId, atMs: performance.now() };
+              getSession().addComponent(d.heldId);
+              d.hold(null);
+            }
+          } else getSession().removeLast();
         } else if (d.heldId) d.hold(null);
       }
     };
     window.addEventListener('keydown', onKey);
+    const unsub = useRoom.subscribe((st, prev) => {
+      if (st.lastRejected === prev.lastRejected) return;
+      const id = pieceToReturn(st.lastRejected, dropped.current, useDesign.getState().heldId);
+      if (id) {
+        useDesign.getState().hold(id);
+        dropped.current = null;
+      }
+    });
     return () => {
+      unsub();
       window.removeEventListener('keydown', onKey);
       useUi.getState().setPrompt(null);
     };
@@ -308,7 +361,7 @@ export function HangarScene() {
   const boxes = useMemo(() => layoutBoxes(comps), [comps]);
 
   return (
-    <Canvas shadows={shadows} dpr={[1, 1.75]} camera={{ fov: 75, near: 0.05, far: 80, position: [0, 1.6, 9] }}>
+    <Canvas style={{ isolation: 'isolate' }} shadows={shadows} dpr={[1, 1.75]} camera={{ fov: 75, near: 0.05, far: 80, position: [0, 1.6, 9] }}>
       <color attach="background" args={['#aab4c0']} />
       <Physics gravity={[0, 0, 0]}>
         <Room />
@@ -320,6 +373,8 @@ export function HangarScene() {
         <MountedRover />
         <HangarAudio />
         <HeldBox />
+        <RemoteAvatars />
+        <PingMarkers boxes={boxes} />
         <Interaction boxes={boxes} />
         <PlayerController start={PLAYER_START} />
       </Physics>

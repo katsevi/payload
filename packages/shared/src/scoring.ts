@@ -26,10 +26,12 @@
  *  - eficiencia: media sobre los 8 recursos de una curva que premia márgenes sanos:
  *      margen < 0 → 0 · 0-15 % → 40-100 (al límite) · 15-50 % → 100 · 50-100 % → 100-40 (sobrado),
  *      multiplicada por (1 − 0.25 · nº de recursos excedidos): pasarse de un recurso cuesta caro.
- *  - colaboración: 100 en solitario salvo que se indique otro valor (fase 3: multijugador).
+ *  - colaboración: 100 en solitario salvo que se indique otro valor. En multijugador (fase 3) el
+ *      `MissionResult` sigue con 100 (paridad sala ↔ runMission) y la sala calcula aparte
+ *      `withCollaboration(result.score, scoreCollaboration(...).score)`.
  */
 import { DEPLETION_SCORE_PENALTY, BATTERY_DEAD_FRACTION, LIFETIME_CRITERION_FLOOR } from './constants';
-import type { BudgetReport, ResourceId, ScenarioDef, ScoreBreakdown } from './types';
+import type { BudgetReport, ResourceId, ScenarioDef, ScoreBreakdown, ScoreWeights } from './types';
 
 export interface ScoreInput {
   scenario: ScenarioDef;
@@ -78,6 +80,27 @@ export const OVER_EFFICIENCY_PENALTY = 0.25;
 export const HEALTHY_MARGIN_MAX = 0.5;
 
 const clamp = (x: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, x));
+const r1 = (x: number) => Math.round(x * 10) / 10;
+
+/** Suma de los pesos del escenario: el total se normaliza dividiendo por ella (0 = sin pesos). */
+export function scoreWeightSum(weights: ScoreWeights): number {
+  return weights.objectives + weights.science + weights.efficiency + weights.collaboration;
+}
+
+/**
+ * Fase 3: sustituye la colaboración de una puntuación (la de `MissionResult.score`, que en solitario
+ * es 100) por la del equipo y recalcula el total con los mismos pesos normalizados que `scoreMission`.
+ * El total es lineal en la colaboración, así que se ajusta por diferencia:
+ *   total' = total + w_colab · (colab' − colab) / Σw
+ * Con la misma colaboración devuelve exactamente el mismo total (no se re-suman componentes ya
+ * redondeados). `MissionResult` no cambia: la puntuación de equipo va aparte (`RoomView.teamScore`).
+ */
+export function withCollaboration(score: ScoreBreakdown, collaboration: number): ScoreBreakdown {
+  const c = r1(clamp(Number.isFinite(collaboration) ? collaboration : 0, 0, 100));
+  const wSum = scoreWeightSum(score.weights);
+  const total = wSum > 0 ? clamp(score.total + (score.weights.collaboration * (c - score.collaboration)) / wSum, 0, 100) : 0;
+  return { ...score, collaboration: c, total: r1(total) };
+}
 
 /** Puntuación 0-100 de un margen: ni al límite ni sobrado. */
 export function marginEfficiency(margin: number): number {
@@ -150,14 +173,13 @@ export function scoreMission(input: ScoreInput): ScoreBreakdown {
       : 0;
   const collaboration = clamp(input.collaboration ?? 100, 0, 100);
 
-  const wSum = weights.objectives + weights.science + weights.efficiency + weights.collaboration;
+  const wSum = scoreWeightSum(weights);
   const total =
     wSum > 0
       ? (weights.objectives * objectives + weights.science * science + weights.efficiency * efficiency +
           weights.collaboration * collaboration) / wSum
       : 0;
 
-  const r1 = (x: number) => Math.round(x * 10) / 10;
   return {
     objectives: r1(objectives),
     science: r1(science),
