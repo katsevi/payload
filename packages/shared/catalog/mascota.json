@@ -680,6 +680,312 @@
         "es": "Los meses se suman, no se reparten: la pieza más lenta, la integración y la espera del cohete. Un retraso lo alarga aún más.",
         "en": "Months add up, they do not overlap: the slowest part, integration and the rocket wait. A delay stretches it even more."
       }
+    },
+    {
+      "id": "team-lobby",
+      "trigger": "team:lobby",
+      "expression": "happy",
+      "text": {
+        "es": "¡Hola, equipo! Soy Orbi y estaré con todos en la sala. Elijan sus roles: cada uno vigila recursos distintos.",
+        "en": "Hi, team! I'm Orbi and I'll be with all of you in the room. Pick your roles: each one watches different resources."
+      }
+    },
+    {
+      "id": "team-player-joined",
+      "trigger": "team:player-joined",
+      "expression": "happy",
+      "text": {
+        "es": "¡Alguien nuevo en la sala! Con más manos hay que repartir los roles para que nadie se quede sin trabajo.",
+        "en": "Someone new in the room! With more hands we need to share out the roles so nobody is left with nothing to do."
+      }
+    },
+    {
+      "id": "team-roles-combined",
+      "trigger": "team:roles-combined",
+      "expression": "thinking",
+      "text": {
+        "es": "Son menos de cuatro, así que algunos tienen varios roles. Es como una misión pequeña: menos gente, más cosas que vigilar a la vez.",
+        "en": "There are fewer than four of you, so some have several roles. It's like a small mission: fewer people, more things to watch at once."
+      }
+    },
+    {
+      "id": "team-player-left",
+      "trigger": "team:player-left",
+      "expression": "worried",
+      "text": {
+        "es": "Alguien salió de la sala. Sus roles pasan al resto del equipo para que la misión no se quede sin nadie al mando.",
+        "en": "Someone left the room. Their roles pass to the rest of the team so the mission is never left without someone in charge."
+      }
+    },
+    {
+      "id": "team-player-back",
+      "trigger": "team:player-back",
+      "expression": "happy",
+      "text": {
+        "es": "¡Ha vuelto! Recupera sus roles y todo sigue donde lo dejó. Reconectarse a tiempo también es trabajo en equipo.",
+        "en": "They're back! They get their roles again and everything is where they left it. Reconnecting in time is teamwork too."
+      }
+    },
+    {
+      "id": "team-host-changed",
+      "trigger": "team:host-changed",
+      "expression": "thinking",
+      "text": {
+        "es": "Hay nuevo anfitrión: es quien reparte roles y empieza la misión. En una misión real también se traspasa el mando con calma.",
+        "en": "There is a new host: the one who assigns roles and starts the mission. In a real mission, command is also handed over calmly."
+      }
+    },
+    {
+      "id": "team-allocation",
+      "trigger": "team:allocation",
+      "expression": "thinking",
+      "text": {
+        "es": "La Dirección ha repartido el presupuesto por subsistema. Es como dar a cada equipo su parte: si una pieza se pasa, tendrá que pedir más.",
+        "en": "Direction has split the budget by subsystem. It's like giving each team its share: if a part goes over, it will have to ask for more."
+      }
+    },
+    {
+      "id": "team-request-open-1",
+      "trigger": "team:request-open",
+      "expression": "thinking",
+      "text": {
+        "es": "Se ha abierto una solicitud. Pedir recursos a quien los gestiona no es molestar: es negociar lo que el equipo comparte.",
+        "en": "A request has been opened. Asking the person who manages a resource is not a nuisance: it is negotiating what the team shares."
+      }
+    },
+    {
+      "id": "team-request-open-2",
+      "trigger": "team:request-open",
+      "expression": "thinking",
+      "text": {
+        "es": "Esa pieza empeora un recurso de otro rol, así que le toca decidir. Cuéntenle por qué la necesitan: razonar ayuda a acordar.",
+        "en": "That part worsens another role's resource, so it's their call. Tell them why you need it: giving reasons helps reach agreement."
+      }
+    },
+    {
+      "id": "team-request-open-3",
+      "trigger": "team:request-open",
+      "expression": "happy",
+      "text": {
+        "es": "Una solicitud abierta es una conversación que empieza. Quien gestiona el recurso conoce su margen mejor que nadie.",
+        "en": "An open request is a conversation starting. Whoever manages the resource knows its margin better than anyone."
+      }
+    },
+    {
+      "id": "team-request-approved",
+      "trigger": "team:request-approved",
+      "expression": "celebrating",
+      "text": {
+        "es": "¡Solicitud aprobada! El equipo cedió margen para algo que importa más. Miren cómo cambió el panel de recursos.",
+        "en": "Request approved! The team gave up some margin for something that matters more. See how the resource panel changed."
+      }
+    },
+    {
+      "id": "team-request-rejected",
+      "trigger": "team:request-rejected",
+      "expression": "thinking",
+      "text": {
+        "es": "Solicitud rechazada. No es un portazo: protege un margen que otro rol necesita. Prueben una pieza más ligera o negocien otra cosa.",
+        "en": "Request rejected. It's not a slammed door: it protects a margin another role needs. Try a lighter part or negotiate something else."
+      }
+    },
+    {
+      "id": "team-vote-open",
+      "trigger": "team:vote-open",
+      "expression": "thinking",
+      "text": {
+        "es": "Votación Go/No-Go abierta. Cada rol dice Go o No-Go según los riesgos de su área; hace falta que todos estén de acuerdo.",
+        "en": "Go/No-Go vote open. Each role says Go or No-Go depending on the risks in their area; all of you need to agree."
+      }
+    },
+    {
+      "id": "team-vote-go",
+      "trigger": "team:vote-go",
+      "expression": "celebrating",
+      "text": {
+        "es": "¡Todos en Go! La revisión salió limpia. Ahora a confirmar el lanzamiento: ¡vamos a ver cómo se porta la nave!",
+        "en": "Everyone is Go! The review came out clean. Now to confirm the launch: let's see how the spacecraft behaves!"
+      }
+    },
+    {
+      "id": "team-vote-no-go-1",
+      "trigger": "team:vote-no-go",
+      "expression": "worried",
+      "text": {
+        "es": "Un No-Go. Y está bien: es la revisión haciendo su trabajo. Lean el motivo, arreglen eso y vuelvan a votar.",
+        "en": "A No-Go. And that's fine: it's the review doing its job. Read the reason, fix it and vote again."
+      }
+    },
+    {
+      "id": "team-vote-no-go-2",
+      "trigger": "team:vote-no-go",
+      "expression": "thinking",
+      "text": {
+        "es": "Alguien vio un riesgo en su área. En la vida real parar a tiempo cuesta menos que lanzar con un problema.",
+        "en": "Someone saw a risk in their area. In real life stopping in time costs less than launching with a problem."
+      }
+    },
+    {
+      "id": "team-vote-no-go-3",
+      "trigger": "team:vote-no-go",
+      "expression": "worried",
+      "text": {
+        "es": "Un No-Go no es un fracaso, es una pregunta: ¿qué hay que cambiar? Hablen del motivo y busquen la solución juntos.",
+        "en": "A No-Go is not a failure, it is a question: what needs to change? Talk about the reason and find the solution together."
+      }
+    },
+    {
+      "id": "team-alert-1",
+      "trigger": "team:alert",
+      "expression": "worried",
+      "text": {
+        "es": "¡Alerta! Pasó algo en la nave y hacen falta los roles señalados. Respondan rápido: cuanto antes se coordina el equipo, mejor.",
+        "en": "Alert! Something happened to the spacecraft and the flagged roles are needed. Answer quickly: the sooner the team coordinates, the better."
+      }
+    },
+    {
+      "id": "team-alert-2",
+      "trigger": "team:alert",
+      "expression": "worried",
+      "text": {
+        "es": "Anomalía a bordo. La simulación espera a quien debe responder. Decidan quién hace qué: aquí importa el tiempo de reacción.",
+        "en": "Anomaly on board. The simulation waits for whoever must respond. Decide who does what: reaction time matters here."
+      }
+    },
+    {
+      "id": "team-alert-3",
+      "trigger": "team:alert",
+      "expression": "worried",
+      "text": {
+        "es": "Los controladores de misión practican estas alertas muchas veces. Respiren, miren el panel y confirmen cuando estén listos.",
+        "en": "Mission controllers practice these alerts many times. Breathe, look at the panel and confirm when you're ready."
+      }
+    },
+    {
+      "id": "team-alert-answered",
+      "trigger": "team:alert-answered",
+      "expression": "celebrating",
+      "text": {
+        "es": "¡Alerta atendida a tiempo! Responder rápido y coordinados es justo lo que se entrena en una sala de control.",
+        "en": "Alert handled in time! Answering quickly and in coordination is exactly what a control room trains for."
+      }
+    },
+    {
+      "id": "team-alert-timeout",
+      "trigger": "team:alert-timeout",
+      "expression": "worried",
+      "text": {
+        "es": "La alerta se cerró sola por falta de respuesta. No pasa nada: la próxima vez acuerden antes quién vigila qué.",
+        "en": "The alert closed by itself because nobody answered. No problem: next time agree beforehand who watches what."
+      }
+    },
+    {
+      "id": "team-ping-1",
+      "trigger": "team:ping",
+      "expression": "happy",
+      "text": {
+        "es": "¡Un aviso en el panel! Alguien señala algo para que el equipo lo mire. Señalar es más rápido que explicar.",
+        "en": "A ping on the panel! Someone is pointing at something for the team to look at. Pointing is faster than explaining."
+      }
+    },
+    {
+      "id": "team-ping-2",
+      "trigger": "team:ping",
+      "expression": "thinking",
+      "text": {
+        "es": "Miren lo que marcó su compañero. Un vistazo común evita que dos personas piensen en cosas distintas.",
+        "en": "Look at what your teammate marked. A shared glance keeps two people from thinking about different things."
+      }
+    },
+    {
+      "id": "team-ping-3",
+      "trigger": "team:ping",
+      "expression": "happy",
+      "text": {
+        "es": "Sonó el timbre de equipo. Si algo les parece importante, márquenlo: en la sala de control todo se dice en voz alta.",
+        "en": "The team bell rang. If something seems important, mark it: in a control room everything is said out loud."
+      }
+    },
+    {
+      "id": "team-chat",
+      "trigger": "team:chat",
+      "expression": "happy",
+      "text": {
+        "es": "Hablar con el equipo es parte del diseño. Las mejores decisiones salen de contarse el porqué de cada pieza.",
+        "en": "Talking with the team is part of the design. The best decisions come from explaining why each part is there."
+      }
+    },
+    {
+      "id": "role-director",
+      "trigger": "role:director",
+      "expression": "happy",
+      "text": {
+        "es": "Dirección de vuelo: decide la órbita, el lanzador y el reparto del dinero, y da el visto bueno final. Vigila presupuesto y calendario: si se pasa uno, la misión se cancela.",
+        "en": "Flight Direction: decides the orbit, the launcher and how the money is shared, and gives the final approval. Watches budget and schedule: if either overruns, the mission gets cancelled."
+      }
+    },
+    {
+      "id": "role-engineering",
+      "trigger": "role:engineering",
+      "expression": "thinking",
+      "text": {
+        "es": "Ingeniería de nave: monta la estructura, la energía, la batería, la computadora, el apuntado y el control térmico. Vigila masa, energía y batería: un kilo de más encarece el cohete.",
+        "en": "Spacecraft Engineering: builds the structure, power, battery, computer, pointing and thermal control. Watches mass, power and battery: an extra kilo makes the rocket pricier."
+      }
+    },
+    {
+      "id": "role-science",
+      "trigger": "role:science",
+      "expression": "happy",
+      "text": {
+        "es": "Ciencia y carga útil: elige los instrumentos, que son la razón de la misión. Cada uno pide energía y genera datos, así que Ciencia negocia mucho con los demás.",
+        "en": "Science and Payload: chooses the instruments, which are the reason for the mission. Each one asks for power and makes data, so Science negotiates a lot with the others."
+      }
+    },
+    {
+      "id": "role-operations",
+      "trigger": "role:operations",
+      "expression": "thinking",
+      "text": {
+        "es": "Operaciones y comunicaciones: monta la antena y planea el tiempo de operación. Vigila que los datos lleguen a tierra y cuánto vive la nave: sin enlace, lo medido no sirve.",
+        "en": "Operations and Communications: mounts the antenna and plans the operation time. Watches that data reaches the ground and how long the spacecraft lives: without a link, what was measured is useless."
+      }
+    },
+    {
+      "id": "help-lobby",
+      "trigger": "help:lobby",
+      "expression": "happy",
+      "text": {
+        "es": "Esta es la sala de espera. Compartan el código, elijan roles (un jugador puede llevar varios) y el anfitrión empieza cuando estén listos. Todos verán a la misma mascota: ¡a mí!",
+        "en": "This is the waiting room. Share the code, pick roles (one player can hold several) and the host starts when you're ready. You'll all see the same mascot: me!"
+      }
+    },
+    {
+      "id": "help-control-room-team",
+      "trigger": "help:control-room-team",
+      "expression": "thinking",
+      "text": {
+        "es": "Esta es su sala de control. Cada consola es de un rol; si necesitan algo de otro, se convierte en solicitud. La nave es una sola, así que cada recurso se comparte.",
+        "en": "This is your control room. Each console belongs to a role; if you need something from another, it becomes a request. There is only one spacecraft, so every resource is shared."
+      }
+    },
+    {
+      "id": "help-team-requests",
+      "trigger": "help:team-requests",
+      "expression": "thinking",
+      "text": {
+        "es": "Una solicitud dice qué recurso empeora y cuánto. Quien lo gestiona puede aprobarla o rechazarla; las dos respuestas cuentan como colaborar. Lo que no ayuda es dejarla sin responder.",
+        "en": "A request says which resource gets worse and by how much. Whoever manages it can approve or reject it; both answers count as collaborating. What doesn't help is leaving it unanswered."
+      }
+    },
+    {
+      "id": "help-team-vote",
+      "trigger": "help:team-vote",
+      "expression": "thinking",
+      "text": {
+        "es": "Para lanzar, los cuatro roles votan Go. Un No-Go necesita un motivo: así el equipo sabe qué arreglar. Si el motor ve un problema rojo, nadie puede votar Go.",
+        "en": "To launch, all four roles vote Go. A No-Go needs a reason: that way the team knows what to fix. If the engine sees a red problem, nobody can vote Go."
+      }
     }
   ]
 }

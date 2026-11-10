@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { buildReport, computeBudgets, energyCriterion, getScenario, reviewGoNoGo, runMission, scoreMission } from '../index';
+import { buildReport, computeBudgets, energyCriterion, getScenario, reviewGoNoGo, runMission, scoreMission, scoreWeightSum, withCollaboration } from '../index';
 import { marginEfficiency, objectiveCriteria } from '../scoring';
-import { loadDesign } from './fixtures';
+import { allDesignNames, loadDesign } from './fixtures';
 
 describe('scoreMission', () => {
   const scenario = getScenario('leo-earth-observation');
@@ -136,5 +136,48 @@ describe('fase 2: agotamientos de batería y sobrecostes por eventos (ADR 0008)'
     expect(byEvent.objectives).toBeGreaterThan(70);
     expect(byEvent.objectives).toBeLessThan(scoreMission(base).objectives);
     expect(objectiveCriteria({ ...base, budgets: over, eventOverruns: ['time'] })['overrun-time']).toBeCloseTo(0.8, 10);
+  });
+});
+
+describe('withCollaboration (fase 3: puntuación de equipo aparte de MissionResult)', () => {
+  const results = allDesignNames().flatMap((name) => [1, 2, 3].map((seed) => runMission(loadDesign(name), undefined, { seed })));
+
+  it('con colaboración 100 (la del solitario) devuelve exactamente la misma puntuación', () => {
+    for (const r of results) {
+      expect(r.score.collaboration).toBe(100);
+      expect(withCollaboration(r.score, 100)).toEqual(r.score);
+    }
+  });
+
+  it('el total baja w_colab / Σw por cada punto de colaboración (mismos pesos normalizados que scoreMission)', () => {
+    for (const r of results) {
+      const w = r.score.weights;
+      const team = withCollaboration(r.score, 40);
+      expect(team.collaboration).toBe(40);
+      expect(team.total).toBeCloseTo(r.score.total - (w.collaboration * 60) / scoreWeightSum(w), 0);
+      expect(Math.abs(team.total - (r.score.total - (w.collaboration * 60) / scoreWeightSum(w)))).toBeLessThanOrEqual(0.051);
+      expect({ ...team, collaboration: 100, total: r.score.total }).toEqual(r.score);
+    }
+  });
+
+  it('coincide con scoreMission recalculado con esa colaboración (± redondeo de 0,1)', () => {
+    const scenario = getScenario('leo-earth-observation');
+    const budgets = computeBudgets(loadDesign('ok-cubesat-leo'));
+    const input = { scenario, budgets, launchSuccess: true, daysOperated: 30, dataDownlinkedMbit: 6000 * 30 };
+    for (const c of [0, 25, 54.2, 80, 100]) {
+      const direct = scoreMission({ ...input, collaboration: c });
+      const viaTeam = withCollaboration(scoreMission(input), c);
+      expect(Math.abs(viaTeam.total - direct.total)).toBeLessThanOrEqual(0.1 + 1e-9);
+      expect(viaTeam.collaboration).toBe(direct.collaboration);
+    }
+  });
+
+  it('acota la colaboración a 0-100 y no altera el resultado original', () => {
+    const s = results[0]!.score;
+    const copy = structuredClone(s);
+    expect(withCollaboration(s, 150).collaboration).toBe(100);
+    expect(withCollaboration(s, -5).collaboration).toBe(0);
+    expect(withCollaboration(s, Number.NaN).collaboration).toBe(0);
+    expect(s).toEqual(copy);
   });
 });

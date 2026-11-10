@@ -315,5 +315,94 @@
       "downlink": "Operaciones: bajaríamos {{achievedMbitPerDay}} Mbit al día y se piden {{requiredMbitPerDay}}.",
       "ok": "Operaciones: datos, enlace y vida útil con margen. Podremos operar la nave."
     }
+  },
+  "team": {
+    "role": {
+      "director": "Dirección de vuelo",
+      "engineering": "Ingeniería",
+      "science": "Ciencia",
+      "operations": "Operaciones"
+    },
+    "phase": {
+      "lobby": "Sala de espera",
+      "briefing": "Briefing",
+      "design": "Diseño",
+      "review": "Revisión Go/No-Go",
+      "prelaunch": "Antes del lanzamiento",
+      "launch": "Lanzamiento",
+      "operation": "Operación",
+      "report": "Informe"
+    },
+    "subsystem": {
+      "structure": "Estructura",
+      "power": "Energía solar",
+      "battery": "Baterías",
+      "comms": "Comunicaciones",
+      "obc": "Computadora de a bordo",
+      "adcs": "Control de actitud",
+      "thermal": "Térmico",
+      "payload": "Instrumentos"
+    },
+    "noGoReason": {
+      "mass": "Masa",
+      "power": "Energía",
+      "battery": "Batería",
+      "budget": "Presupuesto",
+      "data": "Almacenamiento de datos",
+      "comms": "Comunicaciones",
+      "time": "Tiempo",
+      "lifetime": "Vida útil",
+      "requirements": "No cumple los requisitos de la misión",
+      "risk": "El riesgo es demasiado alto",
+      "other": "Otro motivo"
+    },
+    "reject": {
+      "phase": "Eso no se puede hacer en la fase «$t(team.phase.{{phase}})».",
+      "permission": "Esa decisión le corresponde al rol $t(team.role.{{role}}).",
+      "notHost": "Solo el anfitrión de la sala puede hacerlo.",
+      "roleTaken": "Otra persona ya tiene el rol $t(team.role.{{role}}).",
+      "missingRoles": "Aún faltan {{count}} rol(es) por cubrir, por ejemplo $t(team.role.{{role}}). Cada rol necesita a alguien conectado.",
+      "noRole": "Primero elige un rol en el equipo.",
+      "notYourRole": "No tienes el rol $t(team.role.{{role}}).",
+      "invalidId": "«{{id}}» no existe en el catálogo.",
+      "componentNotAllowed": "Esta misión no permite usar «$t(catalog.{{component}})».",
+      "orbitNotAllowed": "Esta misión no permite usar «$t(catalog.{{orbit}})».",
+      "launcherNotAllowed": "Esta misión no permite el lanzador «$t(catalog.{{launcher}})».",
+      "componentAbsent": "No hay ninguna pieza «$t(catalog.{{component}})» montada.",
+      "allocationUnknown": "«{{id}}» no es un subsistema de la nave.",
+      "allocationInvalid": "La asignación del subsistema «$t(team.subsystem.{{subsystem}})» debe ser un número igual o mayor que 0.",
+      "allocationOverBudget": "El reparto suma {{totalMUSD}} M USD, pero para piezas solo quedan {{availableMUSD}} M USD (el resto paga el lanzador y la operación).",
+      "invalidAmount": "La cantidad pedida debe ser mayor que 0.",
+      "ownResource": "Tú ya decides sobre «$t(resource.{{resource}})»: no hace falta pedir permiso.",
+      "requestNotFound": "Esa solicitud no existe.",
+      "requestClosed": "Esa solicitud ya está cerrada.",
+      "notRequestOwner": "Esta solicitud la resuelve el rol $t(team.role.{{role}}).",
+      "notRequester": "Solo quien hizo la solicitud puede retirarla.",
+      "voteGoBlocked": "No se puede votar Go: la revisión técnica da No-Go.",
+      "voteNeedsReason": "Un No-Go necesita un motivo: elige qué recurso o qué riesgo te preocupa.",
+      "voteNeedsNote": "Si eliges «Otro motivo», escribe una nota breve para el equipo.",
+      "alertNotFound": "Esa alerta no existe.",
+      "alertClosed": "Esa alerta ya está cerrada.",
+      "alertRole": "Esta alerta no necesita respuesta del rol $t(team.role.{{role}}).",
+      "alertAcked": "El rol $t(team.role.{{role}}) ya respondió a esta alerta.",
+      "timeScale": "Velocidad de tiempo no válida: {{accel}}×.",
+      "emptyText": "El texto está vacío.",
+      "rateLimited": "Vas muy rápido: espera un momento.",
+      "invalidAction": "Acción no válida.",
+      "tooManyComponents": "La nave ya tiene el máximo de {{max}} piezas: quita alguna antes de montar otra.",
+      "tooManyRequests": "Ya tienes {{max}} solicitudes abiertas: espera a que te respondan o retira alguna.",
+      "requestPending": "Ya pediste permiso para eso: espera a que el equipo responda tu solicitud.",
+      "notEnoughPlayers": "Esta es una misión de equipo: necesitan al menos {{min}} personas conectadas para empezar.",
+      "requestRateLimited": "Espera {{seconds}} s antes de hacer otra solicitud: la pieza no se montó y no se envió nada."
+    },
+    "request": {
+      "resourceUp": "Este cambio añade {{amount}} $t(unit.{{unit}}) a «$t(resource.{{resource}})» y lo pasa de «$t(status.{{before}})» a «$t(status.{{after}})». Eso lo decide el rol $t(team.role.{{toRole}}).",
+      "resourceDown": "Este cambio resta {{amount}} $t(unit.{{unit}}) a lo disponible de «$t(resource.{{resource}})» y lo pasa de «$t(status.{{before}})» a «$t(status.{{after}})». Eso lo decide el rol $t(team.role.{{toRole}}).",
+      "allocation": "Con este cambio el subsistema «$t(team.subsystem.{{subsystem}})» gastaría {{usedMUSD}} M USD: {{amount}} M USD más de lo asignado ({{allocatedMUSD}} M USD). Eso lo decide el rol $t(team.role.{{toRole}}).",
+      "explicit": "El rol $t(team.role.{{fromRole}}) pide más «$t(resource.{{resource}})» al rol $t(team.role.{{toRole}}).",
+      "explicitAmount": "El rol $t(team.role.{{fromRole}}) pide {{amount}} $t(unit.{{unit}}) más de «$t(resource.{{resource}})» al rol $t(team.role.{{toRole}}).",
+      "explicitSubsystem": "El rol $t(team.role.{{fromRole}}) pide más «$t(resource.{{resource}})» para el subsistema «$t(team.subsystem.{{subsystem}})».",
+      "explicitSubsystemAmount": "El rol $t(team.role.{{fromRole}}) pide {{amount}} $t(unit.{{unit}}) más de «$t(resource.{{resource}})» para el subsistema «$t(team.subsystem.{{subsystem}})»."
+    }
   }
 }

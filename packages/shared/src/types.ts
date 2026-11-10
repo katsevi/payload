@@ -199,6 +199,18 @@ export interface ScenarioDef {
    * la tabla por dificultad (`EVENT_TABLES[difficulty]`). Solo actúa si `eventsEnabled` es true.
    */
   eventTuning?: ScenarioEventTuning;
+  /**
+   * Fase 3 (aditivo): escenario pensado para jugar en equipo. `minPlayers` ≥ 2 lo marca como misión
+   * de equipo (`isTeamScenario`) y la sala no empieza (`start-mission`) con menos jugadores conectados.
+   * Sin este campo el escenario se juega en solitario o en sala con 1-4 jugadores.
+   */
+  team?: ScenarioTeamSettings;
+}
+
+/** Jugadores admitidos por un escenario de equipo (enteros 1-4, `minPlayers` ≤ `maxPlayers`). */
+export interface ScenarioTeamSettings {
+  minPlayers: number;
+  maxPlayers: number;
 }
 
 // ─── Eventos aleatorios (fase 2) ────────────────────────────────────────────
@@ -279,6 +291,7 @@ export type MascotExpression = 'happy' | 'thinking' | 'worried' | 'celebrating';
  *   event:<SimEventType> · resource-over:<ResourceId> · resource-tight:<ResourceId> ·
  *   phase:<MissionPhase> · academy:<id de paso> · help:<contexto> · review:go|no-go ·
  *   report:success|failure
+ * Fase 3 (multijugador): team:<valor de TEAM_MASCOT_TRIGGERS> · role:<TeamRole> (presentación del rol).
  */
 export interface MascotDialogue {
   id: string;
@@ -584,3 +597,435 @@ export interface RoleAdvice {
   message: MessageRef;
   severity: IssueSeverity;
 }
+
+// ─── Multijugador (fase 3) ──────────────────────────────────────────────────
+// Contrato entre motor, servidor (apps/game-server) y cliente: docs/MULTIPLAYER.md.
+// Lógica pura en src/team.ts (roles, permisos, solicitudes, votos, alertas, colaboración) y
+// src/teamWire.ts (esquema zod de las acciones y codificación del estado para Colyseus).
+// Los tiempos `*AtS` son segundos de sala que pasa quien llama (el motor no tiene reloj).
+
+/** Roles del equipo en una sala: los mismos cuatro de los asesores en solitario. */
+export type TeamRole = AdvisorRole;
+
+/** Fases de una sala: las de `MissionPhase` más `lobby` (sala de espera) y `prelaunch` (tras el Go). */
+export type RoomPhase = 'lobby' | 'briefing' | 'design' | 'review' | 'prelaunch' | 'launch' | 'operation' | 'report';
+
+/** Permisos por rol (tabla `ROLE_PERMISSIONS`). Pedir la revisión, votar por tus roles, chat y pings no requieren permiso. */
+export type TeamPermission =
+  | 'design.orbit'
+  | 'design.launcher'
+  | 'budget.allocate'
+  | `design.subsystem.${SubsystemId}`
+  | 'mission.startDesign'
+  | 'launch.confirm'
+  | 'time.control'
+  | 'mission.finish'
+  | 'mission.redesign'
+  | `request.resolve.${ResourceId}`;
+
+/** Reparto del dinero para piezas por subsistema (MUSD). Un subsistema ausente no tiene tope. */
+export type SubsystemAllocation = Partial<Record<SubsystemId, number>>;
+
+/** Gasto de un subsistema frente a su asignación (`subsystemSpend`). */
+export interface SubsystemSpend {
+  subsystem: SubsystemId;
+  /** Asignación (MUSD); null = sin tope (sin reparto o subsistema sin asignar). */
+  allocatedMUSD: number | null;
+  /** Costo de las piezas montadas de ese subsistema (MUSD). */
+  usedMUSD: number;
+  /** (asignado − usado) / asignado; null si no hay tope o la asignación es 0 sin gasto. */
+  margin: number | null;
+  status: ResourceStatus;
+}
+
+export type GoNoGoVoteValue = 'go' | 'no-go';
+/** Motivo de un No-Go: un recurso, los requisitos de la misión, el riesgo u otro (con nota). */
+export type NoGoReasonCode = ResourceId | 'requirements' | 'risk' | 'other';
+export interface NoGoReason {
+  code: NoGoReasonCode;
+  /** Texto libre del jugador (obligatorio si `code` es `other`). */
+  note?: string;
+}
+
+/** Voto de un rol en el Go/No-Go compartido. */
+export interface TeamVote {
+  role: TeamRole;
+  playerId: string;
+  value: GoNoGoVoteValue;
+  reason?: NoGoReason;
+  atS: number;
+}
+
+/** Recuento de la votación (`tallyGoNoGo`). */
+export interface TeamPollResult {
+  status: 'pending' | 'go' | 'no-go';
+  /** Roles sin voto válido todavía. */
+  missingRoles: TeamRole[];
+  /** Votos No-Go válidos que cierran la votación (vacío si no hay). */
+  noGoVotes: TeamVote[];
+}
+
+/** Último No-Go: del motor (`review`, con sus issues) o de la votación (`vote`, con los votos). */
+export interface NoGoRecord {
+  source: 'review' | 'vote';
+  issues: ValidationIssue[];
+  votes: TeamVote[];
+  atS: number;
+}
+
+/** Destino de un ping (señalar algo al equipo). */
+export type PingTarget =
+  | { kind: 'subsystem'; id: SubsystemId }
+  | { kind: 'component'; id: string }
+  | { kind: 'resource'; id: ResourceId }
+  | { kind: 'point'; position: [number, number, number] };
+
+/**
+ * Única acción que un cliente envía a la sala (mensaje `action`, validado con `teamActionSchema`).
+ *  - claim-roles: reemplaza mis roles (se rechaza si alguno lo tiene otro jugador).
+ *  - auto-assign-roles / start-mission: anfitrión (reparto con `combineRoles` / lobby → briefing).
+ *  - start-design: Dirección, briefing → design.
+ *  - remove-component: quita la ÚLTIMA unidad montada de ese componente.
+ */
+export type TeamAction =
+  | { type: 'set-name'; name: string }
+  | { type: 'claim-roles'; roles: TeamRole[] }
+  | { type: 'auto-assign-roles' }
+  | { type: 'start-mission' }
+  | { type: 'start-design' }
+  | { type: 'add-component'; componentId: string }
+  | { type: 'remove-component'; componentId: string }
+  | { type: 'select-orbit'; orbitId: OrbitId | null }
+  | { type: 'select-launcher'; launcherId: string | null }
+  | { type: 'allocate-budget'; allocation: SubsystemAllocation | null }
+  | { type: 'request-resource'; resource: ResourceId; amount?: number; subsystem?: SubsystemId; note?: string }
+  | { type: 'resolve-request'; requestId: string; approve: boolean; note?: string }
+  | { type: 'withdraw-request'; requestId: string }
+  | { type: 'request-review' }
+  | { type: 'vote'; role: TeamRole; value: GoNoGoVoteValue; reason?: NoGoReason }
+  | { type: 'confirm-launch' }
+  | { type: 'launch-done' }
+  | { type: 'set-time-scale'; accel: number }
+  | { type: 'ack-alert'; alertId: string; role: TeamRole }
+  | { type: 'finish-operation' }
+  | { type: 'redesign' }
+  | { type: 'chat'; text: string }
+  | { type: 'ping'; target: PingTarget };
+
+export type ResourceRequestStatus = 'open' | 'approved' | 'rejected' | 'withdrawn';
+
+/** Solicitud de recursos (automática por una acción de diseño, o explícita con `request-resource`). */
+export interface ResourceRequest {
+  id: string;
+  fromPlayerId: string;
+  fromRole: TeamRole;
+  toRole: TeamRole;
+  resource: ResourceId;
+  /** Cantidad en la unidad del recurso (`RESOURCE_UNITS`); ausente en una explícita sin cantidad. */
+  amount?: number;
+  subsystem?: SubsystemId;
+  componentId?: string;
+  /** Acción de diseño en espera (solo solicitudes automáticas). Aprobar la re-aplica sobre el diseño actual. */
+  action?: TeamAction;
+  /** Texto libre del solicitante. */
+  note?: string;
+  status: ResourceRequestStatus;
+  resolvedByPlayerId?: string;
+  /** Texto libre de quien resolvió (p. ej. "propón otra solución"). */
+  resolutionNote?: string;
+  createdAtS: number;
+  resolvedAtS?: number;
+  /** Aditivo: explicación del motor (por qué hace falta aprobación), `team.request.*`. */
+  why?: MessageRef;
+  /** Aditivo: motivo del sistema si se rechazó al aprobar (la acción ya no tenía sentido). */
+  resolutionReason?: MessageRef;
+  /** Aditivo: roles que ya aprobaron la acción en espera (solicitudes encadenadas). */
+  approvedBy?: TeamRole[];
+}
+
+export interface AlertAck {
+  role: TeamRole;
+  playerId: string;
+  atS: number;
+}
+
+/** Alerta de equipo abierta por un evento de `EVENT_RESPONSE_ROLES` (pausa la simulación). */
+export interface TeamAlert {
+  id: string;
+  event: SimEvent;
+  requiredRoles: TeamRole[];
+  acks: AlertAck[];
+  raisedAtS: number;
+  closedAtS: number | null;
+  /** true si se cerró por `alertTimeoutS` sin todas las respuestas. */
+  timedOut: boolean;
+}
+
+/** Pose del avatar en el hangar o la sala de control (metros y radianes). */
+export interface AvatarPose {
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+}
+
+export interface TeamPlayer {
+  /** sessionId de Colyseus. */
+  id: string;
+  name: string;
+  roles: TeamRole[];
+  connected: boolean;
+  isHost: boolean;
+  pose: AvatarPose | null;
+}
+
+export interface ChatMessage {
+  id: string;
+  playerId: string;
+  name: string;
+  roles: TeamRole[];
+  text: string;
+  atS: number;
+}
+
+/** Lo que dice la mascota de la sala: cada cliente muestra `pickMascotDialogue(trigger, mascot, variant)`. */
+export interface MascotCue {
+  trigger: string;
+  variant: number;
+  /** Contador creciente: cambia aunque se repita el disparador. */
+  seq: number;
+  atS: number;
+}
+
+/** Puntuación de colaboración (`scoreCollaboration`), aparte de `MissionResult`. */
+export interface CollaborationScore {
+  /** 0-100. */
+  score: number;
+  /** Solicitudes que cuentan (las retiradas no). */
+  requestsTotal: number;
+  requestsResolved: number;
+  avgRequestResponseS: number | null;
+  alertsTotal: number;
+  alertAcksExpected: number;
+  alertAcksOnTime: number;
+  avgAlertResponseS: number | null;
+  /** Criterios 0-1 presentes (`requests`, `alerts`). */
+  criteria: Record<string, number>;
+}
+
+/** Estado de la simulación de la sala. */
+export interface RoomSimView {
+  /** Aceleración elegida (`TEAM_TIME_SCALES`); se conserva durante una pausa por alerta. */
+  accel: number;
+  /** Segundos de misión simulados (los clientes que reflejan la simulación avanzan hasta aquí). */
+  simT: number;
+  snapshot: SimSnapshot | null;
+  /** Resultado del lanzamiento; null hasta que se sabe. */
+  launchOk: boolean | null;
+  finished: boolean;
+  /** Pausada por una alerta abierta. */
+  paused: boolean;
+}
+
+/** Vista plana del estado de la sala (lo que lee la UI): `decodeRoomView(room.state.toJSON())`. */
+export interface RoomView {
+  roomId: string;
+  scenarioId: string;
+  phase: RoomPhase;
+  /** Intento (0, 1, …): sube con `redesign`. */
+  attempt: number;
+  /** Semilla del intento (= defaultSeed del escenario + intento, salvo la opción de desarrollo). */
+  seed: number;
+  /** Jugador anfitrión; null si la sala está vacía. */
+  hostId: string | null;
+  /** En orden de llegada. */
+  players: TeamPlayer[];
+  /** `design.scenarioId` es siempre `scenarioId`. */
+  design: MissionDesign;
+  allocation: SubsystemAllocation | null;
+  requests: ResourceRequest[];
+  votes: TeamVote[];
+  lastNoGo: NoGoRecord | null;
+  preLaunch: PreLaunchOutcome | null;
+  sim: RoomSimView;
+  /** Eventos de la operación (últimos `TEAM_LIMITS.eventHistory`). */
+  events: SimEvent[];
+  alerts: TeamAlert[];
+  result: MissionResult | null;
+  collaboration: CollaborationScore | null;
+  /** `withCollaboration(result.score, collaboration.score)`. */
+  teamScore: ScoreBreakdown | null;
+  mascot: MascotCue | null;
+  /** Últimos `TEAM_LIMITS.chatHistory` mensajes. */
+  chat: ChatMessage[];
+}
+
+/** Mensaje efímero `notice` del servidor a un cliente. */
+export type ServerNotice =
+  | { kind: 'rejected'; action: TeamAction['type']; reason: MessageRef }
+  | { kind: 'request-created'; requestId: string }
+  | { kind: 'ping'; playerId: string; role: TeamRole | null; target: PingTarget; atS: number };
+
+/** Jugador en el estado de Colyseus: solo primitivos + `roles: string[]`. Mapeo en teamWire.ts. */
+export interface PlayerWire {
+  id: string;
+  name: string;
+  roles: string[];
+  connected: boolean;
+  isHost: boolean;
+  /** Orden de llegada (al decodificar, los jugadores se ordenan por este número). */
+  order: number;
+  /** false = pose null (x, y, z, yaw se ignoran). */
+  hasPose: boolean;
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+}
+
+/**
+ * Estado sincronizado de la sala tal como lo guarda el esquema de Colyseus: SOLO primitivos,
+ * arrays de string y el mapa `players`. Los objetos profundos van como cadenas JSON (`''` = null) y
+ * las listas de objetos como arrays de cadenas JSON (un elemento por item, para que Colyseus mande
+ * deltas). Mapeo campo a campo con `RoomView` en la cabecera de teamWire.ts.
+ */
+export interface RoomStateWire {
+  roomId: string;
+  scenarioId: string;
+  phase: string;
+  attempt: number;
+  seed: number;
+  hostId: string;
+  players: Record<string, PlayerWire>;
+  componentIds: string[];
+  orbitId: string;
+  launcherId: string;
+  allocation: string;
+  requests: string[];
+  votes: string[];
+  lastNoGo: string;
+  preLaunch: string;
+  simAccel: number;
+  simT: number;
+  simSnapshot: string;
+  /** '' = desconocido, 'success' | 'failure'. */
+  simLaunch: string;
+  simFinished: boolean;
+  simPaused: boolean;
+  events: string[];
+  alerts: string[];
+  result: string;
+  collaboration: string;
+  teamScore: string;
+  mascot: string;
+  chat: string[];
+}
+
+/** Efecto de una acción de diseño sobre un recurso (`actionImpact`). */
+export interface ResourceImpact {
+  resource: ResourceId;
+  before: ResourceStatus;
+  after: ResourceStatus;
+  /** Cambio del valor usado (unidad del recurso). */
+  usedDelta: number;
+  /** Disponible > 0 antes y después (si no, el estado no dice nada). */
+  evaluable: boolean;
+  /** Aditivo: cambio del disponible (p. ej. la vida útil baja al añadir piezas). */
+  availableDelta: number;
+  /** Aditivo: el estado empeora (ok → tight|over, tight → over). */
+  worsened: boolean;
+  /** Aditivo: código de unidad (`unit.<código>` en los locales). */
+  unit: string;
+}
+
+/** Contexto de `checkTeamAction`. Las listas opcionales ausentes se tratan como vacías. */
+export interface TeamActionContext {
+  phase: RoomPhase;
+  actorRoles: readonly TeamRole[];
+  isHost: boolean;
+  design: MissionDesign;
+  allocation: SubsystemAllocation | null;
+  catalog?: Catalog;
+  requests?: readonly ResourceRequest[];
+  /** Reservado: el voto se puede cambiar (cuenta el último), así que no se usa para rechazar. */
+  votes?: readonly TeamVote[];
+  /** Aditivo: id del jugador que actúa (solo el autor retira su solicitud; roles ocupados por otros). */
+  actorId?: string;
+  /** Aditivo: jugadores de la sala (roles ocupados en `claim-roles`, roles cubiertos en `start-mission`). */
+  players?: readonly Pick<TeamPlayer, 'id' | 'roles' | 'connected'>[];
+  /** Aditivo: alertas de la sala (para `ack-alert`). */
+  alerts?: readonly TeamAlert[];
+}
+
+/** Solicitud que genera una acción (automática o explícita). */
+export interface TeamRequestCheck {
+  kind: 'request';
+  toRole: TeamRole;
+  resource: ResourceId;
+  /** En la unidad del recurso; 0 en una explícita sin cantidad. */
+  amount: number;
+  subsystem?: SubsystemId;
+  /** Aditivo: rol del solicitante que motiva la acción. */
+  fromRole: TeamRole;
+  /** Aditivo: pieza implicada (add/remove). */
+  componentId?: string;
+  /** Aditivo: explicación para la UI (`team.request.*`). */
+  why: MessageRef;
+  /** Aditivo: roles que ya aprobaron esta acción (cadena de aprobaciones). */
+  approvedBy?: TeamRole[];
+}
+
+/** Veredicto de `checkTeamAction`: aplicar, convertir en solicitud o rechazar con motivo. */
+export type TeamActionCheck = { kind: 'apply' } | TeamRequestCheck | { kind: 'reject'; reason: MessageRef };
+
+/** Resultado de aprobar una solicitud (`applyApprovedRequest`). */
+export type ApprovalOutcome =
+  | { kind: 'applied'; design: MissionDesign; allocation: SubsystemAllocation | null }
+  /** La acción toca además un recurso de otro rol: nueva solicitud encadenada (la asignación ya se actualizó). */
+  | { kind: 'request'; check: TeamRequestCheck; allocation: SubsystemAllocation | null }
+  | { kind: 'reject'; reason: MessageRef };
+
+/** Entrada de `scoreCollaboration`. */
+export interface CollaborationInput {
+  requests: readonly Pick<ResourceRequest, 'status' | 'createdAtS' | 'resolvedAtS'>[];
+  alerts: readonly Pick<TeamAlert, 'requiredRoles' | 'acks' | 'raisedAtS'>[];
+  /** Segundo de sala en que se puntúa (fin de la operación). */
+  endedAtS: number;
+  /**
+   * Aditivo: acumulados de las solicitudes que el servidor ya purgó del estado (`purgeRequests`).
+   * `scoreCollaboration({ requests: kept, purged })` da exactamente lo mismo que con la lista completa.
+   */
+  purged?: PurgedRequestStats;
+}
+
+/**
+ * Acumulados de solicitudes CERRADAS purgadas del historial (`purgeRequests`). Las retiradas no cuentan
+ * (tampoco cuentan en la nota) y las abiertas nunca se purgan.
+ */
+export interface PurgedRequestStats {
+  /** Purgadas que cuentan para la nota (aprobadas o rechazadas). */
+  requestsTotal: number;
+  /** De ellas, resueltas (hoy siempre = requestsTotal; se separa por si se purgan otros estados). */
+  requestsResolved: number;
+  /** Σ crédito de respuesta (0-1 cada una), sumado en orden de la lista. */
+  requestCreditSum: number;
+  /** Σ tiempos de respuesta (s), sumado en orden de la lista. */
+  responseSumS: number;
+  /** Nº de tiempos sumados en `responseSumS`. */
+  responseCount: number;
+}
+
+/**
+ * Cubeta de fichas de un jugador para solicitudes (`takeRequestToken`): capacidad
+ * `TEAM_LIMITS.requestBurst`, se repone una ficha cada `TEAM_LIMITS.requestMinIntervalS`.
+ */
+export interface RequestRateBucket {
+  tokens: number;
+  /** Segundo de sala de la última actualización. */
+  updatedAtS: number;
+}
+
+/** Resultado de `takeRequestToken`: guarda `bucket` en ambos casos; sin ficha, `reason` = `team.reject.requestRateLimited`. */
+export type RequestTokenResult =
+  | { ok: true; bucket: RequestRateBucket }
+  | { ok: false; bucket: RequestRateBucket; reason: MessageRef };
