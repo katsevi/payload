@@ -1,6 +1,6 @@
 # 0009 · Servidor autoritativo con Colyseus que corre el mismo motor
 
-- Estado: aceptada
+- Estado: aceptada · en suspenso hasta la fase 4 (ver 0011: hay que reescribir la sala para el juego nuevo)
 - Fecha: 2026-11-09
 
 ## Contexto

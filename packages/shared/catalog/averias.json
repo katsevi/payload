@@ -1,0 +1,45 @@
+{
+  "incidents": {
+    "fire": {
+      "repairS": 3.5,
+      "systemDamagePctPerS": 2.5,
+      "hullDamagePerS": 0.35,
+      "o2DrainPctPerS": 0.5,
+      "spreadAfterS": 35
+    },
+    "short": {
+      "repairS": 2.5,
+      "escalateToFireAfterS": 28
+    },
+    "leak": {
+      "repairS": 3,
+      "o2DrainPctPerS": 1.4
+    }
+  },
+  "impact": {
+    "warnLeadLy": 4,
+    "hullDamageMin": 8,
+    "hullDamageMax": 18,
+    "systemDamageMin": 10,
+    "systemDamageMax": 25,
+    "leakChanceUnshielded": 0.5
+  },
+  "wear": {
+    "chancePerS": 0.009,
+    "weights": {
+      "fire": 1,
+      "short": 3,
+      "leak": 1
+    }
+  },
+  "repair": {
+    "kitRepairS": 4,
+    "kitRestorePct": 50
+  },
+  "alerts": {
+    "lowOxygenPct": 35,
+    "lowFuelPct": 20,
+    "lowHullPct": 30
+  },
+  "maxIncidents": 6
+}

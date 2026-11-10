@@ -1,0 +1,169 @@
+{
+  "nodeKinds": [
+    {
+      "id": "station",
+      "name": {
+        "es": "Estación",
+        "en": "Station"
+      },
+      "weight": 1,
+      "landable": false,
+      "hazardPerLy": {
+        "impact": 0.015,
+        "short": 0.008,
+        "fire": 0,
+        "leak": 0.002
+      },
+      "service": {
+        "refuel": true,
+        "hullRepair": 40,
+        "spares": 2
+      }
+    },
+    {
+      "id": "planet",
+      "name": {
+        "es": "Planeta",
+        "en": "Planet"
+      },
+      "weight": 4,
+      "landable": true,
+      "hazardPerLy": {
+        "impact": 0.045,
+        "short": 0.018,
+        "fire": 0.008,
+        "leak": 0.008
+      },
+      "cache": {
+        "chance": 0.45,
+        "fuel": {
+          "min": 8,
+          "max": 16
+        },
+        "spares": {
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    {
+      "id": "moon",
+      "name": {
+        "es": "Luna",
+        "en": "Moon"
+      },
+      "weight": 3,
+      "landable": true,
+      "hazardPerLy": {
+        "impact": 0.06,
+        "short": 0.012,
+        "fire": 0.006,
+        "leak": 0.012
+      },
+      "cache": {
+        "chance": 0.4,
+        "fuel": {
+          "min": 6,
+          "max": 14
+        },
+        "spares": {
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    {
+      "id": "asteroid",
+      "name": {
+        "es": "Campo de asteroides",
+        "en": "Asteroid field"
+      },
+      "weight": 3,
+      "landable": true,
+      "hazardPerLy": {
+        "impact": 0.15,
+        "short": 0.01,
+        "fire": 0.006,
+        "leak": 0.02
+      },
+      "cache": {
+        "chance": 0.85,
+        "fuel": {
+          "min": 14,
+          "max": 26
+        },
+        "spares": {
+          "min": 0,
+          "max": 2
+        }
+      }
+    },
+    {
+      "id": "nebula",
+      "name": {
+        "es": "Nebulosa",
+        "en": "Nebula"
+      },
+      "weight": 2,
+      "landable": false,
+      "hazardPerLy": {
+        "impact": 0.015,
+        "short": 0.08,
+        "fire": 0.035,
+        "leak": 0.004
+      },
+      "cache": {
+        "chance": 0.7,
+        "fuel": {
+          "min": 16,
+          "max": 28
+        },
+        "spares": {
+          "min": 0,
+          "max": 1
+        }
+      }
+    },
+    {
+      "id": "derelict",
+      "name": {
+        "es": "Nave abandonada",
+        "en": "Derelict ship"
+      },
+      "weight": 2,
+      "landable": false,
+      "hazardPerLy": {
+        "impact": 0.07,
+        "short": 0.02,
+        "fire": 0.012,
+        "leak": 0.03
+      },
+      "cache": {
+        "chance": 1,
+        "fuel": {
+          "min": 12,
+          "max": 24
+        },
+        "spares": {
+          "min": 1,
+          "max": 2
+        }
+      }
+    },
+    {
+      "id": "gate",
+      "name": {
+        "es": "Portal de salto",
+        "en": "Jump gate"
+      },
+      "weight": 0,
+      "landable": false,
+      "hazardPerLy": {
+        "impact": 0.06,
+        "short": 0.025,
+        "fire": 0.01,
+        "leak": 0.01
+      }
+    }
+  ]
+}

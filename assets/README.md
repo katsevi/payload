@@ -30,8 +30,8 @@ Para revisar un modelo: `.claude/skills/3d-models/scripts/inspect.sh <archivo.gl
 
 Los originales de `models/source/` se suben al repositorio de GitHub para que el proyecto pueda regenerar los optimizados. El más grande (`programme_erizon.glb`) pesa unos 31 MB, por debajo del límite de 100 MB de GitHub. Si los assets crecen, considera Git LFS.
 
-## Audio (fase 2)
+## Audio
 
-- El audio de fase 2 se genera de forma procedural con Web Audio API: no hay archivos de audio que versionar.
+- El audio se genera de forma procedural con Web Audio API: no hay archivos de audio que versionar.
 - Todo archivo de audio futuro va en `assets/web/audio/` (URL `/audio/<archivo>`) y se registra en `assets/CREDITS.md` con autor, fuente, licencia y uso en el juego.
 - Formatos recomendados: `.m4a` o `.ogg` (la `.m4a` ya está marcada como binaria en `.gitattributes`).

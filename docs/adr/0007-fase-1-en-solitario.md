@@ -1,6 +1,6 @@
 # 0007 · Fase 1 en solitario antes que el multijugador
 
-- Estado: aceptada
+- Estado: sustituida por 0011 (se mantiene la idea: primero en solitario, después el cooperativo)
 - Fecha: 2026-11-07
 
 ## Contexto

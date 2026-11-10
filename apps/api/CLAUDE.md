@@ -1,20 +1,18 @@
-# @payload/api — marcador de la fase 4
+# @payload/api — marcador de la fase 5
 
-**Hoy no tiene código** (`src/` vacío; los scripts `typecheck`/`test`/`build` solo hacen `echo`).
-No lo rellenes hasta que la fase 3 esté validada (`docs/phases/fase-4.md`).
+**Hoy no tiene código** (los scripts `typecheck`/`test`/`build` solo hacen `echo`).
+No lo rellenes hasta que el cooperativo (fase 4) esté validado (`docs/phases/fase-5.md`).
 
-## Qué irá aquí (según el plan)
+## Qué irá aquí
 
-- API con **NestJS + Prisma + PostgreSQL**: cuentas (invitado + OAuth Google/GitHub), diseños guardados
-  (guardar, compartir por enlace, comparar), rankings por escenario e informes.
-- Despliegue en AWS (ECS Fargate, RDS) y observabilidad con Sentry.
+- API con **NestJS + Prisma + PostgreSQL**: cuentas de invitado, mejores marcas y rankings por semilla.
+- Despliegue y observabilidad (Sentry).
 
 ## Contrato que debe respetar
 
-- Reutiliza los tipos de `@payload/shared` (`MissionDesign`, `MissionResult`, `ScoreBreakdown`); no los redefine.
-- Los rankings se calculan a partir de resultados producidos por el **servidor de juego autoritativo**
-  (que corre el mismo motor), no de puntuaciones enviadas por el cliente.
-- Un diseño guardado se valida con `parseCatalog`/`computeBudgets` del motor antes de aceptarse.
+- Reutiliza los tipos de `@payload/shared` (`RunState`, `RunStats`, `RunAction`); no los redefine.
+- Un ranking solo es fiable si el servidor **recalcula la partida con el motor** (semilla + acciones), no
+  si acepta la puntuación que envía el cliente. La puntuación sale de `computeScore`.
 - Cambios en `packages/shared/src/types.ts`: solo aditivos, o ADR.
 
 Arquitectura de conjunto: `docs/ARCHITECTURE.md`.

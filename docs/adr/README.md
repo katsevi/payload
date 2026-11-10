@@ -37,7 +37,8 @@ Qué se gana, qué se pierde y qué obliga a hacer después.
 | [0004](0004-contenido-json-zod.md) | Contenido en JSON validado con zod | Aceptada |
 | [0005](0005-i18n-es-en.md) | i18n es/en desde el día 1 (`ui` y `sim`) | Aceptada |
 | [0006](0006-pipeline-de-assets.md) | Pipeline de assets y registro de licencias | Aceptada |
-| [0007](0007-fase-1-en-solitario.md) | Fase 1 en solitario antes que el multijugador | Aceptada |
-| [0008](0008-eventos-y-dificultad-fase-2.md) | Eventos por dificultad, penalización de agotamientos y fase de Kepler | Aceptada |
-| [0009](0009-servidor-autoritativo-colyseus.md) | Servidor autoritativo con Colyseus que corre el mismo motor | Aceptada |
-| [0010](0010-presencia-y-escalado.md) | Presencia y escalado del servidor de juego: un proceso, sin Redis (por ahora) | Aceptada |
+| [0007](0007-fase-1-en-solitario.md) | Fase 1 en solitario antes que el multijugador | Sustituida por 0011 |
+| [0008](0008-eventos-y-dificultad-fase-2.md) | Eventos por dificultad, penalización de agotamientos y fase de Kepler | Sustituida por 0011 |
+| [0009](0009-servidor-autoritativo-colyseus.md) | Servidor autoritativo con Colyseus que corre el mismo motor | Aceptada · en suspenso hasta la fase 4 |
+| [0010](0010-presencia-y-escalado.md) | Presencia y escalado del servidor de juego: un proceso, sin Redis (por ahora) | Aceptada · en suspenso hasta la fase 4 |
+| [0011](0011-reinicio-tripulacion-de-exploracion.md) | Reinicio del concepto: de simulador de diseño a tripulación de exploración | Aceptada |

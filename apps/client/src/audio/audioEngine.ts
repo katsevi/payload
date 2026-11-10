@@ -147,7 +147,7 @@ export class AudioEngine {
     this.loops.delete(name);
   }
 
-  // ─── Sonido posicional (hangar) ───────────────────────────────────────────
+  // ─── Sonido posicional (sin uso todavía en la nave) ───────────────────────────────────────────
 
   /** Registra un emisor 3D. Devuelve la función que lo quita. Se activa al desbloquear el audio. */
   addEmitter(kind: EmitterKind, pos: Vec3): () => void {
@@ -457,44 +457,44 @@ export class AudioEngine {
       case 'click':
         this.tone(ctx, 'sfx', t, { freq: 1500, dur: 0.035, type: 'square', vol: 0.07 });
         break;
-      case 'mount':
+      case 'fixed':
         this.tone(ctx, 'sfx', t, { freq: 190, dur: 0.14, type: 'square', vol: 0.18, slideTo: 90 });
         this.tone(ctx, 'sfx', t + 0.03, { freq: 920, dur: 0.06, type: 'triangle', vol: 0.12 });
         this.noiseBurst(ctx, 'sfx', t, { dur: 0.08, vol: 0.12, filter: 'highpass', f0: 2500 });
         break;
-      case 'unmount':
+      case 'toggle':
         this.tone(ctx, 'sfx', t, { freq: 520, dur: 0.12, type: 'triangle', vol: 0.15, slideTo: 240 });
         this.noiseBurst(ctx, 'sfx', t, { dur: 0.1, vol: 0.1, filter: 'highpass', f0: 2000 });
         break;
-      case 'batteryAlarm':
+      case 'alarm':
         for (let k = 0; k < 3; k++) {
           this.tone(ctx, 'alerts', t + k * 0.42, { freq: 880, dur: 0.18, type: 'square', vol: 0.16 });
           this.tone(ctx, 'alerts', t + k * 0.42 + 0.2, { freq: 660, dur: 0.18, type: 'square', vol: 0.16 });
         }
         break;
-      case 'contact':
+      case 'ok':
         this.tone(ctx, 'alerts', t, { freq: 1568, dur: 0.09, vol: 0.2 });
         this.tone(ctx, 'alerts', t + 0.13, { freq: 2093, dur: 0.12, vol: 0.2 });
         break;
-      case 'radioStatic':
+      case 'sparks':
         for (let k = 0; k < 5; k++) {
           this.noiseBurst(ctx, 'sfx', t + k * 0.11 + Math.random() * 0.04, {
             dur: 0.07 + Math.random() * 0.05, vol: 0.14 + Math.random() * 0.1, filter: 'bandpass', f0: 1800 + Math.random() * 1800, q: 1.2,
           });
         }
         break;
-      case 'countdownTick':
+      case 'warnTick':
         this.tone(ctx, 'alerts', t, { freq: 880, dur: 0.1, vol: 0.2 });
         break;
-      case 'liftoff':
+      case 'jump':
         this.startRoar(ctx);
         break;
-      case 'separation':
+      case 'clunk':
         this.noiseBurst(ctx, 'sfx', t, { dur: 0.3, vol: 0.4, f0: 1800, f1: 300 });
         this.tone(ctx, 'sfx', t, { freq: 130, dur: 0.35, type: 'square', vol: 0.2, slideTo: 55 });
         this.tone(ctx, 'sfx', t + 0.05, { freq: 1900, dur: 0.05, type: 'triangle', vol: 0.1 });
         break;
-      case 'explosion':
+      case 'impact':
         this.noiseBurst(ctx, 'alerts', t, { dur: 1.8, vol: 0.55, f0: 2200, f1: 90 });
         this.tone(ctx, 'alerts', t, { freq: 80, dur: 1.2, type: 'sawtooth', vol: 0.3, slideTo: 28 });
         break;
@@ -502,7 +502,7 @@ export class AudioEngine {
       case 'complete':
         [523.25, 659.25, 783.99, 1046.5].forEach((f, k) => this.tone(ctx, 'alerts', t + k * 0.12, { freq: f, dur: 0.4, vol: 0.14 }));
         break;
-      case 'mascotBlip': {
+      case 'blip': {
         const n = 2 + Math.floor(Math.random() * 3);
         for (let k = 0; k < n; k++) {
           const f = 520 + Math.random() * 480;

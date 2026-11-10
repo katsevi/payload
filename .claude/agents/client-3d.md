@@ -1,19 +1,23 @@
 ---
 name: client-3d
-description: Desarrolla el cliente web de Payload en apps/client (React 19, React Three Fiber v9, Drei, Rapier, Zustand, XState, i18next, Tailwind). Úsalo para escenas 3D, cámaras 1ª/3ª persona, paneles, HUD y flujo de fases.
-model: sonnet
+description: Desarrolla el cliente web de Payload en apps/client (React 19, React Three Fiber v9, Drei, Rapier, Zustand, i18next, Tailwind). Úsalo para escenas 3D, cámaras 1ª/3ª persona, puestos de la nave, efectos, HUD y paneles.
+model: opus
 ---
 
 Eres responsable del cliente de Payload (`apps/client`).
 
 Antes de empezar lee `CLAUDE.md` (raíz), `apps/client/CLAUDE.md` y la API de `@payload/shared`
 (`packages/shared/CLAUDE.md`). Si vas a tocar modelos 3D, carga la skill `3d-models`.
+Para técnica de three.js carga la skill `threejs-*` que corresponda (`threejs-react-three-fiber`,
+`threejs-performance`, `threejs-materials`, `threejs-lighting`, `threejs-shaders`, `threejs-postprocessing`…).
+Son genéricas: las reglas de este proyecto y de `3d-models` mandan sobre ellas.
 
 Reglas:
-- Toda la lógica de juego viene de `@payload/shared`; el cliente no recalcula presupuestos ni física orbital.
-- Nada de texto hardcodeado: claves en `src/locales/{es,en}.json` (namespace `ui`).
-- Mascota, Academia, glosario y asesores salen del catálogo (`catalog.mascot/academy/glossary`, `adviseByRole`); el cliente no conoce sus textos. Todo sonido pasa por `cue(id)` (audio + flash + subtítulo).
-- Estado de UI en Zustand; flujo de fases en la máquina XState; la escena lee del store.
-- Todo lo que se hace en 3D debe poder hacerse también desde un panel 2D (modo accesible).
-- Rendimiento: meta 60 FPS en laptop de gama media; usa `Suspense`, `useGLTF.preload`, sombras moderadas.
-- Termina con `pnpm --filter @payload/client typecheck` y `build` en verde.
+- Toda la lógica de juego viene de `@payload/shared`; el cliente no recalcula combustible, energía ni daños. Las escrituras pasan por `useGame.getState().act(action)`.
+- La escena lee `getRun()?.state` por frame; React lee la copia `useGame((s) => s.hud)`.
+- Nada de texto hardcodeado: claves en `src/locales/{es,en}.json` (namespace `ui`). Textos de una línea: se juega, no se lee.
+- La lógica de puestos e interacciones es pura (`game/layout.ts`, `game/interaction.ts`) y lleva test.
+- Todo sonido pasa por `cue(id)` (audio + destello + subtítulo).
+- Rendimiento: meta 60 FPS en laptop de gama media; sin `new` ni `setState` por frame; escenas con `React.lazy`.
+- La escena no tiene tests: compruébala en el navegador (`pnpm dev`, `?play=1&seed=7`) y dilo en tu resumen.
+- Termina con `pnpm --filter @payload/client typecheck`, `test` y `build` en verde.

@@ -1,78 +1,77 @@
 /**
  * Catálogo puro de efectos: qué sonidos existen, por qué bus pasan y cuál es su equivalente visual
  * (flash de color y subtítulo de sonido). Los textos viven en `ui` (`sound.<id>`), con los corchetes
- * incluidos, p. ej. "[alarma de batería]".
+ * incluidos, p. ej. "[alarma]".
  */
-import type { SimEventType } from '@payload/shared';
+import type { RunEvent } from '@payload/shared';
 
-export type SfxId =
-  | 'click' | 'mount' | 'unmount' | 'batteryAlarm' | 'contact' | 'radioStatic' | 'countdownTick'
-  | 'liftoff' | 'separation' | 'explosion' | 'success' | 'complete' | 'mascotBlip';
+export type SfxId = 'click' | 'fixed' | 'toggle' | 'alarm' | 'ok' | 'sparks' | 'warnTick' | 'jump' | 'clunk' | 'impact' | 'success' | 'complete' | 'blip';
 
 export type SoundBus = 'sfx' | 'alerts' | 'voice';
 export type FlashTone = 'ok' | 'warn' | 'bad' | 'info';
 
 export interface SfxMeta {
-  /** `sfx` = efectos; `alerts` = avisos importantes; `voice` = voz de la mascota (los dos últimos usan el control de avisos). */
+  /** `sfx` = efectos; `alerts` = avisos importantes. */
   bus: SoundBus;
   /** Clave ui del subtítulo de sonido (null = sin subtítulo, p. ej. los clics). */
   captionKey: string | null;
-  /** Color del flash visual (null = sin flash: ya hay otro indicador, p. ej. el número de la cuenta atrás). */
+  /** Color del flash visual (null = sin flash). */
   flash: FlashTone | null;
-  /** Separación mínima entre dos reproducciones (ms), contra el spam a 10 000x. */
+  /** Separación mínima entre dos reproducciones (ms). */
   minGapMs: number;
 }
 
 export const SFX_META: Record<SfxId, SfxMeta> = {
   click: { bus: 'sfx', captionKey: null, flash: null, minGapMs: 30 },
-  mount: { bus: 'sfx', captionKey: 'sound.mount', flash: null, minGapMs: 120 },
-  unmount: { bus: 'sfx', captionKey: 'sound.unmount', flash: null, minGapMs: 120 },
-  batteryAlarm: { bus: 'alerts', captionKey: 'sound.batteryAlarm', flash: 'bad', minGapMs: 8000 },
-  contact: { bus: 'alerts', captionKey: 'sound.contact', flash: 'ok', minGapMs: 6000 },
-  radioStatic: { bus: 'sfx', captionKey: 'sound.radioStatic', flash: 'warn', minGapMs: 4000 },
-  countdownTick: { bus: 'alerts', captionKey: 'sound.countdownTick', flash: null, minGapMs: 300 },
-  liftoff: { bus: 'sfx', captionKey: 'sound.liftoff', flash: 'info', minGapMs: 2000 },
-  separation: { bus: 'sfx', captionKey: 'sound.separation', flash: 'info', minGapMs: 2000 },
-  explosion: { bus: 'alerts', captionKey: 'sound.explosion', flash: 'bad', minGapMs: 2000 },
+  fixed: { bus: 'sfx', captionKey: 'sound.fixed', flash: 'ok', minGapMs: 120 },
+  toggle: { bus: 'sfx', captionKey: null, flash: null, minGapMs: 80 },
+  alarm: { bus: 'alerts', captionKey: 'sound.alarm', flash: 'bad', minGapMs: 2500 },
+  ok: { bus: 'alerts', captionKey: 'sound.ok', flash: 'ok', minGapMs: 800 },
+  sparks: { bus: 'sfx', captionKey: 'sound.sparks', flash: 'warn', minGapMs: 1500 },
+  warnTick: { bus: 'alerts', captionKey: 'sound.warnTick', flash: 'warn', minGapMs: 900 },
+  jump: { bus: 'sfx', captionKey: 'sound.jump', flash: 'info', minGapMs: 2000 },
+  clunk: { bus: 'sfx', captionKey: 'sound.clunk', flash: 'info', minGapMs: 1000 },
+  impact: { bus: 'alerts', captionKey: 'sound.impact', flash: 'bad', minGapMs: 600 },
   success: { bus: 'alerts', captionKey: 'sound.success', flash: 'ok', minGapMs: 2000 },
-  complete: { bus: 'alerts', captionKey: 'sound.complete', flash: 'ok', minGapMs: 2000 },
-  mascotBlip: { bus: 'voice', captionKey: null, flash: null, minGapMs: 400 },
+  complete: { bus: 'alerts', captionKey: 'sound.success', flash: 'ok', minGapMs: 2000 },
+  blip: { bus: 'voice', captionKey: null, flash: null, minGapMs: 400 },
 };
 
 export const SFX_IDS = Object.keys(SFX_META) as SfxId[];
 
-/** Sonido que acompaña a cada evento del motor (null = silencio: eclipses y cambios menores). */
-export function sfxForSimEvent(type: SimEventType | string): SfxId | null {
-  switch (type) {
-    case 'battery-low':
-    case 'battery-depleted':
-      return 'batteryAlarm';
-    case 'contact-start':
-      return 'contact';
-    case 'component-failure':
-    case 'solar-storm':
-    case 'reaction-wheel-failure':
-    case 'debris-avoidance':
-    case 'overheating':
-    case 'storage-full':
-      return 'radioStatic';
-    case 'mission-complete':
-      return 'complete';
+/** Sonido que acompaña a cada evento del motor (null = silencio). */
+export function sfxForRunEvent(event: Pick<RunEvent, 'type' | 'incidentKind'>): SfxId | null {
+  switch (event.type) {
+    case 'jump':
+      return 'jump';
+    case 'arrived':
+      return 'clunk';
+    case 'incident':
+    case 'incident-escalated':
+    case 'fire-spread':
+      return event.incidentKind === 'short' ? 'sparks' : 'alarm';
+    case 'incident-fixed':
+    case 'system-repaired':
+      return 'fixed';
+    case 'impact-warning':
+      return 'warnTick';
+    case 'impact-hit':
+    case 'lost':
+      return 'impact';
+    case 'impact-evaded':
+    case 'service':
+    case 'cache':
+      return 'ok';
+    case 'overload':
+    case 'blackout':
+    case 'system-down':
+    case 'low-oxygen':
+    case 'low-fuel':
+    case 'low-hull':
+      return 'alarm';
+    case 'sector-cleared':
+      return 'success';
     default:
       return null;
   }
 }
-
-/** Efecto del lanzamiento al cambiar de fase de la secuencia (la cuenta atrás va aparte). */
-export function sfxForLaunchPhase(phase: string): SfxId | null {
-  switch (phase) {
-    case 'ascent': return 'liftoff';
-    case 'separation': return 'separation';
-    case 'failure': return 'explosion';
-    case 'success': return 'success';
-    default: return null;
-  }
-}
-
-/** La cuenta atrás suena los últimos 5 segundos. */
-export const countdownTickAt = (count: number): boolean => count >= 1 && count <= 5;

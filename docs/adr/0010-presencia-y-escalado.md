@@ -1,6 +1,6 @@
 # 0010 · Presencia y escalado del servidor de juego: un proceso, sin Redis (por ahora)
 
-- Estado: aceptada
+- Estado: aceptada · en suspenso hasta la fase 4 (ver 0011)
 - Fecha: 2026-11-09
 
 ## Contexto

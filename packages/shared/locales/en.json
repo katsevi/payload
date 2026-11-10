@@ -1,408 +1,88 @@
 {
-  "unit": {
-    "kg": "kg",
-    "W": "W",
-    "Wh": "Wh",
-    "MUSD": "M USD",
-    "Mbit": "Mbit",
-    "Mbit/d": "Mbit/day",
-    "months": "months",
-    "years": "years"
+  "system": {
+    "reactor": "the reactor",
+    "engines": "the engines",
+    "lifeSupport": "life support",
+    "shields": "the shields",
+    "nav": "navigation"
   },
-  "resource": {
-    "mass": "Mass",
-    "power": "Power",
-    "battery": "Battery",
-    "budget": "Budget",
-    "data": "Data storage",
-    "comms": "Communications",
-    "time": "Schedule",
-    "lifetime": "Lifetime"
+  "systemName": {
+    "reactor": "Reactor",
+    "engines": "Engines",
+    "lifeSupport": "Life support",
+    "shields": "Shields",
+    "nav": "Navigation"
   },
-  "status": {
-    "ok": "Healthy margin",
-    "tight": "Tight margin",
-    "over": "Exceeded"
+  "throttle": {
+    "eco": "Eco",
+    "cruise": "Cruise",
+    "burn": "Full burn"
   },
-  "budget": {
-    "mass": {
-      "launcher": "The spacecraft weighs {{massKg}} kg and $t(catalog.{{launcher}}) can lift {{capacityKg}} kg to $t(catalog.{{orbit}}). The higher the orbit, the less a rocket can carry.",
-      "structure": "The spacecraft weighs {{massKg}} kg and the $t(catalog.{{structure}}) can hold at most {{capacityKg}} kg.",
-      "unreachable": "$t(catalog.{{launcher}}) cannot reach $t(catalog.{{orbit}}): pick another launcher or orbit. The spacecraft weighs {{massKg}} kg.",
-      "missing": "The spacecraft weighs {{massKg}} kg. Choose a structure, orbit and launcher to know how much you can carry."
-    },
-    "power": {
-      "balance": "You use {{consumptionW}} W. The panels give {{generationW}} W in sunlight, but the Sun is only visible {{sunPct}}% of each orbit: on average they produce {{avgGenerationW}} W.",
-      "noOrbit": "You use {{consumptionW}} W and the panels give {{generationW}} W in sunlight. Choose an orbit to know how long you will spend in shadow."
-    },
-    "battery": {
-      "eclipse": "In Earth's shadow ({{eclipseMin}} min) the spacecraft draws {{consumptionW}} W from the battery alone: it needs {{needWh}} Wh. The battery holds {{capacityWh}} Wh, but only {{usableWh}} Wh can be used without damaging it.",
-      "noOrbit": "The battery holds {{capacityWh}} Wh ({{usableWh}} Wh usable). Choose an orbit to know how long the shadow lasts."
-    },
-    "budget": {
-      "total": "Parts {{componentsMUSD}} M + launch {{launcherMUSD}} M + operations {{opsMUSD}} M = {{totalMUSD}} M USD out of {{budgetMUSD}} M available.",
-      "cut": "Parts {{componentsMUSD}} M + launch {{launcherMUSD}} M + operations {{opsMUSD}} M = {{totalMUSD}} M USD. After a {{cutMUSD}} M cut, {{budgetMUSD}} M of the original {{originalMUSD}} M remain available."
-    },
-    "data": {
-      "storage": "The instruments produce {{generatedMbitPerDay}} Mbit per day and the computer stores {{storageMbit}} Mbit. It is wise to hold at least one day in case a pass is missed."
-    },
-    "comms": {
-      "downlink": "With {{stations}} stations there are {{contactMin}} min of contact per day; at {{downlinkMbps}} Mbit/s you can download {{capacityMbitPerDay}} Mbit/day. The instruments produce {{generatedMbitPerDay}} Mbit/day: whatever is not downloaded is lost.",
-      "noRadio": "Without a radio nothing can be downloaded, and the instruments produce {{generatedMbitPerDay}} Mbit/day.",
-      "noOrbit": "Choose an orbit to compute ground station contacts. The instruments produce {{generatedMbitPerDay}} Mbit/day."
-    },
-    "time": {
-      "schedule": "The slowest part, $t(catalog.{{component}}), sets the pace; with integration that is {{devMonths}} months of development, plus {{leadMonths}} months waiting for the launcher: {{totalMonths}} of {{maxMonths}} months.",
-      "empty": "There are no parts to build yet. Launcher wait: {{leadMonths}} months; you have {{maxMonths}} months.",
-      "delayed": "Development {{devMonths}} months + launcher wait {{leadMonths}} months + unexpected delay {{delayMonths}} months = {{totalMonths}} of {{maxMonths}} months."
-    },
-    "lifetime": {
-      "drag": "Atmospheric drag in $t(catalog.{{orbit}}) brings the spacecraft down in {{dragYears}} years, before its parts fail (about {{reliabilityYears}} years). Lifetime: {{lifetimeYears}} years; {{requiredYears}} required.",
-      "reliability": "Every part can fail: the chance that all of them work is {{reliabilityPct}}% over the nominal life, and radiation makes it worse. Estimated lifetime: {{lifetimeYears}} years; {{requiredYears}} required.",
-      "empty": "Mount parts to estimate the lifetime. {{requiredYears}} years are required."
-    }
+  "incident": {
+    "fire": "Fire",
+    "short": "Short circuit",
+    "leak": "O₂ leak"
   },
-  "review": {
-    "noStructure": "A structure is missing: it is the skeleton everything else is mounted on.",
-    "noPower": "Solar panels are missing: without them the spacecraft runs out of power within hours.",
-    "noBattery": "A battery is missing: in Earth's shadow there is no sunlight and the spacecraft would shut down.",
-    "noComms": "A radio is missing: without it you will not receive a single byte.",
-    "noObc": "The onboard computer is missing: it controls the spacecraft and stores the data.",
-    "noPayload": "There is no instrument: the mission would have nothing to observe.",
-    "multipleStructures": "There are {{count}} structures: a spacecraft can only have one.",
-    "mountSlots": "There are {{used}} parts mounted, but $t(catalog.{{structure}}) only has {{slots}} mounting points.",
-    "unknownComponent": "Part \"{{id}}\" does not exist in the catalog.",
-    "componentNotAllowed": "$t(catalog.{{component}}) is not available in this mission.",
-    "noOrbit": "Choose an orbit.",
-    "unknownOrbit": "Orbit \"{{id}}\" does not exist in the catalog.",
-    "orbitNotAllowed": "$t(catalog.{{orbit}}) is not allowed in this mission.",
-    "noLauncher": "Choose a launcher.",
-    "unknownLauncher": "Launcher \"{{id}}\" does not exist in the catalog.",
-    "launcherNotAllowed": "$t(catalog.{{launcher}}) is not available in this mission.",
-    "launcherCannotReach": "$t(catalog.{{launcher}}) cannot reach $t(catalog.{{orbit}}).",
-    "massLauncher": "The spacecraft weighs {{massKg}} kg, but $t(catalog.{{launcher}}) only lifts {{capacityKg}} kg to $t(catalog.{{orbit}}).",
-    "massStructure": "The spacecraft weighs {{massKg}} kg, but $t(catalog.{{structure}}) only holds {{capacityKg}} kg.",
-    "budget": "The mission costs {{totalMUSD}} M USD and there are only {{budgetMUSD}} M.",
-    "power": "You use {{consumptionW}} W but only generate {{avgGenerationW}} W on average: the battery would drain orbit after orbit.",
-    "battery": "The shadow lasts {{eclipseMin}} min and at {{consumptionW}} W you need {{needWh}} Wh, but the battery only provides {{usableWh}} Wh usable.",
-    "time": "The spacecraft would be ready to launch in {{totalMonths}} months, and the deadline is {{maxMonths}}.",
-    "tight": {
-      "mass": "Tight mass margin: only {{marginPct}}% left. At least 15% is recommended.",
-      "power": "Tight power margin: only {{marginPct}}% left. At least 15% is recommended.",
-      "battery": "Tight battery margin: only {{marginPct}}% left. At least 15% is recommended.",
-      "budget": "Tight budget margin: only {{marginPct}}% left. At least 15% is recommended.",
-      "data": "Tight data storage margin: only {{marginPct}}% left. At least 15% is recommended.",
-      "comms": "Tight communications margin: only {{marginPct}}% left. At least 15% is recommended.",
-      "time": "Tight schedule margin: only {{marginPct}}% left. At least 15% is recommended.",
-      "lifetime": "Tight lifetime margin: only {{marginPct}}% left. At least 15% is recommended."
-    },
-    "reqResolution": "From this altitude the best camera sees {{resolutionM}} m details, and {{requiredM}} m or better is required.",
-    "reqResolutionNone": "No instrument takes images, and a resolution of {{requiredM}} m is required.",
-    "reqDownlink": "Only {{achievedMbitPerDay}} Mbit/day would reach the ground, and {{requiredMbitPerDay}} are required.",
-    "reqScience": "The science value is {{science}} and at least {{required}} is required.",
-    "reqLifetime": "The estimated lifetime is {{lifetimeYears}} years and {{requiredYears}} are required.",
-    "reqRevisit": "This orbit revisits every {{revisitDays}} days and at most {{maxDays}} is required.",
-    "commsCapacity": "{{generatedMbitPerDay}} Mbit/day are produced but only {{capacityMbitPerDay}} can be downloaded: the rest will pile up and eventually be lost.",
-    "storage": "{{generatedMbitPerDay}} Mbit are produced per day and the memory only holds {{storageMbit}} Mbit.",
-    "pointing": "$t(catalog.{{component}}) needs {{requiredDeg}}° pointing accuracy, but attitude control only achieves {{accuracyDeg}}°: its images will be blurred.",
-    "pointingNoAdcs": "$t(catalog.{{component}}) needs {{requiredDeg}}° pointing accuracy and there is no attitude control.",
-    "thermal": "The electronics produce {{powerW}} W of heat and thermal control only sheds {{dissipationW}} W: the spacecraft will overheat.",
-    "stormRisk": "Power is very tight: a solar storm ({{hours}} h with {{pct}}% less sunlight) would leave a {{deficitWh}} Wh deficit plus {{eclipseWh}} Wh of eclipse, and the battery only provides {{usableWh}} Wh usable. In operation it would drop below its safe discharge level, wear out and could fail.",
-    "allClear": "All clear: healthy margins and requirements met. Go!"
+  "hazard": {
+    "impact": "Impacts",
+    "short": "Short circuits",
+    "fire": "Fires",
+    "leak": "Leaks"
   },
   "event": {
-    "launchSuccess": "Liftoff! $t(catalog.{{launcher}}) delivers the spacecraft to $t(catalog.{{orbit}}).",
-    "launchFailure": "$t(catalog.{{launcher}}) launch failure (reliability {{reliabilityPct}}%). The spacecraft is lost.",
-    "launchScrubbed": "Launch scrubbed: no orbit or launcher selected.",
-    "launchScrubbedUnreachable": "Launch scrubbed: $t(catalog.{{launcher}}) cannot reach $t(catalog.{{orbit}}).",
-    "launchScrubbedMass": "Launch scrubbed: the spacecraft weighs {{massKg}} kg and $t(catalog.{{launcher}}) can only carry {{capacityKg}} kg.",
-    "eclipseEnter": "Entering Earth's shadow ({{eclipseMin}} min without sunlight).",
-    "eclipseExit": "Leaving the shadow: the panels are charging again.",
-    "contactStart": "Ground station contact: downloading data at {{downlinkMbps}} Mbit/s.",
-    "contactEnd": "Contact over. Total downloaded: {{downlinkedMbit}} Mbit.",
-    "batteryLow": "Battery at {{pct}}%, below its safe discharge level ({{floorPct}}%): every minute like this wears it out.",
-    "batteryDepleted": "Battery depleted! The spacecraft shuts down and enters safe mode. Depletion #{{count}}: the battery is left at {{capacityPct}}% of its capacity.",
-    "batteryFailed": "The battery is ruined after {{count}} full discharges. Mission lost.",
-    "powerLost": "The spacecraft has been without power for {{hours}} h and is not recovering. Mission lost.",
-    "storageFull": "Memory full ({{storageMbit}} Mbit): new data is being lost.",
-    "solarStorm": "Solar storm: panels generate {{pct}}% less for {{hours}} h.",
-    "debrisAvoidance": "Space debris alert: avoidance maneuver, instruments off for {{hours}} h.",
-    "reactionWheelFailure": "A reaction wheel failed: pointing degrades to {{backupDeg}}°.",
-    "missionComplete": "Mission complete! {{days}} days of operations completed.",
-    "batteryWornOut": "The battery is worn out by deep discharges: only {{capacityPct}}% of its capacity is left and it can no longer keep the spacecraft alive. Mission lost.",
-    "launchDelay": "Launch delay: an integration problem pushes the window back {{months}} months. Schedule: {{totalMonths}} of {{maxMonths}} months.",
-    "budgetCut": "Budget cut of {{pct}}%: the agency withdraws {{cutMUSD}} M USD. {{budgetMUSD}} M USD remain and the mission costs {{totalMUSD}} M USD.",
-    "overheating": "Overheating: the spacecraft produces {{powerW}} W of heat and the thermal control only dissipates {{dissipationW}} W. Thermal safe mode: instruments off for {{hours}} h.",
-    "componentFailure": {
-      "payload": "$t(catalog.{{component}}) fails: the instrument stops working. {{remaining}} instrument(s) still operating.",
-      "comms": "$t(catalog.{{component}}) fails: with no other radio, the low-gain antenna takes over ({{downlinkMbps}} Mbit/s).",
-      "commsBackup": "$t(catalog.{{component}}) fails: the other radio takes over at {{downlinkMbps}} Mbit/s.",
-      "obc": "$t(catalog.{{component}}) fails: part of the memory is lost and {{storageMbit}} Mbit of storage remain.",
-      "adcs": "$t(catalog.{{component}}) fails: pointing degrades to {{accuracyDeg}}°.",
-      "isolated": "$t(catalog.{{component}}) fails: fault protection isolates it and the spacecraft spends {{hours}} h in safe mode while the ground team checks it."
-    }
+    "jump": "Course set for {{node}} · {{distanceLy}} ly",
+    "arrived": "Arrived at {{node}}",
+    "incident": {
+      "fire": "Fire at $t(system.{{system}})!",
+      "short": "Short circuit at $t(system.{{system}})",
+      "leak": "Oxygen leak next to $t(system.{{system}})!"
+    },
+    "fixed": {
+      "fire": "Fire out at $t(system.{{system}})",
+      "short": "Short fixed at $t(system.{{system}})",
+      "leak": "Leak sealed next to $t(system.{{system}})"
+    },
+    "escalated": "The short at $t(system.{{system}}) caught fire!",
+    "fireSpread": "The fire is spreading to $t(system.{{system}})!",
+    "impactWarning": "Impact incoming! Evade from the helm",
+    "impactHit": "Direct hit! Hull −{{damage}} · damage to $t(system.{{system}})",
+    "impactShielded": "Shields soften the impact · hull −{{damage}}",
+    "impactEvaded": "Impact evaded",
+    "overload": "Reactor overload! Switch something off",
+    "blackout": "Blackout! The reactor gives no power",
+    "systemDown": "$t(systemName.{{system}}): out of service",
+    "systemRepaired": "$t(systemName.{{system}}): repaired",
+    "service": "Station service: +{{fuel}} fuel · +{{hull}} hull · +{{spares}} spares",
+    "cache": "Container recovered: +{{fuel}} fuel · +{{spares}} spares",
+    "lowOxygen": "Oxygen low",
+    "lowFuel": "Fuel low",
+    "lowHull": "Hull critical",
+    "sectorCleared": "Sector {{sector}} cleared!",
+    "newSector": "Sector {{sector}}"
   },
-  "report": {
-    "score": "Total score: {{total}} (objectives {{objectives}}, science {{science}}, efficiency {{efficiency}}).",
-    "launch": {
-      "success": "$t(catalog.{{launcher}}) put the spacecraft in $t(catalog.{{orbit}}) without problems.",
-      "failure": "The $t(catalog.{{launcher}}) launcher failed and the spacecraft was lost.",
-      "scrubbedMass": "It could not launch: the spacecraft weighs {{massKg}} kg and $t(catalog.{{launcher}}) can only carry {{capacityKg}} kg.",
-      "scrubbedUnreachable": "It could not launch: $t(catalog.{{launcher}}) does not reach $t(catalog.{{orbit}}).",
-      "scrubbed": "It could not launch: no orbit or launcher was chosen."
-    },
-    "mission": {
-      "complete": "The spacecraft completed its {{days}} days of operations.",
-      "failed": "The mission ended early: {{days}} of {{plannedDays}} days."
-    },
-    "power": {
-      "lost": "The spacecraft ran out of power and could not recover."
-    },
-    "battery": {
-      "depleted": "The battery ran flat during eclipse because $t(catalog.{{component}}) draws {{powerW}} W and the orbit spends {{eclipseMin}} min in shadow.",
-      "depletedSurvived": "The battery ran flat {{count}} times; the spacecraft survived in safe mode, losing observation time. $t(catalog.{{component}}) draws {{powerW}} W and the shadow lasts {{eclipseMin}} min.",
-      "ok": "Power was always enough: the battery never dropped below {{minPct}}%.",
-      "wornOut": "The battery was ruined ({{capacityPct}}% capacity) because it dropped below its safe discharge level too often: $t(catalog.{{component}}) draws {{powerW}} W and the orbit spends {{eclipseMin}} min in shadow.",
-      "deepDischarge": "The battery dropped below its safe discharge level {{count}} times and lost capacity (about {{capacityPct}}% left)."
-    },
-    "data": {
-      "met": "{{achievedMbitPerDay}} Mbit/day reached the ground on average ({{requiredMbitPerDay}} required).",
-      "below": "Only {{achievedMbitPerDay}} Mbit/day reached the ground on average and {{requiredMbitPerDay}} were required.",
-      "lost": "{{lostMbit}} Mbit of data ({{pct}}%) were lost because there was no time to download them."
-    },
-    "resolution": {
-      "met": "Images show {{resolutionM}} m details ({{requiredM}} m required).",
-      "below": "Images only show {{resolutionM}} m details and {{requiredM}} m were required.",
-      "none": "No instrument took images and a resolution of {{requiredM}} m was required."
-    },
-    "lifetime": {
-      "met": "Estimated lifetime of {{lifetimeYears}} years ({{requiredYears}} required).",
-      "below": "The spacecraft will only last about {{lifetimeYears}} years and {{requiredYears}} were required."
-    },
-    "science": {
-      "met": "Science value {{science}} (minimum {{required}}).",
-      "below": "The science value was {{science}} and at least {{required}} was required."
-    },
-    "event": {
-      "solarStorm": "There were {{count}} solar storm(s) during the mission.",
-      "reactionWheel": "A reaction wheel failed during the mission.",
-      "debris": "There were {{count}} space debris avoidance maneuver(s) ({{hours}} h without observing each).",
-      "overheating": "The spacecraft overheated {{count}} time(s) and switched its instruments off for {{hours}} h each time.",
-      "componentFailure": "{{count}} part(s) failed during operations."
-    },
-    "margin": {
-      "tight": {
-        "mass": "The mass margin was tight ({{marginPct}}%).",
-        "power": "The power margin was tight ({{marginPct}}%).",
-        "battery": "The battery margin was tight ({{marginPct}}%).",
-        "budget": "The budget margin was tight ({{marginPct}}%).",
-        "data": "The data storage margin was tight ({{marginPct}}%).",
-        "comms": "The communications margin was tight ({{marginPct}}%).",
-        "time": "The schedule margin was tight ({{marginPct}}%).",
-        "lifetime": "The lifetime margin was tight ({{marginPct}}%)."
-      },
-      "over": {
-        "mass": "The mass resource was exceeded ({{marginPct}}%).",
-        "power": "The power resource was exceeded ({{marginPct}}%).",
-        "battery": "The battery resource was exceeded ({{marginPct}}%).",
-        "budget": "The budget resource was exceeded ({{marginPct}}%).",
-        "data": "The data storage resource was exceeded ({{marginPct}}%).",
-        "comms": "The communications resource was exceeded ({{marginPct}}%).",
-        "time": "The schedule resource was exceeded ({{marginPct}}%).",
-        "lifetime": "The lifetime resource was exceeded ({{marginPct}}%)."
-      }
-    },
-    "prelaunch": {
-      "delay": "Launch slipped {{months}} months: the schedule ended at {{totalMonths}} of {{maxMonths}} months.",
-      "budgetCut": "A {{pct}}% cut ({{cutMUSD}} M USD) left {{budgetMUSD}} M USD for a {{totalMUSD}} M USD mission."
-    }
+  "loss": {
+    "hull": "The ship broke apart",
+    "oxygen": "The crew ran out of oxygen",
+    "stranded": "The ship is adrift"
   },
-  "cause": {
-    "launcherReliability": "$t(catalog.{{launcher}}) has {{reliabilityPct}}% reliability: it fails {{failPct}} out of every 100 launches.",
-    "heaviest": "The heaviest part is $t(catalog.{{component}}) ({{massKg}} kg).",
-    "eclipse": "In $t(catalog.{{orbit}}) each orbit lasts {{periodMin}} min and {{eclipseMin}} of them are in shadow.",
-    "consumer": "$t(catalog.{{component}}) is the most power-hungry part: {{powerW}} W.",
-    "eclipseEnergy": "At {{consumptionW}} W for {{eclipseMin}} min of shadow, {{needWh}} Wh are needed.",
-    "batteryUsable": "The battery holds {{capacityWh}} Wh, but only {{usableWh}} Wh can be used without damaging it.",
-    "powerBalance": "On average the panels generate {{avgGenerationW}} W and the spacecraft uses {{consumptionW}} W: little is left to recharge.",
-    "solarStorm": "A solar storm cut power generation by {{pct}}%.",
-    "downlinkCapacity": "$t(catalog.{{component}}) transmits at {{downlinkMbps}} Mbit/s during {{contactMin}} min of contact per day with {{stations}} stations: {{capacityMbitPerDay}} Mbit/day at most.",
-    "noRadio": "There is no radio to download the data.",
-    "dataGenerated": "The instruments only produce {{generatedMbitPerDay}} Mbit/day.",
-    "storageFull": "The {{storageMbit}} Mbit memory filled up and {{lostMbit}} Mbit were lost.",
-    "missionEndedEarly": "The mission only lasted {{days}} days.",
-    "resolutionAltitude": "$t(catalog.{{component}}) sees {{res500M}} m at 500 km; at {{altitudeKm}} km that is {{resolutionM}} m (the higher, the less detail).",
-    "dragLifetime": "Atmospheric drag in $t(catalog.{{orbit}}) brings the spacecraft down in {{dragYears}} years.",
-    "reliabilityLifetime": "The chance that all parts work is {{reliabilityPct}}% and radiation ({{radiationPct}}%) lowers it: about {{reliabilityYears}} years.",
-    "wheelPointing": "Without the wheel, magnetorquers only point to {{backupDeg}}° and demanding cameras lose half of their useful images.",
-    "deepDischarge": "Below its safe discharge level the battery loses {{wearPct}}% of its capacity per hour.",
-    "noScheduleMargin": "The original schedule already took {{nominalMonths}} of {{maxMonths}} months: there was no slack for surprises.",
-    "noBudgetMargin": "The mission cost {{totalMUSD}} M USD out of {{originalMUSD}} M: almost no reserve for a cut.",
-    "thermalMargin": "The spacecraft produces {{powerW}} W of heat and the thermal control dissipates {{dissipationW}} W (margin {{marginPct}}%). With little margin, any peak overheats it.",
-    "reliabilityRadiation": "The chance that every part works is {{reliabilityPct}}%, and the radiation in $t(catalog.{{orbit}}) ({{radiationPct}}%) speeds up failures."
-  },
-  "suggest": {
-    "reliableLauncher": "Try a more reliable launcher, or try again: bad luck happens too.",
-    "reduceMass": "Remove weight or pick a more powerful launcher than $t(catalog.{{launcher}}).",
-    "launcherForOrbit": "Pick a launcher that reaches that orbit.",
-    "pickOrbitLauncher": "Choose an orbit and a launcher on the orbit map.",
-    "biggerBattery": "You need at least {{needWh}} Wh usable and have {{usableWh}}: add battery capacity or cut the consumption of $t(catalog.{{component}}).",
-    "powerMargin": "Add solar panels to recharge faster and have margin for surprises.",
-    "morePanels": "Add solar panels: generating more than you use comes first.",
-    "betterRadio": "Use a faster radio (S or X band) or produce less data.",
-    "moreData": "Add an instrument that produces more data.",
-    "addImager": "Add a camera.",
-    "lowerOrbitOrCamera": "Lower the orbit or use a camera with better resolution.",
-    "higherOrbit": "Move to a higher orbit, where the atmosphere drags less.",
-    "moreReliable": "Use more reliable parts or fewer parts: each one is a point of failure.",
-    "addInstrument": "Add another instrument to increase the science value.",
-    "fixFailureFirst": "First fix what ended the mission early: no spacecraft, no data.",
-    "redundancy": "Pointing with margin (or backup parts) makes the mission more robust.",
-    "scheduleMargin": "Leave slack in the schedule (parts that are quicker to build or a launcher with a shorter wait): delays are common.",
-    "budgetMargin": "Keep a budget reserve (agencies usually ask for 10-20%): cuts happen.",
-    "betterThermal": "Use a thermal control that dissipates at least 15% more than the power use, or reduce power use."
-  },
-  "advisor": {
-    "director": {
-      "go": "Mission director: the design passes review. If you are happy with the margins, give the Go.",
-      "noGo": "Mission director: there are {{blockers}} problem(s) that block the launch. Fix them before asking for the Go.",
-      "over": {
-        "budget": "Mission director: we are {{overPct}}% over budget. The agency will not approve the mission like this.",
-        "time": "Mission director: the schedule is {{overPct}}% over. We would miss the launch window."
-      },
-      "tight": {
-        "budget": "Mission director: only {{marginPct}}% of the budget is left. A cut would put us over.",
-        "time": "Mission director: there is only {{marginPct}}% slack in the schedule. A delay would make us late."
-      }
-    },
-    "engineering": {
-      "over": {
-        "mass": "Engineering: the spacecraft is {{overPct}}% heavier than can be launched or supported. Remove weight or change launcher or structure.",
-        "power": "Engineering: we use {{overPct}}% more than the panels produce on average. Without more panels the battery will drain.",
-        "battery": "Engineering: the battery cannot last through the shadow; it is {{overPct}}% short of usable energy."
-      },
-      "tight": {
-        "mass": "Engineering: mass is tight ({{marginPct}}% margin).",
-        "power": "Engineering: power is tight ({{marginPct}}% margin); a solar storm would get us in trouble.",
-        "battery": "Engineering: the battery is tight in eclipse ({{marginPct}}% margin)."
-      },
-      "stormRisk": "Engineering: if a solar storm hits we would need {{deficitWh}} Wh extra and the battery only gives {{usableWh}} Wh usable.",
-      "thermal": "Engineering: we produce {{powerW}} W of heat and only dissipate {{dissipationW}} W. Risk of overheating.",
-      "thermalTight": "Engineering: the thermal control is tight ({{marginPct}}% margin); it could overheat during operations.",
-      "mountSlots": "Engineering: there are {{used}} parts for {{slots}} mounting points.",
-      "missing": "Engineering: {{count}} essential subsystem(s) are missing.",
-      "ok": "Engineering: mass, power and battery have healthy margins. The spacecraft holds up."
-    },
-    "science": {
-      "noPayload": "Science: without instruments there is no mission. Mount at least one.",
-      "resolution": "Science: we do not reach the required detail ({{requiredM}} m). Lower the orbit or use a better camera.",
-      "science": "Science: the science value is {{science}} and {{required}} is required. Add or improve instruments.",
-      "revisit": "Science: we revisit the same spot every {{revisitDays}} days and {{maxDays}} is required.",
-      "pointing": "Science: $t(catalog.{{component}}) needs {{requiredDeg}}° pointing and the attitude control falls short.",
-      "ok": "Science: the instruments meet the requirements (science value {{science}})."
-    },
-    "operations": {
-      "over": {
-        "data": "Operations: one day of data does not fit in memory ({{overPct}}% over). If we miss a pass, we lose data.",
-        "comms": "Operations: we generate {{overPct}}% more data than we can download. Whatever is not downloaded is lost.",
-        "lifetime": "Operations: the spacecraft will not last as long as the mission needs ({{overPct}}% short)."
-      },
-      "tight": {
-        "data": "Operations: storage is tight ({{marginPct}}% margin).",
-        "comms": "Operations: the ground link is tight ({{marginPct}}% margin).",
-        "lifetime": "Operations: lifetime is tight ({{marginPct}}% margin)."
-      },
-      "downlink": "Operations: we would download {{achievedMbitPerDay}} Mbit per day and {{requiredMbitPerDay}} is required.",
-      "ok": "Operations: data, link and lifetime have margin. We can operate the spacecraft."
-    }
-  },
-  "team": {
-    "role": {
-      "director": "Flight director",
-      "engineering": "Engineering",
-      "science": "Science",
-      "operations": "Operations"
-    },
-    "phase": {
-      "lobby": "Lobby",
-      "briefing": "Briefing",
-      "design": "Design",
-      "review": "Go/No-Go review",
-      "prelaunch": "Pre-launch",
-      "launch": "Launch",
-      "operation": "Operation",
-      "report": "Report"
-    },
-    "subsystem": {
-      "structure": "Structure",
-      "power": "Solar power",
-      "battery": "Batteries",
-      "comms": "Communications",
-      "obc": "Onboard computer",
-      "adcs": "Attitude control",
-      "thermal": "Thermal",
-      "payload": "Instruments"
-    },
-    "noGoReason": {
-      "mass": "Mass",
-      "power": "Power",
-      "battery": "Battery",
-      "budget": "Budget",
-      "data": "Data storage",
-      "comms": "Communications",
-      "time": "Schedule",
-      "lifetime": "Lifetime",
-      "requirements": "It does not meet the mission requirements",
-      "risk": "The risk is too high",
-      "other": "Other reason"
-    },
-    "reject": {
-      "phase": "You can’t do that during the “$t(team.phase.{{phase}})” phase.",
-      "permission": "That decision belongs to the $t(team.role.{{role}}) role.",
-      "notHost": "Only the room host can do that.",
-      "roleTaken": "Someone else already has the $t(team.role.{{role}}) role.",
-      "missingRoles": "{{count}} role(s) still need a player, for example $t(team.role.{{role}}). Every role needs someone connected.",
-      "noRole": "Pick a team role first.",
-      "notYourRole": "You don’t have the $t(team.role.{{role}}) role.",
-      "invalidId": "“{{id}}” is not in the catalog.",
-      "componentNotAllowed": "This mission doesn’t allow “$t(catalog.{{component}})”.",
-      "orbitNotAllowed": "This mission doesn’t allow “$t(catalog.{{orbit}})”.",
-      "launcherNotAllowed": "This mission doesn’t allow the “$t(catalog.{{launcher}})” launcher.",
-      "componentAbsent": "There is no “$t(catalog.{{component}})” mounted.",
-      "allocationUnknown": "“{{id}}” is not a spacecraft subsystem.",
-      "allocationInvalid": "The allocation for the “$t(team.subsystem.{{subsystem}})” subsystem must be a number of 0 or more.",
-      "allocationOverBudget": "The allocation adds up to {{totalMUSD}} M USD, but only {{availableMUSD}} M USD are left for parts (the rest pays for the launcher and operations).",
-      "invalidAmount": "The requested amount must be greater than 0.",
-      "ownResource": "You already decide on “$t(resource.{{resource}})”: no need to ask.",
-      "requestNotFound": "That request doesn’t exist.",
-      "requestClosed": "That request is already closed.",
-      "notRequestOwner": "Only the $t(team.role.{{role}}) role can resolve this request.",
-      "notRequester": "Only the person who made the request can withdraw it.",
-      "voteGoBlocked": "You can’t vote Go: the technical review says No-Go.",
-      "voteNeedsReason": "A No-Go needs a reason: pick the resource or risk that worries you.",
-      "voteNeedsNote": "If you pick “Other reason”, write a short note for the team.",
-      "alertNotFound": "That alert doesn’t exist.",
-      "alertClosed": "That alert is already closed.",
-      "alertRole": "This alert doesn’t need an answer from the $t(team.role.{{role}}) role.",
-      "alertAcked": "The $t(team.role.{{role}}) role already answered this alert.",
-      "timeScale": "Invalid time speed: {{accel}}×.",
-      "emptyText": "The text is empty.",
-      "rateLimited": "Slow down: wait a moment.",
-      "invalidAction": "Invalid action.",
-      "tooManyComponents": "The spacecraft already has the maximum of {{max}} parts: remove one before adding another.",
-      "tooManyRequests": "You already have {{max}} open requests: wait for an answer or withdraw one.",
-      "requestPending": "You already asked for that: wait for the team to answer your request.",
-      "notEnoughPlayers": "This is a team mission: you need at least {{min}} people connected to start.",
-      "requestRateLimited": "Wait {{seconds}} s before making another request: the part was not mounted and nothing was sent."
-    },
-    "request": {
-      "resourceUp": "This change adds {{amount}} $t(unit.{{unit}}) to “$t(resource.{{resource}})” and moves it from “$t(status.{{before}})” to “$t(status.{{after}})”. The $t(team.role.{{toRole}}) role decides that.",
-      "resourceDown": "This change takes {{amount}} $t(unit.{{unit}}) away from the available “$t(resource.{{resource}})” and moves it from “$t(status.{{before}})” to “$t(status.{{after}})”. The $t(team.role.{{toRole}}) role decides that.",
-      "allocation": "With this change the “$t(team.subsystem.{{subsystem}})” subsystem would spend {{usedMUSD}} M USD: {{amount}} M USD over its allocation ({{allocatedMUSD}} M USD). The $t(team.role.{{toRole}}) role decides that.",
-      "explicit": "The $t(team.role.{{fromRole}}) role asks the $t(team.role.{{toRole}}) role for more “$t(resource.{{resource}})”.",
-      "explicitAmount": "The $t(team.role.{{fromRole}}) role asks the $t(team.role.{{toRole}}) role for {{amount}} $t(unit.{{unit}}) more “$t(resource.{{resource}})”.",
-      "explicitSubsystem": "The $t(team.role.{{fromRole}}) role asks for more “$t(resource.{{resource}})” for the “$t(team.subsystem.{{subsystem}})” subsystem.",
-      "explicitSubsystemAmount": "The $t(team.role.{{fromRole}}) role asks for {{amount}} $t(unit.{{unit}}) more “$t(resource.{{resource}})” for the “$t(team.subsystem.{{subsystem}})” subsystem."
-    }
+  "reject": {
+    "runOver": "The run is over",
+    "notAtGate": "You have not reached the gate yet",
+    "sectorCleared": "Sector cleared: jump to the next one",
+    "inTransit": "Not during a jump",
+    "notInTransit": "Only during a jump",
+    "noRoute": "There is no direct route to that destination",
+    "enginesDown": "Engines out of service",
+    "enginesOff": "The engines are switched off",
+    "notEnoughFuel": "Not enough fuel",
+    "reactorAlwaysOn": "The reactor cannot be switched off",
+    "noIncident": "That incident is already gone",
+    "noDamage": "The system has no damage",
+    "noSpares": "No spares left",
+    "noWarning": "There is no impact to evade",
+    "noService": "There is no station service here",
+    "serviceUsed": "This station has already served you",
+    "serviceNotNeeded": "The ship needs no service",
+    "invalid": "Invalid action"
   }
 }

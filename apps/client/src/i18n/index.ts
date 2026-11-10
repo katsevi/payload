@@ -9,7 +9,7 @@ import { flatten } from './flatten';
 export const LANG_STORAGE_KEY = 'payload.lang';
 
 // Los recursos se aplanan a claves con puntos y se desactivan los separadores:
-// así `t('hangar.title')` y las claves `MessageRef` del motor funcionan igual, anidadas o planas.
+// así `t('hud.hull')` y las claves `MessageRef` del motor funcionan igual, anidadas o planas.
 export const resources = {
   es: { ui: flatten(es), sim: flatten(simLocales.es) },
   en: { ui: flatten(en), sim: flatten(simLocales.en) },
@@ -50,11 +50,6 @@ export function setLocale(l: Locale): void {
 export function tr(msg: MessageRef | undefined): string {
   if (!msg) return '';
   return i18n.t(msg.key, { ns: 'sim', ...(msg.params ?? {}) }) as string;
-}
-
-/** Unidad de un recurso del motor (código estable → texto traducido, ns `sim`). */
-export function tu(code: string): string {
-  return i18n.t(`unit.${code}`, { ns: 'sim', defaultValue: code }) as string;
 }
 
 /** Texto de contenido del catálogo en el idioma actual. */

@@ -1,6 +1,0 @@
-{
-  "scenarioId": "leo-earth-observation",
-  "componentIds": ["structure-microsat", "payload-hires-camera", "comms-x-band", "obc-advanced", "adcs-star-tracker", "thermal-radiator", "battery-large", "power-high-efficiency", "power-high-efficiency"],
-  "orbitId": "SSO",
-  "launcherId": "launcher-colibri"
-}

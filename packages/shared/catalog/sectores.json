@@ -1,0 +1,46 @@
+{
+  "sector": {
+    "columns": 4,
+    "maxColumns": 7,
+    "columnsGrowthEverySectors": 2,
+    "nodesPerColumn": {
+      "min": 2,
+      "max": 3
+    },
+    "columnSpacingLy": {
+      "min": 15,
+      "max": 23
+    },
+    "lateralSpreadLy": 13,
+    "maxLinkLy": 30,
+    "hazardGrowthPerSector": 0.4,
+    "safeStartLy": 2,
+    "nameSyllables": [
+      "ke",
+      "pra",
+      "zor",
+      "an",
+      "tha",
+      "vel",
+      "ix",
+      "mu",
+      "ra",
+      "do",
+      "sil",
+      "ty",
+      "or",
+      "ne",
+      "ba",
+      "lu",
+      "cy",
+      "gan",
+      "hel",
+      "os",
+      "tri",
+      "ven",
+      "qua",
+      "xi",
+      "eri"
+    ]
+  }
+}
