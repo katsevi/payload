@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "turbo run dev --filter=@payload/client",
+    "dev:server": "turbo run dev --filter=@payload/game-server",
     "build": "turbo run build",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
