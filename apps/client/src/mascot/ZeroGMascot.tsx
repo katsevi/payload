@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { lt } from '../i18n';
+import { useRoom } from '../net/roomStore';
 import { isMicrogravity, useLaunch } from '../state/launch';
 import { useSettings } from '../state/settings';
 import { MascotAvatar } from './MascotAvatar';
@@ -21,6 +22,8 @@ export function ZeroGMascot() {
   const micro = isMicrogravity(phase);
 
   useEffect(() => {
+    // En sala la mascota la decide el servidor (es única para todos): aquí solo flota.
+    if (useRoom.getState().view !== null) return;
     if (phase === 'separation') useMascot.getState().say('event:launch-success');
     else if (phase === 'failure') useMascot.getState().say('event:launch-failure');
   }, [phase]);

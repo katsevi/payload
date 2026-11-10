@@ -40,7 +40,7 @@ export function stepPlace(step: AcademyStep): StepPlace {
   return 'hangar';
 }
 
-const ORDER: Record<PhaseName, number> = { menu: 0, briefing: 1, design: 2, review: 2, prelaunch: 3, launch: 4, operation: 5, report: 6 };
+const ORDER: Record<PhaseName, number> = { menu: 0, lobby: 0, briefing: 1, design: 2, review: 2, prelaunch: 3, launch: 4, operation: 5, report: 6 };
 const PLACE_ORDER: Record<StepPlace, number> = { hangar: 2, launch: 4, operation: 5, report: 6 };
 
 export function academyStepState(step: AcademyStep, design: MissionDesign, phase: PhaseName, cat: Catalog = catalog): StepState {

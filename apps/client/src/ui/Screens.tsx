@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BookOpen, CheckCircle2, GraduationCap } from 'lucide-react';
+import { BookOpen, CheckCircle2, GraduationCap, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { catalog, computeBudgets, reviewGoNoGo, type Locale, type SimEvent, type ValidationIssue } from '@payload/shared';
 import { CREDITS } from '../data/credits';
@@ -14,6 +14,10 @@ import { campaignScenarios } from './catalogViews';
 import { AdvisorsPanel } from './LearningPanels';
 import { Modal, Panel, fmt, useScenario } from './common';
 import { TONE_BORDER, TONE_TEXT, eventTone } from './eventTone';
+import { RoomEntryScreen } from '../room/RoomEntryScreen';
+import { CollaborationSection } from '../room/RoomReview';
+import { selectInRoom, useRoom } from '../net/roomStore';
+import { useStableCanDo } from '../room/hooks';
 
 export function LanguageSelect() {
   const { t } = useTranslation();
@@ -34,12 +38,15 @@ export function MenuScreen({ onPlay, onAcademy }: { onPlay: (scenarioId: string)
   const setOverlay = useUi((s) => s.setOverlay);
   const academyDone = useProgress((s) => s.academyDone);
   const [choosing, setChoosing] = useState(false);
+  const [team, setTeam] = useState(false);
   return (
     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 overflow-auto p-4">
       <div className="absolute right-4 top-4">
         <LanguageSelect />
       </div>
-      {choosing ? (
+      {team ? (
+        <RoomEntryScreen onBack={() => setTeam(false)} />
+      ) : choosing ? (
         <ScenarioSelect onPlay={onPlay} onBack={() => setChoosing(false)} />
       ) : (
         <>
@@ -51,6 +58,10 @@ export function MenuScreen({ onPlay, onAcademy }: { onPlay: (scenarioId: string)
           <nav className="flex w-64 flex-col gap-3">
             <button className="btn btn-primary !py-3" onClick={() => setChoosing(true)}>
               {t('menu.play')}
+            </button>
+            <button className="btn flex items-center justify-center gap-2" onClick={() => setTeam(true)}>
+              <Users size={16} />
+              {t('room.entry.open')}
             </button>
             <button className="btn flex items-center justify-center gap-2" onClick={onAcademy}>
               <GraduationCap size={16} />
@@ -231,9 +242,15 @@ export function CreditsScreen() {
   );
 }
 
+const START_DESIGN = { type: 'start-design' } as const;
+
 export function BriefingScreen({ onStart, onBack }: { onStart: () => void; onBack: () => void }) {
   const { t } = useTranslation();
   const sc = useScenario();
+  // En sala: sin «Volver» (se sale desde la barra de equipo) y solo la Dirección empieza el diseño.
+  const inRoom = useRoom(selectInRoom);
+  const startCheck = useStableCanDo(START_DESIGN);
+  const startBlocked = inRoom && startCheck?.kind === 'reject';
   if (!sc) return null;
   const r = sc.requirements;
   const reqs: [string, string][] = [];
@@ -245,8 +262,9 @@ export function BriefingScreen({ onStart, onBack }: { onStart: () => void; onBac
   const orbitNames = catalog.orbits.filter((o) => sc.allowedOrbits.includes(o.id)).map((o) => lt(o.name));
   const launcherNames = catalog.launchers.filter((l) => sc.allowedLaunchers.includes(l.id)).map((l) => lt(l.name));
   return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center overflow-auto p-4">
-      <div className="grid w-full max-w-5xl gap-4 md:grid-cols-[1.4fr_1fr]">
+    <div className={`absolute inset-0 z-10 flex justify-center overflow-auto p-4 ${inRoom ? 'items-start pt-16' : 'items-center'}`}>
+      {/* En sala, una franja central queda libre para ver la sala de control y los avatares. */}
+      <div className={`grid w-full gap-4 ${inRoom ? 'max-w-7xl lg:grid-cols-[minmax(0,26rem)_1fr_minmax(0,22rem)]' : 'max-w-5xl md:grid-cols-[1.4fr_1fr]'}`}>
         <Panel title={`${t('briefing.title')} · ${lt(sc.name)}`}>
           <p className="whitespace-pre-line leading-relaxed">{lt(sc.briefing)}</p>
           <p className="num mt-4 text-xs uppercase text-slate-400">
@@ -254,7 +272,7 @@ export function BriefingScreen({ onStart, onBack }: { onStart: () => void; onBac
           </p>
           <MascotHint missionType={sc.missionType} />
         </Panel>
-        <div className="space-y-4">
+        <div className={`space-y-4 ${inRoom ? 'lg:col-start-3' : ''}`}>
           <Panel title={t('briefing.requirements')}>
             <ul className="space-y-1 text-sm">
               {reqs.map(([k, v]) => (
@@ -276,9 +294,10 @@ export function BriefingScreen({ onStart, onBack }: { onStart: () => void; onBac
             </ul>
           </Panel>
           <div className="flex gap-3">
-            <button className="btn" onClick={onBack}>{t('common.back')}</button>
-            <button className="btn btn-primary flex-1" onClick={onStart}>{t('briefing.start')}</button>
+            {!inRoom && <button className="btn" onClick={onBack}>{t('common.back')}</button>}
+            <button className="btn btn-primary flex-1" onClick={onStart} disabled={startBlocked} title={startCheck?.kind === 'reject' ? tr(startCheck.reason) : undefined}>{t('briefing.start')}</button>
           </div>
+          {startBlocked && startCheck?.kind === 'reject' && <p className="text-xs text-warn" role="status">{tr(startCheck.reason)}</p>}
         </div>
       </div>
     </div>
@@ -332,9 +351,15 @@ export function ReviewScreen({ onBack, onLaunch }: { onBack: () => void; onLaunc
  * Pantalla de pre-lanzamiento (tras el Go): retraso y/o recorte sorteados con `rollPreLaunchEvents`,
  * y cómo quedan calendario y presupuesto (`computeBudgets(design, cat, preLaunch)`).
  */
+const CONFIRM_LAUNCH = { type: 'confirm-launch' } as const;
+
 export function PreLaunchScreen({ onContinue }: { onContinue: () => void }) {
   const { t } = useTranslation();
   const pre = useSim((s) => s.preLaunch);
+  // En sala solo la Dirección confirma; los demás esperan (el motivo sale de `canDo`).
+  const inRoom = useRoom(selectInRoom);
+  const confirm = useStableCanDo(CONFIRM_LAUNCH);
+  const waiting = inRoom && confirm?.kind === 'reject';
   if (!pre) return null;
   const design = useDesign.getState().design();
   let rows: { id: string; used: number; available: number; status: string; unit: string }[] = [];
@@ -367,7 +392,8 @@ export function PreLaunchScreen({ onContinue }: { onContinue: () => void }) {
         </dl>
         {pre.overruns.length > 0 && <p className="mt-3 text-sm text-warn">{t('prelaunch.overrun', { list: pre.overruns.map((id) => t(`resources.${id}`)).join(', ') })}</p>}
         <div className="mt-5 flex justify-end">
-          <button className="btn btn-primary" onClick={onContinue} autoFocus>{t('prelaunch.continue')}</button>
+          {waiting && <span className="mr-4 self-center text-sm text-warn" role="status">{t('room.prelaunch.waiting', { role: t('room.role.director') })}</span>}
+          <button className="btn btn-primary" onClick={onContinue} autoFocus disabled={waiting}>{t('prelaunch.continue')}</button>
         </div>
       </Panel>
     </div>
@@ -394,10 +420,18 @@ export function reportEvents(events: readonly SimEvent[], max = 40): SimEvent[] 
 
 const bar = (v: number) => Math.max(0, Math.min(100, v));
 
+const REDESIGN = { type: 'redesign' } as const;
+
 export function ReportScreen({ onRedesign, onMenu }: { onRedesign: () => void; onMenu: () => void }) {
   const { t } = useTranslation();
   const result = useSim((s) => s.result);
-  const w = result?.score.weights;
+  const inRoom = useRoom(selectInRoom);
+  const redesign = useStableCanDo(REDESIGN);
+  const redesignBlocked = inRoom && redesign?.kind === 'reject';
+  // En sala, el número grande y las barras son la puntuación de EQUIPO (con la colaboración real).
+  const teamScore = useRoom((s) => s.view?.teamScore ?? null);
+  const score = inRoom && teamScore ? teamScore : result?.score;
+  const w = score?.weights;
   const wsum = w ? w.objectives + w.science + w.efficiency + w.collaboration : 1;
   return (
     <div className="absolute inset-0 z-10 flex items-start justify-center overflow-auto p-4">
@@ -408,16 +442,17 @@ export function ReportScreen({ onRedesign, onMenu }: { onRedesign: () => void; o
         ) : (
           <>
             <div className="grid gap-4 md:grid-cols-[1fr_1.4fr]">
-              <Panel title={t('report.total')}>
-                <div className="num text-7xl font-bold text-accent">{fmt(result.score.total, 0)}<span className="text-2xl text-slate-400"> / 100</span></div>
+              <Panel title={inRoom && teamScore ? t('room.report.teamScore') : t('report.total')}>
+                <div className="num text-7xl font-bold text-accent">{fmt(score!.total, 0)}<span className="text-2xl text-slate-400"> / 100</span></div>
+                {inRoom && teamScore && <p className="num text-xs text-slate-400">{t('room.report.missionScore')}: {fmt(result.score.total, 0)}</p>}
                 <ul className="mt-4 space-y-3">
                   {(['objectives', 'science', 'efficiency', 'collaboration'] as const).map((k) => (
                     <li key={k}>
                       <div className="flex justify-between text-xs">
-                        <span>{t(`report.${k}`)} <span className="text-slate-500">({t('report.weight')} {fmt((result.score.weights[k] / (wsum || 1)) * 100, 0)}%)</span></span>
-                        <span className="num">{fmt(result.score[k], 0)}</span>
+                        <span>{t(`report.${k}`)} <span className="text-slate-500">({t('report.weight')} {fmt((score!.weights[k] / (wsum || 1)) * 100, 0)}%)</span></span>
+                        <span className="num">{fmt(score![k], 0)}</span>
                       </div>
-                      <div className="mt-1 h-2 rounded bg-[#0a1424]"><div className="h-full rounded bg-accent" style={{ width: `${bar(result.score[k])}%` }} /></div>
+                      <div className="mt-1 h-2 rounded bg-[#0a1424]"><div className="h-full rounded bg-accent" style={{ width: `${bar(score![k])}%` }} /></div>
                     </li>
                   ))}
                 </ul>
@@ -441,6 +476,7 @@ export function ReportScreen({ onRedesign, onMenu }: { onRedesign: () => void; o
                 </dl>
               </Panel>
             </div>
+            {inRoom && <CollaborationSection />}
             <Panel title={t('report.events')}>
               {result.preLaunch && (result.preLaunch.delayMonths > 0 || result.preLaunch.budgetCutPct > 0) && (
                 <p className="num mb-2 text-xs text-warn">
@@ -479,8 +515,8 @@ export function ReportScreen({ onRedesign, onMenu }: { onRedesign: () => void; o
           </>
         )}
         <div className="flex justify-end gap-3">
-          <button className="btn" onClick={onMenu}>{t('report.menu')}</button>
-          <button className="btn btn-primary" onClick={onRedesign}>{t('report.redesign')}</button>
+          <button className="btn" onClick={onMenu}>{inRoom ? t('room.leave') : t('report.menu')}</button>
+          <button className="btn btn-primary" onClick={onRedesign} disabled={redesignBlocked} title={redesignBlocked ? t('room.report.onlyDirector') : undefined}>{t('report.redesign')}</button>
         </div>
       </div>
     </div>

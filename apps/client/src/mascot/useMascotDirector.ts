@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { catalog, computeBudgets, reviewGoNoGo } from '@payload/shared';
 import type { PhaseName } from '../app/missionMachine';
+import { selectInRoom, useRoom } from '../net/roomStore';
 import { useDesign } from '../state/design';
 import { useSim } from '../state/sim';
 import { FREQUENT_EVENTS, eventTrigger, newBudgetTriggers, phaseTrigger, reportTrigger, reviewTrigger } from './mascotLogic';
@@ -13,10 +14,14 @@ import { useMascot } from './mascotStore';
  *  - eventos del motor durante la operación → `event:<tipo>` (vía `mascotTriggerForEvent`);
  *  - recursos que ENTRAN en rojo/ámbar en el hangar → `resource-over|tight:<id>` (solo al cambiar).
  * Toda la lógica de "qué decir" está en mascotLogic.ts; los textos en catalog.mascot.
+ * En SALA no dispara nada automático: la mascota es única por sala y la decide el servidor
+ * (`view.mascot`, lo muestra `RoomSession` una vez por `seq`). La ayuda con H sigue siendo local.
  */
 const LAUNCH_RESULT_EVENTS: ReadonlySet<string> = new Set(['launch-success', 'launch-failure']);
 
 export function useMascotDirector(phase: PhaseName): void {
+  const inRoom = useRoom(selectInRoom);
+
   // Fase
   useEffect(() => {
     const m = useMascot.getState();
@@ -24,6 +29,7 @@ export function useMascotDirector(phase: PhaseName): void {
       m.clear();
       return;
     }
+    if (inRoom) return;
     // Lo pendiente de la fase anterior ya no viene a cuento.
     useMascot.setState({ queue: [] });
     const pt = phaseTrigger(phase);
@@ -41,11 +47,11 @@ export function useMascotDirector(phase: PhaseName): void {
         if (tg) m.say(tg);
       }
     }
-  }, [phase]);
+  }, [phase, inRoom]);
 
   // Informe: desenlace
   useEffect(() => {
-    if (phase !== 'report') return;
+    if (phase !== 'report' || inRoom) return;
     const say = (r: ReturnType<typeof useSim.getState>['result']) => r && useMascot.getState().say(reportTrigger(r));
     const r = useSim.getState().result;
     if (r) {
@@ -55,11 +61,11 @@ export function useMascotDirector(phase: PhaseName): void {
     return useSim.subscribe((s, p) => {
       if (s.result && !p.result) say(s.result);
     });
-  }, [phase]);
+  }, [phase, inRoom]);
 
   // Eventos del motor (lanzamiento y operación)
   useEffect(() => {
-    if (phase !== 'launch' && phase !== 'operation') return;
+    if ((phase !== 'launch' && phase !== 'operation') || inRoom) return;
     let lastId = -1;
     // Eclipses y contactos se repiten cada órbita: solo se comentan la primera vez.
     const frequentSaid = new Set<string>();
@@ -83,11 +89,11 @@ export function useMascotDirector(phase: PhaseName): void {
       if (s.events.length < p.events.length) lastId = -1;
       process(s.events);
     });
-  }, [phase]);
+  }, [phase, inRoom]);
 
   // Recursos en rojo/ámbar en el hangar (solo los que cambian)
   useEffect(() => {
-    if (phase !== 'design') return;
+    if (phase !== 'design' || inRoom) return;
     const budgetsOf = () => {
       const d = useDesign.getState().design();
       try {
@@ -105,5 +111,5 @@ export function useMascotDirector(phase: PhaseName): void {
       const first = fresh[0];
       if (first) useMascot.getState().say(first);
     });
-  }, [phase]);
+  }, [phase, inRoom]);
 }

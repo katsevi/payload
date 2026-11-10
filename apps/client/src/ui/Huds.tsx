@@ -17,6 +17,10 @@ import { TONE_TEXT, eventTone } from './eventTone';
 import type { SimEvent } from '@payload/shared';
 import { ZeroGMascot } from '../mascot/ZeroGMascot';
 import { InstrumentView } from '../instrument/InstrumentView';
+import { getSession } from '../net/sessionStore';
+import { selectInRoom, useRoom } from '../net/roomStore';
+import { useStableCanDo } from '../room/hooks';
+import { LastNoGoPanel } from '../room/RoomReview';
 
 export function TopBar({ phase }: { phase: PhaseName }) {
   const { t } = useTranslation();
@@ -41,12 +45,14 @@ export function TopBar({ phase }: { phase: PhaseName }) {
 export function HelpOverlay({ phase }: { phase: PhaseName }) {
   const { t } = useTranslation();
   const help = useUi((s) => s.help);
+  const inRoom = useRoom(selectInRoom);
   return (
     <>
       {help && (
         <div className="absolute bottom-14 left-3 z-30 max-w-lg">
           <Panel title={t('help.title')}>
             <p className="text-sm leading-relaxed">{t(`help.${HELP_KEY[phase]}`)}</p>
+            {inRoom && phase !== 'lobby' && <p className="mt-2 text-sm leading-relaxed text-slate-300">{t('help.team')}</p>}
           </Panel>
         </div>
       )}
@@ -67,6 +73,7 @@ export function HangarHud({ onReview }: { onReview: () => void }) {
   const heldId = useDesign((s) => s.heldId);
   const issues = useDesign((s) => s.lastIssues);
   const held = heldId ? catalog.components.find((c) => c.id === heldId) : undefined;
+  const inRoom = useRoom(selectInRoom);
   const setOverlay = useUi((s) => s.setOverlay);
   return (
     <>
@@ -80,7 +87,8 @@ export function HangarHud({ onReview }: { onReview: () => void }) {
           <span className="text-slate-400">{held ? t('hangar.holding') : t('hangar.empty')}</span>
           {held && <span className="ml-2 text-accent">{lt(held.name)}</span>}
         </div>
-        {issues.length > 0 && (
+        {inRoom && <div className="pointer-events-auto"><LastNoGoPanel /></div>}
+        {!inRoom && issues.length > 0 && (
           <Panel title={t('hangar.noGoReasons')} className="max-w-sm !p-3">
             <IssueList issues={issues} />
           </Panel>
@@ -101,6 +109,11 @@ export function HangarHud({ onReview }: { onReview: () => void }) {
       <div className="absolute bottom-3 right-3 z-20 flex flex-col items-end gap-2">
         <div className="num text-[11px] text-slate-400">
           <span className="kbd">WASD</span> {t('keys.move')} · <span className="kbd">V</span> {t('keys.view')} · <span className="kbd">E</span> {t('keys.interact')} · <span className="kbd">Tab</span> {t('keys.resources')} · <span className="kbd">G</span> {t('menu.glossary')}
+          {inRoom && (
+            <>
+              {' '}· <span className="kbd">P</span> {t('room.keys.ping')} · <span className="kbd">T</span> {t('room.keys.chat')} · <span className="kbd">R</span> {t('room.keys.requests')}
+            </>
+          )}
         </div>
         <div className="flex gap-2">
           <button className="btn" onClick={() => setOverlay('advisors')}><Users size={14} className="mr-1 inline" />{t('advisors.open')}</button>
@@ -189,6 +202,9 @@ function Meter({ label, value, unit, pct, tone = 'text-accent' }: { label: strin
 
 const SCALE_LABEL: Record<TimeScale, string> = { 0: '❚❚', 1: '1×', 10: '10×', 100: '100×', 1000: '1000×', 10000: '10 000×' };
 
+const TIME_PROBE = { type: 'set-time-scale', accel: 1 } as const;
+const FINISH_PROBE = { type: 'finish-operation' } as const;
+
 export function OperationHud({ onFinish }: { onFinish: () => void }) {
   const { t } = useTranslation();
   const snap = useSim((s) => s.snapshot);
@@ -197,7 +213,14 @@ export function OperationHud({ onFinish }: { onFinish: () => void }) {
   const finished = useSim((s) => s.finished);
   const seed = useSim((s) => s.seed);
   const pre = useSim((s) => s.preLaunch);
-  const setAccel = useSim((s) => s.setAccel);
+  const setAccel = (a: TimeScale) => getSession().setTimeScale(a);
+  // En sala: solo los roles con `time.control` cambian la aceleración y solo la Dirección termina la operación.
+  const inRoom = useRoom(selectInRoom);
+  const timeCheck = useStableCanDo(TIME_PROBE);
+  const finishCheck = useStableCanDo(FINISH_PROBE);
+  const paused = useRoom((s) => s.view?.sim.paused ?? false);
+  const canTime = !inRoom || timeCheck?.kind !== 'reject';
+  const canFinish = !inRoom || finishCheck?.kind !== 'reject';
   const view = useUi((s) => s.view);
   const instrument = useUi((s) => s.instrument);
   const sc = useScenario();
@@ -257,9 +280,11 @@ export function OperationHud({ onFinish }: { onFinish: () => void }) {
       </div>
       <div className="absolute bottom-3 right-3 z-20 flex flex-col items-end gap-2">
         {finished && <div className="console-panel px-3 py-2 text-sm text-accent">{t('operation.ended')}</div>}
+        {inRoom && paused && <div className="console-panel num border-warn px-3 py-2 text-sm uppercase text-warn" role="status">{t('room.operation.pausedByAlert')}</div>}
+        {inRoom && !canTime && <div className="console-panel px-3 py-1.5 text-xs text-slate-300" role="status">{t('room.operation.timeLocked', { accel: accel === 0 ? t('operation.pause') : `${accel}×` })}</div>}
         <div className="flex flex-wrap justify-end gap-1" role="group" aria-label={t('operation.time')}>
           {TIME_SCALES.map((s) => (
-            <button key={s} className={`btn !px-2.5 ${accel === s ? 'btn-primary' : ''}`} onClick={() => setAccel(s)} disabled={finished} aria-pressed={accel === s} aria-label={s === 0 ? t('operation.pause') : undefined}>
+            <button key={s} className={`btn !px-2.5 ${accel === s ? 'btn-primary' : ''}`} onClick={() => setAccel(s)} disabled={finished || !canTime} aria-pressed={accel === s} aria-label={s === 0 ? t('operation.pause') : undefined}>
               {SCALE_LABEL[s]}
             </button>
           ))}
@@ -269,7 +294,7 @@ export function OperationHud({ onFinish }: { onFinish: () => void }) {
           <button className={`btn ${instrument ? 'btn-primary' : ''}`} onClick={() => useUi.getState().toggleInstrument()} aria-pressed={instrument} title={t('instrument.toggle')}>
             <Eye size={14} className="mr-1 inline" /><span className="kbd mr-1">I</span>{t('instrument.button')}
           </button>
-          <button className="btn btn-primary" onClick={onFinish}>{t('operation.finish')}</button>
+          <button className="btn btn-primary" onClick={onFinish} disabled={!canFinish} title={!canFinish ? t('room.operation.onlyDirector') : undefined}>{t('operation.finish')}</button>
         </div>
       </div>
     </>

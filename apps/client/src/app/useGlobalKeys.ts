@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { useUi } from '../state/ui';
+import { useRoom } from '../net/roomStore';
 import { helpTrigger } from '../mascot/mascotLogic';
 import { useMascot } from '../mascot/mascotStore';
 import type { PhaseName } from './missionMachine';
 
 /** Clave ui de la ayuda de controles de cada fase (respaldo si la mascota no tiene `help:<contexto>`). */
 export const HELP_KEY: Record<PhaseName, string> = {
-  menu: 'menu', briefing: 'briefing', design: 'hangar', review: 'review', prelaunch: 'review', launch: 'launch', operation: 'operation', report: 'report',
+  menu: 'menu', lobby: 'lobby', briefing: 'briefing', design: 'hangar', review: 'review', prelaunch: 'review', launch: 'launch', operation: 'operation', report: 'report',
 };
 
 /**
@@ -20,7 +21,7 @@ export function requestHelp(phase: PhaseName): void {
     useMascot.getState().say(helpTrigger(phase), { force: true, fallbackKey: `help.${HELP_KEY[phase]}` });
   }
 }
-/** Atajos globales: V (cambiar vista), I (vista del instrumento, en operación), Tab (recursos), H (ayuda + mascota), G (glosario). E/Q los gestiona el hangar. */
+/** Atajos globales: T (chat) y R (solicitudes) en sala, V (cambiar vista), I (vista del instrumento, en operación), Tab (recursos), H (ayuda + mascota), G (glosario). E/Q los gestiona el hangar. */
 export function useGlobalKeys(phase: PhaseName, accessible2D: boolean): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -28,7 +29,12 @@ export function useGlobalKeys(phase: PhaseName, accessible2D: boolean): void {
       if (el && ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) return;
       if (e.repeat) return;
       const ui = useUi.getState();
+      const inRoom = useRoom.getState().view !== null;
       if (e.code === 'KeyH') requestHelp(phase);
+      else if (inRoom && e.code === 'KeyT' && ui.overlay === null) {
+        e.preventDefault();
+        ui.toggleTeamPanel('chat');
+      } else if (inRoom && e.code === 'KeyR' && ui.overlay === null) ui.toggleTeamPanel('requests');
       else if (e.code === 'KeyG' && (ui.overlay === null || ui.overlay === 'glossary') && phase !== 'launch') {
         if (ui.overlay === 'glossary') ui.setOverlay(null);
         else ui.openGlossary();

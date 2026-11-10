@@ -47,6 +47,7 @@ export function musicMixFor(ctx: MusicContext): MusicMix {
   let m: MusicMix;
   switch (ctx.phase) {
     case 'menu':
+    case 'lobby':
     case 'briefing':
       m = mix({ pad: 0.85 });
       break;

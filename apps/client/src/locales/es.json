@@ -277,7 +277,9 @@
     "review": "Revisa los motivos. Con Go puedes autorizar el lanzamiento.",
     "launch": "V alterna cámara de persecución y vista desde la torre · H ayuda",
     "operation": "V alterna cámara orbital y vista a través del instrumento · I abre la vista del instrumento principal · arrastra para orbitar la cámara · usa los controles de tiempo · H ayuda",
-    "report": "Revisa la cadena de causas y rediseña."
+    "report": "Revisa la cadena de causas y rediseña.",
+    "lobby": "Espera a tu equipo y elige tu rol. Quien es anfitrión empieza la misión cuando los cuatro roles están cubiertos. H ayuda · G glosario",
+    "team": "En sala: T chat · R solicitudes · P marcar (en el hangar, mira una pieza o un punto) · la barra superior muestra tus roles y la conexión."
   },
   "keys": {
     "move": "Moverse",
@@ -297,7 +299,8 @@
     "launch": "Lanzamiento",
     "operation": "Operación",
     "report": "Informe",
-    "prelaunch": "Pre-lanzamiento"
+    "prelaunch": "Pre-lanzamiento",
+    "lobby": "Sala de espera"
   },
   "scenarios": {
     "title": "Elige una misión",
@@ -461,5 +464,257 @@
     },
     "description": "Vista breve del rover Aurora G9 caminando por el terreno. Sus datos ya cuentan en el panel de la misión.",
     "close": "Cerrar la vista de superficie"
+  },
+  "room": {
+    "connection": {
+      "idle": "Sin sala",
+      "connecting": "Conectando…",
+      "connected": "Conectado",
+      "reconnecting": "Reconectando…",
+      "disconnected": "Desconectado",
+      "error": "Error de conexión"
+    },
+    "status": {
+      "reconnecting": "Se perdió la conexión con la sala. Reconectando…",
+      "reconnected": "Conexión recuperada: sigues en la sala."
+    },
+    "error": {
+      "join": "No se pudo entrar en la sala.",
+      "notFound": "No hay ninguna sala abierta con ese código.",
+      "rejected": "La sala no admite más jugadores o la misión ya empezó.",
+      "unreachable": "No se pudo contactar con el servidor de juego. Comprueba tu conexión.",
+      "resume": "No se pudo volver a la sala anterior.",
+      "lost": "Se perdió la conexión con la sala. Has vuelto al menú.",
+      "closed": "La sala se cerró. Has vuelto al menú.",
+      "server": "El servidor de la sala informó de un error.",
+      "invalidScenario": "Ese escenario no existe.",
+      "academyScenario": "La Academia es solo para una persona: elige una misión de campaña.",
+      "invalidAttempt": "El intento de la sala no es válido.",
+      "invalidSeed": "La semilla de la sala no es válida.",
+      "roomNotInLobby": "La misión de esa sala ya empezó: solo se puede entrar mientras está en la sala de espera.",
+      "roomFull": "La sala está llena.",
+      "alreadyJoined": "Ya estás en esa sala.",
+      "locked": "La sala está llena o la misión ya empezó: pide un código nuevo al anfitrión."
+    },
+    "notice": {
+      "requestCreated": "Se envió una solicitud al rol responsable: espera su respuesta."
+    },
+    "name": "Tu nombre",
+    "namePlaceholder": "Jugador",
+    "playerN": "Jugador {{n}}",
+    "you": "tú",
+    "host": "Anfitrión",
+    "leave": "Salir de la sala",
+    "unknownPlayer": "Alguien",
+    "entry": {
+      "open": "Jugar en equipo",
+      "title": "Jugar en equipo",
+      "intro": "Hasta 4 personas diseñan y operan una misión juntas, cada una con un rol. Crea una sala privada y comparte el código, únete con un código o busca una partida rápida.",
+      "scenario": "Misión",
+      "coop": "Cooperativo",
+      "create": "Crear sala privada",
+      "quick": "Partida rápida",
+      "resume": "Volver a la sala",
+      "code": "Código de la sala",
+      "codePlaceholder": "Pega aquí el código",
+      "join": "Unirse con código",
+      "players": "{{min}}-{{max}} jugadores"
+    },
+    "lobby": {
+      "title": "Sala de espera",
+      "code": "Código de la sala",
+      "copy": "Copiar el código",
+      "copied": "Código copiado",
+      "shareHint": "Comparte este código para que tu equipo se una.",
+      "players": "Jugadores",
+      "noRole": "Sin rol todavía",
+      "combineHint": "Con menos de 4 jugadores, los roles se combinan: una persona puede llevar varios.",
+      "rename": "Cambiar tu nombre",
+      "renameBtn": "Cambiar",
+      "roles": "Roles del equipo",
+      "rolesIntro": "Cada rol decide sobre una parte de la misión y vigila ciertos recursos. Reclama el tuyo.",
+      "watches": "Vigila",
+      "heldBy": "Lo lleva",
+      "free": "Libre",
+      "taken": "Otra persona lo tiene",
+      "release": "Soltar rol",
+      "claim": "Reclamar rol",
+      "missing": "Faltan por cubrir: {{roles}}.",
+      "autoAssign": "Repartir roles",
+      "start": "Empezar misión",
+      "waitHost": "Esperando a que el anfitrión empiece la misión."
+    },
+    "role": {
+      "director": "Dirección de vuelo",
+      "engineering": "Ingeniería",
+      "science": "Ciencia",
+      "operations": "Operaciones"
+    },
+    "roleCard": {
+      "director": {
+        "decides": "Decide la órbita y el lanzador, reparte el presupuesto, confirma el lanzamiento y termina la operación. Resuelve solicitudes de presupuesto y tiempo."
+      },
+      "engineering": {
+        "decides": "Monta estructura, energía, baterías, computadora, control de actitud y térmico. Resuelve solicitudes de masa, energía y batería."
+      },
+      "science": {
+        "decides": "Elige los instrumentos de la carga útil: lo que la misión viene a medir. Pide recursos a los demás roles cuando los necesita."
+      },
+      "operations": {
+        "decides": "Monta las comunicaciones y controla el tiempo de la operación. Resuelve solicitudes de datos, comunicaciones y vida útil."
+      },
+      "noResources": "ninguno: pide a los demás"
+    },
+    "bar": {
+      "badge": "{{n}} pendientes",
+      "myRoles": "Mis roles",
+      "players": "Jugadores conectados"
+    },
+    "chat": {
+      "title": "Chat del equipo",
+      "history": "Historial del chat",
+      "empty": "Aún no hay mensajes.",
+      "placeholder": "Escribe un mensaje…",
+      "send": "Enviar"
+    },
+    "time": {
+      "s": "hace {{n}} s",
+      "min": "hace {{n}} min",
+      "h": "hace {{n}} h"
+    },
+    "requests": {
+      "title": "Solicitudes",
+      "intro": "Cuando algo que pides afecta a un recurso de otro rol, esa persona decide. Todas las solicitudes las ve todo el equipo.",
+      "new": "Nueva solicitud",
+      "resource": "Recurso",
+      "amount": "Cantidad",
+      "subsystem": "Subsistema",
+      "anySubsystem": "(cualquiera)",
+      "note": "Nota",
+      "badAmount": "La cantidad debe ser un número mayor que 0.",
+      "send": "Enviar solicitud",
+      "open": "Abiertas",
+      "noneOpen": "No hay solicitudes abiertas.",
+      "resolved": "Resueltas",
+      "noneResolved": "Aún no hay solicitudes resueltas.",
+      "status": {
+        "open": "Abierta",
+        "approved": "Aprobada",
+        "rejected": "Rechazada",
+        "withdrawn": "Retirada"
+      },
+      "chain": "Ya la aprobó: {{approved}}. Falta la decisión de: {{pending}}.",
+      "resolutionNote": "Respuesta",
+      "notePlaceholder": "Nota opcional (p. ej. propón otra solución)",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "withdraw": "Retirar mi solicitud",
+      "cooldown": "Acabas de enviar una solicitud: espera un momento antes de pedir otra."
+    },
+    "budget": {
+      "title": "Presupuesto",
+      "introEdit": "Reparte el dinero para piezas entre los subsistemas. Si una pieza pasa de lo asignado, pedirá tu aprobación.",
+      "introRead": "Reparto del presupuesto por subsistema. Lo decide la Dirección de vuelo.",
+      "available": "Disponible para piezas",
+      "noAllocation": "sin reparto: sin topes",
+      "subsystem": "Subsistema",
+      "assigned": "Asignado",
+      "spent": "Gastado",
+      "total": "Total repartido",
+      "suggest": "Reparto sugerido",
+      "apply": "Aplicar reparto",
+      "clear": "Quitar reparto"
+    },
+    "pings": {
+      "title": "Marcar",
+      "point": "un punto del hangar",
+      "intro": "Señala algo al equipo. En el hangar, mira una pieza o un punto y pulsa P.",
+      "subsystems": "Subsistemas",
+      "resources": "Recursos",
+      "recent": "Marcas recientes",
+      "none": "Nadie ha marcado nada todavía.",
+      "marked": "marcó"
+    },
+    "alerts": {
+      "title": "Alerta de equipo",
+      "timeout": "La alerta se cierra sola a los {{s}} s",
+      "left": "{{s}} s",
+      "required": "Deben responder",
+      "pending": "pendiente",
+      "answered": "respondió",
+      "respond": "Responder como {{role}}"
+    },
+    "vote": {
+      "title": "Votación Go/No-Go",
+      "go": "Go",
+      "nogo": "No-Go",
+      "pending": "Pendiente",
+      "by": "Votó: {{name}}",
+      "mine": "Mis votos",
+      "noRole": "No tienes rol: no puedes votar.",
+      "sendGo": "Go",
+      "sendNoGo": "Enviar No-Go",
+      "reasonTitle": "Motivo del No-Go ({{role}})",
+      "reasonHint": "Un No-Go necesita un motivo: así el equipo sabe qué corregir.",
+      "noteRequired": "Explica el motivo (obligatorio)",
+      "noteOptional": "Nota (opcional)",
+      "error": {
+        "code": "Elige un motivo para el No-Go.",
+        "note": "Con «otro motivo» debes escribir una nota."
+      }
+    },
+    "lastNoGo": {
+      "vote": "El equipo votó No-Go. Estos son los motivos:",
+      "review": "La revisión técnica dio No-Go. Esto hay que corregir:"
+    },
+    "report": {
+      "title": "Colaboración del equipo",
+      "collabScore": "Puntuación de colaboración",
+      "missionScore": "Puntuación de la misión",
+      "teamScore": "Puntuación de equipo",
+      "row": {
+        "requests": "Solicitudes resueltas",
+        "requestTime": "Tiempo medio de respuesta a solicitudes",
+        "alerts": "Alertas respondidas a tiempo",
+        "alertTime": "Tiempo medio de respuesta a alertas"
+      },
+      "why": "La colaboración mide cuánto tardó el equipo en resolver solicitudes y alertas: coordinarse bien pesa tanto como diseñar bien, porque en una misión real nadie decide solo.",
+      "onlyDirector": "Solo la Dirección de vuelo puede rediseñar"
+    },
+    "prelaunch": {
+      "waiting": "Esperando a {{role}} para confirmar el lanzamiento."
+    },
+    "operation": {
+      "pausedByAlert": "Pausado por alerta",
+      "timeLocked": "El tiempo lo controlan Dirección y Operaciones. Aceleración actual: {{accel}}",
+      "onlyDirector": "Solo la Dirección de vuelo termina la operación"
+    },
+    "keys": {
+      "ping": "marcar",
+      "chat": "chat",
+      "requests": "solicitudes"
+    },
+    "perm": {
+      "request": "Pedirá permiso"
+    },
+    "quote": "«{{text}}»",
+    "leaveConfirm": {
+      "title": "¿Salir de la sala?",
+      "body": "La misión ya empezó: si sales no podrás volver a entrar en esta sala y tus roles pasarán al resto del equipo.",
+      "stay": "Quedarme",
+      "leave": "Salir de la sala"
+    },
+    "retry": {
+      "title": "Se perdió la conexión",
+      "body": "Tu lugar en la sala se guarda {{seconds}} s más.",
+      "button": "Reintentar",
+      "dismiss": "Descartar",
+      "expired": "Se acabó el tiempo para volver a la sala."
+    },
+    "duration": {
+      "s": "{{n}} s",
+      "min": "{{n}} min",
+      "minS": "{{min}} min {{s}} s"
+    }
   }
 }

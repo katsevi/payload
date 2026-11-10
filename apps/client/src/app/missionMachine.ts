@@ -130,4 +130,9 @@ export const missionMachine = setup({
   },
 });
 
-export type PhaseName = 'menu' | 'briefing' | 'design' | 'review' | 'prelaunch' | 'launch' | 'operation' | 'report';
+/**
+ * Fase activa de la interfaz. En solitario la decide esta máquina (`menu` … `report`); en sala la decide
+ * el servidor (`RoomView.phase`, que añade `lobby`: sala de espera). App: `phase = roomPhase ?? machinePhase`
+ * (ver `activePhase` en net/roomStore.ts). La máquina nunca entra en `lobby`.
+ */
+export type PhaseName = 'menu' | 'lobby' | 'briefing' | 'design' | 'review' | 'prelaunch' | 'launch' | 'operation' | 'report';
