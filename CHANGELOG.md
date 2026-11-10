@@ -5,6 +5,54 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+## [0.3.0] - 2026-11-09
+
+Fase 3 (multijugador). Estado, métricas y acciones pendientes: `docs/STATUS.md`. Contrato: `docs/MULTIPLAYER.md`. Decisiones: ADR 0009 y 0010.
+
+### Añadido
+
+#### `@payload/shared`
+- Lógica de equipo pura y sin reloj (`team.ts`): roles y permisos (`ROLE_PERMISSIONS`, `RESOURCE_OWNER`, `ROLE_SUBSYSTEMS`), `combineRoles`, `checkTeamAction` (solicitudes automáticas y explícitas), `applyApprovedRequest` con **aprobaciones encadenadas**, reparto de presupuesto por subsistema (`defaultAllocation`, `validateAllocation`), votación Go/No-Go con motivo (`validateVote`, `tallyGoNoGo`), alertas de equipo (`EVENT_RESPONSE_ROLES`, `alertForEvent`, `ackAlert`), `scoreCollaboration` y `withCollaboration` (la colaboración va fuera de `MissionResult`), `sanitizePlayerText`.
+- `teamWire.ts`: `RoomView`, `RoomStateWire`, `encodeRoomView`/`decodeRoomView` y `teamActionSchema`/`parseTeamAction` (zod).
+- Constantes de sala (`TEAM_LIMITS`, `TEAM_TIME_SCALES`, `TEAM_MASCOT_TRIGGERS`, `TEAM_ACTION_PHASES`…) y mensajes `sim:team.*` en es/en.
+- `ScenarioDef.team { minPlayers, maxPlayers }` (cambio aditivo del contrato) y disparadores de mascota `team:*` y `role:*`.
+- Historial de solicitudes con tope (`TEAM_LIMITS.requestHistory` = 100 cerradas; las abiertas nunca se purgan): `purgeRequests` + `CollaborationInput.purged` (la nota de colaboración no cambia al purgar).
+- Límite de solicitudes como cubeta de fichas: `requestBurst` (3) con `requestMinIntervalS` (2) (`takeRequestToken`, `team.reject.requestRateLimited { seconds }`).
+- 335 tests en 18 archivos (antes 237 en 16).
+
+#### `@payload/game-server`
+- Servidor autoritativo Colyseus 0.18 (sala `mission`, hasta 4 jugadores) que corre el mismo motor: `RoomModel` (modelo puro), `MissionRoom` (adaptador), `schema.ts` (esquema que refleja `RoomStateWire`, escritura incremental), `mascotDirector` (mascota única por sala), `options`, `server` e `index`.
+- Sala privada por código (`roomId`) y partida rápida por escenario; bloqueo al salir del lobby; reconexión con gracia de 60 s; reparto de los roles de quien se va solo a jugadores conectados; límites anti-abuso (40 mensajes/s, solicitudes, piezas, chat, ping, `move`).
+- Variables `PORT`, `HOST` y `PAYLOAD_ALLOW_SEED`; script raíz `pnpm dev:server` (`ws://localhost:2567`).
+- La lista de solicitudes solo se escribe con `setRequests` (purga incremental); cubeta de fichas por jugador (las solicitudes encadenadas al aprobar no gastan fichas).
+- 78 tests en 7 archivos: `parity` (la sala da el mismo `MissionResult` que `runMission`), `roomModel`, `mascot`, `schema`, `options`, `network` (servidor real + clientes SDK) y `abuse`.
+
+#### `@payload/client`
+- Capa `net/`: interfaz `MissionSession` con `LocalSession` (solitario) y `RoomSession` (sala), `useRoom`, `canDo`, espejo de la simulación (nunca pasa del `simT` del servidor) y SDK de Colyseus en carga diferida (chunk propio). `VITE_GAME_SERVER_URL` o `ws(s)://<hostname>:2567`.
+- UI de sala (`room/`, textos `room.*` en es/en): «Jugar en equipo», sala privada y partida rápida, lobby, `TeamBar`, chat (`T`), solicitudes (`R`), reparto de presupuesto, pings (`P`), alertas, votación con motivo del No-Go y colaboración en el informe; reintento tras una caída.
+- `ControlRoomScene` (sala de control con avatares), `RoomAvatars` (avatares y pings en el hangar), `NoticeBanner`; atajo de desarrollo `?room=demo`.
+- `room.error.locked` (sala llena o ya empezada: Colyseus responde 522 «is locked») distinto de `notFound`; reintento tras una caída (`useRoom.retry`, `retryRoom`, `dismissRetry`, banner con «Reintentar»/«Descartar»); en 3D la pieza vuelve a la mano si el servidor rechaza el montaje; en 2D, enfriamiento de 2 s de los «+» que piden permiso; escenarios de equipo ocultos en la campaña en solitario y destacados en «Jugar en equipo».
+- 122 tests en 8 archivos (antes 67 en 5): `net`, `room-ui` y `room-e2e` (app real + 3 clientes SDK contra el servidor real; también 5.º jugador, entrada tras empezar y código inexistente).
+
+#### Contenido del catálogo
+- Escenario de equipo `polar-ice-watch-team` (2-4 jugadores; oculto en la campaña en solitario): 7 escenarios en total.
+- Glosario 28 -> 38 entradas y mascota Orbi 74 -> 108 diálogos (incluye `team:*` y `role:*`).
+
+#### Documentación
+- ADR 0009 (servidor autoritativo con Colyseus) y ADR 0010 (un proceso, sin Redis por ahora); `docs/MULTIPLAYER.md`; `docs/phases/fase-3.md` con casillas marcadas.
+
+#### Dependencias
+- `apps/game-server`: `@colyseus/core` 0.18.27, `@colyseus/ws-transport` 0.18.4, `@colyseus/schema` 5.0.45; dev `@colyseus/sdk` 0.18.9, `vitest`, `tsx`, `esbuild`, `typescript`, `@types/node`.
+- `apps/client`: `@colyseus/sdk` 0.18.9.
+- `pnpm-workspace.yaml`: `allowBuilds.msgpackr-extract: false` (acelerador nativo opcional de msgpackr: se usa la versión JS y no se ejecutan scripts de instalación de terceros).
+
+### Cambiado
+- Los escenarios con `team.minPlayers >= 2` no se ofrecen en la campaña en solitario.
+- `apps/game-server` deja de ser un marcador.
+
+### Problemas conocidos
+Ver `docs/STATUS.md`: hito sin hacer (misión completa con 4 personas reales en equipos distintos); voz WebRTC no implementada (opcional); sin pings en la vista orbital; reloj de sala estimado por el cliente; UI de sala con paneles que tapan la sala por debajo de `lg`; sin Redis (un proceso).
+
 ## [0.2.0] - 2026-11-08
 
 Fase 2 (contenido y aprendizaje). Estado, métricas y acciones pendientes: `docs/STATUS.md`. Decisiones: ADR 0008.

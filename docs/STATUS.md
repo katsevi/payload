@@ -1,11 +1,11 @@
 # Estado del proyecto — traspaso entre sesiones
 
-Última actualización: **2026-11-08** · Versión: 0.2.0 (ver `CHANGELOG.md`)
+Última actualización: **2026-11-09** · Versión: 0.3.0 (ver `CHANGELOG.md`)
 
 > Léelo antes de empezar y actualízalo al terminar una tarea relevante. Las casillas de
 > `docs/phases/fase-*.md` las marca quien valida la fase, no quien implementa: aquí solo se resume.
-> Nota: el repositorio git solo tiene el commit inicial (`68c083f`); **todo el trabajo de la fase 2 está sin commitear**
-> en la rama `feat/f2-contenido-aprendizaje` (`git status`).
+> Nota: la fase 2 ya está en `main` (PR #1, rama `feat/f2-contenido-aprendizaje`). La fase 3 está commiteada y subida en la rama
+> `feat/f3-multijugador` (4 commits: shared, game-server, client, docs); falta abrir el PR y fusionarla en `main`.
 
 ## Estado por fase
 
@@ -14,8 +14,8 @@
 | 0 · Preproducción | **Entregables completos.** Hito (*los compromisos son divertidos en papel*) **pendiente de prueba en papel con >= 3 personas**. |
 | 1 · Rebanada vertical en solitario | **Hecha · validada con observaciones.** |
 | 2 · Contenido y aprendizaje | **Hecha · validada con observaciones** (validación independiente del 2026-11-08). **Hito pendiente de prueba con >= 5 estudiantes.** |
-| 3 · Multijugador | No iniciada. `apps/game-server` es un marcador. Ver "Próximos pasos (hacia la fase 3)". |
-| 4 · Pulido y lanzamiento | No iniciada. `apps/api` es un marcador. |
+| 3 · Multijugador | **Hecha · validada con observaciones** (validación independiente del 2026-11-09: segunda pasada + verificación de N1-N6). **Hito pendiente: jugar una misión completa con 4 personas en 4 navegadores/equipos distintos.** Contrato: `docs/MULTIPLAYER.md`; ADR 0009 y 0010. |
+| 4 · Pulido y lanzamiento | No iniciada. `apps/api` es un marcador. Ver "Próximos pasos (hacia la fase 4)". |
 
 ### Fase 0 — qué se hizo
 
@@ -52,16 +52,33 @@
 
 **Assets:** skill `3d-models` portable y con sección "Usar un modelo en una escena"; `CREDITS.md` corregido (columna Cambios) con secciones Aurora fase 2 y Audio; `.gitattributes` con `*.ogg binary`. Los GLB se mantienen en `assets/models/source` y `assets/web/models` (sin LFS); el usuario los subirá manualmente a GitHub.
 
-## Métricas verificadas (2026-11-08)
+### Fase 3 — qué se hizo (rama `feat/f3-multijugador`)
+
+Contrato escrito antes de implementar: `docs/MULTIPLAYER.md`. Decisiones: ADR 0009 (servidor autoritativo) y ADR 0010 (un proceso, sin Redis).
+
+**Motor (`packages/shared`):**
+- `team.ts`: roles y permisos (`ROLE_PERMISSIONS`, `RESOURCE_OWNER`), `combineRoles`, `checkTeamAction` (solicitudes automáticas y explícitas, límites de `TEAM_LIMITS`), solicitudes con **aprobaciones encadenadas** (`applyApprovedRequest`), reparto de presupuesto por subsistema, votación Go/No-Go (`validateVote`, `tallyGoNoGo`), alertas de equipo (`EVENT_RESPONSE_ROLES`) y `scoreCollaboration`/`withCollaboration` (la colaboración va FUERA de `MissionResult`).
+- `teamWire.ts`: `RoomStateWire`, `encodeRoomView`/`decodeRoomView`, `teamActionSchema` (zod).
+- `types.ts`: solo cambios aditivos (`TeamAction`, `RoomView`, `ScenarioDef.team { minPlayers, maxPlayers }`…).
+
+**Servidor (`apps/game-server`):** Colyseus 0.18, sala `mission`. `RoomModel` (modelo puro de la sala: fases, permisos, solicitudes, votos, alertas, rediseño, salidas), `mascotDirector` (mascota única con prioridades y moderación), `schema.ts` (esquema que refleja `RoomStateWire`, escritura incremental), `MissionRoom` (adaptador: reconexión con gracia de 60 s, bloqueo al salir del lobby, límite de 40 mensajes/s), `options`, `server`/`index` (`pnpm dev:server`). Paridad: la sala produce el mismo `MissionResult` que `runMission` con todos los fixtures válidos.
+
+**Cliente (`apps/client`):** capa `net/` (interfaz `MissionSession` con `LocalSession` y `RoomSession`, `useRoom`, `canDo`, espejo de la simulación que nunca pasa del `simT` del servidor, SDK de Colyseus en carga diferida) y `room/` (entrada «Jugar en equipo», sala privada por código y partida rápida, lobby, `TeamBar`, chat, solicitudes, reparto de presupuesto, pings, alertas, votación con motivo del No-Go, colaboración en el informe). `ControlRoomScene` (sala de control con 4 consolas y avatares) y `RoomAvatars` (otros jugadores y pings en el hangar). Teclas en sala: `T` chat, `R` solicitudes, `P` ping. Reconexión con token y reintento manual. Atajo dev `?room=demo` (sala de ejemplo sin servidor).
+
+**Contenido:** escenario de equipo `polar-ice-watch-team` (2-4 jugadores; oculto en la campaña en solitario), 10 entradas de glosario nuevas (38) y 34 diálogos de Orbi nuevos (108; disparadores `team:*` y `role:*`).
+
+## Métricas verificadas (2026-11-09)
 
 | Métrica | Valor |
 | --- | --- |
-| `pnpm validate` | Verde: 11/11 tareas (typecheck + test + build) |
-| Tests `@payload/shared` | **237** en 16 archivos |
-| Tests `@payload/client` | **67** en 5 archivos (`i18n`, `flow`, `fixes`, `phase2`, `phase2b`) |
+| `pnpm validate --force --concurrency=1` | Verde: 11/11 tareas, 0 en caché (typecheck + test + build). Total 535 tests |
+| Tests `@payload/shared` | **335** en 18 archivos |
+| Tests `@payload/client` | **122** en 8 archivos (`i18n`, `flow`, `fixes`, `phase2`, `phase2b`, `net`, `room-ui`, `room-e2e`; este último levanta el servidor real y 3 clientes SDK) |
+| Tests `@payload/game-server` | **78** en 7 archivos (`parity`, `roomModel`, `mascot`, `schema`, `options`, `network`, `abuse`) |
+| Prueba manual (coordinador) | Servidor compilado + cliente real en Chrome: sala privada, roles, briefing, hangar, selección de órbita/lanzador por el servidor; E2E por script con paridad `runMission` (79,3 puntos con `ok-cubesat-leo`, semilla 20260101). Revisión visual con `?room=demo`: lobby, votación, operación con alerta e informe |
 | `pnpm --filter @payload/shared bench` | `computeBudgets` 0,014 ms · `reviewGoNoGo` 0,014 ms · `runMission` 30 días 9,4 ms (objetivos < 1 ms, < 1 ms, < 200 ms) |
 | `pnpm proto --brief` (semilla `20260101`) | `warn-power-storm` 63,2 (antes 91,7) · `ok-microsat-leo-thermal` 92,7 (antes 92,8); los demás igual que en la fase 1 (79,3 · 86,6 · 74,0 · 24,1 · 52,0 · 21,7 · 21,4). Detalle en `prototype/designs/README.md` |
-| Catálogo | 43 componentes · 7 lanzadores · 6 órbitas · 6 escenarios (5 campaña + Academia) · 28 glosario · 74 diálogos · 21 pasos de Academia |
+| Catálogo | 43 componentes · 7 lanzadores · 6 órbitas · 7 escenarios (5 campaña + `polar-ice-watch-team` de equipo + Academia) · 38 glosario · 108 diálogos · 21 pasos de Academia |
 | Chunk `HangarScene` | ~2,28 MB (límite de aviso de Vite subido a 2500 kB) |
 | Peso de modelos servidos (`assets/web/models/`) | ~12 MB (5 GLB; el audio es procedural y no pesa) |
 
@@ -80,7 +97,11 @@ Ningún agente puede hacerlas; bloquean el cierre formal de las fases.
 7. **Mascota:** Rise requiere autorización escrita de NASA; hasta entonces el repositorio solo lleva a Orbi. Decidir si Orbi es la definitiva.
 8. **Decidir si se sustituye ERIZON** (CC-BY-NC-ND) antes de cualquier uso comercial.
 9. **Crear `.claude/settings.json` compartido** (contenido propuesto en `docs/CONTRIBUTING.md`).
-10. **Hacer los commits** de la fase 2 (hoy todo está sin commitear) y subir los GLB a GitHub.
+10. **Abrir el PR de `feat/f3-multijugador`** (ya subida) y fusionarla en `main`; subir los GLB a GitHub.
+11. **Hito de la fase 3: partida con 4 personas reales** en 4 navegadores/equipos distintos, en red local (no solo `localhost`): misión completa sin desincronizaciones; anotar conclusiones aquí.
+12. **Revisión visual a varios anchos** de la UI de sala: por debajo del breakpoint `lg` los paneles del lobby tapan la sala de control.
+13. **Probar en juego** si las aprobaciones encadenadas y la pausa por alertas resultan pesadas (ajustar `TEAM_LIMITS` o el flujo).
+14. **Decidir la voz WebRTC** (opcional, no implementada): hacerla en la fase 4 o descartarla.
 
 ## Decisiones de diseño abiertas
 
@@ -88,6 +109,11 @@ Ningún agente puede hacerlas; bloquean el cierre formal de las fases.
 - **`why` de lanzadores y escenario:** opcional en el esquema, relleno en es/en, pero el cliente no lo muestra ni un test lo exige.
 - **Mascota 3D:** el JSON admite `model`, pero el cliente solo usa `sprite2d` o el avatar SVG.
 - **Radiación:** valorar un campo `radiationShielding` en componentes (hoy se emula con fiabilidad).
+
+- **Reloj de sala estimado:** el servidor no publica su reloj; el cliente lo estima (`useRoomClock`) para horas relativas y la cuenta atrás de alertas. Valorar publicarlo en `RoomStateWire` (cambio aditivo).
+- **Voz WebRTC:** no implementada (opcional en el plan; el chat de texto sí).
+- **Pings en la vista orbital:** no implementados (sí en el hangar y el modo accesible 2D).
+- **Redis / varias instancias:** ADR 0010; hoy un proceso y las salas se pierden si se reinicia. Activar Redis cuando haya varias instancias (fase 4, AWS).
 
 ### Resueltas en la fase 2
 
@@ -101,23 +127,23 @@ Ningún agente puede hacerlas; bloquean el cierre formal de las fases.
 - **Chunk del hangar** ~2,28 MB (~0,86 MB gzip).
 - **Audio** sin verificar con oído; la mezcla es provisional. Los avisos visuales no dependen del audio.
 - **`orbitPhase` cambió de semántica** (anomalía verdadera, no fase uniforme): cualquier consumidor nuevo (servidor, otros clientes) debe leer ADR 0008 §6.
+- **`Encoder.BUFFER_SIZE` fijado a 256 KB** (global de `@colyseus/schema`, en `schema.ts`): el estado del informe de una sala pesa hasta ~200 KB.
+- **Memoria en desarrollo:** en la máquina de desarrollo el sistema se quedó corto de memoria con el servidor de desarrollo, el de juego y las suites a la vez; usa `pnpm validate --concurrency=1` para evitar la presión.
+- **`useCanDo`** (`net/roomStore.ts`) exportado pero sin usar (la UI usa `useStableCanDo`).
+- Las **solicitudes encadenadas y las alertas** no se han probado con jugadores reales; la sala solo se ha verificado con 3 clientes SDK y un navegador real.
 - Sin CI configurado; aún no hay linter (ESLint queda para una fase posterior).
 
 ### Resuelta en la fase 2
 
 - Eventos no modelados (sobrecalentamiento, falla de componente, retraso, recorte) y fase orbital no Kepler: implementados (ADR 0008).
 
-## Próximos pasos (hacia la fase 3)
+## Próximos pasos (hacia la fase 4)
 
-Para quien lleve el multijugador (detalle en `docs/phases/fase-3.md` § "Punto de partida"):
-
-1. **El motor ya es determinista y puro**: corre igual en navegador y Node. No lo toques para la fase 3 salvo cambios aditivos en `types.ts` (o ADR).
-2. **Lo que debe correr el servidor:** `computeBudgets` y `reviewGoNoGo` para validar acciones; tras el Go, `rollPreLaunchEvents(design, cat, seed)` y `createMissionSim(design, cat, { seed, preLaunch })`. Misma semilla = mismo `MissionResult` que `runMission` (test de integración obligatorio). Semilla = `defaultSeed + intento`.
-3. **`adviseByRole` ya define los 4 roles** (`ADVISOR_ROLES`: director, engineering, science, operations; `ROLE_RESOURCES` indica qué recursos vigila cada uno). En solitario el juego los muestra todos; en sala, cada jugador ve el suyo.
-4. **Mascota única por sala** (`catalog.mascot`): el servidor debe decidir qué mensaje ve cada rol o difundir uno solo; la lógica pura está en `apps/client/src/mascot/mascotLogic.ts`.
-5. **Cliente:** hoy `useSim`/`useDesign` llaman al motor en local; hay que abstraer una interfaz común (local vs sala). La máquina XState ya tiene `prelaunch`.
-6. Cerrar antes (o en paralelo) las acciones humanas 2-5.
-7. Fase 4 sigue pendiente (`apps/api`, rankings, guardar/comparar, E2E, mando/táctil).
+1. **Cerrar el hito de la fase 3** (acción humana 11) y las acciones 2-5 y 12-14.
+2. **`apps/api`** (NestJS + Prisma + PostgreSQL): cuentas, diseños guardados, rankings. Un ranking solo es fiable si el servidor recalcula la puntuación con el motor; el servidor de juego ya tiene el `MissionResult` y el `teamScore` de cada sala listos para enviar.
+3. **Escalado:** activar Redis (ADR 0010) cuando haya varias instancias; `publicAddress` y afinidad de sesión.
+4. **Pulido:** mando y táctil, giro por pasos, voz opcional, pings en órbita, E2E con Playwright, Sentry, despliegue en AWS.
+5. **Contrato:** `types.ts` y `teamWire.ts` son ahora contrato de red; solo cambios aditivos (o ADR).
 
 ## Actualización 2026-11-07 (tarde)
 

@@ -16,7 +16,7 @@ Tailwind 4, Vitest, pnpm + Turborepo. Interfaz en español (por defecto) e ingl�
 | 0 · Preproducción | Entregables hechos. El hito (los compromisos son divertidos en papel) sigue **pendiente de una prueba con personas reales**. |
 | 1 · Rebanada vertical en solitario | Hecha y validada con observaciones: una misión completa (menú, briefing, hangar, Go/No-Go, lanzamiento, operación, informe). |
 | 2 · Contenido y aprendizaje | Hecha y validada con observaciones: 5 escenarios de campaña y Academia, eventos por dificultad, mascota Orbi, glosario, audio procedural y vista del instrumento. El hito (pruebas con >= 5 estudiantes) está **pendiente**. |
-| 3 · Multijugador | Pendiente (`apps/game-server` es un marcador) |
+| 3 · Multijugador | Hecha y validada con observaciones: servidor autoritativo Colyseus que corre el mismo motor, roles, solicitudes de recursos, Go/No-Go compartido, sala de control con avatares, chat y pings. El hito (cuatro personas reales en equipos distintos) está **pendiente**; la voz WebRTC (opcional) no está implementada. |
 | 4 · Pulido y lanzamiento | Pendiente (`apps/api` es un marcador) |
 
 Detalle, métricas y acciones pendientes: [`docs/STATUS.md`](docs/STATUS.md).
@@ -32,6 +32,7 @@ Detalle, métricas y acciones pendientes: [`docs/STATUS.md`](docs/STATUS.md).
 ```bash
 pnpm install
 pnpm dev          # cliente en http://localhost:5173
+pnpm dev:server   # servidor de juego en ws://localhost:2567 (solo para jugar en equipo)
 pnpm test         # tests de todos los paquetes (Vitest)
 pnpm typecheck    # tsc --noEmit en todos los paquetes
 pnpm build        # build de producción (Turborepo)
@@ -80,6 +81,24 @@ idioma (es/en, sin recargar), el campo de visión, el balanceo de cabeza, la sen
 - **Asesores por rol** (director, ingeniería, ciencia, operaciones) y mascota con ayuda contextual.
 - **Audio:** música adaptativa y efectos generados en el navegador (sin archivos), con subtítulos de sonido y avisos visuales; volúmenes y silencio en Ajustes.
 
+## Jugar en equipo (fase 3)
+
+Hasta 4 jugadores en la misma misión, cada uno con un rol (Dirección, Ingeniería, Ciencia, Operaciones); con menos de 4, un jugador agrupa roles.
+
+1. Arranca el servidor y el cliente en dos terminales: `pnpm dev:server` y `pnpm dev`. El cliente busca el servidor en `VITE_GAME_SERVER_URL` o, si no existe, en `ws(s)://<hostname>:2567` (para jugar en red local, abre el cliente con la IP del anfitrión y deja el puerto 2567 accesible).
+2. En el menú pulsa **Jugar en equipo**, elige escenario y pon tu nombre.
+3. **Sala privada:** crea una sala y comparte el código (es el `roomId`); el resto entra con ese código. **Partida rápida:** te une a una sala en el lobby del mismo escenario o crea una.
+4. En el lobby el anfitrión (el primero en entrar) reparte los roles y empieza la misión. Después: briefing, diseño en el hangar compartido, **revisión Go/No-Go con voto por rol** (un No-Go exige motivo y devuelve a todos al diseño), lanzamiento, operación (las alertas de equipo pausan la simulación hasta que respondan los roles implicados) e informe con la puntuación de equipo.
+5. Cada rol decide sobre sus piezas; si una acción empeora un recurso de otro rol, se convierte en una **solicitud** que ese rol aprueba o rechaza (puede encadenarse a varios roles).
+
+| Tecla (en sala) | Acción |
+| --- | --- |
+| `T` | Chat |
+| `R` | Solicitudes de recursos |
+| `P` | Ping (en el hangar: a la pieza apuntada o al punto al que miras) |
+
+El escenario de equipo `polar-ice-watch-team` (2-4 jugadores) solo se ofrece en sala. Si pierdes la conexión, tienes 60 s para volver (el cliente reintenta con su token). La voz WebRTC no está implementada. Contrato completo: [`docs/MULTIPLAYER.md`](docs/MULTIPLAYER.md); servidor: [`apps/game-server/README.md`](apps/game-server/README.md).
+
 Todavía **no** hay soporte de mando ni táctil, ni giro por pasos (ver `docs/STATUS.md`).
 
 ## Estructura del monorepo
@@ -88,7 +107,7 @@ Todavía **no** hay soporte de mando ni táctil, ni giro por pasos (ver `docs/ST
 payload/
 ├─ apps/
 │  ├─ client/        # React 19 + R3F v9 + Drei + Rapier + Vite (escenas, UI, i18n)
-│  ├─ game-server/   # Fase 3: Colyseus (marcador, sin código)
+│  ├─ game-server/   # Fase 3: servidor Colyseus autoritativo (salas de hasta 4 jugadores)
 │  └─ api/           # Fase 4: NestJS + Prisma (marcador, sin código)
 ├─ packages/
 │  └─ shared/        # contrato de tipos, motor de simulación, mecánica orbital (TS puro)
@@ -105,7 +124,7 @@ payload/
 
 ## Tests y prototipos
 
-- `pnpm test` ejecuta la suite del motor (`packages/shared`, 237 tests en 16 archivos) y la del cliente (67 tests en 5 archivos).
+- `pnpm test` ejecuta la suite del motor (`packages/shared`, 335 tests en 18 archivos), la del cliente (122 tests en 8 archivos, incluido un E2E contra el servidor real) y la del servidor (`apps/game-server`, 78 tests en 7 archivos).
   Qué cubre cada una: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#testing).
 - **CLI del motor:** `pnpm proto` (ver `prototype/README.md`). Diseños de ejemplo en `prototype/designs/`.
 - **Hoja de cálculo:** `pnpm --filter @payload/shared exec tsx ../../prototype/build-sheet.ts` regenera
@@ -122,6 +141,7 @@ Solo con `pnpm dev` (se ignoran en el build de producción), añadidos a la URL:
 | `/?phase=briefing` | Salta al briefing |
 | `/?phase=design` | Salta al hangar. Opciones: `&demo=1` monta una pieza de cada subsistema, `&view=third` abre en tercera persona |
 | `/?phase=launch`, `?phase=operation`, `?phase=report` | Arranca en esa fase con un diseño de ejemplo ya armado |
+| `/?room=demo&phase=lobby\|briefing\|design\|review\|prelaunch\|operation\|report` | Sala de ejemplo sin servidor (3 jugadores; opcional `&role=director\|engineering\|science\|operations`) |
 
 ## Créditos de assets 3D
 
@@ -153,6 +173,7 @@ Los originales están en `assets/models/source/` y **se versionan en el reposito
 | [`CLAUDE.md`](CLAUDE.md) | Guía y reglas del proyecto para Claude Code (y para personas) |
 | [`docs/STATUS.md`](docs/STATUS.md) | Estado, métricas, acciones pendientes y traspaso entre sesiones |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Arquitectura actual y objetivo |
+| [`docs/MULTIPLAYER.md`](docs/MULTIPLAYER.md) | Contrato del multijugador (protocolo, roles, solicitudes, Go/No-Go) |
 | [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) | Flujo de trabajo, agentes, skills y permisos |
 | [`CHANGELOG.md`](CHANGELOG.md) | Cambios por versión |
 | [`docs/GDD.md`](docs/GDD.md) | Documento de diseño del juego |

@@ -15,11 +15,11 @@ lee este archivo, el `CLAUDE.md` del paquete que vas a tocar y `docs/STATUS.md` 
 | 0 · Preproducción | GDD, catálogo JSON, prototipo en hoja de cálculo | Entregables hechos · hito pendiente de prueba en papel (ver `docs/phases/fase-0.md`) |
 | 1 · Rebanada vertical en solitario | Hangar 1ª/3ª persona, 1 escenario LEO, panel de recursos, motor con tests, lanzamiento, operación, informe | Hecha · validada con observaciones (ver `docs/STATUS.md`) |
 | 2 · Contenido y aprendizaje | 5 escenarios, 6 órbitas, eventos, Academia con mascota guía (Orbi; Rise solo con autorización), audio | Hecha · validada con observaciones · hito pendiente de prueba con estudiantes (ver `docs/phases/fase-2.md`) |
-| 3 · Multijugador | Colyseus, roles, Go/No-Go compartido | Pendiente (`apps/game-server` es un marcador) |
+| 3 · Multijugador | Colyseus, roles, solicitudes, Go/No-Go compartido, sala de control, chat y pings | Hecha · validada con observaciones · hito pendiente de prueba con 4 personas reales (ver `docs/phases/fase-3.md`); voz WebRTC opcional no implementada |
 | 4 · Pulido y lanzamiento | Rankings, guardar/comparar, AWS, Sentry, E2E | Pendiente (`apps/api` es un marcador) |
 
 El plan original completo está en `docs/plan-original/plan-juego-misiones-espaciales.md`. Más documentación:
-`docs/STATUS.md` (estado y acciones pendientes), `docs/ARCHITECTURE.md`, `docs/CONTRIBUTING.md` y `CHANGELOG.md`.
+`docs/STATUS.md` (estado y acciones pendientes), `docs/ARCHITECTURE.md`, `docs/MULTIPLAYER.md` (contrato del multijugador), `docs/CONTRIBUTING.md` y `CHANGELOG.md`.
 
 ## Mapa del monorepo
 
@@ -27,7 +27,7 @@ El plan original completo está en `docs/plan-original/plan-juego-misiones-espac
 payload/
 ├─ apps/
 │  ├─ client/        # React 19 + R3F v9 + Drei + Rapier + Vite (escenas, UI, i18n)
-│  ├─ game-server/   # Fase 3: Colyseus (marcador)
+│  ├─ game-server/   # Fase 3: servidor Colyseus autoritativo (corre el mismo motor)
 │  └─ api/           # Fase 4: NestJS + Prisma (marcador)
 ├─ packages/
 │  └─ shared/        # tipos, motor de simulación, mecánica orbital (TS puro, con tests)
@@ -47,6 +47,7 @@ payload/
 ```bash
 pnpm install          # Node >= 22 (ver .nvmrc), pnpm 11
 pnpm dev              # cliente en http://localhost:5173
+pnpm dev:server       # servidor de juego en ws://localhost:2567 (PORT, HOST, PAYLOAD_ALLOW_SEED=1)
 pnpm test             # tests de todos los paquetes (Vitest)
 pnpm typecheck        # tsc --noEmit en todos los paquetes
 pnpm build            # build de producción
