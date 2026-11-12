@@ -42,3 +42,4 @@ Qué se gana, qué se pierde y qué obliga a hacer después.
 | [0009](0009-servidor-autoritativo-colyseus.md) | Servidor autoritativo con Colyseus que corre el mismo motor | Aceptada · en suspenso hasta la fase 4 |
 | [0010](0010-presencia-y-escalado.md) | Presencia y escalado del servidor de juego: un proceso, sin Redis (por ahora) | Aceptada · en suspenso hasta la fase 4 |
 | [0011](0011-reinicio-tripulacion-de-exploracion.md) | Reinicio del concepto: de simulador de diseño a tripulación de exploración | Aceptada |
+| [0012](0012-superficie-autoridad-dividida.md) | Superficie: autoridad dividida, oxígeno como único recurso que no vuelve y recompensa sin economía | Aceptada |

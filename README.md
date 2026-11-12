@@ -20,7 +20,7 @@ Vitest, pnpm + Turborepo. Interfaz en español (por defecto) e inglés.
 | Fase | Estado |
 | --- | --- |
 | 1 · Viaje y nave (en solitario) | **Implementada**: mapa estelar, saltos, interior caminable, sistemas, averías en tiempo real y permadeath. Pendiente de validación independiente y de prueba con jugadores. |
-| 2 · Exploración de superficie | Pendiente: descenso, jetpack, oxígeno personal, recolección. |
+| 2 · Exploración de superficie | **Implementada** (rama `feat/f2-superficie`): descenso, jetpack, oxígeno personal, recolección, tormentas y despegue. Pendiente de validación independiente final y de prueba con jugadores. |
 | 3 · Economía y progresión | Pendiente: venta en estaciones y mejoras. |
 | 4 · Cooperativo 1-4 | Pendiente: servidor autoritativo y roles (`apps/game-server` es un marcador). |
 | 5 · Pulido y lanzamiento | Pendiente (`apps/api` es un marcador). |
@@ -53,20 +53,25 @@ pnpm --filter @payload/shared test:watch    # TDD del motor
 pnpm --filter @payload/client preview       # sirve el build de producción
 ```
 
-En desarrollo, `http://localhost:5173/?play=1&seed=7` entra directo a una partida con esa semilla.
+En desarrollo, `http://localhost:5173/?play=1&seed=7` entra directo a una partida con esa semilla;
+añade `&surface=1` para entrar directo a la superficie (`descent` o `landed` para otros momentos).
 
 ## Cómo se juega
 
 Lleva la nave desde la estación de salida hasta el **portal de salto** del sector. En el mapa estelar
 eliges destino y régimen de motores; durante el salto, lo que se rompa hay que ir a arreglarlo en persona.
+En los planetas, lunas y campos de asteroides puedes bajar (una vez por destino) a recoger materiales con
+jetpack y oxígeno limitado, y volver a la nave antes de que se acabe.
 
 | Control | Acción |
 | --- | --- |
 | `W` `A` `S` `D` / flechas | Moverse por la nave |
 | `Mayús` | Correr |
 | Ratón | Mirar (clic para capturar el ratón) |
-| `E` | Usar el puesto cercano; **mantener** para apagar un fuego, sellar una fuga, rearmar un corto, reparar o evadir |
-| `Q` | Cambiar el régimen de motores (en el timón) |
+| `E` | Usar el puesto cercano; **mantener** para apagar un fuego, sellar una fuga, rearmar un corto, reparar, evadir, bajar a un mundo, despegar o recoger material |
+| `Q` | Cambiar el régimen de motores (en el timón); en tierra, soltar la carga si pesa demasiado |
+| `Espacio` | En superficie: salto y jetpack; cayendo, frena la caída; en el descenso, frena |
+| `C` | En superficie: bajar con el jetpack |
 | `1`-`4` | Encender o apagar sistemas (con el panel de energía abierto) |
 | `V` | 1ª / 3ª persona |
 | `H` | Ayuda |
@@ -92,7 +97,7 @@ payload/
 │  └─ api/           # marcador: rankings y persistencia (fase 5)
 ├─ packages/
 │  └─ shared/        # motor del juego en TypeScript puro, con tests
-│     ├─ catalog/    # naves, averías, destinos y sectores (.json)
+│     ├─ catalog/    # naves, averías, destinos, sectores y mundos (.json)
 │     └─ locales/    # textos del motor (es/en)
 ├─ assets/           # modelos 3D (originales y optimizados) y CREDITS.md
 ├─ docs/             # plan, GDD, fases, ADR, arquitectura, estado, archivo

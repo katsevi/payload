@@ -22,7 +22,7 @@
     "credits": "Credits",
     "language": "Language",
     "best": "Best expedition: {{sectors}} sectors · {{score}} points",
-    "goal": "Take the ship to the jump gate. If the hull or the oxygen hits zero, it is over.",
+    "goal": "Take the ship to the jump gate and land to gather what you can. If the hull or oxygen hit zero, it's over.",
     "coop": "1-4 player co-op in a later phase"
   },
   "settings": {
@@ -37,7 +37,9 @@
     "volSfx": "Effects volume",
     "volAlerts": "Alerts volume",
     "soundCaptions": "Sound captions",
-    "soundCaptionsHint": "Shows text such as [alarm] when a warning sounds. Important warnings always flash on screen."
+    "soundCaptionsHint": "Shows text such as [alarm] when a warning sounds. Important warnings always flash on screen.",
+    "effects": "Effects intensity (shake and vignette)",
+    "toggleCollect": "Collect with one press (no need to hold E)"
   },
   "credits": {
     "title": "Credits",
@@ -47,7 +49,7 @@
     "source": "Source: Sketchfab",
     "usedFor": "Used for",
     "astronaut": "Crew member (player avatar)",
-    "walker": "Reserved for surface exploration (phase 2)",
+    "walker": "Reserved (not used yet)",
     "galaxy": "Menu backdrop and star map hologram",
     "erizon": "Space station seen from the ship",
     "console": "Ship helm",
@@ -59,7 +61,8 @@
   "station": {
     "helm": "Helm",
     "map": "Star map",
-    "power": "Power panel"
+    "power": "Power panel",
+    "airlock": "Airlock"
   },
   "marker": {
     "evade": "To the helm!"
@@ -81,7 +84,18 @@
     "impactIn": "Impact in {{seconds}} s",
     "impactEvaded": "Evaded",
     "clickToPlay": "Click to move the camera",
-    "helpHint": "H · help"
+    "helpHint": "H · help",
+    "gravity": "{{g}} m/s²",
+    "stormIn": "Storm in {{seconds}} s",
+    "stormActive": "Storm · {{pct}}%",
+    "suitO2": "Suit oxygen",
+    "jetpack": "Jetpack",
+    "carry": "Load",
+    "kg": "{{kg}}/{{max}} kg",
+    "shipAlert": "Ship: alert",
+    "shipOk": "Ship · hull {{hull}}",
+    "toShip": "Ship",
+    "streak": "×{{mult}}"
   },
   "prompt": {
     "hold": "Hold",
@@ -97,7 +111,25 @@
     "helm": "Helm · no impacts in sight",
     "throttle": "Change throttle",
     "map": "Open the star map",
-    "power": "Open the power panel"
+    "power": "Open the power panel",
+    "land": "Land on {{world}} · {{gravity}} m/s² · fuel {{fuel}}",
+    "landNoFuel": "Not enough fuel to take off again ({{fuel}})",
+    "takeOff": "Take off · fuel {{fuel}}",
+    "takeOffHeavy": "Too much cargo: take-off costs {{fuel}}",
+    "takeOffNoFuel": "Not enough fuel to take off ({{fuel}})",
+    "jettison": "Jettison this world's cargo",
+    "airlockExit": "Exit through the airlock",
+    "airlockSealed": "Airlock sealed · only when landed",
+    "collect": "Collect {{material}} · {{value}} pts · {{units}} left",
+    "full": "No room for {{material}}: head back",
+    "enter": "Board the ship",
+    "enterCargo": "Board and store {{kg}} kg",
+    "lootLeft": "{{units}} u left",
+    "exitCost": "ship O₂ −{{cost}}%",
+    "exitShort": "suit {{suit}}% · ship O₂ −{{cost}}%",
+    "collectAirborne": "{{material}} · feet on the ground to collect",
+    "landNoEngines": "Land · engines offline",
+    "shipO2": "ship O₂ {{pct}}%"
   },
   "map": {
     "title": "Star map · sector {{sector}}",
@@ -121,7 +153,7 @@
     "jump": "Jump to {{node}}",
     "cache": "Drifting container",
     "visited": "Visited",
-    "landable": "Explorable surface (phase 2)",
+    "landable": "Explorable surface",
     "service": "Station service",
     "serviceHint": "Refuels, repairs the hull and gives spares. Once per station.",
     "serviceUsed": "Service already used",
@@ -131,7 +163,8 @@
       "eco": "Slow and cheap. More time to react.",
       "cruise": "Balanced.",
       "burn": "Fast and costly. Overloads the reactor unless you switch something off."
-    }
+    },
+    "landed": "Already landed here"
   },
   "power": {
     "title": "Power panel",
@@ -168,7 +201,9 @@
     "score": "Score",
     "retry": "New expedition",
     "next": "Jump to sector {{sector}}",
-    "nextHint": "The ship carries on as it is: damage and fuel do not reset."
+    "nextHint": "The ship carries on as it is: damage and fuel do not reset.",
+    "landings": "Landings",
+    "materials": "Materials stored"
   },
   "pause": {
     "title": "Paused",
@@ -190,8 +225,14 @@
       "leak": "A leak drains the oxygen in just over a minute.",
       "short": "A short shuts its system down; leave it and it catches fire.",
       "impact": "With sensors you see impacts coming: run to the helm.",
-      "power": "At full burn there is not enough power for everything: choose what to switch off."
-    }
+      "power": "At full burn there is not enough power for everything: choose what to switch off.",
+      "o2": "Outside, suit oxygen drains nonstop: get back to the ramp in time.",
+      "terrain": "Glowing cracks: the ground gives way. Get off or you fall.",
+      "storm": "A darkening horizon means a storm: get under cover.",
+      "landing": "On descent, brake when your speed passes the white mark."
+    },
+    "jump": "Jump · hold in the air: jetpack (falling: brakes) · on descent: brake",
+    "down": "Jetpack down (descend sooner)"
   },
   "keys": {
     "move": "WASD",
@@ -201,7 +242,9 @@
     "alt": "Q",
     "view": "V",
     "pause": "Esc",
-    "help": "H"
+    "help": "H",
+    "jump": "Space",
+    "down": "C"
   },
   "sound": {
     "fixed": "[repaired]",
@@ -212,6 +255,36 @@
     "jump": "[jump engines]",
     "clunk": "[docking]",
     "impact": "[impact]",
-    "success": "[sector cleared]"
+    "success": "[sector cleared]",
+    "descent": "[leaving orbit]",
+    "landSoft": "[soft touchdown]",
+    "landHard": "[hard impact]",
+    "airlock": "[airlock]",
+    "collect": "[sample cut]",
+    "store": "[cargo stowed]",
+    "stormWarn": "[rising wind]",
+    "storm": "[storm]",
+    "crack": "[ground cracking]",
+    "collapse": "[collapse]",
+    "o2Low": "[oxygen warning]",
+    "o2Critical": "[oxygen beeping]",
+    "breathFast": "[heavy breathing]",
+    "suitHit": "[suit impact]",
+    "crewDead": "[vitals lost]",
+    "takeOff": "[lift-off]",
+    "jettison": "[cargo jettisoned]",
+    "wind": "[wind]",
+    "fallWarn": "[fall warning]"
+  },
+  "descent": {
+    "title": "Descent",
+    "altitude": "{{m}} m",
+    "speed": "{{v}} m/s",
+    "speedLabel": "Descent speed",
+    "brakeNow": "Brake!",
+    "coast": "Falling",
+    "hold": "Hold to brake",
+    "braking": "Braking",
+    "noEngines": "No engines: you can't brake"
   }
 }

@@ -6,16 +6,17 @@ import { TOAST_MS, useGame } from '../game/runStore';
 import { tr } from '../i18n';
 import { useUi } from '../state/ui';
 import { usePointerLocked } from './common';
+import { DescentHud, FallAlert, O2Vignette, ShipCompass, SuitVitals, WorldBadge } from './SurfaceHud';
 
 const TONE_TEXT: Record<EventTone, string> = { info: 'text-slate-200 border-line', ok: 'text-ok border-ok/60', warn: 'text-warn border-warn/60', bad: 'text-bad border-bad/70' };
 const INCIDENT_ICON: Record<IncidentKind, ReactNode> = { fire: <Flame size={14} />, short: <Zap size={14} />, leak: <Wind size={14} /> };
 
-type Level = 'ok' | 'warn' | 'bad';
+export type Level = 'ok' | 'warn' | 'bad';
 const LEVEL_BAR: Record<Level, string> = { ok: 'bg-accent', warn: 'bg-warn', bad: 'bg-bad' };
 const LEVEL_TEXT: Record<Level, string> = { ok: 'text-slate-100', warn: 'text-warn', bad: 'text-bad' };
-const levelOf = (pct: number, warn: number, bad: number): Level => (pct <= bad ? 'bad' : pct <= warn ? 'warn' : 'ok');
+export const levelOf = (pct: number, warn: number, bad: number): Level => (pct <= bad ? 'bad' : pct <= warn ? 'warn' : 'ok');
 
-function Gauge({ icon, label, pct, text, level, marker }: { icon: ReactNode; label: string; pct: number; text: string; level: Level; marker?: number }) {
+export function Gauge({ icon, label, pct, text, level, marker }: { icon: ReactNode; label: string; pct: number; text: string; level: Level; marker?: number }) {
   return (
     <div className="flex items-center gap-2" role="meter" aria-label={label} aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
       <span className={`${LEVEL_TEXT[level]} ${level === 'bad' ? 'animate-pulse' : ''}`} title={label}>
@@ -76,7 +77,11 @@ function Voyage({ s }: { s: RunState }) {
       <div className="num text-[10px] uppercase tracking-widest text-slate-400">
         {t('hud.sector', { sector: s.sector.index })} · {t('hud.score', { score: s.score })}
       </div>
-      <div className="text-sm text-slate-100">{s.transit ? t('hud.transit', { node: target?.name ?? '' }) : t('hud.docked', { node: target?.name ?? '' })}</div>
+      {s.surface ? (
+        <WorldBadge s={s} />
+      ) : (
+        <div className="text-sm text-slate-100">{s.transit ? t('hud.transit', { node: target?.name ?? '' }) : t('hud.docked', { node: target?.name ?? '' })}</div>
+      )}
       {s.transit && (
         <>
           <div className="h-1.5 w-56 overflow-hidden rounded-sm bg-black/60 ring-1 ring-line">
@@ -144,11 +149,14 @@ function PromptBar() {
   if (!prompt) return null;
   const params = { ...prompt.params };
   const system = typeof params.system === 'string' ? t(`systemName.${params.system}`, { ns: 'sim' }) : null;
+  // Mundo y material llegan como id: se muestran con su nombre del catálogo.
+  if (typeof params.world === 'string') params.world = t(`catalog.${params.world}`, { ns: 'sim' });
+  if (typeof params.material === 'string') params.material = t(`catalog.${params.material}`, { ns: 'sim' });
   const altParams = prompt.altParams ?? {};
   const throttle = typeof altParams.throttle === 'string' ? t(`throttle.${altParams.throttle}`, { ns: 'sim' }) : null;
   return (
     <div className="absolute bottom-20 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1.5">
-      <div className={`console-panel flex items-center gap-2 px-4 py-2 text-sm ${prompt.blocked ? 'text-slate-400' : 'text-slate-100'}`}>
+      <div className={`console-panel flex items-center gap-2 px-4 py-2 text-sm ${prompt.blocked ? 'text-slate-400' : prompt.warn ? 'text-warn' : 'text-slate-100'}`}>
         {!prompt.blocked && (
           <>
             <span className="kbd">{t('keys.interact')}</span>
@@ -159,6 +167,11 @@ function PromptBar() {
           {t(prompt.key, params)}
           {system && ` · ${system}`}
         </span>
+        {prompt.badges?.map((b) => (
+          <span key={b.key} className={`num rounded border px-1.5 text-xs ${b.tone === 'warn' ? 'border-warn text-warn' : 'border-line text-accent'}`}>
+            {t(b.key, b.params ?? {})}
+          </span>
+        ))}
       </div>
       {prompt.hold && !prompt.blocked && (
         <div className="h-2 w-56 overflow-hidden rounded-sm bg-black/60 ring-1 ring-line">
@@ -182,13 +195,25 @@ export function Hud() {
   const s = useGame((g) => g.hud);
   const overlay = useUi((u) => u.overlay);
   const locked = usePointerLocked();
+  const descentView = useUi((u) => u.descentView);
   if (!s) return null;
-  const playing = s.phase === 'docked' || s.phase === 'transit';
+  const me = s.crew[0];
+  const eva = me?.location === 'eva';
+  const landing = s.phase === 'landing';
+  const playing = (s.phase === 'docked' || s.phase === 'transit' || s.phase === 'surface') && !(descentView && !eva);
   return (
     <div className="pointer-events-none absolute inset-0 z-10">
-      <Vitals s={s} />
+      <O2Vignette s={s} />
+      {eva ? <SuitVitals s={s} /> : <Vitals s={s} />}
       <Voyage s={s} />
       <Alerts s={s} />
+      {landing && <DescentHud s={s} />}
+      {eva && me?.alive && s.phase === 'surface' && (
+        <>
+          <ShipCompass />
+          <FallAlert />
+        </>
+      )}
       <Toasts />
       <div className="num absolute right-3 top-3 rounded border border-line bg-panel/80 px-2 py-1 text-xs text-slate-400">{t('hud.helpHint')}</div>
       {playing && overlay === null && (

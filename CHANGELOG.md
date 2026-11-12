@@ -5,7 +5,24 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+Versión propuesta: **0.5.0**, fase 2 «Exploración de superficie» (rama `feat/f2-superficie`, 2026-11-12). Decisiones: ADR 0012.
+
 ### Añadido
+
+#### `@payload/shared`
+- Contrato aditivo de superficie: `RunPhase` `landing` y `surface`, `LossReason` `crew`, `WorldDef`, `MaterialDef`, `SurfaceRules`, `CrewMember`, `SurfaceState`, `Deposit`, `UnstableZone`, `LandingEstimate` y `TakeOffEstimate`; `RunAction` `land`, `set-descent-brake`, `eva-exit`, `eva-enter`, `set-position`, `jetpack`, `fall-impact`, `collect`, `jettison` y `take-off`; `RunEvent.subtype`; `Run.estimateLanding()` y `estimateTakeOff()`; `createRun({ crewSize })`.
+- Catálogo `catalog/mundos.json` (zod, opcional): 7 mundos, 4 materiales y reglas de descenso, despegue, traje, jetpack, caídas, terreno inestable y racha.
+- `surface.ts`: mundo y superficie deterministas por nodo, física del descenso y perfil de frenado de referencia, combustible de despegue, racha y relleno del traje.
+- Partida: descenso con freno, EVA con oxígeno de traje y jetpack, caídas, tormentas pre-sorteadas, terreno inestable, recogida por mantener, bodega con suministros y puntuación de materiales, despegue, derrota por muerte de toda la tripulación y varada en superficie. La nave sigue viva durante la salida.
+- Mensajes de superficie en es/en. Tests nuevos `surface.test.ts` (motor); total 127 en 7 archivos.
+- Bot de balance con `explore: 'prudent' | 'greedy' | 'thorough'`, resumen por aterrizaje y curva «margen de O₂ → valor y muertes» en `pnpm balance`.
+
+#### `@payload/client`
+- Escenas `SurfaceScene` (descenso y EVA) y `SurfaceWorld` (carga diferida, con Rapier), `ShipExterior`, `ShipCargo` (bodega visible) y `ui/SurfaceHud`.
+- Terreno determinista (`game/terrain.ts`), movimiento con jetpack (`game/motion.ts`), reglas de superficie (`game/surfaceRules.ts`), ruido y depuración; capa gráfica de superficie (`gfx/surfaceShaders.ts`, `surfaceLook.ts`, `rocks.ts`).
+- Esclusa como noveno puesto; timón con descenso y despegue; mapa con mundo y gravedad de cada destino aterrizable.
+- Controles: **Espacio** (salto, jetpack y freno de caída) y **C** (bajar con el jetpack). Ajustes de accesibilidad: intensidad de efectos y recoger con una pulsación.
+- Depuración: `?play=1&seed=7&surface=1|descent|landed` y `__payload.toSurface()`. Tests nuevos `surface.test.ts`; total 82 en 3 archivos.
 
 #### `@payload/client`
 - Capa gráfica procedural `src/gfx/`: texturas de canvas, materiales compartidos, `Builder` (piezas fusionadas en una malla por material), ruido GLSL y shaders de nave, efectos y espacio. Sin assets ni dependencias nuevas.
@@ -17,7 +34,14 @@ Cada entrada se agrupa por paquete.
 
 ### Cambiado
 
+#### Documentación
+- ADR 0012; fase 2, GDD § 10-11, arquitectura y estado al día; `docs/CONTRIBUTING.md`: modelos de los agentes corregidos (`client-3d` opus, `validator` sonnet).
+
+#### `@payload/shared`
+- `computeScore` suma los puntos de los materiales guardados a bordo. Los perfiles de balance de la fase 1 no cambian.
+
 #### `@payload/client`
+- Se pinta la escena según la fase (`sceneFor`): puente, descenso o superficie. Audio ampliado (propulsor, jetpack, viento, tormenta, respiración, pitido de O₂, despegue).
 - Rediseño visual de la nave: casco con cuadernas, vigas, conductos, cristales y mirador de proa; los ocho puestos remodelados y mostrando el estado del motor (palancas, medidor de carga, radar, galones de régimen, palas de los motores); reflejos de entorno y sombras de contacto. Distribución, colisiones e interacción sin cambios.
 - Efectos de avería nuevos (llamas, pavesas, humo, chispas, arcos, chorro de gas) y luminarias por zona.
 - Exterior nuevo: cielo de nebulosas por sector, estrella cercana, planetas procedurales con atmósfera y anillos, luna con cráteres, asteroides instanciados, nebulosa, pecio y portal con vórtice. Menú con el mismo cielo.

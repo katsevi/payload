@@ -7,7 +7,11 @@ import shipsJson from '../catalog/naves.json';
 import hazardsJson from '../catalog/averias.json';
 import nodeKindsJson from '../catalog/destinos.json';
 import sectorJson from '../catalog/sectores.json';
-import { NODE_KINDS, THROTTLE_IDS, type Catalog, type NodeKind, type NodeKindDef, type ShipDef, type ThrottleDef, type ThrottleId } from './types';
+import surfaceJson from '../catalog/mundos.json';
+import {
+  NODE_KINDS, THROTTLE_IDS,
+  type Catalog, type MaterialDef, type NodeKind, type NodeKindDef, type ShipDef, type SurfaceCatalog, type ThrottleDef, type ThrottleId, type WorldDef,
+} from './types';
 
 const localized = z.strictObject({ es: z.string().min(1), en: z.string().min(1) });
 const id = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'debe ser kebab-case (a-z, 0-9 y guiones)');
@@ -104,12 +108,88 @@ const sectorSchema = z
   })
   .refine((s) => s.nodesPerColumn.min >= 1 && s.columns <= s.maxColumns, { message: 'columnas o nodos por columna inválidos' });
 
+const pct = nonNeg.max(100);
+
+const surfaceRulesSchema = z.strictObject({
+  descent: z
+    .strictObject({
+      brakeThrustMps2: positive,
+      brakeFuelPerS: nonNeg,
+      minSpeedMps: positive,
+      safeSpeedMps: positive,
+      hullDamagePerMps: nonNeg,
+      systemDamagePerMps: nonNeg,
+      incidentChancePerMps: nonNeg,
+      referenceMargin: probability.optional(),
+    })
+    .refine((d) => d.minSpeedMps <= d.safeSpeedMps, { message: 'minSpeedMps debe ser <= safeSpeedMps' }),
+  takeOff: z.strictObject({ baseFuel: nonNeg, fuelPerMps2: nonNeg, massRefKg: positive }),
+  suit: z
+    .strictObject({
+      o2DrainPctPerS: positive,
+      lowO2Pct: pct,
+      criticalO2Pct: pct,
+      carryCapacityKg: positive,
+      collectRangeM: positive,
+      airlockRangeM: positive,
+      maxMoveSpeedMps: positive,
+      refillShipO2PctPerTank: pct,
+      refillMinShipO2Pct: pct,
+      airlockCycleShipO2Pct: pct.optional(),
+    })
+    .refine((s) => s.criticalO2Pct < s.lowO2Pct, { message: 'criticalO2Pct debe ser < lowO2Pct' }),
+  jetpack: z.strictObject({ drainPctPerS: positive, rechargePctPerS: nonNeg }),
+  falls: z
+    .strictObject({ harmlessMps: nonNeg, o2LossPctPerMps: nonNeg, lethalMps: positive })
+    .refine((f) => f.harmlessMps < f.lethalMps, { message: 'harmlessMps debe ser < lethalMps' }),
+  terrain: z.strictObject({ collapseS: positive, decayPerS: nonNeg }),
+  value: z.strictObject({ distanceBonus: nonNeg, dangerBonus: nonNeg, dangerMarginM: nonNeg }),
+  streak: z.strictObject({ bonusPerUnit: nonNeg, maxBonus: nonNeg }),
+  shipO2: z.strictObject({ surfaceSurplusRegenMult: probability }).optional(),
+});
+
+const materialSchema = z.strictObject({
+  id,
+  name: localized,
+  value: nonNeg,
+  massKg: positive,
+  collectS: positive,
+  yields: z.strictObject({ fuel: nonNeg.optional(), spares: nonNeg.int().optional() }).optional(),
+  streak: z.boolean().optional(),
+});
+
+const worldSchema = z.strictObject({
+  id,
+  name: localized,
+  kind: z.enum(NODE_KINDS),
+  weight: positive,
+  gravityMps2: positive,
+  descent: z.strictObject({ altitudeM: positive, speedMps: nonNeg, referenceMargin: probability.optional() }),
+  radiusM: positive,
+  deposits: range.refine((r) => r.min >= 1 && r.max <= 24, { message: 'entre 1 y 24 vetas' }),
+  materials: z
+    .array(z.strictObject({ materialId: id, weight: positive, units: range.refine((r) => r.min >= 1, { message: 'al menos 1 unidad' }), minDistanceFrac: probability, dangerWeightMult: positive }))
+    .min(1),
+  storms: z
+    .strictObject({ meanIntervalS: positive, warnS: positive, durationS: range, intensity: range.refine((r) => r.max <= 1, { message: 'intensidad <= 1' }), o2DrainPctPerS: nonNeg, firstStartMinS: nonNeg.optional() })
+    .nullable(),
+  unstable: z.strictObject({ zones: range, radiusM: range, pitDepthM: nonNeg }),
+  shipWearMult: nonNeg,
+});
+
+const surfaceSchema = z.strictObject({
+  rules: surfaceRulesSchema,
+  materials: z.array(materialSchema).min(1),
+  worlds: z.array(worldSchema),
+});
+
 const catalogSchema = z
   .strictObject({
     ships: z.array(shipSchema).min(1),
     hazards: hazardsSchema,
     nodeKinds: z.array(nodeKindSchema),
     sector: sectorSchema,
+    surface: surfaceSchema.optional(),
   })
   .superRefine((cat, ctx) => {
     const shipIds = new Set<string>();
@@ -123,11 +203,31 @@ const catalogSchema = z
     const station = cat.nodeKinds.find((n) => n.id === 'station');
     if (station && !station.service) ctx.addIssue({ code: 'custom', message: 'el tipo "station" debe declarar `service`' });
     if (!cat.nodeKinds.some((n) => n.weight > 0)) ctx.addIssue({ code: 'custom', message: 'ningún tipo de destino tiene peso > 0' });
+    const surface = cat.surface;
+    if (!surface) return;
+    const ids = new Set<string>([...shipIds, ...NODE_KINDS]);
+    const materialIds = new Set<string>();
+    for (const entry of [...surface.materials, ...surface.worlds]) {
+      if (ids.has(entry.id)) ctx.addIssue({ code: 'custom', message: `id repetido en el catálogo: ${entry.id}` });
+      ids.add(entry.id);
+    }
+    for (const mat of surface.materials) materialIds.add(mat.id);
+    for (const w of surface.worlds) {
+      const kind = cat.nodeKinds.find((n) => n.id === w.kind);
+      if (kind && !kind.landable) ctx.addIssue({ code: 'custom', message: `el mundo "${w.id}" es de un tipo no aterrizable (${w.kind})` });
+      for (const m of w.materials) if (!materialIds.has(m.materialId)) ctx.addIssue({ code: 'custom', message: `el mundo "${w.id}" usa un material desconocido: ${m.materialId}` });
+      if (!w.materials.some((m) => m.minDistanceFrac === 0)) ctx.addIssue({ code: 'custom', message: `el mundo "${w.id}" necesita algún material con minDistanceFrac 0` });
+    }
+    for (const k of cat.nodeKinds) {
+      if (k.landable && !surface.worlds.some((w) => w.kind === k.id)) ctx.addIssue({ code: 'custom', message: `el tipo aterrizable "${k.id}" no tiene ningún mundo` });
+    }
   });
 
 /** Valida un catálogo en bruto. Lanza un error legible si no cumple el esquema. */
 export function parseCatalog(raw: unknown): Catalog {
-  const r = catalogSchema.safeParse(raw);
+  // La superficie es opcional en el JSON: si falta, se usa la del catálogo por defecto.
+  const input = raw !== null && typeof raw === 'object' && !Array.isArray(raw) && !('surface' in raw) ? { ...raw, surface: surfaceJson } : raw;
+  const r = catalogSchema.safeParse(input);
   if (!r.success) {
     const lines = r.error.issues.map((i) => `  - ${i.path.join('.') || '(raíz)'}: ${i.message}`);
     throw new Error(`Catálogo inválido:\n${lines.join('\n')}`);
@@ -141,6 +241,7 @@ export const catalog: Catalog = parseCatalog({
   hazards: hazardsJson,
   nodeKinds: nodeKindsJson.nodeKinds,
   sector: sectorJson.sector,
+  surface: surfaceJson,
 });
 
 export function getShip(shipId: string | undefined, cat: Catalog = catalog): ShipDef {
@@ -158,5 +259,23 @@ export function getNodeKind(kind: NodeKind, cat: Catalog = catalog): NodeKindDef
 export function getThrottle(ship: ShipDef, throttle: ThrottleId): ThrottleDef {
   const def = ship.throttles.find((t) => t.id === throttle);
   if (!def) throw new Error(`Régimen desconocido: ${throttle}`);
+  return def;
+}
+
+/** Mundos, materiales y reglas de superficie (siempre presentes tras `parseCatalog`). */
+export function getSurfaceCatalog(cat: Catalog = catalog): SurfaceCatalog {
+  if (!cat.surface) throw new Error('El catálogo no tiene superficie (usa parseCatalog)');
+  return cat.surface;
+}
+
+export function getWorld(worldId: string, cat: Catalog = catalog): WorldDef {
+  const def = getSurfaceCatalog(cat).worlds.find((w) => w.id === worldId);
+  if (!def) throw new Error(`Mundo desconocido: ${worldId}`);
+  return def;
+}
+
+export function getMaterial(materialId: string, cat: Catalog = catalog): MaterialDef {
+  const def = getSurfaceCatalog(cat).materials.find((m) => m.id === materialId);
+  if (!def) throw new Error(`Material desconocido: ${materialId}`);
   return def;
 }

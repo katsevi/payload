@@ -3,7 +3,7 @@
  * muros hay. La proa mira a −Z. Tres zonas separadas por mamparos con una puerta central:
  *
  *   PUENTE (z −13…−5)        timón · mapa estelar · navegación (sensores)
- *   CUBIERTA MEDIA (−5…4)    soporte vital · escudos
+ *   CUBIERTA MEDIA (−5…4)    soporte vital · escudos · esclusa · bodega
  *   SALA DE MÁQUINAS (4…13)  panel de energía · reactor · motores
  *
  * Las distancias son parte del diseño: ir del timón al reactor cuesta ~4 s corriendo, así que una
@@ -11,8 +11,8 @@
  */
 import { SYSTEM_IDS, type SystemId } from '@payload/shared';
 
-export type StationId = SystemId | 'helm' | 'map' | 'power';
-export const STATION_IDS: readonly StationId[] = ['helm', 'map', 'power', ...SYSTEM_IDS];
+export type StationId = SystemId | 'helm' | 'map' | 'power' | 'airlock';
+export const STATION_IDS: readonly StationId[] = ['helm', 'map', 'power', 'airlock', ...SYSTEM_IDS];
 
 export interface Station {
   id: StationId;
@@ -47,7 +47,12 @@ export const STATIONS: Record<StationId, Station> = {
   power: station('power', -4.7, 6.2, -3.7, 6.2, Math.PI / 2),
   reactor: station('reactor', 0, 8, 0, 8, 0),
   engines: station('engines', 0, 12.3, 0, 11.2, Math.PI),
+  // Esclusa en el costado de babor de la cubierta media (fase 2: salir a la superficie).
+  airlock: station('airlock', -4.6, 2.4, -3.5, 2.4, Math.PI / 2),
 };
+
+/** Bodega: cajas junto al costado de estribor de la cubierta media (crecen con `ship.cargo`). */
+export const CARGO_BAY = { x: 3.9, z: 2.4, halfX: 0.75, halfZ: 1.3 } as const;
 
 /** Zona de la nave a la que pertenece un punto (para las luces de alarma). */
 export type Zone = 'bridge' | 'mid' | 'engine';

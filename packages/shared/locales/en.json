@@ -58,12 +58,46 @@
     "lowFuel": "Fuel low",
     "lowHull": "Hull critical",
     "sectorCleared": "Sector {{sector}} cleared!",
-    "newSector": "Sector {{sector}}"
+    "newSector": "Sector {{sector}}",
+    "descent": "Descending to $t(catalog.{{world}}) · gravity {{gravity}} m/s²",
+    "landing": {
+      "soft": "Soft landing at {{speed}} m/s",
+      "hard": "Hard landing at {{speed}} m/s! Hull −{{damage}}"
+    },
+    "airlock": {
+      "exit": "Airlock open · suit and jetpack full",
+      "enter": "Back on board",
+      "exitPartial": "Airlock open · low O₂ aboard: suit at {{o2}} %"
+    },
+    "collected": "+1 $t(catalog.{{material}}) · {{kg}}/{{capacity}} kg",
+    "cargoStored": "To the hold: {{units}} units · +{{value}} points",
+    "cargoProcessed": "Processed: +{{fuel}} fuel · +{{spares}} spares",
+    "storm": {
+      "warning": "Storm in {{seconds}} s",
+      "start": "Storm! Suit oxygen is draining faster",
+      "end": "The storm is dying down"
+    },
+    "terrain": {
+      "warning": "The ground is giving way!",
+      "collapsed": "The ground collapses!"
+    },
+    "suitO2": {
+      "low": "Suit oxygen low",
+      "critical": "Suit oxygen critical!"
+    },
+    "suitDamaged": "Suit damaged! Oxygen −{{o2}} %",
+    "crewDead": {
+      "oxygen": "A crew member suffocated on the surface",
+      "fall": "A crew member died in a fall"
+    },
+    "takeOff": "Lift-off · −{{fuel}} fuel",
+    "jettison": "Cargo dumped: {{units}} units · −{{value}} points"
   },
   "loss": {
     "hull": "The ship broke apart",
     "oxygen": "The crew ran out of oxygen",
-    "stranded": "The ship is adrift"
+    "stranded": "The ship is adrift",
+    "crew": "The whole crew died on the surface"
   },
   "reject": {
     "runOver": "The run is over",
@@ -83,6 +117,26 @@
     "noService": "There is no station service here",
     "serviceUsed": "This station has already served you",
     "serviceNotNeeded": "The ship needs no service",
-    "invalid": "Invalid action"
+    "invalid": "Invalid action",
+    "onSurface": "Not possible while landed",
+    "notLandable": "You can't land here",
+    "alreadyLanded": "You've already landed here",
+    "landFuel": "Not enough fuel: landing and take-off will cost {{fuel}}",
+    "notDescending": "Only during the descent",
+    "notLanded": "Wait until touchdown",
+    "notOnSurface": "Only on the surface",
+    "crewOutside": "Someone must be on board",
+    "crewDead": "That crew member is dead",
+    "alreadyOutside": "You're already outside",
+    "notOutside": "Only outside the ship",
+    "tooFar": "Too far away",
+    "noDeposit": "That vein is exhausted",
+    "overCapacity": "You can't carry any more",
+    "jetpackEmpty": "Jetpack empty",
+    "takeOffFuel": "Not enough fuel to lift off ({{fuel}})",
+    "takeOffHeavy": "Too much cargo: lift-off will cost {{fuel}}",
+    "nothingToJettison": "Nothing loaded on this world",
+    "enginesOffline": "Engines unpowered or shorted: no braking",
+    "collectAirborne": "Get your feet on the ground to collect"
   }
 }

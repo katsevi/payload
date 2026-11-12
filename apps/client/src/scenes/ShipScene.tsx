@@ -1,20 +1,23 @@
-import { useEffect, useRef } from 'react';
+import { MAX_WORK_SECONDS } from '@payload/shared';
+import { useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
 import { cue } from '../audio/cues';
-import { EVADE_HOLD_S, holdAction, interactionAt, nextThrottle, promptFor } from '../game/interaction';
+import { altAction, chargedAction, holdAction, interactionAt, promptFor, sendInChunks, type Interaction } from '../game/interaction';
 import { HULL, PLAYER_START, nearestStation } from '../game/layout';
-import { getRun, useGame } from '../game/runStore';
+import { fx, getRun, shipSpawn, useGame } from '../game/runStore';
+import { SHIP_OFFSET } from '../game/surfaceRules';
 import { ShaderClock } from '../gfx/Glow';
 import { PlayerController, type CameraBounds } from '../player/PlayerController';
 import { isDown } from '../player/input';
-import { playerState } from '../player/playerState';
+import { playerState, resetPlayerState } from '../player/playerState';
 import { useUi } from '../state/ui';
 import { IncidentFx, Markers, ZoneLights } from './ShipFx';
 import { Hull } from './ShipInterior';
 import { Stations } from './ShipStations';
 import { SpaceView } from './SpaceView';
+import { SurfaceWorld } from './SurfaceWorld';
 
 const BOUNDS: CameraBounds = { minX: -HULL.halfWidth + 0.4, maxX: HULL.halfWidth - 0.4, minZ: HULL.minZ + 0.4, maxZ: HULL.maxZ - 0.4, maxY: HULL.height - 0.3 };
 
@@ -23,11 +26,13 @@ const isTyping = (e: KeyboardEvent): boolean => {
   return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT');
 };
 
-/** Interacción actual según dónde está el jugador. */
-function currentInteraction() {
+/** Interacción actual según dónde está el jugador (en el timón, con las estimaciones del motor). */
+function currentInteraction(): Interaction | null {
   const run = getRun();
   if (!run) return null;
-  return interactionAt(nearestStation(playerState.pos.x, playerState.pos.z), run.state);
+  const station = nearestStation(playerState.pos.x, playerState.pos.z);
+  const est = station === 'helm' ? { landing: run.state.phase === 'docked' ? run.estimateLanding() : null, takeOff: run.state.phase === 'surface' ? run.estimateTakeOff() : null } : {};
+  return interactionAt(station, run.state, est, run.catalog);
 }
 
 /**
@@ -35,37 +40,48 @@ function currentInteraction() {
  * en acciones. Mantener E arregla/repara/esquiva; pulsar E abre paneles; Q cambia el régimen en el timón.
  */
 function GameLoop() {
-  const evade = useRef(0);
+  const charge = useRef(0);
+  const chargeKind = useRef<string | null>(null);
   const wasLocked = useRef(false);
   const { gl } = useThree();
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.1);
+    // Mantener E cuenta el tiempo real (a menos de 10 FPS no se alarga); tope por si la pestaña se durmió.
+    const realDt = Math.min(delta, 1);
     const game = useGame.getState();
     game.tick(dt);
     const run = getRun();
     const ui = useUi.getState();
     if (!run || ui.overlay !== null) {
-      evade.current = 0;
+      charge.current = 0;
       ui.setPrompt(null);
       return;
     }
     const interaction = currentInteraction();
     const holding = isDown('KeyE');
-    if (interaction?.kind === 'helm') {
-      if (interaction.canEvade && holding) {
-        evade.current += dt / EVADE_HOLD_S;
-        if (evade.current >= 1) {
-          evade.current = 0;
-          if (game.act({ type: 'evade' }).ok) cue('toggle');
+    // «Mantener hasta llenar»: maniobra evasiva, descenso, despegue y esclusa.
+    const charged = chargedAction(interaction);
+    if (charged) {
+      if (chargeKind.current !== interaction?.kind) charge.current = 0;
+      chargeKind.current = interaction?.kind ?? null;
+      if (holding) {
+        charge.current += realDt / charged.holdS;
+        if (charge.current >= 1) {
+          charge.current = 0;
+          if (game.act(charged.action).ok) cue('toggle');
         }
-      } else evade.current = 0;
+      } else charge.current = 0;
     } else {
-      evade.current = 0;
-      const action = holding ? holdAction(interaction, dt) : null;
-      if (action) game.act(action, true);
+      charge.current = 0;
+      if (holding && holdAction(interaction, 0)) {
+        sendInChunks(realDt, MAX_WORK_SECONDS, (seconds) => {
+          const action = holdAction(interaction, seconds);
+          return !!action && game.act(action, true).ok;
+        });
+      }
     }
-    ui.setPrompt(promptFor(currentInteraction(), run.state, evade.current));
+    ui.setPrompt(promptFor(interaction, run.state, charge.current));
   });
 
   useEffect(() => {
@@ -85,7 +101,8 @@ function GameLoop() {
         const interaction = currentInteraction();
         if (interaction?.kind === 'map' || interaction?.kind === 'power') ui.setOverlay(interaction.kind);
       } else if (e.code === 'KeyQ' && ui.overlay === null) {
-        if (currentInteraction()?.kind === 'helm' && useGame.getState().act({ type: 'set-throttle', throttle: nextThrottle(run.state.ship.throttle) }).ok) cue('toggle');
+        const action = altAction(currentInteraction(), run.state);
+        if (action && useGame.getState().act(action).ok) cue('toggle');
       } else if (e.code === 'KeyV' && ui.overlay === null) {
         ui.toggleView();
       } else if (e.code === 'KeyH' || e.code === 'F1') {
@@ -96,7 +113,7 @@ function GameLoop() {
     // Soltar el ratón con Esc (sin ningún panel abierto) pausa la partida.
     const onLock = () => {
       const phase = getRun()?.state.phase;
-      if (document.pointerLockElement === null && useUi.getState().overlay === null && wasLocked.current && (phase === 'docked' || phase === 'transit')) {
+      if (document.pointerLockElement === null && useUi.getState().overlay === null && wasLocked.current && (phase === 'docked' || phase === 'transit' || phase === 'surface')) {
         useUi.getState().setOverlay('pause');
       }
       wasLocked.current = document.pointerLockElement !== null;
@@ -132,20 +149,53 @@ function ShipEnvironment() {
   );
 }
 
-/** Interior caminable de la nave (1ª/3ª persona) con el espacio al otro lado de las ventanas. */
+/**
+ * Con la nave posada, por las ventanas se ve la superficie: el mismo mundo que en la EVA, desplazado al
+ * sistema del interior (sin colisiones ni niebla, que velaría la propia nave).
+ */
+function LandedView() {
+  return (
+    <group position={[-SHIP_OFFSET.x, -SHIP_OFFSET.y, -SHIP_OFFSET.z]}>
+      <SurfaceWorld interior />
+    </group>
+  );
+}
+
+/** Al desmontar la nave (descenso, EVA) se guarda dónde estaba el jugador y se limpia lo transitorio. */
+function useShipSpawn(): { start: readonly [number, number, number]; yaw: number } {
+  // Se lee una vez al montar; al desmontar se guarda la posición actual (la EVA la cambia al entrar).
+  const spawn = useMemo(() => {
+    const at = shipSpawn.at;
+    return at ? { start: [at.x, 0, at.z] as const, yaw: at.yaw } : { start: PLAYER_START, yaw: 0 };
+  }, []);
+  useEffect(
+    () => () => {
+      shipSpawn.at = { x: playerState.pos.x, z: playerState.pos.z, yaw: playerState.yaw };
+      fx.shake = 0;
+      useUi.getState().setPrompt(null);
+      resetPlayerState();
+    },
+    [],
+  );
+  return spawn;
+}
+
+/** Interior caminable de la nave (1ª/3ª persona) con el espacio (o la superficie) al otro lado de las ventanas. */
 export function ShipScene() {
+  const landed = useGame((s) => s.hud?.phase === 'surface');
+  const spawn = useShipSpawn();
   return (
     <Canvas style={{ isolation: 'isolate' }} dpr={[1, 1.75]} camera={{ fov: 75, near: 0.05, far: 2400, position: [PLAYER_START[0], 1.6, PLAYER_START[2]] }}>
       <color attach="background" args={['#01020a']} />
       <ShaderClock />
       <ShipEnvironment />
-      <SpaceView />
+      {landed ? <LandedView /> : <SpaceView />}
       <ZoneLights />
       {/* Paso variable: con paso fijo de 60 Hz el personaje iría más lento en pantallas de 120/144 Hz. */}
       <Physics gravity={[0, 0, 0]} timeStep="vary">
         <Hull />
         <Stations />
-        <PlayerController start={PLAYER_START} bounds={BOUNDS} />
+        <PlayerController start={spawn.start} startYaw={spawn.yaw} bounds={BOUNDS} />
       </Physics>
       <IncidentFx />
       <Markers />

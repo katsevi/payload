@@ -11,10 +11,16 @@ export function currentMusicContext(): MusicContext {
   const { screen, hud } = useGame.getState();
   if (screen === 'menu' || !hud) return { screen: 'menu' };
   const ship = getShip(hud.ship.shipId);
+  const me = hud.crew.find((c) => c.alive) ?? hud.crew[0];
+  const outside = me?.location === 'eva';
+  const storm = hud.surface ? (hud.surface.storm.active ? 1 : hud.surface.storm.warned ? 0.4 : 0) : 0;
   return {
     screen: 'game',
     phase: hud.phase,
+    outside,
     danger: dangerLevel({
+      suitO2Pct: outside ? me?.suitO2Pct : undefined,
+      storm: outside ? storm : 0,
       incidents: hud.incidents.length,
       warnings: hud.warnings.filter((w) => !w.evaded).length,
       overloaded: hud.ship.overloaded,

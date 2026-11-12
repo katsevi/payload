@@ -42,6 +42,8 @@ interface EmitterSpec {
 
 interface Loop {
   stop: (fadeS: number) => void;
+  /** Volumen relativo 0-1 del bucle (los que lo admiten). */
+  level?: (v: number) => void;
 }
 
 export class AudioEngine {
@@ -139,6 +141,11 @@ export class AudioEngine {
     } catch (e) {
       console.warn('[audio] fallo al sintetizar', id, e);
     }
+  }
+
+  /** Ajusta el volumen relativo (0-1) de un bucle que suena (p. ej. el viento que crece antes de la tormenta). */
+  setLoopLevel(name: string, level: number): void {
+    this.loops.get(name)?.level?.(level);
   }
 
   /** Detiene un bucle (p. ej. el rugido del motor) con un fundido. */
@@ -502,6 +509,101 @@ export class AudioEngine {
       case 'complete':
         [523.25, 659.25, 783.99, 1046.5].forEach((f, k) => this.tone(ctx, 'alerts', t + k * 0.12, { freq: f, dur: 0.4, vol: 0.14 }));
         break;
+      case 'descent':
+        // Separación de la órbita: golpe metálico y zumbido descendente.
+        this.noiseBurst(ctx, 'sfx', t, { dur: 0.5, vol: 0.35, f0: 1500, f1: 200 });
+        this.tone(ctx, 'sfx', t, { freq: 220, dur: 1.4, type: 'sawtooth', vol: 0.12, slideTo: 70 });
+        break;
+      case 'thruster':
+        this.startNoiseLoop(ctx, 'thruster', { bus: 'sfx', filter: 'bandpass', f0: 380, f1: 520, rampS: 0.15, vol: 0.5, subHz: 55, subVol: 0.25, flutterHz: 13 });
+        break;
+      case 'jetpack':
+        this.startNoiseLoop(ctx, 'jetpack', { bus: 'sfx', filter: 'bandpass', f0: 900, f1: 1300, rampS: 0.08, vol: 0.28, subHz: 0, subVol: 0, flutterHz: 22 });
+        break;
+      case 'storm':
+        this.startNoiseLoop(ctx, 'storm', { bus: 'sfx', filter: 'lowpass', f0: 300, f1: 1100, rampS: 3, vol: 0.55, subHz: 0, subVol: 0, flutterHz: 0.35 });
+        break;
+      case 'wind':
+        // Viento que crece durante el aviso de tormenta (la escena sube su volumen con `setLoopLevel`).
+        this.startNoiseLoop(ctx, 'wind', { bus: 'sfx', filter: 'bandpass', f0: 250, f1: 600, rampS: 1.5, vol: 0.4, subHz: 0, subVol: 0, flutterHz: 0.5 });
+        this.setLoopLevel('wind', 0.15);
+        break;
+      case 'fallWarn':
+        // Dos tonos descendentes rápidos: «vas a golpear».
+        this.tone(ctx, 'alerts', t, { freq: 980, dur: 0.12, type: 'square', vol: 0.12, slideTo: 700 });
+        this.tone(ctx, 'alerts', t + 0.16, { freq: 980, dur: 0.12, type: 'square', vol: 0.12, slideTo: 700 });
+        break;
+      case 'takeOff':
+        this.startNoiseLoop(ctx, 'takeOff', { bus: 'sfx', filter: 'lowpass', f0: 200, f1: 1400, rampS: 1, vol: 0.75, subHz: 38, subVol: 0.3, flutterHz: 0 });
+        // Se apaga sola: el despegue dura unos segundos.
+        setTimeout(() => this.stopLoop('takeOff', 2.5), 3500);
+        break;
+      case 'landSoft':
+        this.noiseBurst(ctx, 'sfx', t, { dur: 0.6, vol: 0.4, f0: 900, f1: 120 });
+        this.tone(ctx, 'sfx', t, { freq: 90, dur: 0.5, type: 'sine', vol: 0.3, slideTo: 45 });
+        break;
+      case 'landHard':
+        this.noiseBurst(ctx, 'alerts', t, { dur: 2.2, vol: 0.7, f0: 2600, f1: 70 });
+        this.tone(ctx, 'alerts', t, { freq: 70, dur: 1.5, type: 'sawtooth', vol: 0.4, slideTo: 24 });
+        for (let k = 0; k < 4; k++) this.noiseBurst(ctx, 'alerts', t + 0.15 + k * 0.17, { dur: 0.12, vol: 0.25, filter: 'bandpass', f0: 2400 - k * 300, q: 2 });
+        break;
+      case 'airlock':
+        // Siseo de presurización con un cierre al final.
+        this.noiseBurst(ctx, 'sfx', t, { dur: 1.1, vol: 0.32, filter: 'highpass', f0: 3000, f1: 900 });
+        this.tone(ctx, 'sfx', t + 1, { freq: 160, dur: 0.25, type: 'square', vol: 0.15, slideTo: 80 });
+        break;
+      case 'collect':
+        this.tone(ctx, 'sfx', t, { freq: 1240, dur: 0.08, type: 'triangle', vol: 0.18 });
+        this.tone(ctx, 'sfx', t + 0.08, { freq: 1660, dur: 0.12, type: 'triangle', vol: 0.16 });
+        this.noiseBurst(ctx, 'sfx', t, { dur: 0.06, vol: 0.15, filter: 'highpass', f0: 3500 });
+        break;
+      case 'store':
+        [392, 523.25, 659.25].forEach((f, k) => this.tone(ctx, 'sfx', t + k * 0.09, { freq: f, dur: 0.22, vol: 0.14 }));
+        this.noiseBurst(ctx, 'sfx', t, { dur: 0.25, vol: 0.2, f0: 1200, f1: 300 });
+        break;
+      case 'stormWarn':
+        this.noiseBurst(ctx, 'alerts', t, { dur: 3, vol: 0.3, filter: 'bandpass', f0: 250, f1: 900, q: 0.8 });
+        this.tone(ctx, 'alerts', t, { freq: 660, dur: 0.18, vol: 0.14 });
+        this.tone(ctx, 'alerts', t + 0.3, { freq: 660, dur: 0.18, vol: 0.14 });
+        break;
+      case 'crack':
+        for (let k = 0; k < 6; k++) {
+          this.noiseBurst(ctx, 'alerts', t + k * 0.07 + Math.random() * 0.05, { dur: 0.05 + Math.random() * 0.06, vol: 0.25, filter: 'bandpass', f0: 600 + Math.random() * 900, q: 3 });
+        }
+        this.tone(ctx, 'alerts', t, { freq: 60, dur: 0.6, type: 'sine', vol: 0.25, slideTo: 40 });
+        break;
+      case 'collapse':
+        this.noiseBurst(ctx, 'alerts', t, { dur: 2.4, vol: 0.6, f0: 900, f1: 50 });
+        this.tone(ctx, 'alerts', t, { freq: 55, dur: 2, type: 'sawtooth', vol: 0.3, slideTo: 22 });
+        break;
+      case 'o2Low':
+        this.tone(ctx, 'alerts', t, { freq: 740, dur: 0.15, vol: 0.18 });
+        this.tone(ctx, 'alerts', t + 0.22, { freq: 554, dur: 0.22, vol: 0.18 });
+        break;
+      case 'o2Critical':
+        this.tone(ctx, 'alerts', t, { freq: 1320, dur: 0.09, type: 'square', vol: 0.12 });
+        break;
+      case 'breath':
+      case 'breathFast': {
+        // Inspiración y espiración: ruido filtrado dentro del casco del traje.
+        const fast = id === 'breathFast';
+        const inS = fast ? 0.32 : 0.7;
+        this.noiseBurst(ctx, 'sfx', t, { dur: inS, vol: fast ? 0.14 : 0.07, filter: 'bandpass', f0: 700, f1: 1100, q: 1.2 });
+        this.noiseBurst(ctx, 'sfx', t + inS + 0.05, { dur: inS * 1.2, vol: fast ? 0.11 : 0.05, filter: 'bandpass', f0: 1000, f1: 500, q: 1.2 });
+        break;
+      }
+      case 'suitHit':
+        this.noiseBurst(ctx, 'alerts', t, { dur: 0.35, vol: 0.5, f0: 1600, f1: 120 });
+        this.noiseBurst(ctx, 'alerts', t + 0.1, { dur: 0.9, vol: 0.2, filter: 'highpass', f0: 4000, f1: 2500 });
+        break;
+      case 'crewDead':
+        this.tone(ctx, 'alerts', t, { freq: 880, dur: 2.2, vol: 0.12 });
+        this.tone(ctx, 'alerts', t, { freq: 110, dur: 2, type: 'sawtooth', vol: 0.16, slideTo: 40 });
+        break;
+      case 'jettison':
+        this.noiseBurst(ctx, 'sfx', t, { dur: 0.6, vol: 0.35, f0: 700, f1: 150 });
+        this.tone(ctx, 'sfx', t, { freq: 300, dur: 0.3, type: 'square', vol: 0.12, slideTo: 120 });
+        break;
       case 'blip': {
         const n = 2 + Math.floor(Math.random() * 3);
         for (let k = 0; k < n; k++) {
@@ -553,6 +655,79 @@ export class AudioEngine {
         }
       },
     });
+  }
+
+  /** Bucle de ruido filtrado (propulsores, jetpack, viento) hasta `stopLoop(name)`. */
+  private startNoiseLoop(
+    ctx: AudioContext,
+    name: string,
+    o: { bus: SoundBus; filter: BiquadFilterType; f0: number; f1: number; rampS: number; vol: number; subHz: number; subVol: number; flutterHz: number },
+  ): void {
+    if (this.loops.has(name)) return;
+    const dest = this.busNode(o.bus);
+    if (!dest) return;
+    const t = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = this.getNoise(ctx);
+    src.loop = true;
+    const f = ctx.createBiquadFilter();
+    f.type = o.filter;
+    f.Q.value = o.filter === 'bandpass' ? 0.9 : 0.7;
+    f.frequency.setValueAtTime(o.f0, t);
+    f.frequency.linearRampToValueAtTime(o.f1, t + Math.max(0.05, o.rampS));
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(o.vol, t + Math.max(0.03, o.rampS));
+    const extra: OscillatorNode[] = [];
+    if (o.subHz > 0) {
+      const sub = ctx.createOscillator();
+      sub.type = 'sawtooth';
+      sub.frequency.value = o.subHz;
+      const sg = ctx.createGain();
+      sg.gain.value = o.subVol;
+      sub.connect(sg).connect(g);
+      sub.start(t);
+      extra.push(sub);
+    }
+    if (o.flutterHz > 0) {
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = o.flutterHz;
+      const lg = ctx.createGain();
+      lg.gain.value = o.vol * 0.3;
+      lfo.connect(lg).connect(g.gain);
+      lfo.start(t);
+      extra.push(lfo);
+    }
+    src.connect(f).connect(g).connect(dest);
+    src.start(t);
+    this.loops.set(name, {
+      level: (v) => {
+        try {
+          const now = ctx.currentTime;
+          g.gain.cancelScheduledValues(now);
+          g.gain.setTargetAtTime(Math.max(0.0001, o.vol * Math.min(1, Math.max(0, v))), now, 0.25);
+        } catch {
+          /* detenido */
+        }
+      },
+      stop: (fadeS) => {
+        const now = ctx.currentTime;
+        try {
+          g.gain.cancelScheduledValues(now);
+          g.gain.setValueAtTime(g.gain.value, now);
+          g.gain.linearRampToValueAtTime(0.0001, now + Math.max(0.02, fadeS));
+          src.stop(now + fadeS + 0.1);
+          for (const x of extra) x.stop(now + fadeS + 0.1);
+        } catch {
+          /* ya detenido */
+        }
+      },
+    });
+  }
+
+  /** true si el bucle suena. */
+  isLooping(name: string): boolean {
+    return this.loops.has(name);
   }
 
   // ─── Interno: emisores posicionales ───────────────────────────────────────

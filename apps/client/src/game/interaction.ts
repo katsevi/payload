@@ -2,20 +2,36 @@
  * Qué puede hacer el jugador en el puesto que tiene al lado (lógica pura; la escena solo lee
  * teclas y posición). Tecla principal E (mantener o pulsar) y secundaria Q.
  */
-import { SYSTEM_IDS, THROTTLE_IDS, type Incident, type IncidentKind, type RunAction, type RunState, type SystemId, type ThrottleId } from '@payload/shared';
-import type { Prompt } from '../state/ui';
+import { catalog as defaultCatalog, getSurfaceCatalog, suitRefill, SYSTEM_IDS, THROTTLE_IDS, type Catalog, type Incident, type IncidentKind, type LandingEstimate, type RunAction, type RunState, type SystemId, type TakeOffEstimate, type ThrottleId } from '@payload/shared';
+import type { Prompt, PromptBadge } from '../state/ui';
 import type { StationId } from './layout';
 
 /** Segundos manteniendo E en el timón para ejecutar la maniobra evasiva. */
 export const EVADE_HOLD_S = 0.7;
+/** Segundos manteniendo E para iniciar el descenso o despegar (decisiones grandes: no por accidente). */
+export const LAND_HOLD_S = 0.8;
+export const TAKE_OFF_HOLD_S = 0.8;
+/** Por debajo de este O₂ de la nave (el nivel «bajo» del HUD) el timón lo muestra al despegar. */
+export const SHIP_O2_LOW_PCT = 55;
+/** Segundos manteniendo E en la esclusa para salir. */
+export const AIRLOCK_HOLD_S = 0.5;
 const INCIDENT_PRIORITY: Record<IncidentKind, number> = { fire: 0, leak: 1, short: 2 };
 
 export type Interaction =
   | { kind: 'incident'; systemId: SystemId; incident: Incident }
   | { kind: 'repair'; systemId: SystemId; blocked: boolean }
   | { kind: 'helm'; canEvade: boolean }
+  | { kind: 'land'; worldId: string; gravity: number; fuel: number; canLand: boolean; enoughFuel: boolean; engines: boolean }
+  | { kind: 'takeoff'; fuel: number; enoughFuel: boolean; heavy: boolean; canJettison: boolean; lootUnits: number }
+  | { kind: 'airlock'; open: boolean; refill?: { shipO2Cost: number; suitO2Pct: number } }
   | { kind: 'map' }
   | { kind: 'power' };
+
+/** Estimaciones del motor que necesita el timón (las da `run.estimateLanding()` / `estimateTakeOff()`). */
+export interface HelmEstimates {
+  landing?: LandingEstimate | null;
+  takeOff?: TakeOffEstimate | null;
+}
 
 const isSystem = (id: StationId): id is SystemId => (SYSTEM_IDS as readonly string[]).includes(id);
 
@@ -29,11 +45,35 @@ export function incidentAt(state: RunState, systemId: SystemId): Incident | null
   return best;
 }
 
-export function interactionAt(station: StationId | null, state: RunState): Interaction | null {
+function helmAt(state: RunState, est: HelmEstimates): Interaction {
+  const canEvade = state.warnings.some((w) => !w.evaded);
+  if (canEvade) return { kind: 'helm', canEvade };
+  if (state.phase === 'surface' && est.takeOff) {
+    const t = est.takeOff;
+    const lootUnits = state.surface ? state.surface.deposits.reduce((n, d) => n + Math.max(0, d.units), 0) : 0;
+    return { kind: 'takeoff', fuel: t.fuel, enoughFuel: t.enoughFuel, heavy: !t.enoughFuel && t.enoughFuelEmpty, canJettison: t.loadedKg > 0, lootUnits };
+  }
+  const l = est.landing;
+  if (state.phase === 'docked' && l && !l.alreadyLanded) {
+    // El motor exige además motores en línea (`reject.enginesOffline`): sin ellos no habría freno.
+    const engines = state.ship.systems.engines.online;
+    return { kind: 'land', worldId: l.worldId, gravity: l.gravityMps2, fuel: l.totalFuel, canLand: l.canLand && engines, enoughFuel: l.enoughFuel, engines };
+  }
+  return { kind: 'helm', canEvade };
+}
+
+export function interactionAt(station: StationId | null, state: RunState, est: HelmEstimates = {}, cat: Catalog = defaultCatalog): Interaction | null {
   if (!station || state.phase === 'lost' || state.phase === 'won') return null;
   if (station === 'map') return { kind: 'map' };
   if (station === 'power') return { kind: 'power' };
-  if (station === 'helm') return { kind: 'helm', canEvade: state.warnings.some((w) => !w.evaded) };
+  if (station === 'helm') return helmAt(state, est);
+  if (station === 'airlock') {
+    const aboard = state.crew.find((c) => c.alive && c.location === 'ship');
+    const open = state.phase === 'surface' && !!aboard;
+    if (!open || !aboard) return { kind: 'airlock', open };
+    // Salir rellena el traje con O₂ de la nave: el coste lo calcula el motor (`suitRefill`).
+    return { kind: 'airlock', open, refill: suitRefill(getSurfaceCatalog(cat).rules, aboard.suitO2Pct, state.ship.oxygenPct) };
+  }
   if (!isSystem(station)) return null;
   const incident = incidentAt(state, station);
   if (incident) return { kind: 'incident', systemId: station, incident };
@@ -45,9 +85,12 @@ export function nextThrottle(current: ThrottleId): ThrottleId {
   return THROTTLE_IDS[(THROTTLE_IDS.indexOf(current) + 1) % THROTTLE_IDS.length]!;
 }
 
-/** Texto de la acción (claves ui; los nombres de sistema y régimen los traduce quien pinta). */
-export function promptFor(interaction: Interaction | null, state: RunState, evadeProgress = 0): Prompt | null {
+const round1 = (n: number): number => Math.round(n * 10) / 10;
+
+/** Texto de la acción (claves ui; los nombres de sistema, régimen, mundo y material los traduce quien pinta). */
+export function promptFor(interaction: Interaction | null, state: RunState, chargeProgress = 0): Prompt | null {
   if (!interaction) return null;
+  const charge = Math.min(1, chargeProgress);
   switch (interaction.kind) {
     case 'incident':
       return { key: `prompt.fix.${interaction.incident.kind}`, params: { system: interaction.systemId }, hold: true, progress: Math.min(1, interaction.incident.progress) };
@@ -59,11 +102,51 @@ export function promptFor(interaction: Interaction | null, state: RunState, evad
       return {
         key: interaction.canEvade ? 'prompt.evade' : 'prompt.helm',
         hold: interaction.canEvade,
-        progress: interaction.canEvade ? Math.min(1, evadeProgress) : 0,
+        progress: interaction.canEvade ? charge : 0,
         blocked: !interaction.canEvade,
         altKey: 'prompt.throttle',
         altParams: { throttle: state.ship.throttle },
       };
+    case 'land':
+      return {
+        key: interaction.canLand ? 'prompt.land' : interaction.engines ? 'prompt.landNoFuel' : 'prompt.landNoEngines',
+        params: { world: interaction.worldId, gravity: round1(interaction.gravity), fuel: Math.ceil(interaction.fuel) },
+        hold: true,
+        progress: interaction.canLand ? charge : 0,
+        blocked: !interaction.canLand,
+        warn: interaction.canLand && !interaction.enoughFuel,
+        altKey: 'prompt.throttle',
+        altParams: { throttle: state.ship.throttle },
+      };
+    case 'takeoff': {
+      // No se puede volver a aterrizar aquí: lo que quede en el suelo se pierde. Y el O₂ de la nave, si va bajo.
+      const badges: PromptBadge[] = [];
+      if (interaction.lootUnits > 0) badges.push({ key: 'prompt.lootLeft', params: { units: interaction.lootUnits } });
+      if (state.ship.oxygenPct < SHIP_O2_LOW_PCT) badges.push({ key: 'prompt.shipO2', params: { pct: Math.floor(state.ship.oxygenPct) }, tone: 'warn' });
+      return {
+        key: interaction.enoughFuel ? 'prompt.takeOff' : interaction.heavy ? 'prompt.takeOffHeavy' : 'prompt.takeOffNoFuel',
+        params: { fuel: Math.ceil(interaction.fuel) },
+        hold: true,
+        progress: interaction.enoughFuel ? charge : 0,
+        blocked: !interaction.enoughFuel,
+        ...(interaction.canJettison ? { altKey: 'prompt.jettison' } : {}),
+        ...(badges.length > 0 ? { badges } : {}),
+      };
+    }
+    case 'airlock': {
+      if (!interaction.open) return { key: 'prompt.airlockSealed', hold: false, progress: 0, blocked: true };
+      // Salir rellena el traje con O₂ de la nave (`suitRefill` del motor). Si no alcanza, el aviso entero
+      // va en ámbar y dice con cuánto se sale.
+      const r = interaction.refill;
+      const partial = !!r && r.suitO2Pct < 99.5;
+      const cost = r ? Math.round(r.shipO2Cost) : 0;
+      const badges: PromptBadge[] = partial
+        ? [{ key: 'prompt.exitShort', params: { cost, suit: Math.floor(r.suitO2Pct) }, tone: 'warn' }]
+        : cost >= 1
+          ? [{ key: 'prompt.exitCost', params: { cost } }]
+          : [];
+      return { key: 'prompt.airlockExit', hold: true, progress: charge, ...(partial ? { warn: true } : {}), ...(badges.length > 0 ? { badges } : {}) };
+    }
     case 'map':
       return { key: 'prompt.map', hold: false, progress: 0 };
     case 'power':
@@ -71,10 +154,55 @@ export function promptFor(interaction: Interaction | null, state: RunState, evad
   }
 }
 
+/**
+ * Las acciones de «mantener» se informan con el tiempo real acumulado, troceado en partes de como mucho
+ * `maxS` (el motor limita lo que aporta cada acción). Así a pocos FPS no tardan más. Devuelve cuántas
+ * se enviaron; para si `send` devuelve false (rechazada).
+ */
+export function sendInChunks(seconds: number, maxS: number, send: (chunkS: number) => boolean): number {
+  let left = seconds;
+  let n = 0;
+  while (left > 1e-9 && n < 100) {
+    const chunk = Math.min(maxS, left);
+    n++;
+    if (!send(chunk)) break;
+    left -= chunk;
+  }
+  return n;
+}
+
 /** Acción del motor al mantener E durante `seconds` (null = nada que mandar, p. ej. abrir un panel). */
 export function holdAction(interaction: Interaction | null, seconds: number): RunAction | null {
   if (!interaction) return null;
   if (interaction.kind === 'incident') return { type: 'work-incident', incidentId: interaction.incident.id, seconds };
   if (interaction.kind === 'repair' && !interaction.blocked) return { type: 'repair-system', systemId: interaction.systemId, seconds };
+  return null;
+}
+
+/**
+ * Acciones de «mantener hasta llenar»: el cliente acumula `holdS` segundos con E pulsada y envía la
+ * acción una vez (maniobra evasiva, iniciar el descenso, despegar, salir por la esclusa).
+ */
+export function chargedAction(interaction: Interaction | null): { action: RunAction; holdS: number } | null {
+  if (!interaction) return null;
+  switch (interaction.kind) {
+    case 'helm':
+      return interaction.canEvade ? { action: { type: 'evade' }, holdS: EVADE_HOLD_S } : null;
+    case 'land':
+      return interaction.canLand ? { action: { type: 'land' }, holdS: LAND_HOLD_S } : null;
+    case 'takeoff':
+      return interaction.enoughFuel ? { action: { type: 'take-off' }, holdS: TAKE_OFF_HOLD_S } : null;
+    case 'airlock':
+      return interaction.open ? { action: { type: 'eva-exit' }, holdS: AIRLOCK_HOLD_S } : null;
+    default:
+      return null;
+  }
+}
+
+/** Acción de la tecla Q en el puesto (régimen en el timón; soltar carga antes de despegar). */
+export function altAction(interaction: Interaction | null, state: RunState): RunAction | null {
+  if (!interaction) return null;
+  if (interaction.kind === 'takeoff') return interaction.canJettison ? { type: 'jettison' } : null;
+  if (interaction.kind === 'helm' || interaction.kind === 'land') return { type: 'set-throttle', throttle: nextThrottle(state.ship.throttle) };
   return null;
 }

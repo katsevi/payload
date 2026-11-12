@@ -4,7 +4,7 @@ Diseño del juego vigente desde el 2026-11-09. Plan de partida: `docs/plan/plan-
 Por qué se rehízo el juego: `docs/adr/0011-reinicio-tripulacion-de-exploracion.md`. El GDD del simulador
 anterior está en `docs/archivo/v0.3-simulador/GDD.md`.
 
-Leyenda: **[F1]** existe hoy (fase 1) · **[F2] [F3] [F4] [F5]** diseño previsto para esa fase.
+Leyenda: **[F1]** existe desde la fase 1 · **[F2]** existe desde la fase 2 (superficie) · **[F3] [F4] [F5]** diseño previsto para esa fase.
 
 ## 1. Concepto
 
@@ -31,10 +31,10 @@ Tono: party game tenso, no simulador. Se entiende en un minuto y se pierde por d
 | --- | --- | --- |
 | Planificar | Mapa estelar: destino, régimen de motores, repostar | F1 |
 | Viajar | Mantener viva la nave en el salto: impactos, fuego, cortos, fugas | F1 |
-| Aterrizar y explorar | Bajar a la superficie con jetpack y oxígeno limitado, recoger materiales | F2 |
+| Aterrizar y explorar | Descenso frenando a mano, salir con jetpack y oxígeno limitado, recoger materiales y volver | F2 |
 | Regresar y mejorar | Vender, reparar y comprar mejoras en estaciones | F3 |
 
-En la fase 1 el ciclo es planificar → viajar → llegar (estación o contenedor a la deriva) hasta alcanzar
+En la fase 1 el ciclo era planificar → viajar → llegar (estación o contenedor a la deriva) hasta alcanzar
 el **portal de salto** del sector; cruzarlo lleva a un sector más largo y peligroso con la misma nave.
 
 ## 4. La nave [F1]
@@ -106,7 +106,7 @@ una ruta completable a régimen económico.
 | Destino | Peligro al acercarse | Qué ofrece |
 | --- | --- | --- |
 | Estación | Bajo | Servicio una vez: depósito lleno, +40 de casco, +2 repuestos |
-| Planeta / Luna | Medio | A veces un contenedor. Superficie explorable [F2] |
+| Planeta / Luna | Medio | A veces un contenedor. Superficie explorable [F2] (una vez por destino) |
 | Campo de asteroides | Impactos (alto) | Contenedor casi seguro y grande. Superficie explorable [F2] |
 | Nebulosa | Cortos y fuegos | Contenedor con mucho combustible |
 | Nave abandonada | Fugas e impactos | Contenedor seguro con repuestos |
@@ -125,6 +125,10 @@ Cada sector suma un 40 % de peligro y, cada dos, una columna más.
 | Ruta por estaciones | Reparación y depósito lleno | Distancia y tiempo |
 | Gastar un repuesto ahora | Sistema recuperado | Puede faltar cuando falle el reactor |
 | Evadir | El casco | 3 de combustible y dejar lo que estabas haciendo |
+| **[F2]** Una veta más | Más puntos (crecen con la distancia, el peligro y la racha de lo que llevas) | Oxígeno del traje: no se recupera fuera de la nave |
+| **[F2]** Recoger materiales comunes | Combustible y repuestos al guardarlos | Peso (menos margen al despegar) y tiempo fuera |
+| **[F2]** Salir | Botín | Oxígeno de la nave para rellenar el traje; la nave sigue averiándose |
+| **[F2]** Frenar tarde en el descenso | Combustible | Casco, sistemas y posibles fugas o cortos al tocar |
 | **[F3]** Carga a bordo | Dinero | Masa: más combustible por salto |
 | **[F3]** Motores mejores | Alcance | Consumo eléctrico y precio |
 
@@ -132,33 +136,35 @@ Cada sector suma un 40 % de peligro y, cada dos, una columna más.
 
 | Rol | Puesto | En la fase 1 (solitario) | En cooperativo [F4] |
 | --- | --- | --- | --- |
-| Piloto | Timón | Régimen y maniobra evasiva | Además aterrizaje y despegue [F2] |
+| Piloto | Timón | Régimen, maniobra evasiva, descenso y despegue [F2] | Igual |
 | Ingeniero | Toda la nave | Apagar fuegos, rearmar cortos, sellar fugas, reparar | Igual, a tiempo completo |
 | Gestor de recursos | Panel de energía, mapa | Reparto de energía, ruta, combustible | Igual; decide qué se sacrifica |
-| Explorador / científico | Superficie | — | Lidera las salidas [F2] |
+| Explorador / científico | Superficie [F2] | Sale y recoge | Lidera las salidas |
 
 En solitario una persona hace los cuatro papeles y no llega a todo: esa escasez es la que el cooperativo
 resuelve repartiendo puestos. Con 2-3 jugadores los roles se agrupan.
 
-## 9. Permadeath y puntuación [F1]
+## 9. Permadeath y puntuación [F1, F2]
 
-Se pierde por casco a cero, oxígeno a cero o nave varada (sin combustible para ningún salto, o sin
+Se pierde por casco a cero, oxígeno a cero, muerte de toda la tripulación en la superficie [F2] o nave varada (sin combustible para ningún salto, o sin
 motores/reactor ni repuestos). La partida se reinicia entera; solo se guarda la mejor marca.
 
-Puntuación: 1000 por sector + 50 por salto + 20 por avería resuelta + 30 por impacto esquivado + años luz.
+Puntuación: 1000 por sector + 50 por salto + 20 por avería resuelta + 30 por impacto esquivado + años luz + los puntos de los materiales guardados a bordo [F2].
 
 Balance con tripulante simulado (`pnpm balance`, 200 partidas): atendiendo las averías se supera el
 sector 1 casi siempre y el 4 entre el 35 % y el 75 % según lo rápido que se llegue a los puestos; sin
 atender nada se supera el sector 1 un 6 % de las veces.
 
-## 10. Controles e interfaz [F1]
+## 10. Controles e interfaz [F1, F2]
 
 | Tecla | Acción |
 | --- | --- |
 | WASD / flechas, Mayús | Moverse, correr |
 | Ratón | Mirar (clic para capturar el ratón) |
-| E | Usar el puesto cercano; **mantener** para arreglar, reparar o evadir |
-| Q | Cambiar el régimen (en el timón) |
+| E | Usar el puesto cercano; **mantener** para arreglar, reparar o evadir; en el timón, **mantener** para bajar a un mundo o despegar; en superficie, mantener para recoger [F2] |
+| Q | Cambiar el régimen (en el timón); en tierra, soltar la carga si pesa demasiado [F2] |
+| Espacio | En superficie: salto y jetpack (mantener en el aire); cayendo, frena la caída; en el descenso, frena [F2] |
+| C | En superficie: bajar con el jetpack [F2] |
 | 1-4 | Encender/apagar sistemas (con el panel de energía abierto) |
 | V | 1ª / 3ª persona |
 | H | Ayuda |
@@ -168,13 +174,39 @@ Interfaz: cuatro barras (casco, oxígeno, combustible, energía) y repuestos; es
 atrás del impacto; lista de averías abiertas; carteles en el mundo que se ven a través de los mamparos.
 Luces de alarma por zona. Todo aviso sonoro tiene equivalente visual (destello y subtítulo opcional).
 
-## 11. Fases siguientes (diseño previsto)
+## 11. Superficie [F2] y fases siguientes
 
-- **[F2] Superficie.** Desde un destino explorable se desciende; el aterrizaje lo ejecuta el piloto y un
-  aterrizaje brusco daña casco y sistemas. En tierra: gravedad propia de cada mundo, jetpack con
-  combustible, oxígeno personal, materiales de distinto valor cada vez más lejos de la nave, tormentas y
-  terreno inestable. Si muere toda la tripulación en la superficie, se pierde la partida. Se reutiliza el
-  mecha Aurora G9 como vehículo.
+### Superficie [F2] (existe; cifras en `packages/shared/catalog/mundos.json`)
+
+Desde un destino atracado que sea planeta, luna o campo de asteroides, el piloto baja **una vez por destino**.
+
+- **Descenso.** Minijuego en el timón con vista exterior: la nave cae con la gravedad del mundo (siete mundos,
+  de 0,4 a 13 m/s²) y hay que frenar a tiempo (Espacio o E). Cada mundo tiene su propio margen de frenado
+  (`referenceMargin`). El freno gasta combustible y exige motores en línea. Tocar por encima de 5 m/s daña casco
+  y sistemas y puede abrir una fuga o un corto. Bajar exige combustible para el descenso y el despegue en vacío.
+- **Salir.** Cada salida cuesta O₂ **de la nave**: un ciclo de esclusa (3 %) y el relleno del traje (hasta 22 %
+  por traje lleno), sin dejarla por debajo del 30 %. En tierra la nave casi no regenera O₂ (5 % del excedente): lo
+  gastado en trajes no vuelve hasta despegar. Fuera, el O₂ del traje baja siempre y es el único recurso que no se
+  recupera; a cero, muerte.
+- **Jetpack.** Se gasta al usarlo y recarga despacio en el suelo. Tiene un techo de altura por mundo para que
+  una caída desde lo más alto no mate; en el mundo pesado apenas sube. Las caídas duras cuestan O₂ y desde
+  20 m/s matan.
+- **Peligros.** Tormentas (avisan antes y drenan más oxígeno; no empiezan en los primeros segundos) y terreno
+  inestable que cruje y cede si se pisa (saltar no lo evita: no se puede recoger en el aire). Las vetas de
+  una zona inestable no se alcanzan desde suelo firme: hay que pisarla.
+- **Materiales.** Hielo y mena son comunes y rinden combustible o repuestos al guardarlos (el hielo solo hay en
+  asteroides; bajar a lunas y planetas cuesta combustible neto y es una apuesta de puntos). Cristales y muestras
+  son raros: puntúan y quedan en la bodega para venderse en la fase 3. Valen más lejos de la nave y cerca del
+  peligro, y **solo lo raro hace racha** (cada raro que llevas encima revaloriza el siguiente, con tope; se pierde
+  si mueres). Se recogen manteniendo E; la mochila tiene tope de masa (80 kg; lo raro pesa 8-10 kg).
+- **Volver y despegar.** Con todos a bordo; el combustible del despegue crece con la gravedad y la carga que
+  se guardó en ese mundo. Si no hay para despegar ni vaciando la bodega, la nave queda varada.
+- **La nave sigue viva** durante la salida (desgaste reducido por mundo): averías y oxígeno siguen.
+- **Derrota.** Si muere toda la tripulación en la superficie, o la nave se pierde, se acaba la partida.
+- **Mecha Aurora G9.** El diseño original lo preveía como vehículo; queda aplazado y no se usa en esta fase.
+
+### Fases siguientes (diseño previsto)
+
 - **[F3] Economía.** Las estaciones compran minerales y muestras y venden combustible, reparaciones y
   mejoras (depósitos, escudos, motores de salto, trajes, tanques de O₂, jetpacks). El servicio gratuito
   de estación de la fase 1 desaparece. La carga pesa.
@@ -186,7 +218,7 @@ Luces de alarma por zona. Todo aviso sonoro tiene equivalente visual (destello y
 
 Modelos en uso: astronauta (tripulante), consola (timón), galaxia (menú y holograma del mapa) y estación
 ERIZON (se ve al atracar en una estación; CC-BY-NC-ND: sin uso comercial ni derivados). El mecha Aurora
-G9 está reservado para la fase 2. El audio es procedural. Detalle en `assets/CREDITS.md`.
+G9 está en el repositorio pero sin uso (aplazado). El audio es procedural. Detalle en `assets/CREDITS.md`.
 
 Mascota: el juego nuevo no tiene. Si se añade una, **Rise** (Artemis II) sigue necesitando autorización
 escrita de NASA y el sistema debe permitir cambiarla por una propia.

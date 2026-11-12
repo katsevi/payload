@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Flame, Navigation, Wind, Zap } from 'lucide-react';
+import { ArrowDownToLine, CloudLightning, Flame, Mountain, Navigation, Wind, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Locale } from '@payload/shared';
 import { CREDITS } from '../data/credits';
@@ -92,6 +92,16 @@ export function SettingsPanel() {
           <span>{t('settings.headBob')}</span>
           <input type="checkbox" checked={s.headBob} onChange={(e) => s.set({ headBob: e.target.checked })} />
         </label>
+        <label className={row}>
+          <span>
+            {t('settings.effects')} <span className="num text-accent">{Math.round(s.effects * 100)} %</span>
+          </span>
+          <input type="range" min={0} max={1} step={0.05} value={s.effects} onChange={(e) => s.set({ effects: Number(e.target.value) })} />
+        </label>
+        <label className={row}>
+          <span>{t('settings.toggleCollect')}</span>
+          <input type="checkbox" checked={s.toggleCollect} onChange={(e) => s.set({ toggleCollect: e.target.checked })} />
+        </label>
         <h3 className="num mt-3 border-t border-line pt-3 text-xs uppercase tracking-widest text-accent">{t('settings.audio')}</h3>
         <label className={row}>
           <span>{t('settings.muteAll')}</span>
@@ -160,13 +170,17 @@ export function CreditsScreen() {
   );
 }
 
-const HELP_KEYS = ['move', 'run', 'look', 'interact', 'alt', 'view', 'pause'] as const;
-const HELP_TIPS: { id: 'fire' | 'leak' | 'short' | 'impact' | 'power'; icon: ReactNode }[] = [
+const HELP_KEYS = ['move', 'run', 'look', 'interact', 'alt', 'jump', 'down', 'view', 'pause'] as const;
+const HELP_TIPS: { id: 'fire' | 'leak' | 'short' | 'impact' | 'power' | 'landing' | 'o2' | 'terrain' | 'storm'; icon: ReactNode }[] = [
   { id: 'fire', icon: <Flame size={16} className="text-bad" /> },
   { id: 'leak', icon: <Wind size={16} className="text-bad" /> },
   { id: 'short', icon: <Zap size={16} className="text-warn" /> },
   { id: 'impact', icon: <Navigation size={16} className="text-warn" /> },
   { id: 'power', icon: <Zap size={16} className="text-accent" /> },
+  { id: 'landing', icon: <ArrowDownToLine size={16} className="text-accent" /> },
+  { id: 'o2', icon: <Wind size={16} className="text-warn" /> },
+  { id: 'terrain', icon: <Mountain size={16} className="text-warn" /> },
+  { id: 'storm', icon: <CloudLightning size={16} className="text-warn" /> },
 ];
 
 /** Toda la explicación del juego cabe en una pantalla: controles y cinco reglas. */
@@ -246,6 +260,8 @@ export function EndScreen() {
     [t('end.fixed'), String(s.stats.incidentsFixed)],
     [t('end.evaded'), String(s.stats.impactsEvaded)],
     [t('end.hits'), String(s.stats.impactsTaken)],
+    [t('end.landings'), String(s.stats.landings)],
+    [t('end.materials'), String(s.stats.materialsStored)],
     [t('end.time'), formatTime(s.stats.timeS)],
   ];
   return (

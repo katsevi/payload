@@ -40,10 +40,10 @@ Un ADR aceptado no se edita: se escribe uno nuevo que lo sustituye.
 | Agente | Modelo | Úsalo para |
 | --- | --- | --- |
 | `sim-engine` | opus | Lógica del juego en `packages/shared` (TDD, determinismo) |
-| `client-3d` | sonnet | Escenas, cámaras, puestos, HUD y paneles en `apps/client` |
+| `client-3d` | opus | Escenas, cámaras, puestos, HUD y paneles en `apps/client` |
 | `content-designer` | sonnet | Catálogo JSON, textos es/en y balance (no toca el motor) |
 | `asset-pipeline` | haiku | Inspeccionar/optimizar GLB y registrar licencias |
-| `validator` | opus | Revisión independiente previa a entregar (solo lee y reporta) |
+| `validator` | sonnet | Revisión independiente previa a entregar (solo lee y reporta) |
 | `docs-writer` | sonnet | README, STATUS, CHANGELOG, ARCHITECTURE, CLAUDE.md, ADR |
 | `game-server` | opus | Servidor del cooperativo en `apps/game-server` (fase 4; hoy es un marcador) |
 

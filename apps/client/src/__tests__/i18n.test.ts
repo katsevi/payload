@@ -51,12 +51,15 @@ describe('i18n de la interfaz (namespace ui)', () => {
       ...[0, 1, 2, 3].map((n) => `map.riskLevel.${n}`),
       ...['online', 'off', 'shorted', 'broken', 'noPower'].map((s) => `power.state.${s}`),
       ...['engines', 'lifeSupport', 'shields', 'nav'].map((s) => `power.role.${s}`),
-      ...['helm', 'map', 'power'].map((s) => `station.${s}`),
-      ...['move', 'run', 'look', 'interact', 'alt', 'view', 'pause'].flatMap((k) => [`keys.${k}`, `help.${k}`]),
-      ...['fire', 'leak', 'short', 'impact', 'power'].map((k) => `help.tips.${k}`),
+      ...['helm', 'map', 'power', 'airlock'].map((s) => `station.${s}`),
+      ...['move', 'run', 'look', 'interact', 'alt', 'jump', 'view', 'pause'].flatMap((k) => [`keys.${k}`, `help.${k}`]),
+      ...['fire', 'leak', 'short', 'impact', 'power', 'landing', 'o2', 'terrain', 'storm'].map((k) => `help.tips.${k}`),
       ...CREDITS.flatMap((c) => [`credits.${c.id}`, c.modifiedKey]),
       ...Object.values(SFX_META).flatMap((m) => (m.captionKey ? [m.captionKey] : [])),
       'prompt.repair', 'prompt.repairNoSpares', 'prompt.evade', 'prompt.helm', 'prompt.throttle', 'prompt.map', 'prompt.power',
+      // Superficie (fase 2): los construyen `promptFor` y `surfacePromptFor`.
+      'prompt.land', 'prompt.landNoFuel', 'prompt.takeOff', 'prompt.takeOffHeavy', 'prompt.takeOffNoFuel', 'prompt.jettison',
+      'prompt.airlockExit', 'prompt.airlockSealed', 'prompt.collect', 'prompt.full', 'prompt.enter', 'prompt.enterCargo',
     ];
     for (const key of dynamic) expect(key in esFlat, key).toBe(true);
   });
@@ -64,7 +67,7 @@ describe('i18n de la interfaz (namespace ui)', () => {
   it('poca letra: ningún texto de la interfaz de juego pasa de 110 caracteres', () => {
     for (const flat of [esFlat, enFlat]) {
       for (const [key, value] of Object.entries(flat)) {
-        if (/^(hud|prompt|map|power|end|pause|station|marker|help)\./.test(key)) expect(value.length, key).toBeLessThanOrEqual(110);
+        if (/^(hud|prompt|map|power|end|pause|station|marker|help|descent|sound)\./.test(key)) expect(value.length, key).toBeLessThanOrEqual(110);
       }
     }
   });

@@ -272,7 +272,7 @@ export function Markers() {
       setMarkers(next);
     }
   });
-  const name = (id: StationId): string => (id === 'helm' || id === 'map' || id === 'power' ? t(`station.${id}`) : t(`systemName.${id}`, { ns: 'sim' }));
+  const name = (id: StationId): string => (id === 'helm' || id === 'map' || id === 'power' || id === 'airlock' ? t(`station.${id}`) : t(`systemName.${id}`, { ns: 'sim' }));
   return (
     <>
       {markers.map((m) => {

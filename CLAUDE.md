@@ -18,7 +18,7 @@ archivo, el `CLAUDE.md` del paquete que vas a tocar y `docs/STATUS.md` (estado a
 | Fase | Contenido | Estado |
 | --- | --- | --- |
 | 1 · Viaje y nave (en solitario) | Mapa estelar, saltos, combustible, interior caminable 1ª/3ª persona, sistemas, averías en tiempo real, permadeath | Implementada · pendiente de validación independiente y de prueba con jugadores (ver `docs/phases/fase-1.md`) |
-| 2 · Exploración de superficie | Descenso y aterrizaje, jetpack, oxígeno personal, recolección | Pendiente |
+| 2 · Exploración de superficie | Descenso y aterrizaje, jetpack, oxígeno personal, recolección | Implementada (rama `feat/f2-superficie`) · pendiente de validación independiente final y de prueba con jugadores (ver `docs/phases/fase-2.md`) |
 | 3 · Economía y progresión | Venta en estaciones, mejoras de nave y equipo | Pendiente |
 | 4 · Cooperativo 1-4 | Servidor autoritativo, roles (piloto, ingeniero, gestor de recursos, explorador) | Pendiente (`apps/game-server` es un marcador) |
 | 5 · Pulido y lanzamiento | Rankings, mando/táctil, E2E, despliegue | Pendiente (`apps/api` es un marcador) |
@@ -36,7 +36,7 @@ payload/
 │  └─ api/           # marcador: rankings y persistencia (fase 5)
 ├─ packages/
 │  └─ shared/        # motor del juego: tipos, generador de sectores, partida (TS puro, con tests)
-│     ├─ catalog/    # naves, averias, destinos, sectores (.json)
+│     ├─ catalog/    # naves, averias, destinos, sectores, mundos (.json)
 │     └─ locales/    # textos del motor (namespace i18n `sim`) en es/en
 ├─ assets/
 │  ├─ models/source/ # modelos .glb ORIGINALES (nunca se modifican)
@@ -50,7 +50,7 @@ payload/
 
 ```bash
 pnpm install          # Node >= 22 (ver .nvmrc), pnpm 11
-pnpm dev              # cliente en http://localhost:5173  (?play=1&seed=7 entra directo a la partida)
+pnpm dev              # cliente en http://localhost:5173  (?play=1&seed=7 entra directo a la partida; &surface=1 a la superficie)
 pnpm test             # tests de todos los paquetes (Vitest)
 pnpm typecheck        # tsc --noEmit en todos los paquetes
 pnpm build            # build de producción

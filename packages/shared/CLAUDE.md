@@ -11,11 +11,18 @@ Diseño que implementa: `docs/GDD.md`. Contrato: `src/types.ts` (reescrito en el
 | `catalog` | `Catalog` | Catálogo por defecto desde `catalog/*.json`, validado con zod al importar |
 | `parseCatalog` | `(raw: unknown) => Catalog` | Lanza un error legible si el JSON no cumple el esquema |
 | `getShip`, `getNodeKind`, `getThrottle` | `(shipId?, cat?)` · `(kind, cat?)` · `(ship, throttle)` | Lanzan si no existe |
+| `getSurfaceCatalog`, `getWorld`, `getMaterial` | `(cat?)` · `(worldId, cat?)` · `(materialId, cat?)` | Superficie (fase 2); lanzan si no existe |
+| `getNodeWorld` | `(seed, sector, nodeId, cat) => WorldDef \| null` | Mundo de un nodo aterrizable (determinista, no toca el rng del sector) |
+| `generateSurface` | `(seed, sector, nodeId, cat) => SurfaceState \| null` | Lo que genera `land`: zonas, vetas y tormentas |
+| `takeOffFuel` | `(world, rules, loadedKg) => number` | `(baseFuel + fuelPerMps2·g) × (1 + kg / massRefKg)` |
+| `referenceBrake`, `simulateDescent`, `descentStep` | | Perfil de frenado de referencia (margen `descent.referenceMargin`) y física del descenso (las usa la partida) |
+| `streakMultiplier` | `(rules, streakUnits) => number` | Multiplicador de racha de la próxima unidad rara |
+| `suitRefill` | `(rules, suitO2Pct, shipO2Pct) => { suitO2Pct, shipO2Cost }` | Lo que hará `eva-exit` (ciclo de esclusa + relleno), para previsualizarlo |
 | `generateSector` | `(seed, index, cat?, shipId?) => SectorMap` | Determinista; reintenta hasta dar un sector completable |
 | `isSectorSolvable` | `(sector, ship, marginPct = 15) => boolean` | Ruta hacia delante a régimen económico con repostajes |
 | `ecoFuelCost`, `nodeDistanceLy`, `getNode` | | Utilidades del mapa |
-| `createRun` | `({ seed, shipId?, catalog? }) => Run` | La partida. Ver abajo |
-| `computeScore` | `(stats) => number` | 1000·sector + 50·salto + 20·avería + 30·esquiva + años luz |
+| `createRun` | `({ seed, shipId?, catalog?, crewSize? }) => Run` | La partida. Ver abajo (`crewSize` 1-4, por defecto 1) |
+| `computeScore` | `(stats) => number` | 1000·sector + 50·salto + 20·avería + 30·esquiva + años luz + puntos de materiales guardados a bordo |
 | `fuelPerLy`, `cruiseSpeedLyPerS` | `(ship, throttle, engineHealthPct) => number` | Mismas fórmulas que usa la partida |
 | `FIXED_STEP_S`, `MAX_WORK_SECONDS` | `0.1` · `0.5` | Paso fijo; tope de trabajo por acción |
 | `createRng`, `deriveSeed` | `(seed) => Rng` · `(seed, salt) => seed` | Única fuente de aleatoriedad |
@@ -30,23 +37,35 @@ Constantes del contrato: `SYSTEM_IDS`, `THROTTLE_IDS`, `INCIDENT_KINDS`, `HAZARD
 const run = createRun({ seed: 7 });
 run.apply({ type: 'jump', toId });      // { ok: true } | { ok: false, reason: MessageRef }
 run.step(dtSeconds);                    // avanza en pasos fijos de 0,1 s
-for (const e of run.takeEvents()) …     // RunEvent { type, tone, message, systemId?, incidentKind? }
+for (const e of run.takeEvents()) …     // RunEvent { type, tone, message, systemId?, incidentKind?, crewId?, subtype? }
 run.state                               // estado VIVO (solo lectura para quien consume)
 run.snapshot()                          // copia profunda (tests, red, React)
 run.estimateJump(toId)                  // distancia, combustible/tiempo por régimen, peligros esperados, riskLevel 0-3
+run.estimateLanding()                   // atracado en nodo aterrizable: descenso (perfil de referencia) + despegue en vacío
+run.estimateTakeOff()                   // en superficie: despegue con lo cargado aquí y en vacío
 ```
 
 - **Acciones (`RunAction`):** `jump`, `set-throttle`, `toggle-system`, `work-incident` y `repair-system`
   (con `seconds`: se envían mientras se mantiene la tecla; cada una aporta como mucho `MAX_WORK_SECONDS`),
-  `evade`, `service`, `next-sector`.
+  `evade`, `service`, `next-sector`. Superficie (fase 2): `land`, `set-descent-brake {on}`, `eva-exit`,
+  `eva-enter`, `set-position {x, z, grounded}` (silenciosa), `jetpack {seconds}`, `fall-impact {speedMps}`,
+  `collect {depositId, seconds}`, `jettison`, `take-off`. Las de tripulante aceptan `crewId?` (por defecto, el
+  primero vivo). `toggle-system`, `work-incident` y `repair-system` exigen a alguien vivo a bordo
+  (`reject.crewOutside`); `jump`, `evade` y `service` en tierra dan `reject.onSurface`.
 - **Fases:** `docked` → `transit` → `docked`… → `won` (portal; el tiempo se detiene) → `next-sector`.
-  `lost` es definitivo (`lossReason`: `hull` | `oxygen` | `stranded`); toda acción devuelve `reject.runOver`.
+  Desde `docked` en un nodo aterrizable: `land` → `landing` (descenso) → `surface` → `take-off` → `docked`
+  en el mismo nodo (una vez por nodo: `landedIds`). `lost` es definitivo (`lossReason`: `hull` | `oxygen` |
+  `stranded` | `crew`); toda acción devuelve `reject.runOver`.
 - **Eventos:** `step()` devuelve los emitidos en ese avance, pero los de `apply()` solo salen por
-  `takeEvents()`. El cliente usa únicamente `takeEvents()`.
+  `takeEvents()`. El cliente usa únicamente `takeEvents()`. `subtype` distingue variantes sin mirar `tone`
+  ni la clave: `landing` soft/hard, `suit-o2` low/critical, `airlock` exit/enter, `crew-dead` oxygen/fall,
+  `cargo-stored` stored/processed.
 - **Determinismo:** misma semilla + mismas acciones en los mismos instantes = misma partida, se trocee
   como se trocee `step()`. Tres flujos de azar con `deriveSeed`: sector, peligros de cada salto
   (pre-sorteados al iniciarlo por posición en el trayecto; van en `transit.hazards`) y desgaste (tres
-  tiradas por paso, haya o no avería).
+  tiradas por paso en `transit`, `landing` y `surface`, haya o no avería; ninguna atracada). Superficie: el
+  mundo de cada nodo y su generación usan semillas derivadas (índice de sector + índice de nodo), así que no
+  alteran el sector ni los otros flujos; el aterrizaje brusco usa otra derivada pura.
 - **Estado derivado** (`refresh()`): `shorted`, `online`, `powerSupplyKw`, `powerDemandKw`, `overloaded`
   y `speedLyPerS` se recalculan en cada paso y tras cada acción; no los escribas a mano.
 
@@ -68,13 +87,75 @@ run.estimateJump(toId)                  // distancia, combustible/tiempo por ré
 - **Sector:** `hazardMult = 1 + hazardGrowthPerSector × (índice − 1)`; una columna más cada
   `columnsGrowthEverySectors` hasta `maxColumns`.
 
+## Superficie (fase 2; cifras en `catalog/mundos.json`)
+
+- **Autoridad:** el cliente simula movimiento y física (Rapier) e informa (`set-position`, `fall-impact`,
+  `jetpack`); el motor manda en recursos y consecuencias. No simula terreno ni colisiones.
+- **Catálogo:** `surface = { rules, materials, worlds }`. Opcional en el JSON (`parseCatalog` pone el de por
+  defecto); se valida que cada tipo `landable` tenga algún mundo, que los materiales existan, que ningún
+  mundo esté en un tipo no aterrizable y que los ids no se repitan. Cada mundo: gravedad, descenso
+  (altitud y velocidad iniciales), radio explorable, nº de vetas, tabla de materiales (`minDistanceFrac`,
+  `dangerWeightMult`), tormentas (o `null`), terreno inestable (zonas, radio, profundidad del hoyo) y
+  `shipWearMult`.
+- **Descenso:** a paso fijo, `v += (g − freno) dt`; con freno `v ≥ minSpeedMps` (no se flota) y gasta
+  `brakeFuelPerS`; el freno exige motores en línea. Contacto por encima de `safeSpeedMps` ⇒ casco
+  `−exceso·hullDamagePerMps`, un sistema `−exceso·systemDamagePerMps` y fuga o corto con probabilidad
+  `exceso·incidentChancePerMps`. El perfil de referencia (anticipa un paso de gravedad; margen
+  `world.descent.referenceMargin` ?? `rules.descent.referenceMargin`) tarda 15-25 s; en todos los mundos pide
+  frenar >= 3 s después de empezar y deja >= 2,5 s hasta el último instante útil (>= 2 s en asteroides). En
+  asteroides, llegar 1 s tarde cuesta <= 8 de casco y frenar todo el camino <= 12 de combustible y <= 45 s.
+  `land` exige motores en línea (`reject.enginesOffline`: el descenso no se cancela) y combustible para el
+  descenso de referencia + el despegue en vacío (`reject.landFuel {fuel}` con el total).
+- **Salir no es gratis:** `eva-exit` cobra del O₂ de la nave el ciclo de esclusa (`suit.airlockCycleShipO2Pct`)
+  y el relleno del traje (`refillShipO2PctPerTank` por tanque entero, proporcional), sin bajarla de
+  `refillMinShipO2Pct`; si no alcanza se sale a medias (`event.airlock.exitPartial {o2}`). El jetpack se
+  rellena gratis. **En tierra** (`landing`/`surface`) el soporte vital cubre el consumo de quien está a
+  bordo, pero del excedente solo regenera `rules.shipO2.surfaceSurplusRegenMult`: el O₂ gastado en trajes
+  no vuelve hasta despegar (en vuelo y atracada se regenera como siempre).
+- **Racha (solo lo raro):** los materiales con `streak: true` (cristal, muestra) suman racha; cada pieza rara
+  que se lleva encima revaloriza la siguiente: `round(valuePerUnit × (1 + min(maxBonus, bonusPerUnit ×
+  streakUnits)))`. Lo común ni suma ni se revaloriza. `crew[].streakMult` es el multiplicador de la próxima
+  rara, `streakUnits` las raras que lleva y `carriedUnits` todas. Se consolida al guardar y se pierde al morir.
+- **Tripulante (`crew[]`, 1 en solitario, `crewSize` hasta 4):** fuera, el O₂ del traje baja
+  `o2DrainPctPerS` (+ `storm.o2DrainPctPerS × intensidad` en tormenta) y a 0 muere; avisos bajo/crítico con
+  histéresis (`o2Alert`). Jetpack: gasta al informarlo, recarga solo `grounded`. `set-position` acumula como
+  mucho `maxMoveSpeedMps × 1 s` de movimiento (antitrampas por pasos fijos) y no sale del radio.
+  `fall-impact`: por encima de `harmlessMps` se pierde O₂, desde `lethalMps` muere. Con todos muertos ⇒
+  `lose('crew')`; lo que llevaba encima se pierde.
+- **Tormentas:** pre-sorteadas al aterrizar (`surface.storms`, relativas al contacto); `surface.storm` da
+  `active`, `intensity`, `nextInS`, `endsInS`, `warned`. Eventos de aviso (`warnS` antes), inicio y fin.
+  La primera nunca empieza antes de `storms.firstStartMinS` tras el contacto.
+- **Terreno inestable:** `surface.zones`; pisarla (`grounded`) suma a `crackingS` (aviso al empezar a
+  pisarla: `pressed`) y a `collapseS` queda `collapsed` (la caída la informa el cliente). Salir o ir en
+  jetpack NO lo reinicia: baja `terrain.decayPerS` por segundo. `collect` exige `grounded`
+  (`reject.collectAirborne`), así que saltar no anula el riesgo.
+- **Vetas:** `surface.deposits` (≤ 20). Una bien dentro de cada zona inestable (a <= 0,3 × radio y sin
+  alcanzarse desde fuera con `collectRangeM`: hay que pisarla); el resto repartidas.
+  `valuePerUnit = value × (1 + distanceBonus·d/R) × (1 + dangerBonus si risky)`. `collect` es de mantener
+  (`collectS` por unidad, alcance `collectRangeM`, carga por masa `carryCapacityKg`).
+- **Bodega:** al entrar (`airlockRangeM`), cada unidad se procesa en suministros si caben (`yields`: hielo →
+  combustible, mena → repuestos) o va a `ship.cargo`. `stats.materialsValue` suma los puntos de todo lo
+  guardado; `jettison` suelta lo guardado en este mundo y resta sus puntos.
+- **Despegue:** con todos los vivos a bordo y motores; `takeOffFuel(world, rules, surface.loadedKg)`.
+  Rechazos `reject.takeOffHeavy` (en vacío sí alcanza: suelta carga) o `reject.takeOffFuel`. Varada
+  (`stranded`) si, con todos a bordo, ni en vacío alcanza y no queda nada que dé combustible; o motores/reactor
+  a 0 sin repuestos ni mena. `land` exige combustible para descenso + despegue en vacío.
+- **La nave sigue viva:** averías, O₂ y sobrecarga corren en `landing`/`surface`; desgaste
+  `chancePerS × shipWearMult`. El O₂ de la nave lo gastan los tripulantes a bordo y las salidas (esclusa y
+  relleno); en tierra apenas se regenera.
+- **Contenido (diseño):** el hielo solo está en asteroides (neto de unos +19 de combustible en la roca
+  errante y +25 en el núcleo de hielo); bajar a lunas y planetas cuesta combustible neto y es una apuesta de
+  puntos. Lo raro pesa 8-10 kg con mochila de 80 kg; se recoge en 3-5 s por unidad. Ningún hoyo mata de la
+  caída (el del mundo pesado, 7 m, por debajo del vuelo máximo del jetpack allí).
+
 ## Mensajes (`MessageRef`)
 
 - Claves en `locales/es.json` **y** `locales/en.json`: `event.*`, `loss.*`, `reject.*` y etiquetas
   `system.*` (con artículo, para frases), `systemName.*` (título), `throttle.*`, `incident.*`, `hazard.*`.
 - El param `system` lleva un `SystemId` y se muestra con `$t(system.{{system}})` o `$t(systemName.{{system}})`.
   Los nombres propios (`node`) van tal cual. En español evita «a/de + $t(system…)» (daría «a el reactor»): usa «en».
-- `simLocales` añade `catalog.<id>` con el nombre de cada nave y tipo de destino.
+- `simLocales` añade `catalog.<id>` con el nombre de cada nave, tipo de destino, mundo y material
+  (params `world` y `material` se muestran con `$t(catalog.{{world}})`).
 - `locales.test.ts` comprueba paridad, params, que ningún mensaje pasa de 90 caracteres y que toda
   `MessageRef` emitida en partidas simuladas existe y se resuelve del todo. **Si añades un evento, el test
   falla hasta que algún barrido lo emita.**
@@ -82,11 +163,31 @@ run.estimateJump(toId)                  // distancia, combustible/tiempo por ré
 ## Balance
 
 - `src/__tests__/bot.ts` juega como una persona: ir de un puesto a otro le cuesta `walkS` segundos.
-  `skill: 'crew'` atiende averías, evade y gestiona la energía; `'idle'` solo salta.
-- `pnpm balance [partidas] [sectores]` imprime cuántas partidas superan cada sector y por qué se pierden.
-  Úsalo antes y después de tocar `catalog/*.json`.
+  `skill: 'crew'` atiende averías, evade y gestiona la energía (nunca aterriza); `'idle'` solo salta.
+  `explore: 'prudent' | 'greedy' | 'thorough'` (con `crew`) aterriza y sale a recoger a 4,75 m/s nominales (el ritmo real
+  de cada salida es 0,55-1 × eso y el bot no lo sabe); devuelve `evas` (duración, si volvió, valor, motivo).
+  El prudente evita el terreno inestable, cuenta con las tormentas, vuelve con 12-18 % de margen o si hay
+  una avería a bordo, reserva combustible para el salto que hará después (más 20 si el mundo no es un
+  asteroide), prioriza el hielo si va justo y, tras despegar, espera atracado a tener >= 85 % de O₂; el
+  codicioso apura (2-12 %), solo ve la tormenta cuando la tiene encima, frena tarde a veces y la mitad de
+  las salidas se mete en terreno inestable; `thorough` («hasta vaciar») es el prudente con 25 % de margen
+  que repite salidas mientras quede botín y el relleno le deje el traje a 2/3. `returnMarginPct` fija el
+  margen. `landings` resume cada aterrizaje (valor, salidas, tiempo en tierra, O₂ al despegar, averías).
+  Los exploradores tienen 7200 s de tope (los de la fase 1, 3600).
+- `pnpm balance [partidas] [sectores]` imprime cuántas partidas superan cada sector, por qué se pierden
+  (`timeout` = tope del bot), la puntuación media y, para los exploradores, la salida media (incluidas las
+  fatales), el valor por salida y la curva «margen de O₂ para volver → valor/muertes». Úsalo antes y
+  después de tocar `catalog/*.json`.
 - `balance.test.ts` fija umbrales holgados: una tripulación atenta supera el sector 1 (>= 90 %), sin
-  atender nada casi nunca (<= 35 %) y el sector 4 no está garantizado (10-75 %).
+  atender nada casi nunca (<= 35 %) y el sector 4 no está garantizado (10-75 %). Superficie: el prudente
+  vuelve en >= 95 % de las salidas y muere en <= 10 % de las partidas, el codicioso muere en 20-50 %, la
+  salida media (incluidas las fatales) dura 110-180 s y el prudente puntúa 1,2-1,8 × lo que puntúa no
+  explorar. Con 3 % de margen se saca > 15 % más valor por salida que con 25 %, con >= 10 % de muertes
+  (<= 2 % con 25 %). «Hasta vaciar» saca <= 1,3 × por aterrizaje que «pocas salidas apuradas» (prudente
+  con 3 %) y lo paga: despega con > 15 puntos menos de O₂, pasa > 1,5 × más tiempo en tierra y sufre más
+  averías.
+- `locales.test.ts` barre además partidas del explorador y un guion en superficie (rechazos, `jettison`,
+  aterrizaje brusco, traje a medias y una caída letal, que el bot casi nunca provoca).
 
 ## Reglas
 
