@@ -4,39 +4,44 @@ Plan § 3: *dinámica cooperativa y roles de la tripulación*. Diseño previsto:
 No iniciada: `apps/game-server` es un marcador.
 
 **Hito:** cuatro personas en cuatro equipos distintos (red local, no solo `localhost`) completan un
-sector hablando entre sí, sin desincronizaciones.
+sector comunicándose, sin desincronizaciones.
 
 ## Punto de partida
 
-- El motor ya está pensado para el servidor: paso fijo, sin reloj ni azar global, y toda decisión entra
-  como `RunAction` (`createRun(...).apply`). `MAX_WORK_SECONDS` limita lo que aporta una acción.
-- ADR 0009 (servidor autoritativo con Colyseus) y ADR 0010 (un proceso, sin Redis) siguen siendo la base.
-- La sala de la versión anterior es buena referencia de reconexión, límites anti-abuso y pruebas de red:
-  `git show v0.3.0-simulador:apps/game-server/src/MissionRoom.ts` y `docs/archivo/v0.3-simulador/MULTIPLAYER.md`.
-  No sirve tal cual: sincronizaba un diseño por turnos, no una nave en tiempo real.
+- El motor ya está pensado para el servidor: paso fijo (0,1 s), sin reloj ni azar global, y toda decisión entra
+  como `RunAction` (`createRun(...).apply`).
+- ADR 0009 (servidor autoritativo con Colyseus 0.18) y ADR 0010 (un proceso, sin Redis) siguen siendo la base técnica.
+- La sala de la versión anterior (`MissionRoom.ts`) sirve de referencia probada para reconexión y límites de tráfico.
 
 ## Alcance previsto
 
 ### Servidor (`apps/game-server`)
 
-- [ ] Sala de hasta 4 jugadores que corre `createRun` y aplica las `RunAction` de cada cliente.
-- [ ] Estado sincronizado: `RunState` + posición y puesto de cada tripulante.
-- [ ] Test de paridad: la sala produce el mismo `RunState` que el motor con las mismas acciones.
-- [ ] Reconexión, salida de jugadores y límites de frecuencia.
+- [ ] Sala autoritativa de hasta 4 jugadores que ejecuta el bucle de `createRun` y aplica las `RunAction` entrantes.
+- [ ] Estado sincronizado: `RunState` + posición y orientación `(x, y, z, yaw)` de cada tripulante.
+- [ ] Test de paridad: la sala produce el mismo `RunState` que el motor puro con la misma secuencia de acciones.
+- [ ] Reconexión con token y tolerancia temporal ante caídas de red.
 
 ### Motor
 
-- [ ] Varios tripulantes: trabajo simultáneo en una avería, un jugador por puesto.
-- [ ] Roles y permisos (piloto, ingeniero, gestor de recursos, explorador); con 2-3 jugadores se agrupan.
-- [ ] Dificultad escalada con el número de jugadores.
+- [ ] Varios tripulantes en el estado (`crew[]`): interacción simultánea en puestos y averías.
+- [ ] Roles asimétricos con ventajas pasivas (Piloto: esquiva ágil; Ingeniero: reparación rápida; Explorador: mayor mochila y eficiencia de jetpack). Sin bloqueos exclusivos para evitar dependencias frustrantes.
 
 ### Cliente
 
-- [ ] Capa de sesión local/sala; los demás tripulantes visibles en la nave y en la superficie.
-- [ ] Sala de espera, elección de rol, pings; voz opcional.
-- [ ] Contrato escrito antes de implementar (`docs/MULTIPLAYER.md` nuevo).
+- [ ] Capa de sesión local/sala; renderizado de los avatares de los compañeros en la nave y en la superficie.
+- [ ] Pantalla de entrada con código de sala privada (sin matchmaking complejo) y selección de rol.
+- [ ] Sistema de pings visuales y sonoros en el espacio 3D para coordinación táctica rápida.
+
+### Fuera de alcance (descartado por tiempo)
+
+- [ ] **Voz integrada por WebRTC:** descartada al 100% por alto riesgo técnico y complejidad de infraestructura (servidores STUN/TURN, códecs y eco); se asume uso de comunicación externa (Discord) o pings en el juego.
+- [ ] **Predicción de cliente con rollback para físicas:** descartada; para un cooperativo PvE en red local o baja latencia basta con sincronización de estado autoritativo e interpolación de posiciones (*lerp*).
+- [ ] **Bloqueo rígido de consolas por rol:** descartado; cualquier tripulante puede operar cualquier estación de emergencia para evitar partidas perdidas por inactividad o desconexión de un rol.
+- [ ] **Lobbies públicos, salas abiertas y emparejamiento automático:** descartado; solo conexión directa mediante código de sala privada.
+- [ ] **Escalado dinámico complejo de dificultad por número de jugadores:** descartado para no desestabilizar el balance ya validado.
 
 ## Riesgos
 
-- Latencia en acciones mantenidas (arreglar, evadir): decidir qué predice el cliente.
-- Que un rol se aburra: cada rol necesita algo que hacer en cada momento del ciclo.
+- Latencia en minijuegos de averías y esquiva: asegurar que el resultado local se valide de forma tolerante en el servidor.
+- Que un rol se quede sin tareas durante el viaje: las ventajas pasivas y el acceso libre a todas las consolas mitigan el aburrimiento.
