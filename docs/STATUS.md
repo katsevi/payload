@@ -267,7 +267,7 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
 - **Sector de ida.** Hoy se avanza hasta un portal y se pasa a otro sector; el plan habla de «regresar a estaciones seguras». Con la economía ya existente hay que decidir si hace falta una base a la que volver (el contrato de 65 créditos se cobra al superar el sector, sin volver).
 - **Economía (fase 3), a decidir con jugadores:**
   - Los **créditos no puntúan** (ni las mejoras): el explorador que gasta no pierde puntos, pero el dinero no vale nada al final.
-  - **Sin minar sobran ~100 créditos** y no se compra ninguna mejora; minar da 3-5 por partida.
+  - **Sin minar sobran ~100 créditos** y no se compra ninguna mejora; minando, el explorador prudente simulado compra unas 3,6 por partida.
   - **`jump-drive` casi no se compra** (0,03-0,05 por partida, por precio) y `reactor-heatsink` poco (0,26): revisar precio o efecto.
   - **No se puede soltar carga atracado ni en el espacio** (`jettison` solo en superficie), aunque pese y encarezca el salto.
   - **La ayuda de emergencia se da aunque haya créditos** (gratis, una vez por estación): decidir si solo debería darse sin ellos.
