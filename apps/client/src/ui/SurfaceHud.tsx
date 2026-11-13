@@ -1,7 +1,8 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { AlertTriangle, ArrowUp, CloudLightning, Drill, Fuel, Gem, Package, PackageCheck, PackageX, Rocket, Shield, Sparkles, Wind } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getShip, getSurfaceCatalog, getWorld, type RunState } from '@payload/shared';
+import { getSurfaceCatalog, getWorld, type RunState } from '@payload/shared';
+import { effectiveRulesOf, effectiveShipOf } from '../game/effective';
 import { getRun } from '../game/runStore';
 import { bearingTo, brakeThresholdMps, currentLode, shipBearing, stormLevel } from '../game/surfaceRules';
 import { ToolIcon } from './ToolIcon';
@@ -10,7 +11,8 @@ import { hudView } from '../state/ui';
 import { fmt } from './common';
 import { Gauge, levelOf } from './Hud';
 
-const rules = () => getSurfaceCatalog(getRun()?.catalog).rules;
+/** Reglas de traje y jetpack EFECTIVAS (con las mejoras): la mochila ampliada se ve con su nuevo tope. */
+const rules = (s: RunState) => effectiveRulesOf(s, getRun()?.catalog);
 
 /**
  * Activa unas clases en un elemento mientras `flag()` sea cierto, comprobándolo en cada frame sin pasar
@@ -73,12 +75,12 @@ export function DescentHud({ s }: { s: RunState }) {
   const d = s.surface?.descent;
   if (!s.surface || !d) return null;
   const world = getWorld(s.surface.worldId);
-  const safe = rules().descent.safeSpeedMps;
+  const safe = rules(s).descent.safeSpeedMps;
   const threshold = brakeThresholdMps(world, d.altitudeM);
   const maxV = Math.max(world.descent.speedMps * 2.2, 26);
   const pct = (v: number) => `${Math.min(100, (v / maxV) * 100)}%`;
   const tooFast = d.speedMps > threshold;
-  const ship = getShip(s.ship.shipId);
+  const ship = effectiveShipOf(s, getRun()?.catalog);
   const fuelPct = (s.ship.fuel / ship.fuelCapacity) * 100;
   const engines = s.ship.systems.engines.online && s.ship.fuel > 0;
   return (
@@ -112,8 +114,8 @@ export function SuitVitals({ s }: { s: RunState }) {
   const { t } = useTranslation();
   const me = s.crew[0];
   if (!me) return null;
-  const r = rules();
-  const ship = getShip(s.ship.shipId);
+  const r = rules(s);
+  const ship = effectiveShipOf(s, getRun()?.catalog);
   const hullPct = (s.ship.hull / ship.hullMax) * 100;
   const shipAlert = s.incidents.length > 0 || hullPct <= 30 || s.ship.oxygenPct <= 35;
   const o2Level = levelOf(me.suitO2Pct, r.suit.lowO2Pct, r.suit.criticalO2Pct);
@@ -331,7 +333,7 @@ export function O2Vignette({ s }: { s: RunState }) {
   const k = useSettings((x) => x.effects);
   const me = s.crew[0];
   if (!me || me.location !== 'eva') return null;
-  const r = rules();
+  const r = rules(s);
   const o2 = me.suitO2Pct;
   const red = k * (o2 < r.suit.criticalO2Pct ? 0.35 + 0.55 * (1 - o2 / r.suit.criticalO2Pct) : o2 < r.suit.lowO2Pct ? 0.15 * (1 - o2 / r.suit.lowO2Pct) : 0);
   const dark = !me.alive ? 0.9 : o2 < 6 ? (1 - o2 / 6) * 0.75 : 0;

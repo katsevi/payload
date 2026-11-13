@@ -7,7 +7,7 @@ Las casillas las marca quien **valida** la fase (agente `validator` o una person
 | --- | --- | --- | --- |
 | 1 · Viaje y nave (en solitario) | Mapa estelar, saltos, combustible, interior caminable, sistemas, averías en tiempo real, permadeath | Implementada · pendiente de validación independiente y de prueba con jugadores | [fase-1.md](fase-1.md) |
 | 2 · Exploración de superficie | Descenso y aterrizaje, jetpack, oxígeno personal, recolección, gravedad y peligros | Implementada (rama `feat/f2-superficie`) · pendiente de validación independiente final y de prueba con jugadores | [fase-2.md](fase-2.md) |
-| 3 · Economía y progresión | Venta en estaciones, mejoras de nave y de equipo, carga | Pendiente | [fase-3.md](fase-3.md) |
+| 3 · Economía y progresión | Venta en estaciones, mejoras de nave y de equipo, carga | Implementada · validada con observaciones · hito pendiente de prueba con jugadores | [fase-3.md](fase-3.md) |
 | 4 · Cooperativo 1-4 | Servidor autoritativo, roles (piloto, ingeniero, gestor, explorador), comunicación | Pendiente (`apps/game-server` es un marcador) | [fase-4.md](fase-4.md) |
 | 5 · Pulido y lanzamiento | Rankings, mando y táctil, E2E, despliegue | Pendiente (`apps/api` es un marcador) | [fase-5.md](fase-5.md) |
 

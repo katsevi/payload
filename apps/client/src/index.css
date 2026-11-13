@@ -40,3 +40,16 @@ canvas { display: block; }
   animation: cue-flash .9s ease-out forwards;
 }
 @keyframes cue-flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Créditos: el número late y sale un «+N / −N» al ganar o gastar (fase 3) */
+.credits-bump { display: inline-block; animation: credits-bump .45s ease-out; }
+@keyframes credits-bump { 0% { transform: scale(1.3); } 100% { transform: scale(1); } }
+.credits-pop { animation: credits-pop 1.1s ease-out forwards; }
+@keyframes credits-pop { 0% { opacity: 0; transform: translateY(4px); } 15% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-12px); } }
+@media (prefers-reduced-motion: reduce) {
+  .credits-bump { animation: none; }
+  .credits-pop { animation: credits-pop-still 1.1s linear forwards; }
+}
+@keyframes credits-pop-still { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+/* Terminal: un botón sin créditos se sigue leyendo (el precio va en rojo) */
+.btn.shop-poor:disabled { opacity: .8; border-color: rgba(255, 77, 94, .45); }

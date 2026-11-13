@@ -267,6 +267,12 @@ export function EndScreen() {
     [t('end.materials'), String(s.stats.materialsStored)],
     [t('end.time'), formatTime(s.stats.timeS)],
   ];
+  // Economía (fase 3): una fila corta por dato, solo si hubo comercio.
+  const earned = s.stats.creditsEarned ?? 0;
+  const spent = s.stats.creditsSpent ?? 0;
+  const bought = s.stats.upgradesBought ?? 0;
+  if (earned > 0 || spent > 0) stats.push([t('end.creditsEarned'), `+${fmt(earned, 0)}`], [t('end.creditsSpent'), `−${fmt(spent, 0)}`]);
+  if (bought > 0) stats.push([t('end.upgrades'), String(bought)]);
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/65 p-4" role="dialog" aria-modal="true">
       <Panel className="w-full max-w-md text-center">

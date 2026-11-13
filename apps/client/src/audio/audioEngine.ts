@@ -564,6 +564,27 @@ export class AudioEngine {
       case 'toolResume':
         this.tone(ctx, 'sfx', t, { freq: 120, dur: 0.5, type: 'sawtooth', vol: 0.08, slideTo: 420 });
         break;
+      case 'sale':
+        // Monedas: dos campanillas rápidas y un tintineo.
+        this.tone(ctx, 'sfx', t, { freq: 1976, dur: 0.07, type: 'triangle', vol: 0.14 });
+        this.tone(ctx, 'sfx', t + 0.07, { freq: 2637, dur: 0.12, type: 'triangle', vol: 0.13 });
+        this.noiseBurst(ctx, 'sfx', t, { dur: 0.08, vol: 0.1, filter: 'highpass', f0: 5000 });
+        break;
+      case 'purchase':
+        // Caja que se carga: golpe sordo y confirmación corta.
+        this.noiseBurst(ctx, 'sfx', t, { dur: 0.12, vol: 0.2, f0: 900, f1: 250 });
+        this.tone(ctx, 'sfx', t + 0.08, { freq: 784, dur: 0.1, type: 'triangle', vol: 0.12 });
+        break;
+      case 'upgrade':
+        // Instalación: zumbido que sube y acorde de confirmación.
+        this.tone(ctx, 'alerts', t, { freq: 220, dur: 0.35, type: 'sawtooth', vol: 0.07, slideTo: 660 });
+        [659.25, 830.61, 987.77].forEach((f, k) => this.tone(ctx, 'alerts', t + 0.3 + k * 0.08, { freq: f, dur: 0.3, vol: 0.12 }));
+        break;
+      case 'noCredits':
+        // Dos tonos graves cortos: «no».
+        this.tone(ctx, 'alerts', t, { freq: 240, dur: 0.1, type: 'square', vol: 0.1 });
+        this.tone(ctx, 'alerts', t + 0.13, { freq: 180, dur: 0.16, type: 'square', vol: 0.1 });
+        break;
       case 'toolLost':
         this.tone(ctx, 'alerts', t, { freq: 330, dur: 0.3, vol: 0.14 });
         this.tone(ctx, 'alerts', t + 0.3, { freq: 220, dur: 0.5, vol: 0.14 });

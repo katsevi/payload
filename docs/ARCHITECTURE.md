@@ -46,9 +46,9 @@ Three.js, DOM ni Node en `src/`; lo vigilan `tsconfig.json` sin tipos de Node y 
 ## `@payload/shared`: el motor
 
 - **Contrato:** `src/types.ts`. Solo cambios aditivos; romperlo exige un ADR.
-- **Catálogo:** `catalog/{naves,averias,destinos,sectores,mundos}.json` → `parseCatalog` (zod) → `catalog`.
+- **Catálogo:** `catalog/{naves,averias,destinos,sectores,mundos,economia,mejoras}.json` → `parseCatalog` (zod) → `catalog`.
 - **Módulos (`src/`):** `types` (contrato), `catalog` (esquema y búsquedas), `galaxy` (generador de
-  sectores), `surface` (mundos, superficie y física del descenso), `run` (la partida), `rng` (`createRng`, `deriveSeed`), `messages`/`locales` (i18n `sim`).
+  sectores), `surface` (mundos, superficie y física del descenso), `economy` (precios, oferta, mejoras y nave efectiva), `run` (la partida), `rng` (`createRng`, `deriveSeed`), `messages`/`locales` (i18n `sim`).
 - **API:** `createRun`, `generateSector`, `isSectorSolvable`, `computeScore`, `fuelPerLy`,
   `cruiseSpeedLyPerS`, `formatMessage` (lista completa en `packages/shared/CLAUDE.md`).
 
@@ -65,6 +65,7 @@ createRun({ seed })  ──▶  Run { state, step(dt), apply(action), takeEvents
      permadeath      → casco 0 · oxígeno 0 · varada
 
   apply(action): jump · set-throttle · toggle-system · work-incident · repair-system · evade · service · next-sector
+                 sell · buy-supply · buy-upgrade      (estación, fase 3; `service` = ayuda de emergencia)
                  land · set-descent-brake · eva-exit · eva-enter · set-position · jetpack · fall-impact
                  deploy-tool · collect · retrieve-tool · jettison · take-off         (superficie, fase 2)
                  evade {grazes?}   (esquiva por habilidad, ADR 0013)
@@ -80,6 +81,7 @@ createRun({ seed })  ──▶  Run { state, step(dt), apply(action), takeEvents
   aterrizable: `land` → `landing` (descenso) → `surface` (salidas EVA) → `take-off` → `docked` en el mismo
   nodo (un aterrizaje por nodo). La nave sigue viva en `landing` y `surface`.
 - **Minijuegos y herramientas (ADR 0013):** los minijuegos (esquiva, reparaciones) son del cliente y entran como `RunAction` acotada (`evade {grazes}`, `work-incident {seconds}`); la extracción de las herramientas la hace el motor a paso fijo (`surface.tools`, `crew[].tools`) y `collect` recoge lo extraído. Lo raro se agrupa en filones (`rules.lodes`).
+- **Economía (ADR 0014):** `sell`, `buy-supply` y `buy-upgrade` solo atracada en una estación (`NodeKindDef.shop`); `service` es la ayuda de emergencia gratuita, una vez por estación. Precios y mejoras en `economia.json` y `mejoras.json`; la oferta de cada estación sale de semilla + sector + nodo con un flujo de azar propio. `run.stationQuote()` es la fuente única de precios y oferta, y el motor solo usa la nave y las reglas efectivas (con mejoras). La masa a bordo (bodega + mejoras) encarece el combustible de cada salto. Los créditos y las mejoras no puntúan.
 - **Autoridad en superficie (ADR 0012):** el cliente simula terreno, física (Rapier) y posición, y las
   informa como `RunAction` (`set-position`, `jetpack`, `fall-impact`). El motor no conoce el terreno: es
   autoritativo en oxígeno del traje, jetpack, carga, tormentas, terreno inestable, daño y muerte, y limita
@@ -169,7 +171,7 @@ No hay tests de renderizado 3D ni E2E (fase 5). La escena se comprueba a mano en
 ## Fases siguientes
 
 - **Fase 2 (superficie):** existe (ver arriba). Pendiente de validación final y de prueba con jugadores.
-- **Fase 3 (economía):** mejoras como cambios sobre `ShipDef`; mercado en las estaciones.
+- **Fase 3 (economía):** existe (ADR 0014). Créditos en `RunState`, terminal de estación y mejoras como cambios numéricos sobre la nave y las reglas del traje (`effectiveShip`, `effectiveSurfaceRules`); precios fijos con multiplicador por sector, sin mercado dinámico. Pendiente de prueba con jugadores.
 - **Fase 4 (cooperativo):** `apps/game-server` corre `createRun` y aplica las `RunAction` de cada
   cliente; el cliente gana una capa de sesión local/sala. Base: ADR 0009 y 0010.
 - **Fase 5:** `apps/api`, rankings recalculados por el servidor, despliegue.

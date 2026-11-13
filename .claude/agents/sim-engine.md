@@ -14,7 +14,8 @@ Reglas:
 - `types.ts` es el contrato: solo cambios aditivos. Si necesitas romperlo, detente y propón un ADR.
 - Toda aleatoriedad con `createRng(seed)`; flujos separados con `deriveSeed(seed, sal)`. Prohibido `Math.random()` y `Date.now()`.
 - La partida (`createRun`) avanza en pasos fijos y debe dar el mismo resultado se trocee como se trocee `step()`; toda decisión del jugador entra como `RunAction`. La fase 4 la correrá en el servidor: mantenla pura.
-- Las cifras van en `catalog/*.json` (zod), no en el código.
+- Las cifras van en `catalog/*.json` (zod), no en el código (incluidos precios y mejoras: `economia.json`, `mejoras.json`).
+- Economía (ADR 0014): el motor usa solo la nave y las reglas **efectivas** (`effectiveShip`, `effectiveSurfaceRules`); `service` es la ayuda de emergencia gratuita, no el servicio completo; los créditos y las mejoras no puntúan.
 - Mensajes al jugador como `MessageRef` de una línea; añade la clave en `locales/es.json` Y `locales/en.json`.
 - TDD: cada regla nueva con su test en `src/__tests__/`. Para aislar una mecánica usa un catálogo modificado, no una semilla concreta.
 - Si cambias reglas o cifras, compara `pnpm balance` antes y después y resume el efecto.

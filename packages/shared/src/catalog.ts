@@ -8,8 +8,10 @@ import hazardsJson from '../catalog/averias.json';
 import nodeKindsJson from '../catalog/destinos.json';
 import sectorJson from '../catalog/sectores.json';
 import surfaceJson from '../catalog/mundos.json';
+import economyJson from '../catalog/economia.json';
+import upgradesJson from '../catalog/mejoras.json';
 import {
-  NODE_KINDS, THROTTLE_IDS,
+  NODE_KINDS, SUPPLY_IDS, THROTTLE_IDS, UPGRADE_FIELDS, UPGRADE_TARGETS,
   type Catalog, type MaterialDef, type NodeKind, type NodeKindDef, type ShipDef, type SurfaceCatalog, type ThrottleDef, type ThrottleId, type WorldDef,
 } from './types';
 
@@ -101,6 +103,7 @@ const nodeKindSchema = z.strictObject({
   hazardPerLy: z.strictObject({ impact: nonNeg, short: nonNeg, fire: nonNeg, leak: nonNeg }),
   cache: z.strictObject({ chance: probability, fuel: range, spares: range }).optional(),
   service: z.strictObject({ refuel: z.boolean(), hullRepair: nonNeg, spares: nonNeg.int() }).optional(),
+  shop: z.boolean().optional(),
 });
 
 const sectorSchema = z
@@ -200,6 +203,30 @@ const surfaceSchema = z.strictObject({
   worlds: z.array(worldSchema),
 });
 
+const economySchema = z.strictObject({
+  startCredits: nonNeg.int(),
+  sectorRewardCredits: nonNeg,
+  sectorPriceMult: z.strictObject({ sellPerSector: nonNeg, buyPerSector: nonNeg }),
+  sellPrices: z.record(id, nonNeg),
+  supplyPrices: z.strictObject(Object.fromEntries(SUPPLY_IDS.map((k) => [k, positive])) as Record<(typeof SUPPLY_IDS)[number], typeof positive>),
+  emergency: z.strictObject({ fuelPct: pct, hullPct: pct, minSpares: nonNeg.int() }),
+  cargoFuel: z.strictObject({ massRefKg: positive }),
+  offer: z.strictObject({ size: positive.int() }),
+});
+
+const upgradeEffectSchema = z
+  .strictObject({ target: z.enum(UPGRADE_TARGETS), field: z.string(), add: z.number().finite().optional(), mult: nonNeg.optional() })
+  .superRefine((e, ctx) => {
+    if (!UPGRADE_FIELDS[e.target].includes(e.field)) ctx.addIssue({ code: 'custom', message: `campo "${e.field}" no admitido en ${e.target} (ver UPGRADE_FIELDS)` });
+    if (e.add === undefined && e.mult === undefined) ctx.addIssue({ code: 'custom', message: 'un efecto necesita add o mult' });
+  });
+
+const upgradeSchema = z.strictObject({
+  id,
+  name: localized,
+  levels: z.array(z.strictObject({ price: positive, massKg: nonNeg, effects: z.array(upgradeEffectSchema).min(1) })).min(1),
+});
+
 const catalogSchema = z
   .strictObject({
     ships: z.array(shipSchema).min(1),
@@ -207,6 +234,8 @@ const catalogSchema = z
     nodeKinds: z.array(nodeKindSchema),
     sector: sectorSchema,
     surface: surfaceSchema.optional(),
+    economy: economySchema.optional(),
+    upgrades: z.array(upgradeSchema).optional(),
   })
   .superRefine((cat, ctx) => {
     const shipIds = new Set<string>();
@@ -218,7 +247,7 @@ const catalogSchema = z
       if (cat.nodeKinds.filter((n) => n.id === k).length !== 1) ctx.addIssue({ code: 'custom', message: `falta o se repite el tipo de destino "${k}"` });
     }
     const station = cat.nodeKinds.find((n) => n.id === 'station');
-    if (station && !station.service) ctx.addIssue({ code: 'custom', message: 'el tipo "station" debe declarar `service`' });
+    if (station && !station.shop && !station.service) ctx.addIssue({ code: 'custom', message: 'el tipo "station" debe declarar `shop`' });
     if (!cat.nodeKinds.some((n) => n.weight > 0)) ctx.addIssue({ code: 'custom', message: 'ningún tipo de destino tiene peso > 0' });
     const surface = cat.surface;
     if (!surface) return;
@@ -226,7 +255,7 @@ const catalogSchema = z
     const materialIds = new Set<string>();
     const toolIds = new Set(surface.tools.map((t) => t.id));
     for (const mat of surface.materials) if (!toolIds.has(mat.tool)) ctx.addIssue({ code: 'custom', message: `el material "${mat.id}" usa una herramienta desconocida: ${mat.tool}` });
-    for (const entry of [...surface.tools, ...surface.materials, ...surface.worlds]) {
+    for (const entry of [...surface.tools, ...surface.materials, ...surface.worlds, ...(cat.upgrades ?? [])]) {
       if (ids.has(entry.id)) ctx.addIssue({ code: 'custom', message: `id repetido en el catálogo: ${entry.id}` });
       ids.add(entry.id);
     }
@@ -237,6 +266,9 @@ const catalogSchema = z
       for (const m of w.materials) if (!materialIds.has(m.materialId)) ctx.addIssue({ code: 'custom', message: `el mundo "${w.id}" usa un material desconocido: ${m.materialId}` });
       if (!w.materials.some((m) => m.minDistanceFrac === 0)) ctx.addIssue({ code: 'custom', message: `el mundo "${w.id}" necesita algún material con minDistanceFrac 0` });
     }
+    for (const materialId of Object.keys(cat.economy?.sellPrices ?? {})) {
+      if (!materialIds.has(materialId)) ctx.addIssue({ code: 'custom', message: `economy.sellPrices usa un material desconocido: ${materialId}` });
+    }
     for (const k of cat.nodeKinds) {
       if (k.landable && !surface.worlds.some((w) => w.kind === k.id)) ctx.addIssue({ code: 'custom', message: `el tipo aterrizable "${k.id}" no tiene ningún mundo` });
     }
@@ -245,7 +277,16 @@ const catalogSchema = z
 /** Valida un catálogo en bruto. Lanza un error legible si no cumple el esquema. */
 export function parseCatalog(raw: unknown): Catalog {
   // La superficie es opcional en el JSON: si falta, se usa la del catálogo por defecto.
-  const input = raw !== null && typeof raw === 'object' && !Array.isArray(raw) && !('surface' in raw) ? { ...raw, surface: surfaceJson } : raw;
+  // Igual con la economía y las mejoras (fase 3).
+  const isObj = raw !== null && typeof raw === 'object' && !Array.isArray(raw);
+  const input = isObj
+    ? {
+        ...raw,
+        ...(!('surface' in raw) ? { surface: surfaceJson } : {}),
+        ...(!('economy' in raw) ? { economy: economyJson.economy } : {}),
+        ...(!('upgrades' in raw) ? { upgrades: upgradesJson.upgrades } : {}),
+      }
+    : raw;
   const r = catalogSchema.safeParse(input);
   if (!r.success) {
     const lines = r.error.issues.map((i) => `  - ${i.path.join('.') || '(raíz)'}: ${i.message}`);
@@ -261,6 +302,8 @@ export const catalog: Catalog = parseCatalog({
   nodeKinds: nodeKindsJson.nodeKinds,
   sector: sectorJson.sector,
   surface: surfaceJson,
+  economy: economyJson.economy,
+  upgrades: upgradesJson.upgrades,
 });
 
 export function getShip(shipId: string | undefined, cat: Catalog = catalog): ShipDef {

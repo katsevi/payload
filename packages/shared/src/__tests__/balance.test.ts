@@ -81,7 +81,9 @@ function surfaceSummary(explore: ExploreStyle, returnMarginPct?: number) {
   let surfaceS = 0;
   let incidents = 0;
   for (let seed = 1; seed <= seeds; seed++) {
-    const r = playRun(seed, { skill: 'crew', explore, sectors: 2, walkS: 3.5, returnMarginPct });
+    // Umbrales de la fase 2: sin la política de la fase 3 (ni mejoras ni descarte de lastre) para comparar los
+    // estilos de exploración entre sí con el traje de serie. La economía tiene su propio bloque abajo.
+    const r = playRun(seed, { skill: 'crew', explore, sectors: 2, walkS: 3.5, returnMarginPct, economyPolicy: false });
     if (r.state.lossReason === 'crew') crewLost++;
     landings += r.state.stats.landings;
     hard += r.state.stats.hardLandings;
@@ -174,5 +176,37 @@ describe('balance de superficie (hito de la fase 2)', () => {
     expect(thorough.shipO2AtTakeOffPct).toBeLessThan(risky.shipO2AtTakeOffPct - 15);
     expect(thorough.surfaceS).toBeGreaterThan(risky.surfaceS * 1.5);
     expect(thorough.incidentsPerLanding).toBeGreaterThan(risky.incidentsPerLanding);
+  });
+});
+
+/** Fase 3: economía y mejoras con la política simple del bot (vende todo, compra suministros y mejoras). */
+describe('balance de la economía (hito de la fase 3)', () => {
+  const seeds = 40;
+  const crew = Array.from({ length: seeds }, (_, i) => playRun(i + 1, { skill: 'crew', walkS: 3.5, sectors: 3 }).state);
+  const miners = Array.from({ length: seeds }, (_, i) => playRun(i + 1, { skill: 'crew', walkS: 3.5, sectors: 3, explore: 'prudent' }).state);
+  const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+
+  it('sin minar se puede: la tripulación rápida supera el sector 1 siempre y el 3 casi como sin economía', () => {
+    expect(crew.filter((s) => s.stats.sectorsCleared >= 1).length / seeds).toBeGreaterThanOrEqual(0.95);
+    expect(crew.filter((s) => s.stats.sectorsCleared >= 3).length / seeds).toBeGreaterThanOrEqual(0.8);
+  });
+
+  it('minar da los créditos para mejorar la nave: el explorador compra al menos dos mejoras de media', () => {
+    expect(mean(miners.map((s) => s.stats.upgradesBought ?? 0))).toBeGreaterThanOrEqual(2);
+    expect(mean(miners.map((s) => s.stats.creditsEarned ?? 0))).toBeGreaterThan(2 * mean(crew.map((s) => s.stats.creditsEarned ?? 0)));
+    // Sin minar apenas alcanza para mejoras (el contrato y la ayuda de emergencia solo cubren lo básico).
+    expect(mean(crew.map((s) => s.stats.upgradesBought ?? 0))).toBeLessThan(1);
+  });
+
+  it('dos partidas acaban con mejoras distintas (oferta por estación determinista y variada)', () => {
+    const sets = new Set(miners.map((s) => JSON.stringify(Object.entries(s.upgrades).sort())));
+    expect(sets.size).toBeGreaterThanOrEqual(seeds / 3);
+  });
+
+  it('nunca se gasta lo que no se tiene', () => {
+    for (const s of [...crew, ...miners]) {
+      expect(s.credits).toBeGreaterThanOrEqual(0);
+      expect(s.credits).toBe(Math.round(s.credits));
+    }
   });
 });

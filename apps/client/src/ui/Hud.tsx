@@ -1,11 +1,13 @@
 import { AlertTriangle, Flame, Fuel, Heart, Navigation, Shield, Wind, Wrench, Zap } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getNode, getShip, type EventTone, type IncidentKind, type RunState } from '@payload/shared';
-import { TOAST_MS, useGame } from '../game/runStore';
+import { getNode, type EventTone, type IncidentKind, type RunState } from '@payload/shared';
+import { effectiveShipOf } from '../game/effective';
+import { getRun, TOAST_MS, useGame } from '../game/runStore';
 import { tr } from '../i18n';
 import { useUi } from '../state/ui';
 import { usePointerLocked } from './common';
+import { CreditsBadge, UpgradeStrip } from './Credits';
 import { HelmPointer } from './HelmPointer';
 import { SkillHud } from './SkillHud';
 import { ToolIcon } from './ToolIcon';
@@ -40,7 +42,8 @@ export function Gauge({ icon, label, pct, text, level, marker }: { icon: ReactNo
 /** Recursos vitales: los cuatro números que deciden si la nave llega. */
 function Vitals({ s }: { s: RunState }) {
   const { t } = useTranslation();
-  const ship = getShip(s.ship.shipId);
+  // Máximos de la nave EFECTIVA: un depósito o un casco mejorados se ven con su nuevo tope.
+  const ship = effectiveShipOf(s, getRun()?.catalog);
   const hullPct = (s.ship.hull / ship.hullMax) * 100;
   const fuelPct = (s.ship.fuel / ship.fuelCapacity) * 100;
   const supplyPct = (s.ship.powerSupplyKw / ship.reactorOutputKw) * 100;
@@ -59,12 +62,16 @@ function Vitals({ s }: { s: RunState }) {
         text={blackout ? t('hud.blackout') : s.ship.overloaded ? t('hud.overload') : `${Math.round(s.ship.powerDemandKw)}/${Math.round(s.ship.powerSupplyKw)} kW`}
         level={blackout || s.ship.overloaded ? 'bad' : demandPct > supplyPct * 0.92 ? 'warn' : 'ok'}
       />
-      <div className="flex items-center gap-2 text-xs text-slate-200" title={t('hud.spares')}>
-        <Wrench size={16} />
-        <span className="num">
-          <span className="sr-only">{t('hud.spares')} </span>× {s.ship.spares}
+      <div className="flex items-center justify-between gap-2 text-xs text-slate-200">
+        <span className="flex items-center gap-2" title={t('hud.spares')}>
+          <Wrench size={16} />
+          <span className="num">
+            <span className="sr-only">{t('hud.spares')} </span>× {s.ship.spares}
+          </span>
         </span>
+        <CreditsBadge credits={s.credits} />
       </div>
+      <UpgradeStrip upgrades={s.upgrades} />
     </div>
   );
 }

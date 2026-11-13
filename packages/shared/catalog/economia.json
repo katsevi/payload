@@ -1,0 +1,32 @@
+{
+  "economy": {
+    "startCredits": 60,
+    "sectorRewardCredits": 65,
+    "sectorPriceMult": {
+      "sellPerSector": 0.2,
+      "buyPerSector": 0.15
+    },
+    "sellPrices": {
+      "ice": 1,
+      "ore": 4,
+      "crystal": 14,
+      "sample": 24
+    },
+    "supplyPrices": {
+      "fuel": 1,
+      "hull": 1.2,
+      "spares": 15
+    },
+    "emergency": {
+      "fuelPct": 75,
+      "hullPct": 50,
+      "minSpares": 1
+    },
+    "cargoFuel": {
+      "massRefKg": 1000
+    },
+    "offer": {
+      "size": 5
+    }
+  }
+}

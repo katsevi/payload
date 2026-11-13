@@ -11,7 +11,9 @@ export type SfxId =
   | 'descent' | 'thruster' | 'landSoft' | 'landHard' | 'airlock' | 'jetpack' | 'collect' | 'store' | 'stormWarn' | 'storm'
   | 'crack' | 'collapse' | 'o2Low' | 'o2Critical' | 'breath' | 'breathFast' | 'suitHit' | 'crewDead' | 'takeOff' | 'jettison' | 'wind' | 'fallWarn'
   | 'dodgeGraze' | 'dodgeHit' | 'skillHit' | 'skillMiss' | 'extinguisher'
-  | 'toolPlace' | 'toolReady' | 'toolDone' | 'toolStop' | 'toolResume' | 'toolLost';
+  | 'toolPlace' | 'toolReady' | 'toolDone' | 'toolStop' | 'toolResume' | 'toolLost'
+  // Terminal de estación (fase 3)
+  | 'sale' | 'purchase' | 'upgrade' | 'noCredits';
 
 /** Efectos en bucle: `cue(id)` los arranca y `audio.stopLoop(id)` los para. */
 export const LOOP_SFX: readonly SfxId[] = ['jump', 'thruster', 'jetpack', 'storm', 'takeOff', 'wind', 'extinguisher'];
@@ -77,6 +79,10 @@ export const SFX_META: Record<SfxId, SfxMeta> = {
   toolStop: { bus: 'alerts', captionKey: 'sound.toolStop', flash: 'warn', minGapMs: 800 },
   toolResume: { bus: 'sfx', captionKey: 'sound.toolResume', flash: 'info', minGapMs: 800 },
   toolLost: { bus: 'alerts', captionKey: 'sound.toolLost', flash: 'bad', minGapMs: 1500 },
+  sale: { bus: 'sfx', captionKey: 'sound.sale', flash: 'ok', minGapMs: 120 },
+  purchase: { bus: 'sfx', captionKey: 'sound.purchase', flash: 'info', minGapMs: 120 },
+  upgrade: { bus: 'alerts', captionKey: 'sound.upgrade', flash: 'ok', minGapMs: 400 },
+  noCredits: { bus: 'alerts', captionKey: 'sound.noCredits', flash: 'warn', minGapMs: 300 },
 };
 
 export const SFX_IDS = Object.keys(SFX_META) as SfxId[];
@@ -143,6 +149,13 @@ export function sfxForRunEvent(event: Pick<RunEvent, 'type' | 'incidentKind' | '
       return 'toolResume';
     case 'tool-lost':
       return 'toolLost';
+    case 'sale':
+    case 'reward':
+      return 'sale';
+    case 'purchase':
+      return 'purchase';
+    case 'upgrade':
+      return 'upgrade';
     case 'impact-evaded':
     case 'service':
     case 'cache':

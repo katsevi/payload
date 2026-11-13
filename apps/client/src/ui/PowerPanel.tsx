@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getShip, getThrottle, type PoweredSystemId, type RunState, type SystemId } from '@payload/shared';
+import { getThrottle, type PoweredSystemId, type RunState, type SystemId } from '@payload/shared';
 import { cue } from '../audio/cues';
-import { useGame } from '../game/runStore';
+import { effectiveShipOf } from '../game/effective';
+import { getRun, useGame } from '../game/runStore';
 import { useUi } from '../state/ui';
 import { Modal, Panel } from './common';
 
@@ -21,7 +22,7 @@ export function systemStatus(s: RunState, id: SystemId): SystemStatus {
 
 /** Consumo que tendría el sistema encendido (los motores dependen del régimen y solo gastan en ruta). */
 export function systemDrawKw(s: RunState, id: PoweredSystemId): number {
-  const ship = getShip(s.ship.shipId);
+  const ship = effectiveShipOf(s, getRun()?.catalog);
   return id === 'engines' ? ship.systemDrawKw.engines * getThrottle(ship, s.ship.throttle).engineDrawMult : ship.systemDrawKw[id];
 }
 
@@ -46,7 +47,7 @@ export function PowerPanel() {
   }, []);
 
   if (!s) return null;
-  const ship = getShip(s.ship.shipId);
+  const ship = effectiveShipOf(s, getRun()?.catalog);
   const supplyPct = (s.ship.powerSupplyKw / ship.reactorOutputKw) * 100;
   const demandPct = Math.min(140, (s.ship.powerDemandKw / ship.reactorOutputKw) * 100);
   const reactor = systemStatus(s, 'reactor');

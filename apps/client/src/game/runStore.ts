@@ -203,7 +203,11 @@ export const useGame = create<GameState>((set, get) => {
     act: (action, quiet = false) => {
       if (!run) return { ok: false, reason: { key: 'reject.runOver' } };
       const result = run.apply(action);
-      if (!result.ok && !quiet) set({ toasts: pushToast('warn', result.reason) });
+      if (!result.ok && !quiet) {
+        set({ toasts: pushToast('warn', result.reason) });
+        // Sin créditos en la terminal: suena y se ve (destello + subtítulo), no solo el aviso de texto.
+        if (result.reason.key === 'reject.noCredits') cue('noCredits');
+      }
       flush(!quiet);
       return result;
     },

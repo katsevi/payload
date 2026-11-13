@@ -103,7 +103,10 @@
     "o2Fetch": "Oxígeno justo: ve ya a por tus herramientas",
     "o2Leave": "Oxígeno justo: deja las herramientas y vuelve",
     "toHelm": "Impacto: al timón",
-    "lode": "Filón: {{done}} de {{total}} vetas"
+    "lode": "Filón: {{done}} de {{total}} vetas",
+    "credits": "Créditos",
+    "creditsValue": "{{credits}} cr",
+    "upgrades": "Mejoras instaladas"
   },
   "prompt": {
     "hold": "Mantén",
@@ -152,7 +155,9 @@
     "retrieveTool": "Retirar la herramienta",
     "toolsOut": "fuera: {{n}} herr.",
     "readyOut": "{{n}} piezas sin recoger",
-    "evadeLate": "Maniobra a medias · ya no da tiempo"
+    "evadeLate": "Maniobra a medias · ya no da tiempo",
+    "terminal": "Abrir el terminal de la estación",
+    "credits": "{{credits}} cr"
   },
   "map": {
     "title": "Mapa estelar · sector {{sector}}",
@@ -177,9 +182,6 @@
     "cache": "Contenedor a la deriva",
     "visited": "Visitado",
     "landable": "Superficie explorable",
-    "service": "Servicio de estación",
-    "serviceHint": "Reposta, repara el casco y da repuestos. Una vez por estación.",
-    "serviceUsed": "Servicio ya utilizado",
     "sensorsDown": "Sin sensores: no hay datos de riesgo ni contenedores",
     "throttle": "Régimen de motores",
     "throttleHint": {
@@ -187,7 +189,9 @@
       "cruise": "Equilibrado.",
       "burn": "Rápido y caro. Sobrecarga el reactor si no apagas algo."
     },
-    "landed": "Ya has aterrizado aquí"
+    "landed": "Ya has aterrizado aquí",
+    "terminal": "Terminal de la estación",
+    "cargoFuel": "+{{pct}} % por carga"
   },
   "power": {
     "title": "Panel de energía",
@@ -226,7 +230,10 @@
     "next": "Saltar al sector {{sector}}",
     "nextHint": "La nave sigue como está: los daños y el combustible no se reinician.",
     "landings": "Aterrizajes",
-    "materials": "Materiales guardados"
+    "materials": "Materiales guardados",
+    "creditsEarned": "Créditos ganados",
+    "creditsSpent": "Créditos gastados",
+    "upgrades": "Mejoras compradas"
   },
   "pause": {
     "title": "Pausa",
@@ -239,7 +246,7 @@
     "move": "Moverte · al timón, pilotar la esquiva",
     "run": "Correr",
     "look": "Mirar",
-    "interact": "Usar: mapa, panel, esclusa, timón · colocar herramienta y recoger",
+    "interact": "Usar: mapa, panel, esclusa (terminal en estaciones), timón · colocar herramienta y recoger",
     "alt": "Régimen en el timón · retirar herramienta",
     "view": "Cambiar 1ª / 3ª persona",
     "pause": "Pausa",
@@ -313,7 +320,11 @@
     "toolDone": "[veta agotada]",
     "toolStop": "[herramienta parada]",
     "toolResume": "[herramienta reanudada]",
-    "toolLost": "[herramientas abandonadas]"
+    "toolLost": "[herramientas abandonadas]",
+    "sale": "[monedas]",
+    "purchase": "[carga recibida]",
+    "upgrade": "[mejora instalada]",
+    "noCredits": "[créditos insuficientes]"
   },
   "descent": {
     "title": "Descenso",
@@ -325,5 +336,90 @@
     "hold": "Mantén para frenar",
     "braking": "Frenando",
     "noEngines": "Sin motores: no puedes frenar"
+  },
+  "shop": {
+    "title": "Terminal · {{node}}",
+    "sell": "Venta de carga",
+    "store": "Tienda",
+    "sellOne": "Vender 1",
+    "sellAll": "Todo",
+    "sellHold": "Vender toda la bodega · +{{credits}} cr",
+    "empty": "Bodega vacía: baja a un mundo y trae carga",
+    "each": "{{price}} cr/u",
+    "units": "×{{units}}",
+    "total": "{{credits}} cr",
+    "supplies": "Suministros",
+    "supply": {
+      "fuel": "Combustible",
+      "hull": "Casco",
+      "spares": "Repuestos"
+    },
+    "fill": "Llenar · {{credits}} cr",
+    "fillPartial": "+{{units}} · {{credits}} cr",
+    "step": "+{{units}} · {{credits}} cr",
+    "full": "Lleno",
+    "level": "{{current}}/{{max}}",
+    "emergency": "Ayuda de emergencia",
+    "emergencyTake": "Gratis",
+    "upgrades": "Mejoras",
+    "upgradeLevel": "nv {{level}}/{{max}}",
+    "buy": "{{credits}} cr",
+    "maxed": "Al máximo",
+    "noUpgrades": "Esta estación no ofrece mejoras",
+    "mass": "+{{kg}} kg",
+    "abs": "{{label}} {{before}} → {{after}}{{unit}}",
+    "pct": "{{label}} {{before}} → {{after}} %",
+    "rel": "{{label}} {{change}} %",
+    "kw": "{{label}} {{change}} kW",
+    "unit": {
+      "kg": " kg",
+      "m": " m",
+      "mps": " m/s",
+      "kw": " kW"
+    },
+    "keys": "Flechas · Intro · Esc",
+    "field": {
+      "ship": {
+        "hullMax": "Casco",
+        "fuelCapacity": "Depósito",
+        "maxSpares": "Repuestos máx.",
+        "reactorOutputKw": "Reactor",
+        "cruiseSpeedLyPerS": "Velocidad",
+        "fuelPerLy": "Consumo",
+        "damagedEngineFuelPenalty": "Consumo con daño",
+        "evadeFuel": "Combustible al esquivar",
+        "crewO2UsePctPerS": "O₂ de la tripulación",
+        "o2RegenPctPerS": "Regeneración de O₂",
+        "shieldAbsorb": "Absorción",
+        "shieldWearPctPerHit": "Desgaste de escudos",
+        "overloadReactorDamagePctPerS": "Daño por sobrecarga",
+        "systemDrawKw": {
+          "engines": "Motores",
+          "lifeSupport": "Soporte vital",
+          "shields": "Escudos",
+          "nav": "Navegación"
+        }
+      },
+      "suit": {
+        "o2DrainPctPerS": "Gasto de O₂ del traje",
+        "carryCapacityKg": "Mochila",
+        "refillShipO2PctPerTank": "O₂ de la nave al salir",
+        "airlockCycleShipO2Pct": "Ciclo de esclusa",
+        "collectRangeM": "Alcance"
+      },
+      "jetpack": {
+        "drainPctPerS": "Gasto del jetpack",
+        "rechargePctPerS": "Recarga del jetpack"
+      },
+      "falls": {
+        "harmlessMps": "Caída segura",
+        "o2LossPctPerMps": "O₂ perdido al caer",
+        "lethalMps": "Caída letal"
+      }
+    },
+    "giveFuel": "+{{n}} combustible",
+    "giveHull": "+{{n}} casco",
+    "giveSpares": "+{{n}} repuestos",
+    "overload": "sobrecarga con todo encendido"
   }
 }

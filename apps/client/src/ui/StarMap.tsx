@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Package } from 'lucide-react';
-import { getNode, getNodeKind, getNodeWorld, HAZARD_KINDS, THROTTLE_IDS, type NodeKind, type RunState, type SectorNode } from '@payload/shared';
-import { cue } from '../audio/cues';
+import { AlertTriangle, Package, Store, Weight } from 'lucide-react';
+import { getNode, getNodeKind, getNodeWorld, hasShop, HAZARD_KINDS, THROTTLE_IDS, type NodeKind, type RunState, type SectorNode } from '@payload/shared';
 import { getRun, useGame } from '../game/runStore';
+import { cargoFuelPct } from '../game/shop';
 import { lt } from '../i18n';
 import { useUi } from '../state/ui';
+import { CreditsBadge } from './Credits';
 import { Modal, Panel, fmt } from './common';
 
 const KIND_COLOR: Record<NodeKind, string> = {
@@ -18,6 +19,7 @@ const KIND_COLOR: Record<NodeKind, string> = {
   gate: '#ffd25a',
 };
 const RISK_COLOR = ['text-ok', 'text-warn', 'text-bad', 'text-bad'];
+
 const VIEW_W = 640;
 const VIEW_H = 330;
 const PAD = 46;
@@ -99,7 +101,7 @@ function Details({ s, node, onJump }: { s: RunState; node: SectorNode; onJump: (
             <Package size={13} /> {t('map.cache')}
           </span>
         )}
-        {kind.service && <span className="text-accent">{t('map.service')}</span>}
+        {hasShop(kind) && <span className="text-accent">{t('map.terminal')}</span>}
       </div>
       {estimate && (
         <>
@@ -147,6 +149,13 @@ function Details({ s, node, onJump }: { s: RunState; node: SectorNode; onJump: (
               );
             })}
           </div>
+          {/* La masa a bordo (bodega + mejoras) encarece el salto: se dice en una línea, solo si pesa. */}
+          {estimate.cargoFuelMult !== undefined && cargoFuelPct(estimate.cargoFuelMult) > 0 && (
+            <p className="num flex items-center gap-1 text-xs text-warn">
+              <Weight size={13} aria-hidden="true" />
+              {t('map.cargoFuel', { pct: cargoFuelPct(estimate.cargoFuelMult) })}
+            </p>
+          )}
           <p className="text-xs text-slate-400">{t(`map.throttleHint.${s.ship.throttle}`)}</p>
           <button className="btn btn-primary !py-2.5" disabled={s.phase !== 'docked' || !chosen?.enoughFuel} onClick={onJump}>
             {chosen?.enoughFuel ? t('map.jump', { node: node.name }) : t('map.notEnough')}
@@ -169,13 +178,9 @@ export function StarMap() {
   const selected = selectedId ? getNode(s.sector, selectedId) : undefined;
   const reachable = s.phase === 'docked' ? here.links : [];
   const hereKind = getNodeKind(here.kind);
-  const serviceUsed = s.servicedIds.includes(here.id);
   const sensors = s.ship.systems.nav.online;
   const jump = () => {
     if (selected && useGame.getState().act({ type: 'jump', toId: selected.id }).ok) close();
-  };
-  const service = () => {
-    if (useGame.getState().act({ type: 'service' }).ok) cue('ok');
   };
   return (
     <Modal onClose={close} wide>
@@ -254,13 +259,15 @@ export function StarMap() {
             ) : (
               <p className="text-sm text-slate-300">{t('map.select')}</p>
             )}
-            {hereKind.service && s.phase === 'docked' && (
-              <div className="rounded border border-line p-2">
-                <button className="btn w-full" disabled={serviceUsed} onClick={service}>
-                  {serviceUsed ? t('map.serviceUsed') : t('map.service')}
-                </button>
-                {!serviceUsed && <p className="mt-1 text-xs text-slate-400">{t('map.serviceHint')}</p>}
-              </div>
+            {/* Atracada en una estación: el terminal (venta, suministros, ayuda de emergencia y mejoras). */}
+            {hasShop(hereKind) && s.phase === 'docked' && (
+              <button className="btn flex w-full items-center justify-between gap-2" onClick={() => useUi.getState().setOverlay('terminal')}>
+                <span className="flex items-center gap-2">
+                  <Store size={15} aria-hidden="true" />
+                  {t('map.terminal')}
+                </span>
+                <CreditsBadge credits={s.credits} />
+              </button>
             )}
             <button className="btn mt-auto" onClick={close}>
               {t('common.close')} <span className="kbd ml-1">{t('keys.interact')}</span>

@@ -301,7 +301,7 @@ function GameLoop() {
       const run = getRun();
       if (!run) return;
       if (e.code === 'KeyE') {
-        if (ui.overlay === 'map' || ui.overlay === 'power') {
+        if (ui.overlay === 'map' || ui.overlay === 'power' || ui.overlay === 'terminal') {
           ui.setOverlay(null);
           relock();
           return;
@@ -309,6 +309,7 @@ function GameLoop() {
         if (ui.overlay !== null || minigame.dodge) return;
         const interaction = currentInteraction();
         if (interaction?.kind === 'map' || interaction?.kind === 'power') ui.setOverlay(interaction.kind);
+        else if (interaction?.kind === 'terminal') ui.setOverlay('terminal');
         else if (startsDodge(interaction, useSettings.getState().simpleDodge)) startDodge();
       } else if (e.code === 'KeyQ' && ui.overlay === null && !minigame.dodge) {
         const action = altAction(currentInteraction(), run.state);

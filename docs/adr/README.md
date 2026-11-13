@@ -44,3 +44,4 @@ Qué se gana, qué se pierde y qué obliga a hacer después.
 | [0011](0011-reinicio-tripulacion-de-exploracion.md) | Reinicio del concepto: de simulador de diseño a tripulación de exploración | Aceptada |
 | [0012](0012-superficie-autoridad-dividida.md) | Superficie: autoridad dividida, oxígeno como único recurso que no vuelve y recompensa sin economía | Aceptada |
 | [0013](0013-minijuegos-y-herramientas.md) | Minijuegos en el cliente y minería con herramientas desplegables | Aceptada |
+| [0014](0014-economia-y-mejoras.md) | Economía y mejoras: créditos, terminal de estación de pago y nave efectiva | Aceptada |

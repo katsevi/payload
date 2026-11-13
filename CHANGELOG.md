@@ -5,6 +5,35 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+## Fase 3 · Economía y progresión
+
+Versión propuesta: **0.6.0** (rama `feat/f3-economia-progresion`, 2026-11-13, sin commitear). Decisiones: ADR 0014.
+
+### Añadido
+
+#### `@payload/shared`
+- Economía: `RunState.credits` y `RunState.upgrades`; acciones `sell`, `buy-supply` (combustible, casco, repuestos) y `buy-upgrade`; eventos `sale`, `purchase`, `upgrade` y `reward`; `Run.stationQuote()` (precios, oferta, `powerMarginDeltaKw` y `overloadsAtCruise` por mejora), `effectiveShip()`, `effectiveSurfaceRules()` y `cruisePowerMarginKw`. Módulo `economy.ts`.
+- Catálogos `catalog/economia.json` (créditos iniciales 60, contrato de 65 por sector, venta hielo 1 / mena 4 / cristal 14 / muestra 24, suministros combustible 1 / casco 1,2 / repuesto 15, multiplicador por sector +0,2 venta y +0,15 compra, ayuda de emergencia, oferta de 5) y `catalog/mejoras.json` (11 mejoras con niveles y contrapartida). `parseCatalog` los rellena por defecto si faltan.
+- `NodeKindDef.shop` (marca las estaciones con terminal); oferta de mejoras determinista por semilla, sector y nodo, con flujo de azar propio.
+- Estadísticas opcionales `creditsEarned`, `creditsSpent`, `unitsSold` y `upgradesBought`; `ShipState.cargoKg`; `cargoKg` y `cargoFuelMult` en `estimateJump`.
+- Bot de balance con política de economía según el estado de la nave. Tests nuevos `economy.test.ts`; total 181 en 8 archivos.
+
+#### `@payload/client`
+- Terminal de estación (`ui/StationTerminal.tsx`): venta | tienda y mejoras, una línea de efecto por mejora y aviso de sobrecarga, con teclado; se abre con E en la esclusa atracado en una estación o desde el mapa, y no pausa el juego.
+- `ui/Credits.tsx` (`CreditsBadge` en HUD, mapa y terminal; `UpgradeStrip`), resumen de economía en el fin de partida, «+N % por carga» en el mapa, `game/shop.ts` y `game/effective.ts`, cues `sale`, `purchase`, `upgrade` y `noCredits`.
+- Depuración: `?play=1&seed=7&station=1` (`&station=bare`) y `__payload.toStation()`. Tests nuevos `shop.test.ts`; total 119 en 5 archivos.
+
+### Cambiado
+- `service` deja de ser el servicio completo gratuito: pasa a **ayuda de emergencia** gratuita, una vez por estación (75 % del depósito, 50 % del casco, 1 repuesto). `NodeKindDef.service` queda obsoleto.
+- La masa de la bodega y de las mejoras encarece el combustible de cada salto (× (1 + kg / 1000)).
+- Hielo y mena se siguen convirtiendo al guardarse; el sobrante va a la bodega y se vende. La mena deja de ser relleno.
+- Los créditos y las mejoras no puntúan; vender no suma ni resta puntos.
+- Balance (`pnpm balance 200 3`): tripulación rápida S1 100 % · S2 99 % · S3 90 % (antes 100/100/92); lenta S3 71 % (antes 73); explorador prudente S3 82 % (antes 83) con 3,6 mejoras por partida.
+- Documentación: ADR 0014, STATUS, GDD § 6 y § 11, ARCHITECTURE, `docs/phases/fase-3.md`, agentes y skill `add-catalog-item`.
+
+### Corregido (tras la validación independiente)
+- Tests de las dos mejoras nuevas, bot que las compra, aviso de sobrecarga en el terminal, rechazo de compra duplicada, cierre del overlay y tope de carga efectivo en `isStranded`.
+
 ### Mejora fuera del plan: herramientas de minería y minijuegos (rama `feat/f2-herramientas-e-interacciones`, 2026-11-12)
 
 Decisiones: ADR 0013. Pedido del usuario: menos interacciones repetitivas con E y una minería creíble.

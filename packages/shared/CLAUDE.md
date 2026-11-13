@@ -24,7 +24,14 @@ Diseño que implementa: `docs/GDD.md`. Contrato: `src/types.ts` (reescrito en el
 | `isSectorSolvable` | `(sector, ship, marginPct = 15) => boolean` | Ruta hacia delante a régimen económico con repostajes |
 | `ecoFuelCost`, `nodeDistanceLy`, `getNode` | | Utilidades del mapa |
 | `createRun` | `({ seed, shipId?, catalog?, crewSize? }) => Run` | La partida. Ver abajo (`crewSize` 1-4, por defecto 1) |
-| `computeScore` | `(stats) => number` | 1000·sector + 50·salto + 20·avería + 30·esquiva + años luz + puntos de materiales guardados a bordo |
+| `computeScore` | `(stats) => number` | 1000·sector + 50·salto + 20·avería + 30·esquiva + años luz + puntos de materiales guardados a bordo (vender no cambia la puntuación; créditos y mejoras no puntúan) |
+| `getEconomy`, `getUpgrades`, `getUpgrade`, `hasShop` | `(cat)` · `(cat)` · `(id, cat)` · `(nodeKindDef)` | Fase 3 (ADR 0014). `hasShop`: `shop` o el obsoleto `service` |
+| `effectiveShip`, `effectiveSurfaceRules` | `(base, upgrades, cat) => ShipDef` · `(baseRules, upgrades, cat) => SurfaceRules` | Nave y reglas de traje/jetpack/caídas con las mejoras (puras) |
+| `stationOffer` | `(seed, sector, nodeId, cat) => string[]` | Mejoras que ofrece una estación (determinista, flujo propio; `[]` si no es estación) |
+| `sectorPriceMults`, `sellUnitPrice`, `upgradePrice` | `(eco, sector) => { sell, buy }` · `(eco, materialId, sector)` · `(upgrade, level, eco, sector)` | Precios con el multiplicador de sector |
+| `priceOf`, `affordableUnits` | `(units, unitPrice)` · `(credits, unitPrice)` | Coste entero (hacia arriba) y unidades pagables |
+| `cargoMassKg`, `upgradesMassKg`, `cargoFuelMult` | `(cargo, cat)` · `(upgrades, cat)` · `(eco, kg)` | Masa a bordo y su multiplicador del combustible de salto |
+| `cruisePowerMarginKw` | `(ship) => number` | Reactor sano − demanda a crucero con todo encendido (negativo = sobrecarga) |
 | `fuelPerLy`, `cruiseSpeedLyPerS` | `(ship, throttle, engineHealthPct) => number` | Mismas fórmulas que usa la partida |
 | `evadeDamageFraction` | `(hazardRules, grazes) => number` | Fracción del daño que entra tras una esquiva con esos roces |
 | `evadeDifficulty` | `(hazardRules, sectorIndex, hullDamage) => number` | Dificultad 0-1 del minijuego (la misma que va en el aviso) |
@@ -33,7 +40,8 @@ Diseño que implementa: `docs/GDD.md`. Contrato: `src/types.ts` (reescrito en el
 | `simLocales` | `Record<Locale, object>` | Traducciones del namespace `sim` (+ `catalog.<id>` generado) |
 | `formatMessage`, `lookupSimKey`, `flattenKeys` | | Texto final sin i18next (tests, scripts, servidor) |
 
-Constantes del contrato: `SYSTEM_IDS`, `THROTTLE_IDS`, `INCIDENT_KINDS`, `HAZARD_KINDS`, `NODE_KINDS`.
+Constantes del contrato: `SYSTEM_IDS`, `THROTTLE_IDS`, `INCIDENT_KINDS`, `HAZARD_KINDS`, `NODE_KINDS`, `SUPPLY_IDS`,
+`UPGRADE_TARGETS`, `UPGRADE_FIELDS`.
 
 ## `Run` (la partida)
 
@@ -47,11 +55,15 @@ run.snapshot()                          // copia profunda (tests, red, React)
 run.estimateJump(toId)                  // distancia, combustible/tiempo por régimen, peligros esperados, riskLevel 0-3
 run.estimateLanding()                   // atracado en nodo aterrizable: descenso (perfil de referencia) + despegue en vacío
 run.estimateTakeOff()                   // en superficie: despegue con lo cargado aquí y en vacío
+run.stationQuote()                      // atracada en estación: venta, suministros, emergencia y mejoras ofrecidas (si no, null)
+run.effectiveShip()                     // nave con mejoras (objeto vivo, solo lectura)
+run.effectiveSurfaceRules()             // reglas de traje/jetpack/caídas con mejoras (objeto vivo, solo lectura)
 ```
 
 - **Acciones (`RunAction`):** `jump`, `set-throttle`, `toggle-system`, `work-incident` y `repair-system`
   (con `seconds`: se envían mientras se mantiene la tecla; cada una aporta como mucho `MAX_WORK_SECONDS`),
-  `evade {grazes?}`, `service`, `next-sector`. Superficie (fase 2): `land`, `set-descent-brake {on}`, `eva-exit`,
+  `evade {grazes?}`, `service` (fase 3: ayuda de emergencia), `next-sector`. Estación (fase 3): `sell {materialId?, units?}`,
+  `buy-supply {supply, amount?}`, `buy-upgrade {upgradeId}`. Superficie (fase 2): `land`, `set-descent-brake {on}`, `eva-exit`,
   `eva-enter`, `set-position {x, z, grounded}` (silenciosa), `jetpack {seconds}`, `fall-impact {speedMps}`,
   `deploy-tool {depositId}`, `collect {depositId}` (recoge lo extraído; `seconds` se ignora),
   `retrieve-tool {depositId}`, `jettison`, `take-off`. Las de tripulante aceptan `crewId?` (por defecto, el
@@ -65,7 +77,8 @@ run.estimateTakeOff()                   // en superficie: despegue con lo cargad
   `takeEvents()`. El cliente usa únicamente `takeEvents()`. `subtype` distingue variantes sin mirar `tone`
   ni la clave: `landing` soft/hard, `suit-o2` low/critical, `airlock` exit/enter, `crew-dead` oxygen/fall,
   `cargo-stored` stored/processed, `material-collected` lode (bonus de filón completo), `impact-evaded` clean y `impact-hit` graze/failed (solo con esquiva por
-  habilidad), `tool-stopped`/`tool-resumed` storm, `tool-lost` left.
+  habilidad), `tool-stopped`/`tool-resumed` storm, `tool-lost` left, `purchase` fuel/hull/spares. Fase 3: `sale`,
+  `purchase`, `upgrade`, `reward` (contrato del sector) y `service` (ayuda de emergencia).
 - **Determinismo:** misma semilla + mismas acciones en los mismos instantes = misma partida, se trocee
   como se trocee `step()`. Tres flujos de azar con `deriveSeed`: sector, peligros de cada salto
   (pre-sorteados al iniciarlo por posición en el trayecto; van en `transit.hazards`) y desgaste (tres
@@ -95,10 +108,39 @@ run.estimateTakeOff()                   // en superficie: despegue con lo cargad
   0 roces = `impact-evaded` (subtype clean); 1..max−1 = `impact-hit` graze con `grazes × grazeDamageFrac` del
   daño (casco, sistema, desgaste de escudos; sin fuga; `stats.impactsGrazed`); `maxGrazes` = `impact-hit`
   failed con `failDamageFrac` (cuenta en `impactsTaken`, puede abrir fuga). Sin `grazes`, igual que siempre.
-- **Varada:** en tránsito sin combustible; o con motores/reactor a 0 y sin repuestos; o atracada sin
-  servicio de estación disponible y sin combustible para ningún salto en económico.
+- **Varada:** en tránsito sin combustible; o con motores/reactor a 0 y sin repuestos (en una estación cuentan la
+  emergencia y lo que se puede comprar); o atracada sin combustible para ningún salto en económico contando, en una
+  estación, la ayuda de emergencia, los créditos y la venta de la bodega.
 - **Sector:** `hazardMult = 1 + hazardGrowthPerSector × (índice − 1)`; una columna más cada
   `columnsGrowthEverySectors` hasta `maxColumns`.
+
+## Economía y mejoras (fase 3, ADR 0014; cifras en `catalog/economia.json` y `catalog/mejoras.json`)
+
+- **Catálogo:** `economy` y `upgrades` son opcionales en el JSON (`parseCatalog` pone los de por defecto). Se valida
+  que `sellPrices` use materiales existentes, que cada efecto toque un campo de `UPGRADE_FIELDS` y que los ids no se
+  repitan con el resto del catálogo. Los nombres de las mejoras van en `catalog.<id>`.
+- **Estado:** `credits` (enteros, `startCredits` al empezar), `upgrades` (id → nivel), `ship.cargoKg` (derivado:
+  bodega + mejoras) y `stats.creditsEarned/creditsSpent/unitsSold/upgradesBought`.
+- **Terminal** (tipos con `shop`; atracada, si no `reject.notAtStation`; en tránsito `reject.inTransit`):
+  `sell` vende al precio fijo por material × `1 + sellPerSector·(sector − 1)` (`reject.nothingToSell`);
+  `buy-supply` compra lo que quepa y se pueda pagar a `supplyPrices × 1 + buyPerSector·(sector − 1)` (coste entero
+  hacia arriba; `reject.supplyFull`, `reject.noCredits {credits}`); `buy-upgrade` compra el siguiente nivel si la
+  estación lo ofrece (`reject.notOffered`, `reject.upgradeMaxed`, `reject.noCredits`).
+- **Ayuda de emergencia** (`service`): gratis, una vez por estación (`servicedIds`): combustible hasta `fuelPct` %
+  del depósito, casco hasta `hullPct` %, repuestos hasta `minSpares` (`reject.serviceNotNeeded`/`serviceUsed`/`noService`).
+- **Contrato:** al superar un sector, `sectorRewardCredits × multiplicador de venta` (evento `reward`).
+- **Masa → combustible:** cada salto × `1 + (bodega + mejoras) kg / cargoFuel.massRefKg`, en el consumo y en
+  `estimateJump` (`cargoKg`, `cargoFuelMult`).
+- **Mejoras:** cada nivel tiene `price`, `massKg` y efectos `{target: ship|suit|jetpack|falls, field, mult?, add?}`
+  (primero `mult`). Todo el motor usa la nave y las reglas efectivas; un depósito o casco mayor no se llena solo.
+  Hay depósito, condensador de escudos, disipador del reactor, tanque de O₂ del traje, motores de salto, blindaje,
+  traje reforzado, propulsores del jetpack y mochila de carga; cada nivel con contrapartida (masa, consumo u O₂).
+- **Aviso eléctrico:** cada `stationQuote().upgrades[]` trae `powerMarginDeltaKw` (cambio del margen a crucero con todo
+  encendido que traería el siguiente nivel) y `overloadsAtCruise` (con él, ese margen sería negativo). Con todo al
+  máximo no cabe todo encendido: aceptado mientras motores + soporte vital + escudos o navegación quepan (test).
+- **Oferta:** `stationOffer` elige `offer.size` mejoras por estación con un flujo propio (semilla + sector + índice
+  del nodo): determinista y distinta entre partidas. El sector se genera con la nave base.
+- **Hielo y mena** se siguen procesando al guardarse si caben; lo que no cabe va a la bodega y se vende barato.
 
 ## Superficie (fase 2; cifras en `catalog/mundos.json`)
 
@@ -232,8 +274,18 @@ run.estimateTakeOff()                   // en superficie: despegue con lo cargad
   que «pocas salidas apuradas» (prudente
   con 3 %) y lo paga: despega con > 15 puntos menos de O₂, pasa > 1,5 × más tiempo en tierra y sufre más
   averías.
-- `locales.test.ts` barre además partidas del explorador y un guion en superficie (rechazos, `jettison`,
-  aterrizaje brusco, traje a medias y una caída letal, que el bot casi nunca provoca).
+- `locales.test.ts` barre además partidas del explorador, un guion en superficie (rechazos, `jettison`,
+  aterrizaje brusco, traje a medias y una caída letal, que el bot casi nunca provoca) y otro en la terminal de estación.
+- **Fase 3 en el bot:** en cada llegada a una estación vende toda la bodega, pide la ayuda de emergencia, llena el
+  depósito, repone hasta 3 repuestos, repara el casco y compra mejoras (`CREW_UPGRADES` / `EXPLORER_UPGRADES`, las
+  que ofrezca la estación) guardando `BOT_CREDIT_RESERVE`: primero la de más prioridad según cómo llegó (casco bajo →
+  blindaje, depósito bajo → depósito y estabilizadores, reactor dañado → disipador, O₂ bajo → soporte vital, nave sana
+  → motores de salto) y nunca una que deje sobrecarga a crucero. El explorador no sube lastre (lo que no rinde un
+  suministro necesario y vale < 1 crédito/kg) con 60 kg o más en la bodega. `economyPolicy: false` apaga mejoras y
+  lastre (lo usan la curva «una veta más» y los umbrales de superficie de la fase 2, para comparar estilos con el traje de serie). El informe añade créditos ganados/gastados, mejoras por partida,
+  combinaciones distintas y ayudas de emergencia; `balance.test.ts` exige que sin minar se supere el sector 1 (>= 95 %)
+  y el 3 (>= 80 %), que el explorador compre >= 2 mejoras de media y gane > 2 × los créditos del que no mina, que
+  las combinaciones de mejoras varíen entre partidas y que los créditos nunca sean negativos.
 
 ## Reglas
 

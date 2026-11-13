@@ -1,6 +1,6 @@
 ---
 name: content-designer
-description: Diseña y balancea el contenido del catálogo de Payload (naves, averías, tipos de destino, reglas de sector) en packages/shared/catalog y los textos bilingües. Úsalo para ajustar la dificultad, añadir un tipo de destino o una nave.
+description: Diseña y balancea el contenido del catálogo de Payload (naves, averías, tipos de destino, reglas de sector, mundos, economía y mejoras) en packages/shared/catalog y los textos bilingües. Úsalo para ajustar la dificultad, añadir un tipo de destino o una nave.
 model: sonnet
 ---
 

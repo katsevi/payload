@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { SoundCaptions } from '../audio/SoundCaptions';
 import { useAudioDirector } from '../audio/useAudioDirector';
-import { reachSurface } from '../game/debug';
+import { reachStation, reachSurface } from '../game/debug';
 import { getRun, useGame } from '../game/runStore';
 import { sceneFor } from '../game/surfaceRules';
 import { useUi } from '../state/ui';
@@ -9,6 +9,7 @@ import { Hud } from '../ui/Hud';
 import { PowerPanel } from '../ui/PowerPanel';
 import { CreditsScreen, EndScreen, HelpOverlay, MenuScreen, PauseScreen, SettingsPanel } from '../ui/Screens';
 import { StarMap } from '../ui/StarMap';
+import { StationTerminal } from '../ui/StationTerminal';
 
 // Escenas 3D con carga diferida: three/rapier no bloquean el primer pintado.
 const ShipScene = lazy(() => import('../scenes/ShipScene').then((m) => ({ default: m.ShipScene })));
@@ -23,6 +24,20 @@ function toSurface(stage: 'descent' | 'landed' | 'eva' = 'eva'): boolean {
   const ok = reachSurface(run, stage);
   if (stage !== 'descent') useUi.getState().setDescentView(false);
   useGame.getState().tick(0);
+  return ok;
+}
+
+/**
+ * Solo desarrollo: atraca en la estación más cercana y abre su terminal. Con `loot` (por defecto) antes baja
+ * al aterrizable más cercano a por carga vendible, para poder probar la venta.
+ */
+function toStation(loot = true): boolean {
+  const run = getRun();
+  if (!run) return false;
+  const ok = reachStation(run, loot);
+  useUi.getState().setDescentView(false);
+  useGame.getState().tick(0);
+  if (ok) useUi.getState().setOverlay('terminal');
   return ok;
 }
 
@@ -47,12 +62,15 @@ export function App() {
     if (!import.meta.env.DEV) return;
     const q = new URLSearchParams(location.search);
     const w = window as unknown as { __payload?: object };
-    w.__payload = { ...(w.__payload ?? {}), getRun, useGame, useUi, toSurface };
+    w.__payload = { ...(w.__payload ?? {}), getRun, useGame, useUi, toSurface, toStation };
     if (q.get('play') && useGame.getState().screen === 'menu') {
       useGame.getState().startRun(q.get('seed') ? Number(q.get('seed')) : undefined);
       // ?surface=1 (fuera, en EVA) · ?surface=descent (minijuego del descenso) · ?surface=landed (a bordo, posada)
       const stage = q.get('surface');
       if (stage) toSurface(stage === 'descent' || stage === 'landed' ? stage : 'eva');
+      // ?station=1 (con carga para vender) · ?station=bare (sin bajar a por carga): atracada y con el terminal abierto
+      const station = q.get('station');
+      if (station) toStation(station !== 'bare');
     }
   }, []);
 
@@ -80,6 +98,7 @@ export function App() {
 
       {overlay === 'map' && !ended && <StarMap />}
       {overlay === 'power' && !ended && <PowerPanel />}
+      {overlay === 'terminal' && !ended && <StationTerminal />}
       {overlay === 'pause' && !ended && <PauseScreen />}
       {overlay === 'help' && <HelpOverlay />}
       {overlay === 'settings' && <SettingsPanel />}

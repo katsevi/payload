@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { INCIDENT_KINDS, THROTTLE_IDS } from '@payload/shared';
+import { INCIDENT_KINDS, SUPPLY_IDS, THROTTLE_IDS } from '@payload/shared';
 import es from '../locales/es.json';
 import en from '../locales/en.json';
 import { flatten } from '../i18n/flatten';
@@ -66,6 +66,10 @@ describe('i18n de la interfaz (namespace ui)', () => {
       ...['simpleDodge', 'simpleRepairs', 'wideAim'].map((k) => `settings.${k}`),
       'prompt.evadeDodge', 'prompt.dodging', 'prompt.grazes', 'prompt.hits', 'keys.move',
       ...['fire', 'short', 'leak'].map((k) => `prompt.fix.${k}`),
+      // Terminal de estación (fase 3): suministros, unidades y estilos de la línea de efecto.
+      ...SUPPLY_IDS.map((id) => `shop.supply.${id}`),
+      ...['kg', 'm', 'mps', 'kw'].map((u) => `shop.unit.${u}`),
+      'shop.abs', 'shop.pct', 'shop.rel', 'shop.kw', 'prompt.terminal', 'prompt.credits',
     ];
     for (const key of dynamic) expect(key in esFlat, key).toBe(true);
   });
@@ -73,7 +77,7 @@ describe('i18n de la interfaz (namespace ui)', () => {
   it('poca letra: ningún texto de la interfaz de juego pasa de 110 caracteres', () => {
     for (const flat of [esFlat, enFlat]) {
       for (const [key, value] of Object.entries(flat)) {
-        if (/^(hud|prompt|map|power|end|pause|station|marker|help|descent|sound)\./.test(key)) expect(value.length, key).toBeLessThanOrEqual(110);
+        if (/^(hud|prompt|map|power|end|pause|station|marker|help|descent|sound|shop)\./.test(key)) expect(value.length, key).toBeLessThanOrEqual(110);
       }
     }
   });
