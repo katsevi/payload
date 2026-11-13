@@ -16,7 +16,7 @@
  *     `returnMarginPct` fija el margen (curva «una veta más» del informe de balance).
  */
 import {
-  createRng, createRun, FIXED_STEP_S, getMaterial, getNode, getNodeKind, getWorld, lodeBonusApplies, referenceBrake, suitRefill,
+  cargoMassKg, createRng, createRun, FIXED_STEP_S, getMaterial, getNode, getNodeKind, getWorld, lodeBonusApplies, referenceBrake, suitRefill,
   type CrewMember, type Deposit, type Rng, type Run, type RunAction, type RunEvent, type RunState, type SurfaceState, type SystemId,
 } from '../index';
 
@@ -42,6 +42,12 @@ export interface BotOptions {
    * como en la fase 1). `medium`: jugador medio; `simple`: modo de interacciones simples; `clumsy`: torpe.
    */
   shipSkill?: ShipSkill;
+  /**
+   * Fase 3 (por defecto, sí): compra mejoras en las estaciones y el explorador no sube lastre (lo que no rinde un
+   * suministro necesario y vale < 1 crédito/kg) con la bodega ya cargada. La curva «una veta más»
+   * (`returnMarginPct`) lo apaga para medir el compromiso del O₂ con el traje de serie y la conducta de la fase 2.
+   */
+  economyPolicy?: boolean;
 }
 
 export type ShipSkill = 'medium' | 'simple' | 'clumsy';
@@ -142,10 +148,11 @@ export function playRun(seed: number, options: BotOptions): BotResult {
   const run = createRun({ seed });
   const s = run.state;
   const events: RunEvent[] = [];
-  const explorer = skill === 'crew' && explore ? new Explorer(run, explore, seed, returnMarginPct) : null;
+  const explorer = skill === 'crew' && explore ? new Explorer(run, explore, seed, returnMarginPct, options.economyPolicy !== false) : null;
   let post: Post = 'map';
   let walkLeftS = 0;
   let planLeftS = 2;
+  let lastVisit = '';
 
   const goTo = (target: Post): boolean => {
     if (post !== target) {
@@ -199,8 +206,12 @@ export function playRun(seed: number, options: BotOptions): BotResult {
     }
 
     if (s.phase === 'docked') {
-      const here = getNode(s.sector, s.locationId)!;
-      if (getNodeKind(here.kind).service && !s.servicedIds.includes(here.id)) run.apply({ type: 'service' });
+      // Una visita a la terminal por llegada (como una persona: entra, compra y se va).
+      const visit = `${s.sector.index}:${s.stats.jumps}:${s.locationId}`;
+      if (visit !== lastVisit) {
+        lastVisit = visit;
+        shop(run, skill === 'crew' && options.economyPolicy !== false ? (explore ? EXPLORER_UPGRADES : CREW_UPGRADES) : []);
+      }
       planLeftS -= FIXED_STEP_S;
       const busy = skill === 'crew' && s.incidents.length > 0;
       if (planLeftS <= 0 && !busy) {
@@ -216,6 +227,84 @@ export function playRun(seed: number, options: BotOptions): BotResult {
     events.push(...run.takeEvents());
   }
   return { state: run.snapshot(), events, evas: explorer?.evas ?? [], landings: explorer?.landings ?? [] };
+}
+
+/** Prioridad de mejoras del bot (fase 3): primero lo que le salva la nave; el explorador, antes el equipo de salida. */
+/**
+ * Mejoras que considera el bot (fase 3), de más a menos prioridad base. La prioridad real depende del estado con el
+ * que llega a la estación (`upgradeScore`): casco bajo → blindaje, depósito bajo → depósito y estabilizadores, etc.
+ */
+export const CREW_UPGRADES = [
+  'hull-plating', 'shield-capacitor', 'fuel-tank', 'reactor-heatsink', 'engine-stabilizers', 'jump-drive', 'life-support-boost',
+];
+export const EXPLORER_UPGRADES = [
+  'eva-o2-tank', 'cargo-backpack', 'hull-plating', 'shield-capacitor', 'fuel-tank', 'reactor-heatsink', 'engine-stabilizers', 'jump-drive',
+  'life-support-boost', 'jetpack-thrusters',
+];
+/** Créditos que el bot guarda tras comprar mejoras (para repostar en la siguiente estación). */
+export const BOT_CREDIT_RESERVE = 40;
+/** Con esta carga (kg) en la bodega, el explorador deja de subir lo que apenas vale (lastre para los saltos). */
+const DEAD_WEIGHT_CARGO_KG = 60;
+
+/** Cómo llega la nave a la estación (antes de comprar suministros): decide qué mejora le hace más falta. */
+interface ArrivalState {
+  hullFrac: number;
+  fuelFrac: number;
+  oxygenPct: number;
+  engineHealthPct: number;
+  reactorHealthPct: number;
+}
+
+/**
+ * Prioridad de una mejora: la base (orden en `wanted`) más lo que pide el estado de llegada, menos el precio.
+ * Nunca compra una que deje la nave en sobrecarga a crucero con todo encendido (salvo el propio disipador).
+ */
+function upgradeScore(id: string, base: number, price: number, level: number, a: ArrivalState): number {
+  let bonus = 0;
+  if (id === 'hull-plating' && a.hullFrac < 0.6) bonus += 3;
+  if (id === 'shield-capacitor' && a.hullFrac < 0.75) bonus += 1.5;
+  if (id === 'fuel-tank' && a.fuelFrac < 0.4) bonus += 3;
+  if (id === 'engine-stabilizers' && (a.engineHealthPct < 70 || a.fuelFrac < 0.4)) bonus += 2;
+  if (id === 'jump-drive' && a.fuelFrac >= 0.4 && a.hullFrac >= 0.6) bonus += 3; // nave sana: ir más rápido
+  if (id === 'reactor-heatsink' && a.reactorHealthPct < 85) bonus += 3;
+  if (id === 'life-support-boost' && a.oxygenPct < 75) bonus += 2.5;
+  // Rendimientos decrecientes: cada nivel ya comprado baja su prioridad (reparte la compra entre mejoras).
+  return base + bonus - price / 100 - 3 * level;
+}
+
+/**
+ * Política simple en la terminal de estación (fase 3): vende toda la bodega, pide la ayuda de emergencia,
+ * llena el depósito, repone hasta 3 repuestos, repara el casco y, con lo que sobre por encima de la
+ * reserva, compra mejoras de `wanted` que ofrezca la estación, la de más prioridad primero (`upgradeScore`).
+ */
+function shop(run: Run, wanted: readonly string[]): void {
+  const q = run.stationQuote();
+  if (!q) return;
+  const s = run.state;
+  const ship = run.effectiveShip();
+  const arrival: ArrivalState = {
+    hullFrac: s.ship.hull / ship.hullMax,
+    fuelFrac: s.ship.fuel / ship.fuelCapacity,
+    oxygenPct: s.ship.oxygenPct,
+    engineHealthPct: s.ship.systems.engines.healthPct,
+    reactorHealthPct: s.ship.systems.reactor.healthPct,
+  };
+  if (q.sellTotal > 0) run.apply({ type: 'sell' });
+  if (q.emergency.available) run.apply({ type: 'service' });
+  if (s.ship.fuel < ship.fuelCapacity - 0.5) run.apply({ type: 'buy-supply', supply: 'fuel' });
+  if (s.ship.spares < 3) run.apply({ type: 'buy-supply', supply: 'spares', amount: 3 - s.ship.spares });
+  if (s.ship.hull < ship.hullMax - 0.5) run.apply({ type: 'buy-supply', supply: 'hull' });
+  for (let guard = 0; guard < 8; guard++) {
+    let best: { id: string; score: number } | null = null;
+    for (const u of run.stationQuote()!.upgrades) {
+      const rank = wanted.indexOf(u.upgradeId);
+      if (rank < 0 || u.price === null || u.price > s.credits - BOT_CREDIT_RESERVE) continue;
+      if (u.overloadsAtCruise && u.upgradeId !== 'reactor-heatsink') continue;
+      const score = upgradeScore(u.upgradeId, wanted.length - rank, u.price, u.level, arrival);
+      if (!best || score > best.score) best = { id: u.upgradeId, score };
+    }
+    if (!best || !run.apply({ type: 'buy-upgrade', upgradeId: best.id }).ok) break;
+  }
 }
 
 function rank(kind: string): number {
@@ -250,7 +339,13 @@ class Explorer {
   private moved = false;
   private endReason: EvaRecord['endReason'] = 'o2';
 
-  constructor(private readonly run: Run, private readonly style: ExploreStyle, seed: number, private readonly fixedMargin?: number) {
+  constructor(
+    private readonly run: Run,
+    private readonly style: ExploreStyle,
+    seed: number,
+    private readonly fixedMargin?: number,
+    private readonly avoidDeadWeight = true,
+  ) {
     this.rng = createRng(seed ^ 0x5eed);
   }
 
@@ -333,7 +428,7 @@ class Explorer {
   private fuelNeed(m?: CrewMember): number {
     if (!this.careful) return 0;
     const s = this.s;
-    const ship = this.run.catalog.ships.find((x) => x.id === s.ship.shipId)!;
+    const ship = this.run.effectiveShip();
     const carried = m ? Object.entries(m.carried).reduce((sum, [id, n]) => sum + (getMaterial(id).yields?.fuel ?? 0) * n, 0) : 0;
     return Math.max(0, ship.fuelCapacity * 0.7 - s.ship.fuel - carried);
   }
@@ -350,7 +445,7 @@ class Explorer {
     const d = surface.descent!;
     const world = getWorld(surface.worldId);
     // El prudente sigue el perfil de referencia; el codicioso apura la frenada (y a veces llega tarde).
-    const rules = this.run.catalog.surface!.rules;
+    const rules = this.run.effectiveSurfaceRules();
     const want = this.style === 'greedy' ? referenceBrake(world, rules, d.altitudeM, d.speedMps, this.brakeMargin) : referenceBrake(world, rules, d.altitudeM, d.speedMps);
     if (want !== d.brake) this.run.apply({ type: 'set-descent-brake', on: want });
   }
@@ -363,16 +458,16 @@ class Explorer {
     const stormSoon = surface.storm.active || (surface.storm.nextInS !== null && surface.storm.nextInS < 70);
     // Repetir salida solo si queda botín que merezca la pena al alcance (sin contar lo que pisa terreno inestable).
     const loot = surface.deposits
-      .filter((d) => d.units > 0 && !surface.zones.some((z) => !z.collapsed && Math.hypot(d.x - z.x, d.z - z.z) <= z.radiusM))
+      .filter((d) => d.units > 0 && !this.ballast(d.materialId) && !surface.zones.some((z) => !z.collapsed && Math.hypot(d.x - z.x, d.z - z.z) <= z.radiusM))
       .reduce((sum, d) => sum + d.units * d.valuePerUnit, 0);
     const iceLeft = surface.deposits.some((d) => d.units > 0 && (getMaterial(d.materialId).yields?.fuel ?? 0) > 0);
     const worth = this.evasHere === 0 || loot >= (thorough ? 20 : 80) || (this.fuelNeed() > 10 && iceLeft);
     // «Hasta vaciar» sale mientras el relleno le deje el traje al menos a 2/3; los demás, con la nave sobrada.
-    const rules = this.run.catalog.surface!.rules;
+    const rules = this.run.effectiveSurfaceRules();
     const shipAllows = thorough ? suitRefill(rules, s.crew[0]!.suitO2Pct, s.ship.oxygenPct).suitO2Pct >= 66 : s.ship.oxygenPct > 60;
     // Sin herramienta útil para lo que queda (se perdieron fuera), salir no sirve de nada.
     const m0 = s.crew[0]!;
-    const canMine = surface.deposits.some((d) => d.units > 0 && (m0.tools[getMaterial(d.materialId).tool] ?? 0) > 0);
+    const canMine = surface.deposits.some((d) => d.units > 0 && !this.ballast(d.materialId) && (m0.tools[getMaterial(d.materialId).tool] ?? 0) > 0);
     if (this.evasHere < maxEvas && worth && shipAllows && canMine) {
       if (stormSoon && this.careful) return; // espera a cubierto
       if (this.run.apply({ type: 'eva-exit' }).ok) {
@@ -407,14 +502,14 @@ class Explorer {
   }
 
   private o2Rate(surface: SurfaceState, includeStorm: boolean): number {
-    const rules = this.run.catalog.surface!.rules;
+    const rules = this.run.effectiveSurfaceRules();
     const world = getWorld(surface.worldId);
     const storm = includeStorm && world.storms && (surface.storm.active || surface.storm.warned) ? world.storms.o2DrainPctPerS * Math.max(surface.storm.intensity, world.storms.intensity.max) : 0;
     return rules.suit.o2DrainPctPerS + storm;
   }
 
   private outside(surface: SurfaceState, m: CrewMember): void {
-    const rules = this.run.catalog.surface!.rules;
+    const rules = this.run.effectiveSurfaceRules();
     const prudent = this.careful;
     // El codicioso solo cuenta con la tormenta cuando ya la tiene encima.
     const rate = this.o2Rate(surface, prudent || surface.storm.active);
@@ -474,6 +569,23 @@ class Explorer {
     this.goHome(room < 6 || !fits ? 'full' : 'o2');
   }
 
+  /** Con la política de la fase 3, ese material sería lastre ahora (no sale a por él ni lo cuenta como botín). */
+  private ballast(materialId: string): boolean {
+    return this.avoidDeadWeight && this.deadWeight(materialId);
+  }
+
+  /** Material que solo sería lastre ahora: sus suministros no caben y vale menos de 1 crédito/kg. */
+  private deadWeight(materialId: string): boolean {
+    const mat = getMaterial(materialId);
+    const ship = this.run.effectiveShip();
+    const s = this.s;
+    const usefulFuel = (mat.yields?.fuel ?? 0) > 0 && s.ship.fuel < ship.fuelCapacity - (mat.yields?.fuel ?? 0);
+    const usefulSpares = (mat.yields?.spares ?? 0) > 0 && s.ship.spares < ship.maxSpares;
+    const price = this.run.catalog.economy?.sellPrices[materialId] ?? 0;
+    // Con la bodega aún ligera se sube igual (se vende); el lastre solo pesa cuando ya hay carga.
+    return !usefulFuel && !usefulSpares && price / mat.massKg < 1 && cargoMassKg(s.ship.cargo, this.run.catalog) >= DEAD_WEIGHT_CARGO_KG;
+  }
+
   private toolSpeed(toolId: string): number {
     return this.run.catalog.surface!.tools.find((t) => t.id === toolId)!.speedMult;
   }
@@ -507,6 +619,9 @@ class Explorer {
       if (d.units <= 0 || surface.tools.some((t) => t.depositId === d.id)) continue;
       const mat = getMaterial(d.materialId);
       if ((m.tools[mat.tool] ?? 0) <= 0 || mat.massKg > room + 1e-9) continue;
+      // Fase 3: la carga pesa en cada salto. Lo que no rinde un suministro que haga falta y se vende a menos de
+      // 1 crédito/kg (la mena con los repuestos llenos) no compensa subirlo.
+      if (this.ballast(mat.id)) continue;
       const inZone = surface.zones.some((z) => !z.collapsed && Math.hypot(d.x - z.x, d.z - z.z) <= z.radiusM);
       if (!this.daring && inZone) continue;
       const go = Math.hypot(d.x - m.x, d.z - m.z) / BOT_WALK_MPS;
@@ -516,7 +631,7 @@ class Explorer {
       const back = Math.hypot(d.x, d.z) / BOT_WALK_MPS;
       const away = Math.max(0, back - homeDist / BOT_WALK_MPS);
       // Si la nave va justa de combustible, el hielo vale más; lo raro se revaloriza con la racha.
-      const lodeMult = lodeBonusApplies(surface.deposits, d, m) ? (this.run.catalog.surface!.rules.lodes?.completeMult ?? 1) : 1;
+      const lodeMult = lodeBonusApplies(surface.deposits, d, m) ? (this.run.effectiveSurfaceRules().lodes?.completeMult ?? 1) : 1;
       const worth = d.valuePerUnit * (mat.streak ? m.streakMult : 1) * lodeMult + (this.fuelNeed(m) > 0 ? (mat.yields?.fuel ?? 0) * 8 : 0);
       const units = Math.min(d.units, Math.floor(room / mat.massKg));
       const perKg = Math.sqrt(worth / mat.massKg);
@@ -528,7 +643,7 @@ class Explorer {
 
   /** De vuelta: pasa a retirar las herramientas si el O₂ da para el rodeo; si no, las abandona. */
   private headHome(surface: SurfaceState, m: CrewMember, rate: number): void {
-    const rules = this.run.catalog.surface!.rules;
+    const rules = this.run.effectiveSurfaceRules();
     const homeDist = Math.hypot(m.x, m.z);
     // Para desviarse a por una herramienta exige el mismo margen con el que decidió volver.
     const reserve = this.careful ? this.margin * 0.5 : this.margin;

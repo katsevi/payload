@@ -52,7 +52,7 @@
     "blackout": "Blackout! The reactor gives no power",
     "systemDown": "$t(systemName.{{system}}): out of service",
     "systemRepaired": "$t(systemName.{{system}}): repaired",
-    "service": "Station service: +{{fuel}} fuel · +{{hull}} hull · +{{spares}} spares",
+    "service": "Emergency aid: +{{fuel}} fuel · +{{hull}} hull · +{{spares}} spares",
     "cache": "Container recovered: +{{fuel}} fuel · +{{spares}} spares",
     "lowOxygen": "Oxygen low",
     "lowFuel": "Fuel low",
@@ -97,7 +97,15 @@
     "toolStopped": "Storm: $t(catalog.{{tool}}) stopped",
     "toolResumed": "$t(catalog.{{tool}}) running again",
     "toolLost": "Tools left outside and lost: {{count}}",
-    "pickedUp": "+{{units}} $t(catalog.{{material}}) · {{kg}}/{{capacity}} kg"
+    "pickedUp": "+{{units}} $t(catalog.{{material}}) · {{kg}}/{{capacity}} kg",
+    "sold": "Sold: {{units}} units · +{{credits}} credits",
+    "purchase": {
+      "fuel": "Refuelled: +{{amount}} fuel · −{{credits}} credits",
+      "hull": "Hull repaired: +{{amount}} · −{{credits}} credits",
+      "spares": "Spares: +{{amount}} · −{{credits}} credits"
+    },
+    "upgrade": "Installed: $t(catalog.{{upgrade}}) level {{level}} · −{{credits}} credits",
+    "sectorReward": "Sector contract paid: +{{credits}} credits"
   },
   "loss": {
     "hull": "The ship broke apart",
@@ -120,9 +128,9 @@
     "noDamage": "The system has no damage",
     "noSpares": "No spares left",
     "noWarning": "There is no impact to evade",
-    "noService": "There is no station service here",
-    "serviceUsed": "This station has already served you",
-    "serviceNotNeeded": "The ship needs no service",
+    "noService": "There is no station terminal here",
+    "serviceUsed": "You already used this station's emergency aid",
+    "serviceNotNeeded": "The ship needs no emergency aid",
     "invalid": "Invalid action",
     "onSurface": "Not possible while landed",
     "notLandable": "You can't land here",
@@ -148,6 +156,12 @@
     "toolPlaced": "That vein already has a tool",
     "noTool": "No $t(catalog.{{tool}}) left",
     "noToolHere": "Place a tool on that vein first",
-    "nothingReady": "Nothing extracted yet"
+    "nothingReady": "Nothing extracted yet",
+    "notAtStation": "Only while docked at a station",
+    "noCredits": "Not enough credits: {{credits}} needed",
+    "nothingToSell": "No cargo to sell",
+    "supplyFull": "Already at maximum",
+    "notOffered": "This station does not offer that upgrade",
+    "upgradeMaxed": "That upgrade is already maxed"
   }
 }

@@ -2,9 +2,10 @@
  * Qué puede hacer el jugador en el puesto que tiene al lado (lógica pura; la escena solo lee
  * teclas y posición). Tecla principal E (mantener o pulsar) y secundaria Q.
  */
-import { catalog as defaultCatalog, getSurfaceCatalog, suitRefill, SYSTEM_IDS, THROTTLE_IDS, type Catalog, type Incident, type IncidentKind, type LandingEstimate, type RunAction, type RunState, type SystemId, type TakeOffEstimate, type ThrottleId } from '@payload/shared';
+import { catalog as defaultCatalog, getNode, getNodeKind, hasShop, suitRefill, SYSTEM_IDS, THROTTLE_IDS, type Catalog, type Incident, type IncidentKind, type LandingEstimate, type RunAction, type RunState, type SystemId, type TakeOffEstimate, type ThrottleId } from '@payload/shared';
 import type { Prompt, PromptBadge } from '../state/ui';
 import { canPlayDodge } from './dodge';
+import { effectiveRulesOf } from './effective';
 import type { StationId } from './layout';
 
 /** Segundos manteniendo E en el timón para ejecutar la maniobra evasiva. */
@@ -26,7 +27,9 @@ export type Interaction =
   | { kind: 'takeoff'; fuel: number; enoughFuel: boolean; heavy: boolean; canJettison: boolean; lootUnits: number }
   | { kind: 'airlock'; open: boolean; refill?: { shipO2Cost: number; suitO2Pct: number } }
   | { kind: 'map' }
-  | { kind: 'power' };
+  | { kind: 'power' }
+  /** Atracada en una estación con terminal: la esclusa conecta con la estación (fase 3). */
+  | { kind: 'terminal'; credits: number };
 
 /** Estimaciones del motor que necesita el timón (las da `run.estimateLanding()` / `estimateTakeOff()`). */
 export interface HelmEstimates {
@@ -35,6 +38,13 @@ export interface HelmEstimates {
 }
 
 const isSystem = (id: StationId): id is SystemId => (SYSTEM_IDS as readonly string[]).includes(id);
+
+/** Atracada (no en tránsito ni en tierra) en un destino con terminal de estación. */
+export function atStationShop(state: RunState, cat: Catalog = defaultCatalog): boolean {
+  if (state.phase !== 'docked') return false;
+  const node = getNode(state.sector, state.locationId);
+  return !!node && hasShop(getNodeKind(node.kind, cat));
+}
 
 /** La avería más urgente de un sistema (fuego > fuga > corto). */
 export function incidentAt(state: RunState, systemId: SystemId): Incident | null {
@@ -71,11 +81,13 @@ export function interactionAt(station: StationId | null, state: RunState, est: H
   if (station === 'power') return { kind: 'power' };
   if (station === 'helm') return helmAt(state, est);
   if (station === 'airlock') {
+    // Atracada en una estación: la esclusa da al terminal (vender, comprar, mejorar).
+    if (atStationShop(state, cat)) return { kind: 'terminal', credits: state.credits };
     const aboard = state.crew.find((c) => c.alive && c.location === 'ship');
     const open = state.phase === 'surface' && !!aboard;
     if (!open || !aboard) return { kind: 'airlock', open };
     // Salir rellena el traje con O₂ de la nave: el coste lo calcula el motor (`suitRefill`).
-    return { kind: 'airlock', open, refill: suitRefill(getSurfaceCatalog(cat).rules, aboard.suitO2Pct, state.ship.oxygenPct) };
+    return { kind: 'airlock', open, refill: suitRefill(effectiveRulesOf(state, cat), aboard.suitO2Pct, state.ship.oxygenPct) };
   }
   if (!isSystem(station)) return null;
   const incident = incidentAt(state, station);
@@ -181,6 +193,8 @@ export function promptFor(interaction: Interaction | null, state: RunState, char
       return { key: 'prompt.map', hold: false, progress: 0 };
     case 'power':
       return { key: 'prompt.power', hold: false, progress: 0 };
+    case 'terminal':
+      return { key: 'prompt.terminal', hold: false, progress: 0, badges: [{ key: 'prompt.credits', params: { credits: interaction.credits } }] };
   }
 }
 

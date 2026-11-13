@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { getShip } from '@payload/shared';
-import { useGame } from '../game/runStore';
+import { effectiveShipOf } from '../game/effective';
+import { getRun, useGame } from '../game/runStore';
 import { useSettings } from '../state/settings';
 import { audio } from './audioEngine';
 import { cue, resetCueMemory } from './cues';
@@ -10,7 +10,7 @@ import { dangerLevel, musicMixFor, type MusicContext } from './musicLogic';
 export function currentMusicContext(): MusicContext {
   const { screen, hud } = useGame.getState();
   if (screen === 'menu' || !hud) return { screen: 'menu' };
-  const ship = getShip(hud.ship.shipId);
+  const ship = effectiveShipOf(hud, getRun()?.catalog);
   const me = hud.crew.find((c) => c.alive) ?? hud.crew[0];
   const outside = me?.location === 'eva';
   const storm = hud.surface ? (hud.surface.storm.active ? 1 : hud.surface.storm.warned ? 0.4 : 0) : 0;

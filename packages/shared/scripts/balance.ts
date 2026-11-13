@@ -49,10 +49,18 @@ function play(options: BotOptions) {
   let incidents = 0;
   let impacts = 0;
   let grazed = 0;
+  // Fase 3: economía.
+  let earned = 0;
+  let spent = 0;
+  let upgradesBought = 0;
+  let credits = 0;
+  let emergencies = 0;
+  const upgradeCount: Record<string, number> = {};
+  const sets = new Set<string>();
   const surf: SurfaceStats = { evas: 0, returned: 0, evaS: 0, evaSAll: 0, evaValue: 0, landings: 0, hard: 0, stored: 0, value: 0, crewDeaths: 0, score: 0, landed: 0, landValue: 0, takeOffs: 0, o2AtTakeOff: 0, surfaceS: 0, landIncidents: 0, idleS: 0 };
   const started = performance.now();
   for (let seed = 1; seed <= runs; seed++) {
-    const { state, evas, landings } = playRun(seed, { ...options, sectors });
+    const { state, evas, landings, events } = playRun(seed, { ...options, sectors });
     for (const l of landings) {
       surf.landed++;
       surf.landValue += l.value;
@@ -87,8 +95,16 @@ function play(options: BotOptions) {
     incidents += state.stats.incidentsFixed;
     impacts += state.stats.impactsTaken;
     grazed += state.stats.impactsGrazed ?? 0;
+    earned += state.stats.creditsEarned ?? 0;
+    spent += state.stats.creditsSpent ?? 0;
+    upgradesBought += state.stats.upgradesBought ?? 0;
+    credits += state.credits;
+    for (const [id, lvl] of Object.entries(state.upgrades)) upgradeCount[id] = (upgradeCount[id] ?? 0) + lvl;
+    sets.add(Object.entries(state.upgrades).sort().map(([id, l]) => `${id}${l}`).join(','));
+    emergencies += events.filter((e) => e.type === 'service').length;
   }
-  return { reasons, cleared, time, hull, fuel, incidents, impacts, grazed, surf, ms: performance.now() - started };
+  const eco = { earned, spent, upgradesBought, credits, emergencies, upgradeCount, distinctSets: sets.size };
+  return { reasons, cleared, time, hull, fuel, incidents, impacts, grazed, surf, eco, ms: performance.now() - started };
 }
 
 for (const [skill, walkS, explore, shipSkill] of profiles) {
@@ -99,6 +115,12 @@ for (const [skill, walkS, explore, shipSkill] of profiles) {
   console.log(
     `medias: ${Math.round(r.time / runs)} s · casco ${Math.round(r.hull / runs)} · combustible ${Math.round(r.fuel / runs)} · ` +
       `averías resueltas ${(r.incidents / runs).toFixed(1)} · impactos ${(r.impacts / runs).toFixed(1)}${shipSkill ? ` · roces ${(r.grazed / runs).toFixed(1)}` : ''} · puntuación ${Math.round(r.surf.score / runs)}`,
+  );
+  const e = r.eco;
+  const top = Object.entries(e.upgradeCount).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([id, n]) => `${id} ${(n / runs).toFixed(2)}`).join(', ');
+  console.log(
+    `economía: ganados ${Math.round(e.earned / runs)} · gastados ${Math.round(e.spent / runs)} · al final ${Math.round(e.credits / runs)} créditos · ` +
+      `${(e.upgradesBought / runs).toFixed(1)} mejoras por partida (${e.distinctSets} combinaciones distintas${top ? `; ${top}` : ''}) · ayudas de emergencia ${(e.emergencies / runs).toFixed(1)}`,
   );
   const s = r.surf;
   if (explore) {
@@ -122,10 +144,10 @@ function landingLine(s: SurfaceStats): string {
 }
 
 // «Una veta más»: el explorador prudente con un margen fijo de O₂ para volver.
-console.log(`\n== margen de O₂ para volver → valor y riesgo (crew + prudent, ${runs} partidas, ${sectors} sectores) ==`);
+console.log(`\n== margen de O₂ para volver → valor y riesgo (crew + prudent sin política de la fase 3, ${runs} partidas, ${sectors} sectores) ==`);
 console.log('margen | valor/salida | vuelven | muertes/partida | puntos de materiales | puntuación | valor/aterrizaje | O₂ al despegar');
 for (const margin of [25, 15, 8, 3]) {
-  const r = play({ skill: 'crew', walkS: 3.5, explore: 'prudent', returnMarginPct: margin });
+  const r = play({ skill: 'crew', walkS: 3.5, explore: 'prudent', returnMarginPct: margin, economyPolicy: false });
   const s = r.surf;
   console.log(
     `${String(margin).padStart(4)} % | ${String(Math.round(s.evaValue / Math.max(1, s.evas))).padStart(12)} | ${String(pct(s.returned, s.evas)).padStart(5)} % | ` +

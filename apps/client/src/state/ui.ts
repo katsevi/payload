@@ -1,7 +1,10 @@
 import { create } from 'zustand';
 
-/** Panel modal abierto. `map`, `power` y `help` no detienen la partida; `pause` sí. */
-export type Overlay = 'settings' | 'credits' | 'map' | 'power' | 'help' | 'pause' | null;
+/**
+ * Panel modal abierto. `map`, `power`, `terminal` y `help` no detienen la partida (como el mapa: atracada
+ * el tiempo sigue, igual que las averías); `pause`, `settings` y `credits` sí.
+ */
+export type Overlay = 'settings' | 'credits' | 'map' | 'power' | 'terminal' | 'help' | 'pause' | null;
 export type ViewMode = 'first' | 'third';
 
 /** Acción disponible junto al jugador (la calcula la escena de la nave). */

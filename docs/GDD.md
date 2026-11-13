@@ -32,7 +32,7 @@ Tono: party game tenso, no simulador. Se entiende en un minuto y se pierde por d
 | Planificar | Mapa estelar: destino, régimen de motores, repostar | F1 |
 | Viajar | Mantener viva la nave en el salto: impactos, fuego, cortos, fugas | F1 |
 | Aterrizar y explorar | Descenso frenando a mano, salir con jetpack y oxígeno limitado, recoger materiales y volver | F2 |
-| Regresar y mejorar | Vender, reparar y comprar mejoras en estaciones | F3 |
+| Regresar y mejorar | Vender, reparar y comprar mejoras en estaciones | F3 (existe) |
 
 En la fase 1 el ciclo era planificar → viajar → llegar (estación o contenedor a la deriva) hasta alcanzar
 el **portal de salto** del sector; cruzarlo lleva a un sector más largo y peligroso con la misma nave.
@@ -43,7 +43,7 @@ Interior caminable en 1ª o 3ª persona. La proa mira a −Z. Distribución en `
 
 | Zona | Puestos |
 | --- | --- |
-| Puente | **Timón** (régimen de motores, maniobra evasiva) · **Mapa estelar** (ruta, servicio de estación) · **Navegación** (sensores) |
+| Puente | **Timón** (régimen de motores, maniobra evasiva) · **Mapa estelar** (ruta, terminal de estación) · **Navegación** (sensores) |
 | Cubierta media | **Soporte vital** · **Escudos** |
 | Sala de máquinas | **Panel de energía** · **Reactor** · **Motores** |
 
@@ -54,7 +54,7 @@ al timón, pero no para ir, volver y además apagar un fuego. Un test (`game.tes
 
 | Recurso | Baja por | Sube por | A cero |
 | --- | --- | --- | --- |
-| Casco | Impactos, fuego | Servicio de estación | Nave destruida |
+| Casco | Impactos, fuego | Terminal de estación (casco de pago) y ayuda de emergencia | Nave destruida |
 | Oxígeno | Tripulación, fugas, fuego | Soporte vital en línea | Tripulación muerta |
 | Combustible | Saltos, maniobras evasivas | Estaciones, contenedores | Nave varada |
 | Energía | (demanda de los sistemas encendidos) | Salud del reactor | Apagón: nada funciona |
@@ -107,7 +107,7 @@ una ruta completable a régimen económico.
 
 | Destino | Peligro al acercarse | Qué ofrece |
 | --- | --- | --- |
-| Estación | Bajo | Servicio una vez: depósito lleno, +40 de casco, +2 repuestos |
+| Estación | Bajo | Terminal de pago [F3]: vender carga, comprar suministros y mejoras; ayuda de emergencia gratuita una vez (75 % del depósito, 50 % del casco, 1 repuesto) |
 | Planeta / Luna | Medio | A veces un contenedor. Superficie explorable [F2] (una vez por destino) |
 | Campo de asteroides | Impactos (alto) | Contenedor casi seguro y grande. Superficie explorable [F2] |
 | Nebulosa | Cortos y fuegos | Contenedor con mucho combustible |
@@ -131,8 +131,8 @@ Cada sector suma un 40 % de peligro y, cada dos, una columna más.
 | **[F2]** Recoger materiales comunes | Combustible y repuestos al guardarlos | Peso (menos margen al despegar) y tiempo fuera |
 | **[F2]** Salir | Botín | Oxígeno de la nave para rellenar el traje; la nave sigue averiándose |
 | **[F2]** Frenar tarde en el descenso | Combustible | Casco, sistemas y posibles fugas o cortos al tocar |
-| **[F3]** Carga a bordo | Dinero | Masa: más combustible por salto |
-| **[F3]** Motores mejores | Alcance | Consumo eléctrico y precio |
+| Carga a bordo [F3] | Dinero | Masa: más combustible por salto |
+| Mejoras de nave [F3] | Alcance, escudos, margen | Consumo eléctrico, masa y precio |
 
 ## 8. Roles de la tripulación
 
@@ -217,9 +217,15 @@ Desde un destino atracado que sea planeta, luna o campo de asteroides, el piloto
 
 ### Fases siguientes (diseño previsto)
 
-- **[F3] Economía.** Las estaciones compran minerales y muestras y venden combustible, reparaciones y
-  mejoras (depósitos, escudos, motores de salto, trajes, tanques de O₂, jetpacks). El servicio gratuito
-  de estación de la fase 1 desaparece. La carga pesa.
+- **[F3] Economía (existe; cifras en `packages/shared/catalog/economia.json` y `mejoras.json`, decisiones en ADR 0014).**
+  Créditos iniciales y un contrato por sector superado. En una estación con terminal se vende la bodega a precio fijo
+  (hielo y mena valen poco, cristales y muestras más; sube con el sector), se compran suministros (combustible, casco,
+  repuestos) y se eligen mejoras de una oferta de 5 por estación, distinta según la semilla (depósito, escudos,
+  reactor, motor de salto, casco, traje, jetpack, mochila, soporte vital, estabilizadores, tanque de O₂). Cada mejora
+  tiene contrapartida (precio, masa, consumo eléctrico u O₂) y el terminal avisa si hará sobrecargar el reactor. La
+  carga y las mejoras pesan: cada salto gasta más combustible. El servicio gratuito de la fase 1 se reduce a una ayuda
+  de emergencia, una vez por estación. Los créditos no puntúan. Sin mercado dinámico, sin cambio visual de la nave y
+  sin progreso entre partidas.
 - **[F4] Cooperativo 1-4.** Servidor autoritativo que corre el mismo motor (ADR 0009), roles, voz o
   pings, y dificultad escalada con el número de jugadores.
 - **[F5] Pulido.** Rankings, mando y táctil, despliegue, pruebas E2E.

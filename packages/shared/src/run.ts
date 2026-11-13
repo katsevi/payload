@@ -16,15 +16,19 @@
  *   repuestos           → qué sistema reparar ahora y cuál aguanta dañado
  */
 import { catalog as defaultCatalog, getMaterial, getNodeKind, getShip, getSurfaceCatalog, getThrottle, getWorld } from './catalog';
+import {
+  affordableUnits, cargoFuelMult, cargoMassKg, cruisePowerMarginKw, effectiveShip, effectiveSurfaceRules, getEconomy, getUpgrades, hasShop, priceOf, sectorPriceMults,
+  sellUnitPrice, stationOffer, upgradePrice, upgradesMassKg,
+} from './economy';
 import { generateSector, getNode, nodeDistanceLy } from './galaxy';
 import { createRng, deriveSeed, type Rng } from './rng';
 import { descentStep, generateSurface, getNodeWorld, landingSeed, lodeBonusApplies, simulateDescent, streakMultiplier, suitRefill, takeOffFuel } from './surface';
 import {
-  HAZARD_KINDS, INCIDENT_KINDS, SYSTEM_IDS, THROTTLE_IDS,
+  HAZARD_KINDS, INCIDENT_KINDS, SUPPLY_IDS, SYSTEM_IDS, THROTTLE_IDS,
   type ActionResult, type Catalog, type CrewMember, type EventTone, type HazardKind, type Incident, type IncidentKind, type JumpEstimate,
   type LandingEstimate, type MessageRef, type PlannedHazard, type PoweredSystemId, type Run, type RunAction, type RunEvent, type RunEventType,
   type RunOptions, type RunState, type RunStats, type ShipDef, type ShipState, type SurfaceState, type SystemId, type SystemState,
-  type HazardRules, type PlacedTool, type TakeOffEstimate, type ThrottleId,
+  type HazardRules, type PlacedTool, type StationQuote, type SupplyId, type TakeOffEstimate, type ThrottleId,
 } from './types';
 
 /** Paso fijo de la simulación (10 Hz). */
@@ -114,12 +118,17 @@ export function cruiseSpeedLyPerS(ship: ShipDef, throttle: ThrottleId, engineHea
 
 export function createRun(options: RunOptions): Run {
   const cat: Catalog = options.catalog ?? defaultCatalog;
-  const ship = getShip(options.shipId, cat);
+  const baseShip = getShip(options.shipId, cat);
+  const economy = getEconomy(cat);
+  const upgrades: Record<string, number> = {};
+  /** La nave efectiva (con mejoras): la que usa TODO el motor. Se recalcula al comprar una mejora. */
+  let ship = effectiveShip(baseShip, upgrades, cat);
   const rules = cat.hazards;
   const seed = Math.trunc(options.seed) >>> 0;
   const wearRng = createRng(deriveSeed(seed, WEAR_SALT));
   const surfaceCat = getSurfaceCatalog(cat);
-  const srules = surfaceCat.rules;
+  /** Reglas de superficie efectivas (traje, jetpack y caídas con mejoras). */
+  let srules = effectiveSurfaceRules(surfaceCat.rules, upgrades, cat);
   const crewSize = clamp(Math.trunc(options.crewSize ?? 1), 1, MAX_CREW);
 
   const firstSector = generateSector(seed, 1, cat, ship.id);
@@ -136,6 +145,7 @@ export function createRun(options: RunOptions): Run {
     overloaded: false,
     speedLyPerS: 0,
     cargo: {},
+    cargoKg: 0,
   };
   const state: RunState = {
     seed,
@@ -155,8 +165,11 @@ export function createRun(options: RunOptions): Run {
     stats: {
       timeS: 0, jumps: 0, distanceLy: 0, sectorsCleared: 0, incidentsFixed: 0, impactsTaken: 0, impactsEvaded: 0, kitsUsed: 0,
       landings: 0, hardLandings: 0, evas: 0, evaTimeS: 0, materialsCollected: 0, materialsStored: 0, materialsValue: 0, crewLost: 0,
+      creditsEarned: 0, creditsSpent: 0, unitsSold: 0, upgradesBought: 0,
     },
     score: 0,
+    credits: economy.startCredits,
+    upgrades,
   };
 
   let accumulatorS = 0;
@@ -193,6 +206,7 @@ export function createRun(options: RunOptions): Run {
       else demand += ship.systemDrawKw[idSys];
     }
     sys.reactor.online = reactorUp;
+    shipState.cargoKg = jumpMassKg();
     shipState.powerSupplyKw = supply;
     shipState.powerDemandKw = demand;
     shipState.overloaded = supply > 0 && demand > supply + 1e-9;
@@ -318,9 +332,102 @@ export function createRun(options: RunOptions): Run {
     }
   }
 
-  function canUseService(): boolean {
+  // ── Economía (fase 3) ───────────────────────────────────────────────────────────────────────
+  /** Masa a bordo que encarece los saltos: bodega + mejoras. */
+  function jumpMassKg(): number {
+    return cargoMassKg(shipState.cargo, cat) + upgradesMassKg(upgrades, cat);
+  }
+
+  /** Atracada en una estación con terminal (venta, tienda, emergencia y mejoras). */
+  function atShop(): boolean {
+    if (state.phase !== 'docked') return false;
     const here = getNode(state.sector, state.locationId);
-    return !!here && !!getNodeKind(here.kind, cat).service && !state.servicedIds.includes(here.id);
+    return !!here && hasShop(getNodeKind(here.kind, cat));
+  }
+
+  /** Lo que daría ahora la ayuda de emergencia (null si aquí no hay o ya se usó). */
+  function emergencyGives(): { fuel: number; hull: number; spares: number } | null {
+    if (!atShop() || state.servicedIds.includes(state.locationId)) return null;
+    const e = economy.emergency;
+    return {
+      fuel: Math.max(0, (ship.fuelCapacity * e.fuelPct) / 100 - shipState.fuel),
+      hull: Math.max(0, (ship.hullMax * e.hullPct) / 100 - shipState.hull),
+      spares: Math.max(0, Math.min(ship.maxSpares, e.minSpares) - shipState.spares),
+    };
+  }
+
+  function supplyUnitPrice(supply: SupplyId): number {
+    return economy.supplyPrices[supply] * sectorPriceMults(economy, state.sector.index).buy;
+  }
+
+  /** Créditos que daría vender toda la bodega aquí. */
+  function cargoSaleValue(): number {
+    let total = 0;
+    for (const [materialId, n] of Object.entries(shipState.cargo)) total += sellUnitPrice(economy, materialId, state.sector.index) * n;
+    return total;
+  }
+
+  function earn(credits: number): void {
+    state.credits += credits;
+    state.stats.creditsEarned = (state.stats.creditsEarned ?? 0) + credits;
+  }
+
+  function spend(credits: number): void {
+    state.credits -= credits;
+    state.stats.creditsSpent = (state.stats.creditsSpent ?? 0) + credits;
+  }
+
+  /** Lo que falta para el máximo de un suministro (repuestos: enteros). */
+  function supplyMissing(supply: SupplyId): number {
+    if (supply === 'fuel') return Math.max(0, ship.fuelCapacity - shipState.fuel);
+    if (supply === 'hull') return Math.max(0, ship.hullMax - shipState.hull);
+    return Math.max(0, Math.floor(ship.maxSpares - shipState.spares));
+  }
+
+  function stationQuote(): StationQuote | null {
+    if (!atShop()) return null;
+    const idx = state.sector.index;
+    const mults = sectorPriceMults(economy, idx);
+    const sell = Object.entries(shipState.cargo)
+      .filter(([, n]) => n > 0)
+      .map(([materialId, units]) => {
+        const unitPrice = sellUnitPrice(economy, materialId, idx);
+        return { materialId, units, unitPrice, total: unitPrice * units };
+      })
+      .filter((x) => x.unitPrice > 0);
+    const supplies = {} as StationQuote['supplies'];
+    for (const k of SUPPLY_IDS) {
+      const unitPrice = supplyUnitPrice(k);
+      const missing = supplyMissing(k);
+      supplies[k] = { unitPrice, missing, affordable: Math.min(missing, affordableUnits(state.credits, unitPrice)), fillCost: priceOf(missing, unitPrice) };
+    }
+    const em = emergencyGives();
+    const spares = Math.floor(em?.spares ?? 0);
+    return {
+      nodeId: state.locationId,
+      credits: state.credits,
+      sellMult: mults.sell,
+      buyMult: mults.buy,
+      sell,
+      sellTotal: sell.reduce((sum, x) => sum + x.total, 0),
+      supplies,
+      emergency: { available: !!em && (em.fuel >= 1 || em.hull >= 1 || spares >= 1), fuel: em?.fuel ?? 0, hull: em?.hull ?? 0, spares },
+      upgrades: stationOffer(seed, state.sector, state.locationId, cat).map((upgradeId) => {
+        const def = getUpgrades(cat).find((u) => u.id === upgradeId)!;
+        const level = upgrades[upgradeId] ?? 0;
+        const next = level < def.levels.length ? level + 1 : null;
+        const price = next === null ? null : upgradePrice(def, next, economy, idx);
+        // Efecto eléctrico del siguiente nivel: margen a crucero con todo encendido, antes y después.
+        const after = next === null ? ship : effectiveShip(baseShip, { ...upgrades, [upgradeId]: next }, cat);
+        const marginAfter = cruisePowerMarginKw(after);
+        return {
+          upgradeId, level, maxLevel: def.levels.length, nextLevel: next, price,
+          massKg: next === null ? 0 : def.levels[next - 1]!.massKg, affordable: price !== null && price <= state.credits,
+          powerMarginDeltaKw: marginAfter - cruisePowerMarginKw(ship),
+          overloadsAtCruise: marginAfter < -1e-9,
+        };
+      }),
+    };
   }
 
   /** Sin forma de seguir: sin motores/reactor ni repuestos, o sin combustible para ningún salto. */
@@ -328,11 +435,20 @@ export function createRun(options: RunOptions): Run {
     const dead = (sys.engines.healthPct <= 0 || sys.reactor.healthPct <= 0) && shipState.spares <= 0;
     if (state.phase === 'transit') return dead || shipState.fuel <= 0;
     if (state.phase === 'surface') return isStrandedOnSurface(dead);
-    if (state.phase !== 'docked' || canUseService()) return false;
-    if (dead) return true;
+    if (state.phase !== 'docked') return false;
+    // En una estación cuenta lo que se puede conseguir: emergencia, créditos y la venta de la bodega.
+    const em = emergencyGives();
+    const shop = atShop();
+    const purse = shop ? state.credits + cargoSaleValue() : 0;
+    if (dead && !(em && em.spares >= 1) && !(shop && purse >= priceOf(1, supplyUnitPrice('spares')))) return true;
     const here = getNode(state.sector, state.locationId)!;
-    const health = shipState.spares > 0 ? 100 : sys.engines.healthPct;
-    return here.links.every((idNext) => nodeDistanceLy(here, getNode(state.sector, idNext)!) * fuelPerLy(ship, 'eco', health) > shipState.fuel);
+    const health = shipState.spares > 0 || dead ? 100 : sys.engines.healthPct;
+    // Vendiendo la bodega solo queda la masa de las mejoras.
+    const mult = cargoFuelMult(economy, shop ? upgradesMassKg(upgrades, cat) : jumpMassKg());
+    const afterAid = shipState.fuel + (em?.fuel ?? 0);
+    // Lo comprable no pasa de la capacidad del depósito.
+    const reachable = shop ? Math.min(ship.fuelCapacity, afterAid + affordableUnits(purse, supplyUnitPrice('fuel'))) : afterAid;
+    return here.links.every((idNext) => nodeDistanceLy(here, getNode(state.sector, idNext)!) * fuelPerLy(ship, 'eco', health) * mult > reachable + 1e-9);
   }
 
   function arrive(): void {
@@ -357,6 +473,12 @@ export function createRun(options: RunOptions): Run {
       state.phase = 'won';
       state.stats.sectorsCleared++;
       emit('sector-cleared', 'ok', 'event.sectorCleared', { sector: state.sector.index });
+      // Contrato del sector: pago fijo × multiplicador de venta del sector.
+      const reward = Math.round(economy.sectorRewardCredits * sectorPriceMults(economy, state.sector.index).sell);
+      if (reward > 0) {
+        earn(reward);
+        emit('reward', 'ok', 'event.sectorReward', { credits: reward });
+      }
     }
   }
 
@@ -422,7 +544,7 @@ export function createRun(options: RunOptions): Run {
       const remaining = transit.distanceLy - transit.traveledLy;
       const stepLy = Math.min(remaining, shipState.speedLyPerS * dt);
       if (stepLy > 0) {
-        shipState.fuel = Math.max(0, shipState.fuel - stepLy * fuelPerLy(ship, shipState.throttle, sys.engines.healthPct));
+        shipState.fuel = Math.max(0, shipState.fuel - stepLy * fuelPerLy(ship, shipState.throttle, sys.engines.healthPct) * cargoFuelMult(economy, shipState.cargoKg ?? 0));
         transit.traveledLy += stepLy;
         state.stats.distanceLy += stepLy;
       }
@@ -998,6 +1120,71 @@ export function createRun(options: RunOptions): Run {
     }
   }
 
+  // ── Terminal de estación (fase 3) ───────────────────────────────────────────────────────────
+  function actShop(action: Extract<RunAction, { type: 'sell' | 'buy-supply' | 'buy-upgrade' }>): ActionResult {
+    const idx = state.sector.index;
+    if (action.type === 'sell') {
+      const ids = action.materialId === undefined ? Object.keys(shipState.cargo) : [String(action.materialId)];
+      let units = 0;
+      let credits = 0;
+      for (const materialId of ids) {
+        const have = shipState.cargo[materialId] ?? 0;
+        const unitPrice = sellUnitPrice(economy, materialId, idx);
+        if (have <= 0 || unitPrice <= 0) continue;
+        const wanted = action.materialId !== undefined && action.units !== undefined ? Math.trunc(Number(action.units) || 0) : have;
+        const n = clamp(wanted, 0, have);
+        if (n <= 0) continue;
+        if (n === have) delete shipState.cargo[materialId];
+        else shipState.cargo[materialId] = have - n;
+        units += n;
+        credits += n * unitPrice;
+      }
+      if (units <= 0) return reject('reject.nothingToSell');
+      // Lo vendido ya puntuó al guardarlo en la bodega (stats.materialsValue): vender no cambia la puntuación.
+      earn(credits);
+      state.stats.unitsSold = (state.stats.unitsSold ?? 0) + units;
+      emit('sale', 'ok', 'event.sold', { units, credits });
+      return OK;
+    }
+    if (action.type === 'buy-supply') {
+      const supply = action.supply;
+      if (!SUPPLY_IDS.includes(supply)) return reject('reject.invalid');
+      const unitPrice = supplyUnitPrice(supply);
+      const room = supplyMissing(supply);
+      if (room < (supply === 'spares' ? 1 : 0.5)) return reject('reject.supplyFull');
+      const wanted = action.amount === undefined ? room : Math.max(0, Number(action.amount) || 0);
+      let amount = Math.min(room, wanted, affordableUnits(state.credits, unitPrice));
+      // Por unidades enteras, salvo para rematar lo que falta de combustible o casco.
+      if (supply === 'spares' || amount < room) amount = Math.floor(amount);
+      if (amount <= 0) return reject(wanted <= 0 ? 'reject.invalid' : 'reject.noCredits', wanted <= 0 ? undefined : { credits: priceOf(Math.min(1, room), unitPrice) });
+      const cost = priceOf(amount, unitPrice);
+      spend(cost);
+      if (supply === 'fuel') shipState.fuel = Math.min(ship.fuelCapacity, shipState.fuel + amount);
+      else if (supply === 'hull') shipState.hull = Math.min(ship.hullMax, shipState.hull + amount);
+      else shipState.spares += amount;
+      emit('purchase', 'ok', `event.purchase.${supply}`, { amount: Math.round(amount), credits: cost }, { subtype: supply });
+      return OK;
+    }
+    const def = getUpgrades(cat).find((u) => u.id === action.upgradeId);
+    if (!def) return reject('reject.invalid');
+    if (!stationOffer(seed, state.sector, state.locationId, cat).includes(def.id)) return reject('reject.notOffered');
+    const level = upgrades[def.id] ?? 0;
+    if (level >= def.levels.length) return reject('reject.upgradeMaxed');
+    const price = upgradePrice(def, level + 1, economy, idx)!;
+    if (price > state.credits) return reject('reject.noCredits', { credits: price });
+    spend(price);
+    upgrades[def.id] = level + 1;
+    state.stats.upgradesBought = (state.stats.upgradesBought ?? 0) + 1;
+    ship = effectiveShip(baseShip, upgrades, cat);
+    srules = effectiveSurfaceRules(surfaceCat.rules, upgrades, cat);
+    // Un depósito o casco mayor no se llena solo; si alguna mejora los redujera, se recorta lo que sobra.
+    shipState.fuel = Math.min(shipState.fuel, ship.fuelCapacity);
+    shipState.hull = Math.min(shipState.hull, ship.hullMax);
+    shipState.spares = Math.min(shipState.spares, ship.maxSpares);
+    emit('upgrade', 'ok', 'event.upgrade', { upgrade: def.id, level: level + 1, credits: price });
+    return OK;
+  }
+
   // ── Acciones ────────────────────────────────────────────────────────────────────────────────
   function estimateJump(toId: string): JumpEstimate | null {
     const here = getNode(state.sector, state.locationId);
@@ -1005,9 +1192,11 @@ export function createRun(options: RunOptions): Run {
     if (!here || !to || !here.links.includes(toId)) return null;
     const distanceLy = nodeDistanceLy(here, to);
     const health = sys.engines.healthPct;
+    const cargoKg = jumpMassKg();
+    const mult = cargoFuelMult(economy, cargoKg);
     const byThrottle = {} as JumpEstimate['byThrottle'];
     for (const t of THROTTLE_IDS) {
-      const fuel = distanceLy * fuelPerLy(ship, t, health);
+      const fuel = distanceLy * fuelPerLy(ship, t, health) * mult;
       const speed = cruiseSpeedLyPerS(ship, t, health);
       byThrottle[t] = { fuel, timeS: speed > 0 ? distanceLy / speed : -1, enoughFuel: fuel <= shipState.fuel };
     }
@@ -1019,7 +1208,7 @@ export function createRun(options: RunOptions): Run {
       expectedHazards[k] = perLy[k] * state.sector.hazardMult * span;
       risk += expectedHazards[k] * RISK_WEIGHT[k];
     }
-    return { toId, distanceLy, byThrottle, expectedHazards, riskLevel: RISK_THRESHOLDS.filter((t) => risk >= t).length };
+    return { toId, distanceLy, cargoKg, cargoFuelMult: mult, byThrottle, expectedHazards, riskLevel: RISK_THRESHOLDS.filter((t) => risk >= t).length };
   }
 
   function act(action: RunAction): ActionResult {
@@ -1124,23 +1313,28 @@ export function createRun(options: RunOptions): Run {
         return OK;
       }
       case 'service': {
+        // Fase 3: ayuda de emergencia gratuita (sustituye al servicio gratuito; ver ADR 0014).
         if (onSurface) return reject('reject.onSurface');
         if (state.phase !== 'docked') return reject('reject.inTransit');
-        const here = getNode(state.sector, state.locationId)!;
-        const service = getNodeKind(here.kind, cat).service;
-        if (!service) return reject('reject.noService');
-        if (state.servicedIds.includes(here.id)) return reject('reject.serviceUsed');
-        const fuel = service.refuel ? ship.fuelCapacity - shipState.fuel : 0;
-        const hull = Math.min(service.hullRepair, ship.hullMax - shipState.hull);
-        const spares = Math.min(service.spares, ship.maxSpares - shipState.spares);
-        if (fuel < 1 && hull < 1 && spares < 1) return reject('reject.serviceNotNeeded');
-        shipState.fuel += fuel;
-        shipState.hull += hull;
+        if (!atShop()) return reject('reject.noService');
+        const gives = emergencyGives();
+        if (!gives) return reject('reject.serviceUsed');
+        const spares = Math.floor(gives.spares);
+        if (gives.fuel < 1 && gives.hull < 1 && spares < 1) return reject('reject.serviceNotNeeded');
+        shipState.fuel += gives.fuel;
+        shipState.hull += gives.hull;
         shipState.spares += spares;
-        state.servicedIds.push(here.id);
-        emit('service', 'ok', 'event.service', { fuel: Math.round(fuel), hull: Math.round(hull), spares });
+        state.servicedIds.push(state.locationId);
+        emit('service', 'ok', 'event.service', { fuel: Math.round(gives.fuel), hull: Math.round(gives.hull), spares });
         return OK;
       }
+      case 'sell':
+      case 'buy-supply':
+      case 'buy-upgrade':
+        if (onSurface) return reject('reject.onSurface');
+        if (state.phase !== 'docked') return reject('reject.inTransit');
+        if (!atShop()) return reject('reject.notAtStation');
+        return actShop(action);
       default:
         return reject('reject.invalid');
     }
@@ -1177,6 +1371,14 @@ export function createRun(options: RunOptions): Run {
     estimateJump,
     estimateLanding,
     estimateTakeOff,
+    stationQuote,
+    // Objetos vivos del motor (solo lectura para quien consume, como `state`); cambian al comprar una mejora.
+    effectiveShip() {
+      return ship;
+    },
+    effectiveSurfaceRules() {
+      return srules;
+    },
     snapshot() {
       return JSON.parse(JSON.stringify(state)) as RunState;
     },

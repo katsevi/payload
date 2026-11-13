@@ -14,11 +14,7 @@
         "fire": 0,
         "leak": 0.002
       },
-      "service": {
-        "refuel": true,
-        "hullRepair": 40,
-        "spares": 2
-      }
+      "shop": true
     },
     {
       "id": "planet",

@@ -103,7 +103,10 @@
     "o2Fetch": "Oxygen tight: fetch your tools now",
     "o2Leave": "Oxygen tight: leave the tools and go back",
     "toHelm": "Impact: to the helm",
-    "lode": "Lode: {{done}} of {{total}} veins"
+    "lode": "Lode: {{done}} of {{total}} veins",
+    "credits": "Credits",
+    "creditsValue": "{{credits}} cr",
+    "upgrades": "Installed upgrades"
   },
   "prompt": {
     "hold": "Hold",
@@ -152,7 +155,9 @@
     "retrieveTool": "Retrieve the tool",
     "toolsOut": "outside: {{n}} tools",
     "readyOut": "{{n}} pieces not collected",
-    "evadeLate": "Half a manoeuvre · too late to fly it"
+    "evadeLate": "Half a manoeuvre · too late to fly it",
+    "terminal": "Open the station terminal",
+    "credits": "{{credits}} cr"
   },
   "map": {
     "title": "Star map · sector {{sector}}",
@@ -177,9 +182,6 @@
     "cache": "Drifting container",
     "visited": "Visited",
     "landable": "Explorable surface",
-    "service": "Station service",
-    "serviceHint": "Refuels, repairs the hull and gives spares. Once per station.",
-    "serviceUsed": "Service already used",
     "sensorsDown": "No sensors: no risk or container data",
     "throttle": "Engine throttle",
     "throttleHint": {
@@ -187,7 +189,9 @@
       "cruise": "Balanced.",
       "burn": "Fast and costly. Overloads the reactor unless you switch something off."
     },
-    "landed": "Already landed here"
+    "landed": "Already landed here",
+    "terminal": "Station terminal",
+    "cargoFuel": "+{{pct}} % from cargo"
   },
   "power": {
     "title": "Power panel",
@@ -226,7 +230,10 @@
     "next": "Jump to sector {{sector}}",
     "nextHint": "The ship carries on as it is: damage and fuel do not reset.",
     "landings": "Landings",
-    "materials": "Materials stored"
+    "materials": "Materials stored",
+    "creditsEarned": "Credits earned",
+    "creditsSpent": "Credits spent",
+    "upgrades": "Upgrades bought"
   },
   "pause": {
     "title": "Paused",
@@ -239,7 +246,7 @@
     "move": "Move · at the helm, fly the dodge",
     "run": "Run",
     "look": "Look",
-    "interact": "Use: map, panel, airlock, helm · place a tool and collect",
+    "interact": "Use: map, panel, airlock (terminal at stations), helm · place a tool and collect",
     "alt": "Throttle at the helm · retrieve a tool",
     "view": "Switch 1st / 3rd person",
     "pause": "Pause",
@@ -313,7 +320,11 @@
     "toolDone": "[vein exhausted]",
     "toolStop": "[tool stopped]",
     "toolResume": "[tool resumed]",
-    "toolLost": "[tools abandoned]"
+    "toolLost": "[tools abandoned]",
+    "sale": "[coins]",
+    "purchase": "[cargo loaded]",
+    "upgrade": "[upgrade installed]",
+    "noCredits": "[not enough credits]"
   },
   "descent": {
     "title": "Descent",
@@ -325,5 +336,90 @@
     "hold": "Hold to brake",
     "braking": "Braking",
     "noEngines": "No engines: you can't brake"
+  },
+  "shop": {
+    "title": "Terminal · {{node}}",
+    "sell": "Sell cargo",
+    "store": "Shop",
+    "sellOne": "Sell 1",
+    "sellAll": "All",
+    "sellHold": "Sell the whole hold · +{{credits}} cr",
+    "empty": "Empty hold: land on a world and bring cargo",
+    "each": "{{price}} cr/u",
+    "units": "×{{units}}",
+    "total": "{{credits}} cr",
+    "supplies": "Supplies",
+    "supply": {
+      "fuel": "Fuel",
+      "hull": "Hull",
+      "spares": "Spares"
+    },
+    "fill": "Fill · {{credits}} cr",
+    "fillPartial": "+{{units}} · {{credits}} cr",
+    "step": "+{{units}} · {{credits}} cr",
+    "full": "Full",
+    "level": "{{current}}/{{max}}",
+    "emergency": "Emergency aid",
+    "emergencyTake": "Free",
+    "upgrades": "Upgrades",
+    "upgradeLevel": "lv {{level}}/{{max}}",
+    "buy": "{{credits}} cr",
+    "maxed": "Maxed",
+    "noUpgrades": "This station offers no upgrades",
+    "mass": "+{{kg}} kg",
+    "abs": "{{label}} {{before}} → {{after}}{{unit}}",
+    "pct": "{{label}} {{before}} → {{after}} %",
+    "rel": "{{label}} {{change}} %",
+    "kw": "{{label}} {{change}} kW",
+    "unit": {
+      "kg": " kg",
+      "m": " m",
+      "mps": " m/s",
+      "kw": " kW"
+    },
+    "keys": "Arrows · Enter · Esc",
+    "field": {
+      "ship": {
+        "hullMax": "Hull",
+        "fuelCapacity": "Tank",
+        "maxSpares": "Max spares",
+        "reactorOutputKw": "Reactor",
+        "cruiseSpeedLyPerS": "Speed",
+        "fuelPerLy": "Fuel use",
+        "damagedEngineFuelPenalty": "Fuel use when damaged",
+        "evadeFuel": "Evade fuel",
+        "crewO2UsePctPerS": "Crew O₂ use",
+        "o2RegenPctPerS": "O₂ regeneration",
+        "shieldAbsorb": "Absorption",
+        "shieldWearPctPerHit": "Shield wear",
+        "overloadReactorDamagePctPerS": "Overload damage",
+        "systemDrawKw": {
+          "engines": "Engines",
+          "lifeSupport": "Life support",
+          "shields": "Shields",
+          "nav": "Navigation"
+        }
+      },
+      "suit": {
+        "o2DrainPctPerS": "Suit O₂ use",
+        "carryCapacityKg": "Backpack",
+        "refillShipO2PctPerTank": "Ship O₂ per exit",
+        "airlockCycleShipO2Pct": "Airlock cycle",
+        "collectRangeM": "Reach"
+      },
+      "jetpack": {
+        "drainPctPerS": "Jetpack use",
+        "rechargePctPerS": "Jetpack recharge"
+      },
+      "falls": {
+        "harmlessMps": "Safe fall",
+        "o2LossPctPerMps": "O₂ lost in falls",
+        "lethalMps": "Lethal fall"
+      }
+    },
+    "giveFuel": "+{{n}} fuel",
+    "giveHull": "+{{n}} hull",
+    "giveSpares": "+{{n}} spares",
+    "overload": "overload with everything on"
   }
 }

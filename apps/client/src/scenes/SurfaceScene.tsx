@@ -234,7 +234,8 @@ function SurfaceLoop({ motion }: { motion: MotionParams }) {
       return;
     }
     const world = getWorld(s.surface.worldId);
-    const rules = getSurfaceCatalog(run.catalog).rules;
+    // Reglas EFECTIVAS del motor (objeto vivo: con el traje o el jetpack mejorados).
+    const rules = run.effectiveSurfaceRules();
 
     hudView.x = playerState.pos.x;
     hudView.z = playerState.pos.z;
@@ -363,7 +364,7 @@ export function SurfaceScene({ mode }: { mode: 'descent' | 'eva' }) {
   const dust = useMemo(() => ({ strength: { value: 0 } }), []);
   const gravity = worldId ? getWorld(worldId).gravityMps2 : 1.6;
   const motion = useMemo(
-    () => surfaceMotion(gravity, flightLimitsOf(getSurfaceCatalog(getRun()?.catalog).rules), worldId ? deepestDropM(worldId, getWorld(worldId).unstable.pitDepthM) : 0),
+    () => surfaceMotion(gravity, flightLimitsOf(getRun()?.effectiveSurfaceRules() ?? getSurfaceCatalog().rules), worldId ? deepestDropM(worldId, getWorld(worldId).unstable.pitDepthM) : 0),
     [gravity, worldId],
   );
   const radius = useGame((g) => g.hud?.surface?.radiusM ?? 100);

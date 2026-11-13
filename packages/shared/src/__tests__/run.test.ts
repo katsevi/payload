@@ -465,7 +465,8 @@ describe('impactos', () => {
 });
 
 describe('estaciones, portal y derrota', () => {
-  it('el servicio de estación reposta y repara una sola vez, y solo si hace falta', () => {
+  it('la ayuda de emergencia (service) es gratis, una vez por estación, solo si hace falta y solo en estaciones', () => {
+    // Fase 3: sustituye al servicio gratuito (detalle en economy.test.ts).
     const run = createRun({ seed: 30, catalog: calmCatalog((raw) => { raw.ships[0]!.startSpares = raw.ships[0]!.maxSpares; }) });
     expect(run.apply({ type: 'service' })).toEqual({ ok: false, reason: { key: 'reject.serviceNotNeeded' } });
     const home = run.state.locationId;
@@ -474,9 +475,9 @@ describe('estaciones, portal y derrota', () => {
     if (getNode(run.state.sector, out)!.kind !== 'station') expect(run.apply({ type: 'service' })).toEqual({ ok: false, reason: { key: 'reject.noService' } });
     jump(run, home);
     untilDocked(run);
-    expect(run.state.ship.fuel).toBeLessThan(ship.fuelCapacity);
+    run.state.ship.fuel = 10;
     expect(run.apply({ type: 'service' })).toEqual({ ok: true });
-    expect(run.state.ship.fuel).toBe(ship.fuelCapacity);
+    expect(run.state.ship.fuel).toBeCloseTo((ship.fuelCapacity * catalog.economy!.emergency.fuelPct) / 100);
     expect(run.takeEvents().some((e) => e.type === 'service')).toBe(true);
     expect(run.apply({ type: 'service' })).toEqual({ ok: false, reason: { key: 'reject.serviceUsed' } });
   });

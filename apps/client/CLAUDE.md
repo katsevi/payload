@@ -1,6 +1,6 @@
 # @payload/client — cliente web (React 19 + R3F + Rapier + Vite)
 
-Fases 1 y 2 del juego nuevo: menú → partida en el interior de la nave (mapa estelar, saltos, averías) →
+Fases 1, 2 y 3 (economía) del juego nuevo: menú → partida en el interior de la nave (mapa estelar, saltos, averías) →
 aterrizaje en destinos con superficie (descenso, EVA con jetpack, recogida, vuelta, despegue) → fin de sector
 o de expedición. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Diseño: `docs/GDD.md`.
 
@@ -9,10 +9,10 @@ o de expedición. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Dise
 | Carpeta | Contenido |
 | --- | --- |
 | `app/` | `App.tsx`: menú o partida, qué escena (`sceneFor`) y qué paneles se pintan; atajos de desarrollo `?play=1&seed=N[&surface=…]` |
-| `game/` | `runStore.ts` (Zustand: crea la `Run`, `tick`, `act`, avisos, mejor marca; `getRun()` = estado vivo; `fx.shake`, `shakeForEvent`, `shipSpawn`, `stopSurfaceLoops`), `layout.ts` (PURO: casco, mamparos, los 9 puestos con la esclusa, `CARGO_BAY`, `nearestStation`, `zoneAt`, `runSecondsBetween`), `interaction.ts` (PURO: `interactionAt` con estimaciones del timón y coste de O₂ de la esclusa, `promptFor`, `holdAction`, `chargedAction`, `altAction`, `nextThrottle`, `sendInChunks`), `surfaceRules.ts` (PURO: posición de la nave en la superficie, `sceneFor`, `surfaceInteractionAt`/`surfacePromptFor`/`surfaceUseAction`/`surfaceAltAction` (herramientas), `toolFor`, `leftOutside`, `nearestReadyTool`, `shipBearing`/`bearingTo`, `brakeThresholdMps`, `stormLevel`, `STORM_WIND_MPS`, `fallDanger`/`predictedImpactMps`, `o2ReturnShort`, ritmo de respiración y pitido), `terrain.ts` (PURO: `createTerrain` → `heightAt`/`chasmAt`, `terrainGrid`), `motion.ts` (PURO: `stepMotion`/`settleMotion`, `SHIP_MOTION`, `surfaceMotion(g, flightLimitsOf(rules))`, `simulateFlight`, `jetpackNetUpMps2`), `noise.ts` (PURO: `hashOf`, `rng`, `mixSeed`, ruido 2D/3D), `dodge.ts` (PURO: esquiva de asteroides en el timón), `repairGames.ts` (PURO: extintor, pulsos y sellado de las averías), `debug.ts` (`reachSurface`, `travelToLandable`, `autoDescend`) |
+| `game/` | `runStore.ts` (Zustand: crea la `Run`, `tick`, `act`, avisos, mejor marca; `getRun()` = estado vivo; `fx.shake`, `shakeForEvent`, `shipSpawn`, `stopSurfaceLoops`), `layout.ts` (PURO: casco, mamparos, los 9 puestos con la esclusa, `CARGO_BAY`, `nearestStation`, `zoneAt`, `runSecondsBetween`), `interaction.ts` (PURO: `interactionAt` con estimaciones del timón y coste de O₂ de la esclusa, `promptFor`, `holdAction`, `chargedAction`, `altAction`, `nextThrottle`, `sendInChunks`), `surfaceRules.ts` (PURO: posición de la nave en la superficie, `sceneFor`, `surfaceInteractionAt`/`surfacePromptFor`/`surfaceUseAction`/`surfaceAltAction` (herramientas), `toolFor`, `leftOutside`, `nearestReadyTool`, `shipBearing`/`bearingTo`, `brakeThresholdMps`, `stormLevel`, `STORM_WIND_MPS`, `fallDanger`/`predictedImpactMps`, `o2ReturnShort`, ritmo de respiración y pitido), `terrain.ts` (PURO: `createTerrain` → `heightAt`/`chasmAt`, `terrainGrid`), `motion.ts` (PURO: `stepMotion`/`settleMotion`, `SHIP_MOTION`, `surfaceMotion(g, flightLimitsOf(rules))`, `simulateFlight`, `jetpackNetUpMps2`), `noise.ts` (PURO: `hashOf`, `rng`, `mixSeed`, ruido 2D/3D), `dodge.ts` (PURO: esquiva de asteroides en el timón), `repairGames.ts` (PURO: extintor, pulsos y sellado de las averías), `debug.ts` (`reachSurface`, `travelToLandable`, `autoDescend`, `reachStation`, `travelToStation`, `mineForSale`), `effective.ts` (`effectiveShipOf`/`effectiveRulesOf`: nave y reglas de superficie con las mejoras, memorizadas), `shop.ts` (PURO: terminal de estación: `sellRows`, `supplyRows`, `upgradeRows`/`upgradeDeltas`, `FIELD_INFO`, acciones, `moveFocus`, `cargoFuelPct`, `installedUpgrades`) |
 | `scenes/` | `ShipScene` (`<Canvas>`, entorno de reflejos, `GameLoop`: tick + teclas E/Q/V/H + pausa al soltar el ratón; con la nave posada pinta `LandedView` en vez de `SpaceView`), `ShipInterior` (`Hull`), `ShipStations` (`Stations`: los puestos con sus colisiones), `ShipCargo` (`Airlock3D`, `CargoBay`), `ShipFx` (`ZoneLights`, `IncidentFx`, `Markers`), `ShipMinigames` (`DodgeHolo`: holograma de pilotaje sobre el timón; `FlameTarget`: foco del fuego al que se apunta), `SpaceView`, `SpaceBodies` (`Body`), `SurfaceScene` (`<Canvas>` propio: `DescentLoop` o `SurfaceLoop`), `SurfaceTools` (concentrador solar y taladro láser colocados, con sus estados), `SurfaceWorld` (terreno + colisión trimesh, rocas, vetas, terreno inestable, cielo, niebla, tormenta; `liveTerrain`), `ShipExterior` (la nave posada vista desde fuera, baliza, propulsores, colisiones), `MenuScene` |
 | `gfx/` | Gráficos procedurales (sin assets que descargar): `textures.ts`, `materials.ts` (`mats()`), `build.tsx` (`Builder`, `Parts`, `once`), `glsl.ts` (ruido y reloj `TIME`), `shipShaders.ts`, `fxShaders.ts` (`puffMaterial` exportado), `spaceShaders.ts`, `surfaceShaders.ts` (parche del suelo: grietas, borde, lava, explanada; cielo; tormenta; polvo; haces; llama de propulsor), `surfaceLook.ts` (paleta por `worldId` y aspecto de cada material de veta), `rocks.ts` (`rockGeometry`, `pebbleGeometry`, `rockMaterial`), `Glow.tsx`, `Sky.tsx` |
-| `ui/` | `Hud` (barras, viaje, alertas, avisos, acción disponible; exporta `Gauge`/`levelOf`), `SkillHud` (mira del extintor y barras de pulso/presión, sin React por frame), `SurfaceHud` (`DescentHud`, `SuitVitals` con teclas del jetpack, racha y herramientas, `ShipCompass`, `ToolCompass`, `FallAlert`, `O2Vignette`, `WorldBadge`), `ToolIcon`, `StarMap`, `PowerPanel`, `Screens`, `common` |
+| `ui/` | `Hud` (barras, viaje, alertas, avisos, acción disponible; exporta `Gauge`/`levelOf`), `SkillHud` (mira del extintor y barras de pulso/presión, sin React por frame), `SurfaceHud` (`DescentHud`, `SuitVitals` con teclas del jetpack, racha y herramientas, `ShipCompass`, `ToolCompass`, `FallAlert`, `O2Vignette`, `WorldBadge`), `ToolIcon`, `StarMap`, `PowerPanel`, `StationTerminal` (terminal de estación), `Credits` (`CreditsBadge`, `UpgradeIcon`, `UpgradeStrip`), `Screens`, `common` |
 | `player/` | `PlayerController` (controlador cinemático Rapier parametrizado por `MotionParams`, cámaras 1ª/3ª con rayo contra colisiones, sacudida), `input.ts`, `playerState.ts` (`playerState`, `motionEnv`, `resetPlayerState`) |
 | `audio/` | Web Audio procedural: `soundLogic.ts` y `musicLogic.ts` (puros), `audioEngine.ts`, `cues.ts` (`cue(id)`), `useAudioDirector.ts`, `SoundCaptions.tsx` |
 | `state/` | `ui.ts` (panel abierto, vista, aviso de acción, `descentView`, `hudView`), `settings.ts` (persistido), `minigame.ts` (minijuegos en curso, mutable) |
@@ -33,7 +33,7 @@ o de expedición. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Dise
   `tick` sí sigue con tope de 0,1 s). Igual al entrar por la rampa. Ver «Interacciones de la nave».
 - **Proximidad, no puntería.** El puesto activo es el más cercano dentro de `USE_RADIUS`; no hace falta
   mirarlo. Si añades un puesto, añádelo a `STATIONS`/`STATION_IDS` y a `interactionAt`.
-- **Tiempo:** el mapa, el panel de energía y la ayuda NO pausan. `pause`, `settings` y `credits` sí
+- **Tiempo:** el mapa, el panel de energía, el terminal de estación y la ayuda NO pausan. `pause`, `settings` y `credits` sí
   (`runStore.tick` lo decide). Soltar el ratón con Esc sin panel abierto pone la pausa.
 - **i18n sin texto en el código.** UI: `t('clave')` (ns `ui`). Motor: `tr(messageRef)` o
   `t('systemName.x', { ns: 'sim' })` — escribe `ns: 'sim'` en la misma llamada: el test de claves lo usa
@@ -104,6 +104,32 @@ o de expedición. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Dise
 - **Modos simples** (ajustes separados): `simpleDodge` = esquiva manteniendo E (1 roce; si ya no daba tiempo,
   el resultado de llegar tarde) y `simpleRepairs` = averías y repuestos manteniendo R a ritmo normal. `wideAim`
   ensancha el área de acierto del extintor. `promptFor`/`chargedAction` aceptan `SimpleModes`. Para quien no pueda o no quiera los minijuegos.
+
+## Economía y terminal de estación (fase 3, ADR 0014)
+
+- **Abrir:** atracada en una estación con terminal (`hasShop`), la **esclusa** pasa a ser el terminal: E junto a
+  ella abre `overlay = 'terminal'` (`interactionAt` → `{ kind: 'terminal' }`, aviso `prompt.terminal` con los créditos).
+  También el botón «Terminal de la estación» del mapa estelar. Esc o E lo cierran. Como el mapa, **no pausa**
+  (atracada no hay desgaste, pero el O₂ y las averías abiertas siguen): decisión coherente con `map`/`power`.
+- **Todo viene del motor:** `run.stationQuote()` (precios, unidades, faltantes, oferta, emergencia) y acciones
+  `sell`, `buy-supply`, `buy-upgrade`, `service` por `act()`. Ninguna cifra, id ni precio en el cliente; el
+  content-designer puede cambiar `economia.json`/`mejoras.json` sin tocar código. Rechazos: aviso breve dentro del
+  terminal (`tr(reason)`), aviso del HUD y, si es `reject.noCredits`, `cue('noCredits')` (en `runStore.act`).
+- **Línea de efecto de una mejora** (`upgradeDeltas`): compara `effectiveShip`/`effectiveSurfaceRules` con un nivel
+  más frente a los actuales en todos los `UPGRADE_FIELDS`; `FIELD_INFO` dice qué es mejor (sube/baja) y cómo se
+  escribe (`abs` «Depósito 100 → 125», `pct01`, `rel` «Consumo −12 %», `kw` «Escudos +8 kW»). Ganancias en verde,
+  contrapartidas y masa («+25 kg») en ámbar; como mucho 2 + 2 en UNA línea. Icono por el campo del primer efecto
+  (no por id). Un campo nuevo en el contrato exige su entrada en `FIELD_INFO` y `shop.field.*` (lo comprueba un test).
+- **Deshabilitado:** sin créditos el botón queda deshabilitado con el precio en rojo (`.shop-poor`); lleno = «Lleno»;
+  al máximo = «Al máximo». Teclado: el foco empieza en el primer botón; flechas arriba/abajo en la columna,
+  izquierda/derecha entre venta y tienda (`moveFocus`), Intro compra, Tab también vale.
+- **Máximos efectivos:** el HUD (casco, combustible, energía, repuestos), el panel de energía, el descenso, el traje
+  (mochila, O₂) y la superficie (`surfaceInteractionAt`, `suitRefill` de la esclusa, límites de vuelo) usan
+  `effectiveShipOf`/`effectiveRulesOf` o `run.effectiveSurfaceRules()`; nunca `getShip()` ni `getSurfaceCatalog().rules`.
+- **Señales:** `CreditsBadge` (HUD de la nave, mapa y terminal; late y saca «+N/−N» al cambiar), `UpgradeStrip`
+  bajo los recursos (icono por mejora con un piloto por nivel: la nave es otra sin tocar la geometría exterior), en el
+  mapa «+N % por carga» si `estimateJump().cargoFuelMult` > 1, y en el final créditos ganados/gastados y mejoras.
+  Sonidos `sale` (venta y contrato), `purchase`, `upgrade`, `noCredits`; los eventos salen como avisos normales.
 
 ## Superficie (fase 2)
 
@@ -229,6 +255,10 @@ __payload.toSurface('descent')                           // … o quedarse al em
 __payload.liveTerrain.current.heightAt(10, 5)            // altura del suelo (en la escena de superficie)
 ```
 
+`?play=1&seed=7&station=1` atraca en la estación más cercana tras bajar a por carga vendible y abre el terminal
+(`&station=bare`: sin bajar). Desde la consola: `__payload.toStation()` / `__payload.toStation(false)`. Con la semilla 7
+la estación es el nodo de salida.
+
 `?play=1&seed=7&surface=1` entra directo a la EVA; `&surface=descent` al minijuego del descenso;
 `&surface=landed` a bordo con la nave posada. Semillas que llevan a cada mundo (el aterrizable más cercano):
 1 luna de polvo, 2 mundo fracturado, 3 núcleo de hielo, 4 mundo pesado, 5 roca errante, 6 mundo de
@@ -242,7 +272,7 @@ tormentas, 13 luna volcánica.
 ```bash
 pnpm --filter @payload/client dev        # http://localhost:5173  (?play=1&seed=7)
 pnpm --filter @payload/client typecheck
-pnpm --filter @payload/client test       # game.test.ts, surface.test.ts, minigames.test.ts (lógica) e i18n.test.ts
+pnpm --filter @payload/client test       # game.test.ts, surface.test.ts, minigames.test.ts, shop.test.ts (lógica) e i18n.test.ts
 pnpm --filter @payload/client build
 ```
 
@@ -255,4 +285,5 @@ repetir el pase de terreno y rocas; sin GPU real para medirlo se prefirió el re
 despegue no tiene vista exterior (solo sonido y sacudida); el bucle `wind`, `fallWarn` y los sonidos de herramientas no se han escuchado; la parada del
 concentrador por tormenta (hay hielo, escaso y lejos, en la luna volcánica y el mundo de tormentas) solo se ha
 visto forzándola en el navegador sin cabeza, no jugando.
-Ver `docs/STATUS.md`.
+Terminal de estación: verificado en el navegador con el panel oculto (sin `requestAnimationFrame`), así que la
+tecla E en la esclusa y la animación de créditos no se vieron en marcha (la lógica tiene test). Ver `docs/STATUS.md`.

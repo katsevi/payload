@@ -58,6 +58,7 @@ describe('locales del motor (namespace sim)', () => {
     refs.push(...surfaceScript());
     refs.push(...toolScript());
     refs.push(...evadeScript());
+    refs.push(...economyScript());
     // Rechazos: se prueban acciones fuera de lugar en cada fase.
     const actions: RunAction[] = [
       { type: 'jump', toId: 'nope' }, { type: 'evade' }, { type: 'service' }, { type: 'next-sector' },
@@ -106,12 +107,59 @@ describe('locales del motor (namespace sim)', () => {
       'reject.overCapacity', 'reject.jetpackEmpty', 'reject.takeOffFuel', 'reject.takeOffHeavy', 'reject.nothingToJettison', 'reject.crewDead',
       'reject.enginesOffline', 'reject.collectAirborne',
       'reject.toolAirborne', 'reject.toolPlaced', 'reject.noTool', 'reject.noToolHere', 'reject.nothingReady',
+      // Fase 3: terminal de estación.
+      'reject.notAtStation', 'reject.noCredits', 'reject.nothingToSell', 'reject.supplyFull', 'reject.notOffered', 'reject.upgradeMaxed',
+      'reject.noService', 'reject.serviceUsed', 'reject.serviceNotNeeded',
     ]) expect(keys.has(key), key).toBe(true);
     for (const key of ['reject.noRoute', 'reject.notInTransit', 'reject.notAtGate', 'reject.reactorAlwaysOn', 'reject.noIncident', 'reject.noDamage', 'reject.invalid', 'reject.enginesOff', 'reject.inTransit', 'reject.noWarning']) {
       expect(keys.has(key), key).toBe(true);
     }
-  });
+  }, 120_000); // barrido largo (bots de 4 sectores y exploradores con economía)
 });
+
+/** Fase 3: terminal de estación (venta, compras, emergencia y mejoras) con sus rechazos. */
+function economyScript(): MessageRef[] {
+  const refs: MessageRef[] = [];
+  const raw = JSON.parse(JSON.stringify(catalog)) as typeof catalog;
+  raw.economy!.offer.size = 2;
+  raw.ships[0]!.startSpares = raw.ships[0]!.maxSpares;
+  const run = createRun({ seed: 5, catalog: parseCatalog(raw) });
+  const tryA = (a: RunAction) => {
+    const r = run.apply(a);
+    if (!r.ok) refs.push(r.reason);
+  };
+  const offered = run.stationQuote()!.upgrades.map((u) => u.upgradeId);
+  const other = run.catalog.upgrades!.find((u) => !offered.includes(u.id))!.id;
+  tryA({ type: 'service' }); // no hace falta
+  tryA({ type: 'sell' }); // nada que vender
+  tryA({ type: 'buy-supply', supply: 'fuel' }); // lleno
+  tryA({ type: 'buy-upgrade', upgradeId: other }); // no se ofrece
+  run.state.credits = 0;
+  run.state.ship.hull = 50;
+  tryA({ type: 'buy-supply', supply: 'hull' }); // sin créditos
+  run.state.credits = 5000;
+  Object.assign(run.state.ship.cargo, { crystal: 2 });
+  tryA({ type: 'sell', materialId: 'crystal', units: 1 });
+  tryA({ type: 'sell' });
+  tryA({ type: 'buy-supply', supply: 'hull' });
+  run.state.ship.spares = 0;
+  tryA({ type: 'buy-supply', supply: 'spares', amount: 1 });
+  run.state.ship.fuel = 50;
+  tryA({ type: 'buy-supply', supply: 'fuel' });
+  const one = run.catalog.upgrades!.find((u) => u.id === offered[0])!;
+  for (let i = 0; i <= one.levels.length; i++) tryA({ type: 'buy-upgrade', upgradeId: one.id }); // hasta el máximo
+  run.state.ship.fuel = 10;
+  tryA({ type: 'service' });
+  tryA({ type: 'service' }); // ya usada
+  const here = getNode(run.state.sector, run.state.locationId)!;
+  const to = here.links.map((id) => getNode(run.state.sector, id)!).find((n) => n.kind !== 'station')!;
+  run.apply({ type: 'jump', toId: to.id });
+  for (let t = 0; t < 600 && run.state.phase === 'transit'; t += FIXED_STEP_S) run.step(FIXED_STEP_S);
+  tryA({ type: 'sell' }); // no es estación
+  tryA({ type: 'service' }); // aquí no hay terminal
+  refs.push(...run.takeEvents().map((e) => e.message));
+  return refs;
+}
 
 /**
  * Secuencia guionizada en superficie con el catálogo por defecto: rechazos fuera de lugar y soltar

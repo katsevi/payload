@@ -1,0 +1,402 @@
+{
+  "upgrades": [
+    {
+      "id": "fuel-tank",
+      "name": {
+        "es": "Depósito ampliado",
+        "en": "Extended tank"
+      },
+      "levels": [
+        {
+          "price": 90,
+          "massKg": 35,
+          "effects": [
+            {
+              "target": "ship",
+              "field": "fuelCapacity",
+              "add": 25
+            }
+          ]
+        },
+        {
+          "price": 170,
+          "massKg": 35,
+          "effects": [
+            {
+              "target": "ship",
+              "field": "fuelCapacity",
+              "add": 25
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shield-capacitor",
+      "name": {
+        "es": "Condensador de escudos",
+        "en": "Shield capacitor"
+      },
+      "levels": [
+        {
+          "price": 110,
+          "massKg": 20,
+          "effects": [
+            {
+              "target": "ship",
+              "field": "shieldAbsorb",
+              "add": 0.1
+            },
+            {
+              "target": "ship",
+              "field": "systemDrawKw.shields",
+              "add": 8
+            }
+          ]
+        },
+        {
+          "price": 190,
+          "massKg": 20,
+          "effects": [
+            {
+              "target": "ship",
+              "field": "shieldAbsorb",
+              "add": 0.1
+            },
+            {
+              "target": "ship",
+              "field": "shieldWearPctPerHit",
+              "mult": 0.75
+            },
+            {
+              "target": "ship",
+              "field": "systemDrawKw.shields",
+              "add": 8
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reactor-heatsink",
+      "name": {
+        "es": "Disipador del reactor",
+        "en": "Reactor heatsink"
+      },
+      "levels": [
+        {
+          "price": 100,
+          "massKg": 25,
+          "effects": [
+            {
+              "target": "ship",
+              "field": "overloadReactorDamagePctPerS",
+              "mult": 0.5
+            },
+            {
+              "target": "ship",
+              "field": "reactorOutputKw",
+              "add": 10
+            }
+          ]
+        },
+        {
+          "price": 190,
+          "massKg": 25,
+          "effects": [
+            {
+              "target": "ship",
+              "field": "overloadReactorDamagePctPerS",
+              "mult": 0.6
+            },
+            {
+              "target": "ship",
+              "field": "reactorOutputKw",
+              "add": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eva-o2-tank",
+      "name": {
+        "es": "Tanque de O₂ del traje",
+        "en": "Suit O₂ tank"
+      },
+      "levels": [
+        {
+          "price": 90,
+          "massKg": 0,
+          "effects": [
+            {
+              "target": "suit",
+              "field": "o2DrainPctPerS",
+              "mult": 0.85
+            },
+            {
+              "target": "suit",
+              "field": "refillShipO2PctPerTank",
+              "mult": 1.2
+            }
+          ]
+        },
+        {
+          "price": 160,
+          "massKg": 0,
+          "effects": [
+            {
+              "target": "suit",
+              "field": "o2DrainPctPerS",
+              "mult": 0.85
+            },
+            {
+              "target": "suit",
+              "field": "refillShipO2PctPerTank",
+              "mult": 1.2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jump-drive",
+      "name": {
+        "es": "Motores de salto",
+        "en": "Jump drive"
+      },
+      "levels": [
+        {
+          "price": 140,
+          "massKg": 25,
+          "effects": [
+            {
+              "target": "ship",
+              "field": "cruiseSpeedLyPerS",
+              "mult": 1.2
+            },
+            {
+              "target": "ship",
+              "field": "systemDrawKw.engines",
+              "add": 10
+            }
+          ]
+        },
+        {
+          "price": 230,
+          "massKg": 25,
+          "effects": [
+            {
+              "target": "ship",
+              "field": "fuelPerLy",
+              "mult": 0.85
+            },
+            {
+              "target": "ship",
+              "field": "systemDrawKw.engines",
+              "add": 8
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hull-plating",
+      "name": {
+        "es": "Blindaje del casco",
+        "en": "Hull plating"
+      },
+      "levels": [
+        {
+          "price": 120,
+          "massKg": 45,
+          "effects": [
+            {
+              "target": "ship",
+              "field": "hullMax",
+              "add": 25
+            }
+          ]
+        },
+        {
+          "price": 200,
+          "massKg": 45,
+          "effects": [
+            {
+              "target": "ship",
+              "field": "hullMax",
+              "add": 25
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "armored-suit",
+      "name": {
+        "es": "Traje reforzado",
+        "en": "Armored suit"
+      },
+      "levels": [
+        {
+          "price": 90,
+          "massKg": 0,
+          "effects": [
+            {
+              "target": "falls",
+              "field": "o2LossPctPerMps",
+              "mult": 0.6
+            },
+            {
+              "target": "falls",
+              "field": "lethalMps",
+              "add": 4
+            },
+            {
+              "target": "suit",
+              "field": "carryCapacityKg",
+              "add": -15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jetpack-thrusters",
+      "name": {
+        "es": "Propulsores del jetpack",
+        "en": "Jetpack thrusters"
+      },
+      "levels": [
+        {
+          "price": 80,
+          "massKg": 0,
+          "effects": [
+            {
+              "target": "jetpack",
+              "field": "drainPctPerS",
+              "mult": 0.7
+            },
+            {
+              "target": "jetpack",
+              "field": "rechargePctPerS",
+              "mult": 1.5
+            },
+            {
+              "target": "suit",
+              "field": "o2DrainPctPerS",
+              "mult": 1.06
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cargo-backpack",
+      "name": {
+        "es": "Mochila de carga",
+        "en": "Cargo backpack"
+      },
+      "levels": [
+        {
+          "price": 90,
+          "massKg": 0,
+          "effects": [
+            {
+              "target": "suit",
+              "field": "carryCapacityKg",
+              "add": 30
+            },
+            {
+              "target": "suit",
+              "field": "o2DrainPctPerS",
+              "mult": 1.08
+            }
+          ]
+        },
+        {
+          "price": 160,
+          "massKg": 0,
+          "effects": [
+            {
+              "target": "suit",
+              "field": "carryCapacityKg",
+              "add": 30
+            },
+            {
+              "target": "suit",
+              "field": "o2DrainPctPerS",
+              "mult": 1.08
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "life-support-boost",
+      "name": {
+        "es": "Soporte vital reforzado",
+        "en": "Boosted life support"
+      },
+      "levels": [
+        {
+          "price": 100,
+          "massKg": 20,
+          "effects": [
+            {
+              "target": "ship",
+              "field": "o2RegenPctPerS",
+              "add": 0.2
+            },
+            {
+              "target": "ship",
+              "field": "systemDrawKw.lifeSupport",
+              "add": 8
+            }
+          ]
+        },
+        {
+          "price": 180,
+          "massKg": 20,
+          "effects": [
+            {
+              "target": "ship",
+              "field": "o2RegenPctPerS",
+              "add": 0.2
+            },
+            {
+              "target": "ship",
+              "field": "systemDrawKw.lifeSupport",
+              "add": 8
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "engine-stabilizers",
+      "name": {
+        "es": "Estabilizadores de motor",
+        "en": "Engine stabilizers"
+      },
+      "levels": [
+        {
+          "price": 100,
+          "massKg": 30,
+          "effects": [
+            {
+              "target": "ship",
+              "field": "damagedEngineFuelPenalty",
+              "mult": 0.5
+            },
+            {
+              "target": "ship",
+              "field": "evadeFuel",
+              "mult": 0.67
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

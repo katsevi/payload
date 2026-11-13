@@ -1,6 +1,6 @@
 # Estado del proyecto — traspaso entre sesiones
 
-Última actualización: **2026-11-12** · Rama actual: `feat/f2-herramientas-e-interacciones` · Versión publicada: 0.4.0 · Propuesta: 0.5.0 (sin publicar; ver `CHANGELOG.md`)
+Última actualización: **2026-11-13** · Rama actual: `feat/f3-economia-progresion` (cambios sin commitear) · Versión publicada: 0.4.0 · Propuesta: 0.6.0 (sin publicar; la 0.5.0 propuesta es la fase 2; ver `CHANGELOG.md`)
 
 > Léelo antes de empezar y actualízalo al terminar una tarea relevante. Las casillas de
 > `docs/phases/fase-*.md` las marca quien valida la fase, no quien implementa: aquí solo se resume.
@@ -10,14 +10,19 @@
 **Payload es un cooperativo de supervivencia en una nave** (plan en `docs/plan/plan-tripulacion-de-exploracion.md`,
 decisión en ADR 0011). El juego se rehízo el 2026-11-09.
 
-- La **fase 1 está fusionada en `main`** (PR #3). La fase 2 ya está **en un commit** (`d8ce24d`) en la rama
-  **`feat/f2-superficie`**. Encima, en **`feat/f2-herramientas-e-interacciones`**, hay una tanda de mejoras
-  **sin commitear** fuera del plan de fases (herramientas de minería y minijuegos; ADR 0013).
+- La **fase 1 está fusionada en `main`** (PR #3), y la fase 2 con las herramientas de minería y los minijuegos
+  (ADR 0013) entró por el PR #4 (`feat/f2-herramientas-e-interacciones`). La **fase 3 (economía y progresión)**
+  está **implementada pero sin commitear** en **`feat/f3-economia-progresion`** (ADR 0014).
 - No existe ninguna etiqueta local `v0.3.0-simulador` (`git tag` está vacío): la versión anterior (0.3.0) está en
   el historial, en el commit `76ae5ab` (ADR 0011). Su documentación está en `docs/archivo/v0.3-simulador/`.
 - **Fase 2 (exploración de superficie): implementada.** Pendiente de validación independiente final y de prueba
   con jugadores. Nadie ha medido FPS en GPU real, escuchado el audio ni jugado con personas (ver acciones humanas).
 - Decisiones de la fase: `docs/adr/0012-superficie-autoridad-dividida.md`; de la mejora: `docs/adr/0013-minijuegos-y-herramientas.md`.
+- **Fase 3 (economía y progresión): implementada · validada con observaciones · hito pendiente de prueba con jugadores.**
+  Créditos, terminal de estación de pago (venta, suministros, 11 mejoras con contrapartida), ayuda de emergencia
+  gratuita (sustituye al servicio gratuito) y la masa a bordo encarece cada salto. `pnpm validate` 11/11, **300 tests**
+  (181 + 119). Nadie ha jugado 20 minutos para comprobar el hito ni ha visto el terminal con GPU real. Decisiones: ADR 0014.
+- **Siguiente: fase 4 (cooperativo 1-4).** Toda la economía entra como `RunAction` y es determinista (ver «Próximos pasos»).
 
 ## Estado por fase
 
@@ -25,7 +30,7 @@ decisión en ADR 0011). El juego se rehízo el 2026-11-09.
 | --- | --- |
 | 1 · Viaje y nave (en solitario) | **Implementada y fusionada en `main`** (PR #3). `pnpm validate` en verde y recorrido manual en Chrome. **Falta:** validación independiente (agente `validator`) y el hito con jugadores. |
 | 2 · Exploración de superficie | **Implementada** (commit `d8ce24d` en `feat/f2-superficie`; mejoras sin commitear en `feat/f2-herramientas-e-interacciones`). `pnpm validate` en verde y una pasada del `validator` sin bloqueantes. **Falta:** validación independiente final, la segunda revisión de diseño y el hito con jugadores. |
-| 3 · Economía y progresión | No iniciada. |
+| 3 · Economía y progresión | **Implementada · validada con observaciones** (rama `feat/f3-economia-progresion`, sin commitear). `pnpm validate` en verde (300 tests) y validación independiente «cumple con observaciones» (sin exploits de dinero ni soft-locks). **Falta:** el hito con jugadores (20 min: vender, >= 2 mejoras, la nave se siente otra), ver el terminal y los créditos en un navegador con GPU real y escuchar los cues. |
 | 4 · Cooperativo 1-4 | No iniciada. `apps/game-server` es un marcador. |
 | 5 · Pulido y lanzamiento | No iniciada. `apps/api` es un marcador. |
 
@@ -144,7 +149,58 @@ verdad, sin pico»). No pertenece a ninguna fase del plan. Decisiones: ADR 0013.
   (`ok`, `fetch`, `leave`, `short`). Un haz por filón; el HUD muestra el avance del filón («2/3») y la escena marca la veta que lo completa.
 - Teclas: E usar/abrir/colocar/recoger; Q alternativa; clic o Espacio la habilidad; R reparar con repuesto.
 
-## Métricas verificadas (2026-11-12, tras las correcciones de las herramientas y los minijuegos)
+### Fase 3 — qué se hizo (2026-11-13, rama `feat/f3-economia-progresion`, sin commitear)
+
+La carga de la bodega pasa a ser progreso: en una estación se vende, se compra y se mejora la nave. Decisiones y
+reglas completas en ADR 0014, `packages/shared/CLAUDE.md` y `apps/client/CLAUDE.md`. Contrato aditivo.
+
+**Motor (`packages/shared`):**
+- `RunState.credits` y `RunState.upgrades` (obligatorios en el estado; ver ADR 0014). Acciones atracada en una estación
+  (`reject.notAtStation` si no): `sell {materialId?, units?}`, `buy-supply {supply: fuel|hull|spares, amount?}` y
+  `buy-upgrade {upgradeId}`. `service` se reconvierte en **ayuda de emergencia gratuita, una vez por estación**
+  (75 % del depósito, 50 % del casco, 1 repuesto): mínimo anti-callejón. `NodeKindDef.shop` marca la estación; `service` queda obsoleto.
+- Módulo `economy.ts` y catálogos `economia.json` (créditos iniciales 60; **contrato de 65 por sector superado**;
+  venta: hielo 1, mena 4, cristal 14, muestra 24; suministros: combustible 1, casco 1,2, repuesto 15; multiplicador por
+  sector +0,2 en venta y +0,15 en compra; referencia de masa 1000 kg; oferta de 5 mejoras por estación) y
+  `mejoras.json` (**11 mejoras** con niveles y contrapartida: `fuel-tank`, `shield-capacitor`, `reactor-heatsink`,
+  `eva-o2-tank`, `jump-drive`, `hull-plating`, `armored-suit`, `jetpack-thrusters`, `cargo-backpack`,
+  `life-support-boost`, `engine-stabilizers`). `parseCatalog` rellena ambos con valores por defecto si faltan.
+- `run.stationQuote()` (precios, oferta y, por mejora, `powerMarginDeltaKw` y `overloadsAtCruise`), `effectiveShip()` y
+  `effectiveSurfaceRules()` (el motor solo usa las efectivas), `cruisePowerMarginKw`. Oferta de mejoras determinista por
+  semilla, sector y nodo con un flujo propio de azar (dos partidas acaban con mejoras distintas).
+- **La masa a bordo encarece cada salto** (bodega + mejoras; combustible × (1 + kg / 1000)), en el consumo real y en `estimateJump`.
+- Hielo y mena **se siguen convirtiendo al guardarse** (combustible y repuestos) y el sobrante va a la bodega y se vende.
+  **Los créditos y las mejoras no puntúan**; el material descubierto puntúa una vez al guardarse, vender no suma ni resta.
+- Bot de balance con política de economía según el estado de la nave (vende, repone, compra mejoras).
+
+**Cliente (`apps/client`):**
+- **Terminal de estación** (`ui/StationTerminal.tsx`; E en la esclusa atracado en una estación o botón del mapa): dos
+  columnas (venta | tienda y mejoras), una línea de efecto por mejora y aviso de sobrecarga, teclado, **no pausa** el juego.
+- `ui/Credits.tsx` (`CreditsBadge` en HUD, mapa y terminal; `UpgradeStrip`), resumen de economía en el fin de partida,
+  «+N % por carga» en el mapa, `game/shop.ts` y `game/effective.ts` (topes con la nave y las reglas efectivas), cues
+  `sale`, `purchase`, `upgrade` y `noCredits`.
+- Atajo: `?play=1&seed=7&station=1` (`&station=bare` sin la oferta) y `__payload.toStation()`.
+
+**Fuera de alcance (respetado):** mercado dinámico, cambio visual exterior de la nave, *gear-gating*, meta-progresión.
+
+**Validación independiente:** «cumple con observaciones». Corregido después: tests de las dos mejoras nuevas, bot que las
+compra, aviso de sobrecarga, rechazo duplicado, cierre del overlay y tope en `isStranded`.
+
+## Métricas verificadas (2026-11-13, fase 3)
+
+| Métrica | Valor |
+| --- | --- |
+| `pnpm validate` | Verde: 11/11 tareas (typecheck + test + build). Total **300 tests** |
+| Tests `@payload/shared` | **181** en 8 archivos (`economy` nuevo) |
+| Tests `@payload/client` | **119** en 5 archivos (`shop` nuevo) |
+| `pnpm balance 200 3` · tripulación rápida (3,5 s), sin minar | S1 100 % · S2 99 % · S3 90 % (antes 100/100/92); 0 mejoras; 224 créditos ganados / 182 gastados |
+| `pnpm balance 200 3` · tripulación lenta (7 s) | S1 100 % · S2 94 % · S3 71 % (antes 73) |
+| `pnpm balance 200 3` · explorador prudente | S1 99 % · S2 96 % · S3 82 % (antes 83); 3,6 mejoras por partida; 111 combinaciones de mejoras distintas en 200 partidas; 734 créditos ganados / 646 gastados |
+| Sin verificar | Hito de 20 minutos con personas, terminal y créditos en GPU real, audio de los cues nuevos, FPS |
+
+Línea base de balance de la fase 3: las cifras de esta tabla (con la economía). Las de la tabla siguiente son anteriores.
+
+## Métricas verificadas (2026-11-12, antes de la fase 3; históricas)
 
 | Métrica | Valor |
 | --- | --- |
@@ -189,6 +245,8 @@ recalificado**.
 
 Ningún agente puede hacerlas.
 
+F3-a. **Hito de la fase 3:** jugar 20 minutos (`pnpm dev`, `?play=1&seed=7&station=1`): ¿se vende, se compran >= 2 mejoras y la nave se siente otra? ¿dos partidas seguidas acaban con mejoras distintas? ¿los precios dan duda real?
+F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de créditos, pantalla de fin de partida) en un navegador con GPU real, y **escuchar** los cues `sale`, `purchase`, `upgrade` y `noCredits` (nadie los ha oído).
 0. **Jugar la superficie** (`pnpm dev`, `?play=1&seed=7&surface=1`; semillas por mundo en `apps/client/CLAUDE.md`):
    ¿se duda de verdad entre una veta más y volver? ¿el descenso y el jetpack se sienten bien? Hito de la fase 2.
 1. **Medir FPS en GPU real** (portátil de gama media, meta 60) en la superficie y en la nave: solo se ha visto con
@@ -198,7 +256,7 @@ Ningún agente puede hacerlas.
 4. **Recalificar la última corrección de la revisión de diseño** (8/10 tras tres pasadas; los tres flecos finales no se han vuelto a evaluar) si se quiere una nota definitiva.
 5. **Hito de la fase 1:** prueba con >= 3 personas que no conozcan el juego (ver `docs/phases/fase-1.md`).
 6. **Validación independiente final de la fase 2** (agente `validator` o una persona) y marcar las casillas de `docs/phases/fase-2.md`.
-7. **Decidir el commit** de `feat/f2-herramientas-e-interacciones` y el PR de la fase 2.
+7. **Decidir el commit** de `feat/f3-economia-progresion` (cambios sin commitear) y el PR de la fase 3.
 8. **Probar con ratón capturado** (pointer lock) en una sesión real.
 9. **Mirar el rediseño gráfico y opinar** (`?play=1&seed=7&body=<tipo>`): brillo, color y legibilidad, otras semillas.
 10. **ERIZON** (CC-BY-NC-ND): decidir si se sustituye antes de cualquier uso comercial.
@@ -206,8 +264,16 @@ Ningún agente puede hacerlas.
 
 ## Decisiones de diseño abiertas
 
-- **Sector de ida.** Hoy se avanza hasta un portal y se pasa a otro sector; el plan habla de «regresar a estaciones seguras». Con la economía (fase 3) hay que decidir si existe una base a la que volver.
-- **Servicio de estación gratuito** (depósito lleno, +40 casco, +2 repuestos, una vez): sustituto provisional de la tienda de la fase 3.
+- **Sector de ida.** Hoy se avanza hasta un portal y se pasa a otro sector; el plan habla de «regresar a estaciones seguras». Con la economía ya existente hay que decidir si hace falta una base a la que volver (el contrato de 65 créditos se cobra al superar el sector, sin volver).
+- **Economía (fase 3), a decidir con jugadores:**
+  - Los **créditos no puntúan** (ni las mejoras): el explorador que gasta no pierde puntos, pero el dinero no vale nada al final.
+  - **Sin minar sobran ~100 créditos** y no se compra ninguna mejora; minar da 3-5 por partida.
+  - **`jump-drive` casi no se compra** (0,03-0,05 por partida, por precio) y `reactor-heatsink` poco (0,26): revisar precio o efecto.
+  - **No se puede soltar carga atracado ni en el espacio** (`jettison` solo en superficie), aunque pese y encarezca el salto.
+  - **La ayuda de emergencia se da aunque haya créditos** (gratis, una vez por estación): decidir si solo debería darse sin ellos.
+  - **La oferta no se renueva** (fija por estación).
+  - **Con todas las mejoras, la demanda con todo encendido supera el reactor** (aceptado por diseño, con aviso de sobrecarga en el terminal).
+  - **`isSectorSolvable` asume repostaje completo en estación** (hoy 75 % gratis y el resto de pago): un sector «completable» puede no serlo para quien llegue sin créditos ni carga y con mucha masa. Vigilar varadas en la prueba con personas.
 - **Sin tutorial.** Solo ayuda con H y carteles. Decidir tras la prueba con jugadores.
 - **El mapa solo se abre en la mesa del puente** (hay que ir andando). Es deliberado, pero puede resultar pesado.
 - **Los sistemas apagados por el jugador no se encienden solos** tras una sobrecarga: decidir si es buena fricción.
@@ -215,7 +281,7 @@ Ningún agente puede hacerlas.
 - **Curva de «apurar»** (pendiente del crítico): entre 25 % y 3 % de margen de O₂ solo se gana ~+25 % de valor por salida (213 → 265) a costa de pasar de 0 % a 35 % de muertes. Palancas aplazadas: raros en filones o racha no lineal; decidir con datos de personas.
 - **Dos salidas tranquilas rinden algo más que una apurada** (por aterrizaje, el prudente saca 413 puntos y «hasta vaciar» 488 frente a 549 del codicioso, que muere el 49 %): vigilar con jugadores.
 - **Explorar baja la supervivencia:** sector 3 con exploración, 85-86 % frente a 92 % sin explorar.
-- **La mena es relleno hasta la fase 3** (rinde repuestos, pero no tiene más función).
+- **La mena ya no es relleno:** con los repuestos llenos se vende (4 créditos por unidad), pero pesa y encarece cada salto; vale poco frente a cristales (14) y muestras (24).
 - **Accesibilidad:** hay intensidad de efectos y tres ajustes separados (esquiva simple, averías simples, puntería ancha), pero no hay mando, táctil ni remapeo de teclas (fase 5).
 - **Curva de «apurar el oxígeno»: el criterio de cierre del revisor NO se alcanzó.** Pedía +15 % o más de valor por salida entre
   25 % y 8-15 % de margen con <= 10 % de muertes. Con el bonus de filón queda en **+6,5 % con 5 % de muertes** (291 → 310
@@ -228,7 +294,7 @@ Ningún agente puede hacerlas.
 - **Los filones no se han visto en pantalla** (solo cifras y tests; tampoco el avance «2/3» ni la veta que completa); su legibilidad y su distancia (8-15 m) son provisionales.
 - **Minijuegos sin datos de personas:** dificultad de la esquiva (`averias.json`, `impact.evade`), tamaño de las zonas de reparación y efecto de acertar o fallar son provisionales.
 - **Qué hace el hielo de la luna volcánica y el mundo de tormentas:** escaso, lejos y con tormentas que paran el concentrador; el bot no lo busca de forma especial. Ver con jugadores si vale el viaje.
-- **Qué valen cristales y muestras:** hoy solo suman puntuación y ocupan bodega; el precio lo decide la fase 3.
+- **Qué valen cristales y muestras:** además de puntuar al guardarse, se venden por 14 y 24 créditos (más por sector). Precios provisionales hasta la prueba con personas.
 - **Mecha Aurora G9:** aplazado (ADR 0012). Decidir en fases posteriores si vuelve como vehículo o se retira del GDD.
 - **Mascota:** no hay. Si vuelve, Rise sigue necesitando autorización de NASA.
 
@@ -251,10 +317,16 @@ Ningún agente puede hacerlas.
 - **Mando y táctil** no implementados. Sin CI ni linter.
 - **`fx` y `playerState`** son objetos mutables de módulo (leídos por frame sin pasar por React).
 
-## Próximos pasos
+## Próximos pasos (hacia la fase 4)
 
 1. Cerrar la fase 2: segunda revisión de diseño, validación independiente final, prueba con jugadores y medida de FPS;
    ajustar `catalog/mundos.json` con `pnpm balance` (ver `.claude/skills/add-catalog-item`).
-2. Decidir el commit de las mejoras en `feat/f2-herramientas-e-interacciones` y el PR de la fase 2; después, la prueba con jugadores de la fase 1.
-3. Fase 3 (economía): vender cristales y muestras, mejoras sobre `ShipDef`/traje/jetpack; decidir el destino del servicio gratuito de estación.
+2. La prueba con jugadores de la fase 1.
+3. Cerrar la fase 3: commit y PR de `feat/f3-economia-progresion`, prueba de 20 minutos con personas y ajuste de precios y mejoras (`economia.json`, `mejoras.json`) con `pnpm balance`.
 4. Escribir `docs/MULTIPLAYER.md` nuevo antes de tocar `apps/game-server` (fase 4); el antitrampas de `set-position` y la autoridad dividida (ADR 0012) son su punto de partida.
+5. **Lo que el cooperativo debe saber de la economía** (para `docs/MULTIPLAYER.md` y `apps/game-server`):
+   - Todo el comercio entra como `RunAction` (`sell`, `buy-supply`, `buy-upgrade`, `service`) y es determinista: la oferta sale de semilla + sector + nodo, sin azar propio del servidor. El motor valida estación, créditos y oferta, así que el servidor solo reenvía acciones.
+   - `run.stationQuote()` es la fuente única de precios y oferta; `effectiveShip()` y `effectiveSurfaceRules()`, de la nave y las reglas con mejoras. El cliente no calcula cifras y el servidor debe usar las mismas.
+   - Los **créditos y las mejoras son de la tripulación** (un único `RunState`, compartidos). Falta decidir quién gasta: propuesta, el rol «gestor de recursos» lidera el terminal, sin bloqueo rígido (como pide `docs/phases/fase-4.md`). El motor ya rechaza compras duplicadas o sin créditos.
+   - `RunState.credits` y `upgrades` son obligatorios: cualquier `RunState` armado a mano (fixtures, red) debe incluirlos.
+   - El terminal **no pausa** el juego: la nave sigue viva mientras se compra.

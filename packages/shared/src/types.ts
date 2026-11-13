@@ -153,8 +153,13 @@ export interface NodeKindDef {
   hazardPerLy: Record<HazardKind, number>;
   /** Contenedor a la deriva que se recoge al llegar (una vez). */
   cache?: { chance: number; fuel: Range; spares: Range };
-  /** Servicio de estación (una vez por estación): repostar, reparar casco y repuestos. */
+  /**
+   * OBSOLETO desde la fase 3 (ADR 0014): el servicio gratuito desaparece. Si un catálogo antiguo lo
+   * declara, el tipo cuenta como estación con terminal (`shop`); sus cifras se ignoran.
+   */
   service?: { refuel: boolean; hullRepair: number; spares: number };
+  /** Fase 3: hay terminal de estación (venta, suministros de pago, ayuda de emergencia y mejoras). */
+  shop?: boolean;
 }
 
 export interface SectorRules {
@@ -183,6 +188,120 @@ export interface Catalog {
    * rellena con el catálogo por defecto si falta, así que tras validar siempre está presente.
    */
   surface?: SurfaceCatalog;
+  /**
+   * Fase 3: precios, ayuda de emergencia y masa → combustible (`catalog/economia.json`). Opcional en el
+   * JSON (`parseCatalog` pone el de por defecto), así que tras validar siempre está presente.
+   */
+  economy?: EconomyRules;
+  /** Fase 3: mejoras de nave y equipo (`catalog/mejoras.json`). Igual que `economy`: siempre presente tras validar. */
+  upgrades?: UpgradeDef[];
+}
+
+// ─── Economía y mejoras (fase 3, ADR 0014) ───────────────────────────────────
+
+/** Suministros que vende la terminal de estación. */
+export const SUPPLY_IDS = ['fuel', 'hull', 'spares'] as const;
+export type SupplyId = (typeof SUPPLY_IDS)[number];
+
+export interface EconomyRules {
+  /** Créditos al empezar la partida. */
+  startCredits: number;
+  /** Pago del contrato al superar cada sector (× multiplicador de venta del sector). */
+  sectorRewardCredits: number;
+  /**
+   * Multiplicador por sector: precio × (1 + porSector × (sector − 1)). `sell` se aplica a la venta de
+   * carga y al contrato; `buy`, a suministros y mejoras.
+   */
+  sectorPriceMult: { sellPerSector: number; buyPerSector: number };
+  /** Créditos por unidad de cada material (id → precio base). Lo que no está aquí no se puede vender. */
+  sellPrices: Record<string, number>;
+  /** Precio base por unidad de combustible, por punto de casco y por repuesto. */
+  supplyPrices: Record<SupplyId, number>;
+  /**
+   * Ayuda de emergencia (acción `service`), gratis y una vez por estación: sube el combustible hasta
+   * `fuelPct` % del depósito, el casco hasta `hullPct` % y los repuestos hasta `minSpares`. Evita que
+   * llegar sin créditos ni carga sea una muerte segura.
+   */
+  emergency: { fuelPct: number; hullPct: number; minSpares: number };
+  /** Combustible de cada salto × (1 + masa a bordo (carga + mejoras) / `massRefKg`). */
+  cargoFuel: { massRefKg: number };
+  /** Mejoras distintas que ofrece cada estación (subconjunto determinista por semilla y nodo). */
+  offer: { size: number };
+}
+
+/** Qué ajusta una mejora: la nave (`ShipDef`), el traje, el jetpack o las caídas (`SurfaceRules`). */
+export const UPGRADE_TARGETS = ['ship', 'suit', 'jetpack', 'falls'] as const;
+export type UpgradeTarget = (typeof UPGRADE_TARGETS)[number];
+
+/** Campos numéricos que puede tocar una mejora en cada objetivo. */
+export const UPGRADE_FIELDS: Record<UpgradeTarget, readonly string[]> = {
+  ship: [
+    'hullMax', 'fuelCapacity', 'maxSpares', 'reactorOutputKw', 'cruiseSpeedLyPerS', 'fuelPerLy', 'damagedEngineFuelPenalty', 'evadeFuel',
+    'crewO2UsePctPerS', 'o2RegenPctPerS', 'shieldAbsorb', 'shieldWearPctPerHit', 'overloadReactorDamagePctPerS',
+    'systemDrawKw.engines', 'systemDrawKw.lifeSupport', 'systemDrawKw.shields', 'systemDrawKw.nav',
+  ],
+  suit: ['o2DrainPctPerS', 'carryCapacityKg', 'refillShipO2PctPerTank', 'airlockCycleShipO2Pct', 'collectRangeM'],
+  jetpack: ['drainPctPerS', 'rechargePctPerS'],
+  falls: ['harmlessMps', 'o2LossPctPerMps', 'lethalMps'],
+};
+
+/**
+ * Cambio numérico: valor × `mult` + `add` (primero el multiplicador). `field` es un campo numérico del
+ * objetivo; en la nave admite `systemDrawKw.<sistema>`.
+ */
+export interface UpgradeEffect {
+  target: UpgradeTarget;
+  field: string;
+  add?: number;
+  mult?: number;
+}
+
+export interface UpgradeLevelDef {
+  /** Precio base (× multiplicador de compra del sector). */
+  price: number;
+  /** Masa que añade a la nave: encarece cada salto como la carga (`economy.cargoFuel`). */
+  massKg: number;
+  effects: UpgradeEffect[];
+}
+
+/** Mejora con niveles que se compran en orden. Ids kebab-case; nombre en `catalog.<id>`. */
+export interface UpgradeDef {
+  id: string;
+  name: LocalizedText;
+  levels: UpgradeLevelDef[];
+}
+
+/** Lo que muestra la terminal de la estación en la que está atracada la nave (`Run.stationQuote`). */
+export interface StationQuote {
+  nodeId: string;
+  credits: number;
+  /** Multiplicadores de precio del sector actual. */
+  sellMult: number;
+  buyMult: number;
+  /** Carga vendible: unidades, precio por unidad y total, por material. */
+  sell: { materialId: string; units: number; unitPrice: number; total: number }[];
+  sellTotal: number;
+  /** Por suministro: precio por unidad, lo que falta para el máximo, lo que se puede pagar y el coste de llenarlo. */
+  supplies: Record<SupplyId, { unitPrice: number; missing: number; affordable: number; fillCost: number }>;
+  /** Ayuda de emergencia: si aún está disponible aquí y lo que daría ahora. */
+  emergency: { available: boolean; fuel: number; hull: number; spares: number };
+  /** Mejoras que ofrece esta estación (subconjunto determinista) con su siguiente nivel (null = al máximo). */
+  upgrades: {
+    upgradeId: string;
+    level: number;
+    maxLevel: number;
+    nextLevel: number | null;
+    price: number | null;
+    massKg: number;
+    affordable: boolean;
+    /**
+     * Cambio que traería el siguiente nivel en el margen eléctrico a crucero con todo encendido (potencia del reactor
+     * sano − demanda, kW; ver `cruisePowerMarginKw`). Negativo = consume margen. 0 si está al máximo.
+     */
+    powerMarginDeltaKw: number;
+    /** Con el siguiente nivel, la demanda a crucero con todo encendido superaría al reactor sano (sobrecarga). */
+    overloadsAtCruise: boolean;
+  }[];
 }
 
 // ─── Superficie (fase 2) ────────────────────────────────────────────────────
@@ -452,8 +571,10 @@ export interface ShipState {
   powerDemandKw: number;
   overloaded: boolean;
   speedLyPerS: number;
-  /** Bodega: unidades por id de material (los raros se venderán en la fase 3). */
+  /** Bodega: unidades por id de material (se venden en las estaciones, fase 3). */
   cargo: Record<string, number>;
+  /** Fase 3, derivado: masa a bordo que encarece los saltos (bodega + mejoras), en kg. */
+  cargoKg?: number;
 }
 
 /** Tripulante. En solitario hay uno; la fase 4 tendrá hasta cuatro. */
@@ -625,6 +746,13 @@ export interface RunStats {
   /** Puntos de los materiales guardados a bordo (neto de lo soltado). */
   materialsValue: number;
   crewLost: number;
+  /** Fase 3: créditos ganados (venta y contratos) y gastados (suministros y mejoras). */
+  creditsEarned?: number;
+  creditsSpent?: number;
+  /** Fase 3: unidades de carga vendidas. */
+  unitsSold?: number;
+  /** Fase 3: niveles de mejora comprados. */
+  upgradesBought?: number;
 }
 
 export interface RunState {
@@ -646,6 +774,10 @@ export interface RunState {
   surface: SurfaceState | null;
   stats: RunStats;
   score: number;
+  /** Fase 3: créditos disponibles (enteros). */
+  credits: number;
+  /** Fase 3: nivel comprado de cada mejora (id → nivel; 1 = primer nivel). */
+  upgrades: Record<string, number>;
 }
 
 export type RunEventType =
@@ -689,6 +821,11 @@ export type RunEventType =
   | 'tool-stopped'
   | 'tool-resumed'
   | 'tool-lost'
+  // Fase 3: economía
+  | 'sale'
+  | 'purchase'
+  | 'upgrade'
+  | 'reward'
   | 'lost';
 
 export type EventTone = 'info' | 'ok' | 'warn' | 'bad';
@@ -705,7 +842,9 @@ export type RunEventSubtype =
   // herramientas: `tool-stopped` storm · `tool-lost` left
   | 'storm' | 'left'
   // `material-collected` lode: piezas de la última veta de un filón completado (llevan el bonus)
-  | 'lode';
+  | 'lode'
+  // `purchase` fuel/hull/spares (fase 3)
+  | 'fuel' | 'hull' | 'spares';
 
 export interface RunEvent {
   id: number;
@@ -731,7 +870,20 @@ export type RunAction =
    * recorta a 0..maxGrazes): el impacto entra con esa fracción del daño.
    */
   | { type: 'evade'; grazes?: number }
+  /** Fase 3: ayuda de emergencia gratuita (una vez por estación; ver `EconomyRules.emergency`). */
   | { type: 'service' }
+  /**
+   * Fase 3, atracada en una estación: vende carga. Sin `materialId`, toda la bodega; con él, `units`
+   * unidades de ese material (sin `units`, todas).
+   */
+  | { type: 'sell'; materialId?: string; units?: number }
+  /**
+   * Fase 3, atracada en una estación: compra un suministro. `amount` = unidades de combustible, puntos de
+   * casco o repuestos; sin él, hasta el máximo. Se compra lo que quepa y se pueda pagar (al menos 1).
+   */
+  | { type: 'buy-supply'; supply: SupplyId; amount?: number }
+  /** Fase 3, atracada en una estación que la ofrezca: compra el siguiente nivel de la mejora. */
+  | { type: 'buy-upgrade'; upgradeId: string }
   | { type: 'next-sector' }
   // Superficie (fase 2). `crewId` por defecto: el primer tripulante vivo.
   | { type: 'land' }
@@ -761,6 +913,9 @@ export type ActionResult = { ok: true } | { ok: false; reason: MessageRef };
 export interface JumpEstimate {
   toId: string;
   distanceLy: number;
+  /** Fase 3: masa a bordo (bodega + mejoras) y su multiplicador del combustible (ya incluido en `byThrottle`). */
+  cargoKg?: number;
+  cargoFuelMult?: number;
   /** Combustible y tiempo estimados por régimen, con el estado actual de los motores. */
   byThrottle: Record<ThrottleId, { fuel: number; timeS: number; enoughFuel: boolean }>;
   /** Peligros esperados en el trayecto (ya con el multiplicador del sector). */
@@ -812,6 +967,12 @@ export interface Run {
   estimateTakeOff(): TakeOffEstimate | null;
   /** Copia profunda del estado (tests, red). */
   snapshot(): RunState;
+  /** Fase 3: la nave con las mejoras compradas (la que usa el motor). Objeto vivo: no lo mutes. */
+  effectiveShip(): ShipDef;
+  /** Fase 3: reglas de superficie con las mejoras de traje, jetpack y caídas (las que usa el motor). Objeto vivo: no lo mutes. */
+  effectiveSurfaceRules(): SurfaceRules;
+  /** Fase 3: atracada en una estación con terminal, precios y ofertas; si no, null. */
+  stationQuote(): StationQuote | null;
 }
 
 export interface RunOptions {

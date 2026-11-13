@@ -21,7 +21,7 @@ Vitest, pnpm + Turborepo. Interfaz en español (por defecto) e inglés.
 | --- | --- |
 | 1 · Viaje y nave (en solitario) | **Implementada**: mapa estelar, saltos, interior caminable, sistemas, averías en tiempo real y permadeath. Pendiente de validación independiente y de prueba con jugadores. |
 | 2 · Exploración de superficie | **Implementada** (rama `feat/f2-superficie`): descenso, jetpack, oxígeno personal, recolección, tormentas y despegue. Pendiente de validación independiente final y de prueba con jugadores. |
-| 3 · Economía y progresión | Pendiente: venta en estaciones y mejoras. |
+| 3 · Economía y progresión | **Implementada** (rama `feat/f3-economia-progresion`): créditos, terminal de estación (venta, suministros y 11 mejoras con contrapartida) y la carga pesa. Validada con observaciones; pendiente de prueba con jugadores. |
 | 4 · Cooperativo 1-4 | Pendiente: servidor autoritativo y roles (`apps/game-server` es un marcador). |
 | 5 · Pulido y lanzamiento | Pendiente (`apps/api` es un marcador). |
 
@@ -101,7 +101,7 @@ payload/
 │  └─ api/           # marcador: rankings y persistencia (fase 5)
 ├─ packages/
 │  └─ shared/        # motor del juego en TypeScript puro, con tests
-│     ├─ catalog/    # naves, averías, destinos, sectores y mundos (.json)
+│     ├─ catalog/    # naves, averías, destinos, sectores, mundos, economía y mejoras (.json)
 │     └─ locales/    # textos del motor (es/en)
 ├─ assets/           # modelos 3D (originales y optimizados) y CREDITS.md
 ├─ docs/             # plan, GDD, fases, ADR, arquitectura, estado, archivo

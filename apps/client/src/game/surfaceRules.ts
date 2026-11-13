@@ -4,6 +4,7 @@
  * la guía del descenso. El motor manda en recursos y consecuencias; aquí solo se traduce.
  */
 import { catalog as defaultCatalog, getSurfaceCatalog, lodeProgress, referenceBrake, type Catalog, type Deposit, type LodeProgress, type PlacedTool, type RunAction, type RunPhase, type RunState, type StormStatus, type WorldDef } from '@payload/shared';
+import { effectiveRulesOf } from './effective';
 import type { Prompt, PromptBadge } from '../state/ui';
 
 // ─── Dónde está la nave ──────────────────────────────────────────────────────────────────────────
@@ -61,8 +62,9 @@ export type SurfaceInteraction =
   | { kind: 'tool'; tool: PlacedTool; deposit: Deposit | null; full: boolean }
   | { kind: 'enter'; carriedKg: number; toolsOut: number; readyOut: number };
 
-export function surfaceRulesOf(cat: Catalog = defaultCatalog) {
-  return getSurfaceCatalog(cat).rules;
+/** Reglas de superficie EFECTIVAS (con las mejoras de `state`); sin estado, las del catálogo. */
+export function surfaceRulesOf(cat: Catalog = defaultCatalog, state?: Pick<RunState, 'upgrades'>) {
+  return state ? effectiveRulesOf(state, cat) : getSurfaceCatalog(cat).rules;
 }
 
 /** Herramienta que extrae un material (la elige el motor por `material.tool`; aquí solo se muestra). */
@@ -86,7 +88,8 @@ export function surfaceInteractionAt(state: RunState, x: number, z: number, cat:
   const m = state.crew.find((c) => c.alive);
   if (state.phase !== 'surface' || !state.surface || !m || m.location !== 'eva') return null;
   const surface = getSurfaceCatalog(cat);
-  const suit = surface.rules.suit;
+  // Traje EFECTIVO: alcance y mochila con las mejoras compradas.
+  const suit = effectiveRulesOf(state, cat).suit;
   const surf = state.surface;
   let bestTool: PlacedTool | null = null;
   let bestToolD = suit.collectRangeM;

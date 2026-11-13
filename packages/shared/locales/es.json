@@ -52,7 +52,7 @@
     "blackout": "¡Apagón! El reactor no da energía",
     "systemDown": "$t(systemName.{{system}}): fuera de servicio",
     "systemRepaired": "$t(systemName.{{system}}): reparado",
-    "service": "Servicio de estación: +{{fuel}} combustible · +{{hull}} casco · +{{spares}} repuestos",
+    "service": "Ayuda de emergencia: +{{fuel}} combustible · +{{hull}} casco · +{{spares}} repuestos",
     "cache": "Contenedor recuperado: +{{fuel}} combustible · +{{spares}} repuestos",
     "lowOxygen": "Oxígeno bajo",
     "lowFuel": "Combustible bajo",
@@ -97,7 +97,15 @@
     "toolStopped": "Tormenta: $t(catalog.{{tool}}) detenido",
     "toolResumed": "$t(catalog.{{tool}}) en marcha de nuevo",
     "toolLost": "Herramientas abandonadas fuera: {{count}}",
-    "pickedUp": "+{{units}} $t(catalog.{{material}}) · {{kg}}/{{capacity}} kg"
+    "pickedUp": "+{{units}} $t(catalog.{{material}}) · {{kg}}/{{capacity}} kg",
+    "sold": "Vendido: {{units}} uds · +{{credits}} créditos",
+    "purchase": {
+      "fuel": "Repostado: +{{amount}} combustible · −{{credits}} créditos",
+      "hull": "Casco reparado: +{{amount}} · −{{credits}} créditos",
+      "spares": "Repuestos: +{{amount}} · −{{credits}} créditos"
+    },
+    "upgrade": "Instalado: $t(catalog.{{upgrade}}) nivel {{level}} · −{{credits}} créditos",
+    "sectorReward": "Contrato del sector cobrado: +{{credits}} créditos"
   },
   "loss": {
     "hull": "La nave se ha desintegrado",
@@ -120,9 +128,9 @@
     "noDamage": "El sistema no tiene daños",
     "noSpares": "No quedan repuestos",
     "noWarning": "No hay ningún impacto que esquivar",
-    "noService": "Aquí no hay servicio de estación",
-    "serviceUsed": "Esta estación ya te ha atendido",
-    "serviceNotNeeded": "La nave no necesita servicio",
+    "noService": "Aquí no hay terminal de estación",
+    "serviceUsed": "Ya usaste la ayuda de emergencia de esta estación",
+    "serviceNotNeeded": "La nave no necesita ayuda de emergencia",
     "invalid": "Acción no válida",
     "onSurface": "No se puede con la nave en tierra",
     "notLandable": "Aquí no se puede aterrizar",
@@ -148,6 +156,12 @@
     "toolPlaced": "Esa veta ya tiene una herramienta",
     "noTool": "No te queda $t(catalog.{{tool}})",
     "noToolHere": "Coloca antes una herramienta en esa veta",
-    "nothingReady": "Aún no hay nada extraído"
+    "nothingReady": "Aún no hay nada extraído",
+    "notAtStation": "Solo atracado en una estación",
+    "noCredits": "Créditos insuficientes: hacen falta {{credits}}",
+    "nothingToSell": "No hay carga que vender",
+    "supplyFull": "Ya está al máximo",
+    "notOffered": "Esta estación no ofrece esa mejora",
+    "upgradeMaxed": "Esa mejora ya está al máximo"
   }
 }

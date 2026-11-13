@@ -1,7 +1,7 @@
 # Fase 4 · Cooperativo 1-4 con roles
 
 Plan § 3: *dinámica cooperativa y roles de la tripulación*. Diseño previsto: `docs/GDD.md` § 8 y § 11.
-No iniciada: `apps/game-server` es un marcador.
+No iniciada: `apps/game-server` es un marcador. La fase 3 (economía) está implementada, así que el cooperativo hereda créditos, mejoras y terminal de estación.
 
 **Hito:** cuatro personas en cuatro equipos distintos (red local, no solo `localhost`) completan un
 sector comunicándose, sin desincronizaciones.
@@ -11,6 +11,7 @@ sector comunicándose, sin desincronizaciones.
 - El motor ya está pensado para el servidor: paso fijo (0,1 s), sin reloj ni azar global, y toda decisión entra
   como `RunAction` (`createRun(...).apply`).
 - ADR 0009 (servidor autoritativo con Colyseus 0.18) y ADR 0010 (un proceso, sin Redis) siguen siendo la base técnica.
+- **Economía (fase 3, ADR 0014):** créditos (`RunState.credits`) y mejoras (`RunState.upgrades`) son de toda la tripulación, en un único `RunState`. `sell`, `buy-supply`, `buy-upgrade` y `service` son `RunAction` deterministas y acotadas: el motor valida estación, créditos y oferta (que sale de semilla + sector + nodo). `run.stationQuote()`, `effectiveShip()` y `effectiveSurfaceRules()` son la fuente única de cifras: el cliente no calcula precios. El terminal no pausa el juego. Falta decidir quién puede gastar (propuesta: el rol «gestor de recursos» lidera el terminal, sin bloqueo rígido).
 - La sala de la versión anterior (`MissionRoom.ts`) sirve de referencia probada para reconexión y límites de tráfico.
 
 ## Alcance previsto
