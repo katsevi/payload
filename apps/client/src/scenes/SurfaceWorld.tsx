@@ -404,7 +404,9 @@ function Deposits({ terrain, onCollectFx }: { terrain: Terrain; onCollectFx: (d:
       }
       const b = beams.current[i];
       if (b) {
-        b.visible = on;
+        // Filón (vetas raras agrupadas, `lodeId`): un único haz por filón, en la primera veta que quede.
+        const lead = d.lodeId === undefined || !live.some((o, k) => o.lodeId === d.lodeId && o.units > 0 && k < live.findIndex((x) => x.id === d.id));
+        b.visible = on && lead;
         b.position.set(d.x, terrain.heightAt(d.x, d.z) + 15, d.z);
       }
     });
@@ -428,7 +430,7 @@ function Deposits({ terrain, onCollectFx }: { terrain: Terrain; onCollectFx: (d:
         return (
           <group key={d.id}>
             {look?.glow && (
-              <sprite ref={(s) => void (glows.current[i] = s)} scale={[d.materialId === 'sample' ? 4 : 3.2, d.materialId === 'sample' ? 4 : 3.2, 1]}>
+              <sprite ref={(s) => void (glows.current[i] = s)} scale={glowScale(d)}>
                 <spriteMaterial map={glowTexture()} color={look.glow} transparent blending={AdditiveBlending} depthWrite={false} toneMapped={false} fog={false} />
               </sprite>
             )}
@@ -442,6 +444,13 @@ function Deposits({ terrain, onCollectFx }: { terrain: Terrain; onCollectFx: (d:
       })}
     </>
   );
+}
+
+/** Halo de una veta rara: más pequeño si va en filón (varias a pocos metros no se funden en una mancha). */
+function glowScale(d: Deposit): [number, number, number] {
+  const base = d.materialId === 'sample' ? 4 : 3.2;
+  const k = d.lodeId === undefined ? 1 : 0.6;
+  return [base * k, base * k, 1];
 }
 
 /** Chispas en la veta que se está arrancando. */

@@ -62,3 +62,7 @@ y el mecha Aurora G9 como vehículo (aplazado). Sin mando, táctil ni remapeo de
 Crítico independiente en tres pasadas: 6/10 → 7/10 → 8/10; cumple el hito sobre el papel con la salida media en el borde
 bajo de 2-3 min. La última corrección (ventanas de frenado, vetas de zona recogibles desde fuera y caída residual en el
 mundo pesado) no se ha recalificado. Abiertos para la prueba con jugadores: ver `docs/STATUS.md` («Decisiones de diseño abiertas»).
+
+## Nota posterior
+
+La recogida cambió después de la fase: ya no se mantiene E; se despliegan herramientas que extraen solas y `collect` recoge lo extraído (ADR 0013, mejora fuera del plan en `feat/f2-herramientas-e-interacciones`). Las casillas de arriba no se han tocado. «Recorrido manual» y los nombres de acciones de esta ficha describen la versión original; ver `docs/STATUS.md`.

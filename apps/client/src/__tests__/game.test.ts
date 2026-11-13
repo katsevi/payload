@@ -3,7 +3,7 @@ import { catalog, getNode, SYSTEM_IDS, type RunState } from '@payload/shared';
 import { dangerLevel, musicMixFor, MUSIC_LAYERS } from '../audio/musicLogic';
 import { resetCueMemory, useCues } from '../audio/cues';
 import { SFX_IDS, SFX_META, sfxForRunEvent } from '../audio/soundLogic';
-import { EVADE_HOLD_S, holdAction, incidentAt, interactionAt, nextThrottle, promptFor } from '../game/interaction';
+import { chargedAction, EVADE_HOLD_S, holdAction, incidentAt, interactionAt, nextThrottle, promptFor, startsDodge } from '../game/interaction';
 import { BULKHEADS_Z, HULL, STATIONS, STATION_IDS, USE_RADIUS, distanceToStation, nearestStation, runSecondsBetween, zoneAt } from '../game/layout';
 import { getRun, useGame } from '../game/runStore';
 import { useUi } from '../state/ui';
@@ -105,7 +105,13 @@ describe('interacciones', () => {
     const s = freshRun();
     const warned: RunState = { ...s, phase: 'transit', warnings: [{ hazardId: 1, etaS: 5, evaded: false }] };
     expect(interactionAt('helm', warned)).toEqual({ kind: 'helm', canEvade: true });
-    expect(promptFor(interactionAt('helm', warned), warned, 0.4)).toMatchObject({ key: 'prompt.evade', hold: true, progress: 0.4 });
+    // Por defecto, pulsar E toma los mandos (minijuego de esquiva); con interacciones simples, mantener E.
+    expect(promptFor(interactionAt('helm', warned), warned, 0.4)).toMatchObject({ key: 'prompt.evadeDodge', hold: false });
+    expect(startsDodge(interactionAt('helm', warned), false)).toBe(true);
+    expect(chargedAction(interactionAt('helm', warned), false)).toBeNull();
+    expect(promptFor(interactionAt('helm', warned), warned, 0.4, true)).toMatchObject({ key: 'prompt.evade', hold: true, progress: 0.4 });
+    expect(startsDodge(interactionAt('helm', warned), true)).toBe(false);
+    expect(chargedAction(interactionAt('helm', warned), true)?.action).toEqual({ type: 'evade' });
     const done: RunState = { ...warned, warnings: [{ hazardId: 1, etaS: 5, evaded: true }] };
     expect(interactionAt('helm', done)).toEqual({ kind: 'helm', canEvade: false });
   });

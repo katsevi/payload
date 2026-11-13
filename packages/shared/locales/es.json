@@ -69,7 +69,6 @@
       "enter": "De vuelta a bordo",
       "exitPartial": "Esclusa abierta · poco O₂ a bordo: traje al {{o2}} %"
     },
-    "collected": "+1 $t(catalog.{{material}}) · {{kg}}/{{capacity}} kg",
     "cargoStored": "A bodega: {{units}} uds · +{{value}} puntos",
     "cargoProcessed": "Procesado: +{{fuel}} combustible · +{{spares}} repuestos",
     "storm": {
@@ -91,7 +90,14 @@
       "fall": "Un tripulante ha muerto en una caída"
     },
     "takeOff": "Despegue · −{{fuel}} combustible",
-    "jettison": "Carga soltada: {{units}} uds · −{{value}} puntos"
+    "jettison": "Carga soltada: {{units}} uds · −{{value}} puntos",
+    "impactGrazed": "Roce con un asteroide: casco −{{damage}}",
+    "toolPlaced": "$t(catalog.{{tool}}) en marcha sobre $t(catalog.{{material}})",
+    "toolDone": "Veta agotada: {{units}} uds de $t(catalog.{{material}}) listas para recoger",
+    "toolStopped": "Tormenta: $t(catalog.{{tool}}) detenido",
+    "toolResumed": "$t(catalog.{{tool}}) en marcha de nuevo",
+    "toolLost": "Herramientas abandonadas fuera: {{count}}",
+    "pickedUp": "+{{units}} $t(catalog.{{material}}) · {{kg}}/{{capacity}} kg"
   },
   "loss": {
     "hull": "La nave se ha desintegrado",
@@ -137,6 +143,11 @@
     "takeOffHeavy": "Demasiada carga: despegar costará {{fuel}}",
     "nothingToJettison": "No has cargado nada en este mundo",
     "enginesOffline": "Motores sin energía o en corto: no habría freno",
-    "collectAirborne": "Pon los pies en el suelo para recoger"
+    "collectAirborne": "Pon los pies en el suelo para recoger",
+    "toolAirborne": "Pon los pies en el suelo para colocar la herramienta",
+    "toolPlaced": "Esa veta ya tiene una herramienta",
+    "noTool": "No te queda $t(catalog.{{tool}})",
+    "noToolHere": "Coloca antes una herramienta en esa veta",
+    "nothingReady": "Aún no hay nada extraído"
   }
 }

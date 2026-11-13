@@ -75,6 +75,16 @@ const hazardsSchema = z.strictObject({
       systemDamageMin: nonNeg,
       systemDamageMax: nonNeg,
       leakChanceUnshielded: probability,
+      evade: z
+        .strictObject({
+          maxGrazes: positive.int(),
+          grazeDamageFrac: probability,
+          failDamageFrac: probability,
+          difficultyBase: probability,
+          difficultyPerSector: nonNeg,
+          difficultyFromSeverity: nonNeg,
+        })
+        .optional(),
     })
     .refine((i) => i.hullDamageMin <= i.hullDamageMax && i.systemDamageMin <= i.systemDamageMax, { message: 'min debe ser <= max' }),
   wear: z.strictObject({ chancePerS: probability, weights: z.strictObject({ fire: nonNeg, short: nonNeg, leak: nonNeg }) }),
@@ -146,7 +156,12 @@ const surfaceRulesSchema = z.strictObject({
   value: z.strictObject({ distanceBonus: nonNeg, dangerBonus: nonNeg, dangerMarginM: nonNeg }),
   streak: z.strictObject({ bonusPerUnit: nonNeg, maxBonus: nonNeg }),
   shipO2: z.strictObject({ surfaceSurplusRegenMult: probability }).optional(),
+  lodes: z
+    .strictObject({ size: range.refine((r) => r.min >= 1, { message: 'al menos 1 veta por filón' }), spacingM: range, completeMult: positive.optional() })
+    .optional(),
 });
+
+const toolSchema = z.strictObject({ id, name: localized, perCrew: nonNeg.int(), stopsInStorm: z.boolean(), speedMult: positive });
 
 const materialSchema = z.strictObject({
   id,
@@ -154,6 +169,7 @@ const materialSchema = z.strictObject({
   value: nonNeg,
   massKg: positive,
   collectS: positive,
+  tool: id,
   yields: z.strictObject({ fuel: nonNeg.optional(), spares: nonNeg.int().optional() }).optional(),
   streak: z.boolean().optional(),
 });
@@ -179,6 +195,7 @@ const worldSchema = z.strictObject({
 
 const surfaceSchema = z.strictObject({
   rules: surfaceRulesSchema,
+  tools: z.array(toolSchema).min(1),
   materials: z.array(materialSchema).min(1),
   worlds: z.array(worldSchema),
 });
@@ -207,7 +224,9 @@ const catalogSchema = z
     if (!surface) return;
     const ids = new Set<string>([...shipIds, ...NODE_KINDS]);
     const materialIds = new Set<string>();
-    for (const entry of [...surface.materials, ...surface.worlds]) {
+    const toolIds = new Set(surface.tools.map((t) => t.id));
+    for (const mat of surface.materials) if (!toolIds.has(mat.tool)) ctx.addIssue({ code: 'custom', message: `el material "${mat.id}" usa una herramienta desconocida: ${mat.tool}` });
+    for (const entry of [...surface.tools, ...surface.materials, ...surface.worlds]) {
       if (ids.has(entry.id)) ctx.addIssue({ code: 'custom', message: `id repetido en el catálogo: ${entry.id}` });
       ids.add(entry.id);
     }

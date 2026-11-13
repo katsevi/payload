@@ -19,13 +19,13 @@
       "o2DrainPctPerS": 0.6,
       "lowO2Pct": 35,
       "criticalO2Pct": 15,
-      "carryCapacityKg": 80,
+      "carryCapacityKg": 110,
       "collectRangeM": 3,
       "airlockRangeM": 4,
       "maxMoveSpeedMps": 12,
-      "refillShipO2PctPerTank": 22,
+      "refillShipO2PctPerTank": 25,
       "refillMinShipO2Pct": 30,
-      "airlockCycleShipO2Pct": 3
+      "airlockCycleShipO2Pct": 8
     },
     "jetpack": {
       "drainPctPerS": 15,
@@ -51,8 +51,41 @@
     },
     "shipO2": {
       "surfaceSurplusRegenMult": 0.05
+    },
+    "lodes": {
+      "size": {
+        "min": 2,
+        "max": 3
+      },
+      "spacingM": {
+        "min": 8,
+        "max": 15
+      },
+      "completeMult": 1.5
     }
   },
+  "tools": [
+    {
+      "id": "solar-concentrator",
+      "name": {
+        "es": "Concentrador solar",
+        "en": "Solar concentrator"
+      },
+      "perCrew": 1,
+      "stopsInStorm": true,
+      "speedMult": 1
+    },
+    {
+      "id": "laser-drill",
+      "name": {
+        "es": "Taladro láser",
+        "en": "Laser drill"
+      },
+      "perCrew": 2,
+      "stopsInStorm": false,
+      "speedMult": 1
+    }
+  ],
   "materials": [
     {
       "id": "ice",
@@ -62,10 +95,11 @@
       },
       "value": 2,
       "massKg": 5,
-      "collectS": 3,
+      "collectS": 4,
       "yields": {
         "fuel": 2
-      }
+      },
+      "tool": "solar-concentrator"
     },
     {
       "id": "ore",
@@ -75,10 +109,11 @@
       },
       "value": 4,
       "massKg": 9,
-      "collectS": 4,
+      "collectS": 5,
       "yields": {
         "spares": 1
-      }
+      },
+      "tool": "laser-drill"
     },
     {
       "id": "crystal",
@@ -88,8 +123,9 @@
       },
       "value": 18,
       "massKg": 8,
-      "collectS": 4,
-      "streak": true
+      "collectS": 5,
+      "streak": true,
+      "tool": "laser-drill"
     },
     {
       "id": "sample",
@@ -99,8 +135,9 @@
       },
       "value": 30,
       "massKg": 10,
-      "collectS": 5,
-      "streak": true
+      "collectS": 6,
+      "streak": true,
+      "tool": "laser-drill"
     }
   ],
   "worlds": [
@@ -340,6 +377,16 @@
       },
       "materials": [
         {
+          "materialId": "ice",
+          "weight": 0.6,
+          "units": {
+            "min": 2,
+            "max": 3
+          },
+          "minDistanceFrac": 0.6,
+          "dangerWeightMult": 1
+        },
+        {
           "materialId": "ore",
           "weight": 3,
           "units": {
@@ -417,6 +464,16 @@
         "max": 20
       },
       "materials": [
+        {
+          "materialId": "ice",
+          "weight": 0.6,
+          "units": {
+            "min": 2,
+            "max": 3
+          },
+          "minDistanceFrac": 0.6,
+          "dangerWeightMult": 1
+        },
         {
           "materialId": "ore",
           "weight": 2,

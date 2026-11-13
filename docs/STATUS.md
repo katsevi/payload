@@ -1,6 +1,6 @@
 # Estado del proyecto — traspaso entre sesiones
 
-Última actualización: **2026-11-12** · Versión publicada: 0.4.0 · Propuesta: 0.5.0 (sin publicar; ver `CHANGELOG.md`)
+Última actualización: **2026-11-12** · Rama actual: `feat/f2-herramientas-e-interacciones` · Versión publicada: 0.4.0 · Propuesta: 0.5.0 (sin publicar; ver `CHANGELOG.md`)
 
 > Léelo antes de empezar y actualízalo al terminar una tarea relevante. Las casillas de
 > `docs/phases/fase-*.md` las marca quien valida la fase, no quien implementa: aquí solo se resume.
@@ -10,20 +10,21 @@
 **Payload es un cooperativo de supervivencia en una nave** (plan en `docs/plan/plan-tripulacion-de-exploracion.md`,
 decisión en ADR 0011). El juego se rehízo el 2026-11-09.
 
-- La **fase 1 está fusionada en `main`** (PR #3). La fase 2 está en la rama **`feat/f2-superficie`**,
-  **sin commitear** (nadie ha pedido aún el commit).
+- La **fase 1 está fusionada en `main`** (PR #3). La fase 2 ya está **en un commit** (`d8ce24d`) en la rama
+  **`feat/f2-superficie`**. Encima, en **`feat/f2-herramientas-e-interacciones`**, hay una tanda de mejoras
+  **sin commitear** fuera del plan de fases (herramientas de minería y minijuegos; ADR 0013).
 - No existe ninguna etiqueta local `v0.3.0-simulador` (`git tag` está vacío): la versión anterior (0.3.0) está en
   el historial, en el commit `76ae5ab` (ADR 0011). Su documentación está en `docs/archivo/v0.3-simulador/`.
 - **Fase 2 (exploración de superficie): implementada.** Pendiente de validación independiente final y de prueba
   con jugadores. Nadie ha medido FPS en GPU real, escuchado el audio ni jugado con personas (ver acciones humanas).
-- Decisiones de la fase: `docs/adr/0012-superficie-autoridad-dividida.md`.
+- Decisiones de la fase: `docs/adr/0012-superficie-autoridad-dividida.md`; de la mejora: `docs/adr/0013-minijuegos-y-herramientas.md`.
 
 ## Estado por fase
 
 | Fase | Estado |
 | --- | --- |
 | 1 · Viaje y nave (en solitario) | **Implementada y fusionada en `main`** (PR #3). `pnpm validate` en verde y recorrido manual en Chrome. **Falta:** validación independiente (agente `validator`) y el hito con jugadores. |
-| 2 · Exploración de superficie | **Implementada** (rama `feat/f2-superficie`, sin commitear). `pnpm validate` en verde y una pasada del `validator` sin bloqueantes. **Falta:** validación independiente final, la segunda revisión de diseño y el hito con jugadores. |
+| 2 · Exploración de superficie | **Implementada** (commit `d8ce24d` en `feat/f2-superficie`; mejoras sin commitear en `feat/f2-herramientas-e-interacciones`). `pnpm validate` en verde y una pasada del `validator` sin bloqueantes. **Falta:** validación independiente final, la segunda revisión de diseño y el hito con jugadores. |
 | 3 · Economía y progresión | No iniciada. |
 | 4 · Cooperativo 1-4 | No iniciada. `apps/game-server` es un marcador. |
 | 5 · Pulido y lanzamiento | No iniciada. `apps/api` es un marcador. |
@@ -63,10 +64,10 @@ decisión en ADR 0011). El juego se rehízo el 2026-11-09.
 
 **Retirado:** motor de diseño de misiones (presupuestos, Go/No-Go, simulación orbital, puntuación, informe, asesores, pedagogía, equipo), su catálogo (43 componentes, escenarios, glosario, mascota Orbi, Academia), `prototype/`, el cliente antiguo (hangar, lanzamiento, órbita, sala) y el servidor Colyseus. Dependencias quitadas: `xstate`, `@xstate/react`, `@colyseus/*`, `@react-three/postprocessing`, `exceljs`.
 
-### Fase 2 — qué se hizo (2026-11-12, rama `feat/f2-superficie`, sin commitear)
+### Fase 2 — qué se hizo (2026-11-12, commit `d8ce24d` en `feat/f2-superficie`)
 
 Ciclo nuevo: atracada en un destino aterrizable → descenso (minijuego de frenado) → salida por la esclusa →
-recoger materiales con jetpack y oxígeno limitado → volver → despegar. Un aterrizaje por nodo. Decisiones en ADR 0012.
+recoger materiales (hoy con herramientas, ver más abajo) con jetpack y oxígeno limitado → volver → despegar. Un aterrizaje por nodo. Decisiones en ADR 0012.
 
 **Motor (`packages/shared`; contrato aditivo, ver `packages/shared/CLAUDE.md`):**
 - `types.ts`: `RunPhase` gana `landing` y `surface`; `LossReason` gana `crew`; tipos de superficie (`WorldDef`,
@@ -104,29 +105,69 @@ recoger materiales con jetpack y oxígeno limitado → volver → despegar. Un a
 **Reutilizado:** `PlayerController` (parametrizado en gravedad y jetpack), audio procedural y `cue()`, `gfx/`.
 **No se usa:** el mecha Aurora G9 (aplazado, ADR 0012).
 
-## Métricas verificadas (2026-11-12, estado final de la fase 2)
+### Mejora fuera del plan: herramientas e interacciones (2026-11-12, rama `feat/f2-herramientas-e-interacciones`, sin commitear)
+
+A petición del usuario («no todas las interacciones deben ser con E, es muy repetitivo»; minar «como se haría de
+verdad, sin pico»). No pertenece a ninguna fase del plan. Decisiones: ADR 0013. Reglas completas en
+`packages/shared/CLAUDE.md` y `apps/client/CLAUDE.md`.
+
+**Motor (`packages/shared`; contrato aditivo):**
+- **Herramientas de minería** (`surface.tools` en `mundos.json`, `material.tool`): concentrador solar (hielo; se
+  para con tormenta) y taladro láser (mena, cristal, muestra). Acciones `deploy-tool`, `collect` (**ahora recoge lo
+  ya extraído**; `seconds` opcional e ignorado) y `retrieve-tool`; estado `surface.tools` y `crew[].tools`;
+  eventos `tool-*`. La extracción corre a paso fijo (4/5/5/6 s por unidad: hielo, mena, cristal, muestra). Lo que
+  queda fuera cuando no queda nadie vivo fuera se pierde; se reponen al aterrizar. Mochila de 110 kg.
+  El hielo también aparece, escaso y lejos de la nave, en la luna volcánica y el mundo de tormentas.
+- **Filones:** lo raro (cristal, muestra) fuera de zonas inestables se agrupa en filones de 2-3 vetas a 8-15 m
+  (`rules.lodes`, `Deposit.lodeId`), para que una herramienta y un paseo corto rindan más que ir de veta en veta.
+  **Bonus por completar un filón** en la misma salida: la última veta vale ×1,5 sobre la racha
+  (`lodes.completeMult`, `lodeProgress`, `CrewMember.lodeVeinsDone`, subtipo `lode`).
+- **Esquiva por habilidad** (`averias.json`, `hazards.impact.evade`): el aviso trae `etaS`, `evadeSeed` y
+  `evadeDifficulty`; `evade {grazes}` (0..4 roces; 20 % del daño por roce; 4 = fallo, 90 %). Eventos `impact-evaded`
+  y `impact-hit` con subtipo. Sin `grazes`, igual que antes.
+- Se retira la clave de mensaje `event.collected`. Bot de balance: coloca y retira herramientas, mide el tiempo
+  quieto por salida y simula los minijuegos con perfiles de habilidad (`shipSkill`: medio, simple, torpe), con
+  umbral en `balance.test.ts`.
+
+**Cliente (`apps/client`):**
+- Esquiva en el holograma del timón (`game/dodge.ts`, `DodgeHolo`, WASD) de **duración fija (3 s)**; se juega si
+  quedan >= 3,4 s al llegar, si no se aplica un resultado tardío (más suave al principio, con roces, nunca limpio).
+  Con el aviso de impacto hay flecha hacia el timón y pitido repetido desde cualquier punto de la nave. Ventana para
+  llegar al timón: 8,9 s en económico, 4,6 s en crucero y 1,6 s en máximo.
+- Averías con interacción propia (`game/repairGames.ts`): fuego (apuntar el extintor al foco), cortocircuito
+  (pulsos de sincronía, dos aciertos), fuga (mantener y soltar en la zona de presión). El repuesto es una
+  acción de dos tramos con R (encajar la pieza: mantener y soltar en la marca).
+- Accesibilidad en tres ajustes separados, que sustituyen a «interacciones simples»: esquiva simple (mantener E),
+  averías simples (mantener R) y puntería ancha (área del extintor ×2).
+- Herramientas en superficie (`scenes/SurfaceTools.tsx`, `ui/ToolIcon.tsx`, brújula de herramientas, avisos y
+  sonidos). La brújula de oxígeno cuenta el rodeo por las herramientas colocadas, con cuatro estados
+  (`ok`, `fetch`, `leave`, `short`). Un haz por filón; el HUD muestra el avance del filón («2/3») y la escena marca la veta que lo completa.
+- Teclas: E usar/abrir/colocar/recoger; Q alternativa; clic o Espacio la habilidad; R reparar con repuesto.
+
+## Métricas verificadas (2026-11-12, tras las correcciones de las herramientas y los minijuegos)
 
 | Métrica | Valor |
 | --- | --- |
-| `pnpm validate` | Verde: 11/11 tareas (typecheck + test + build). Total **209 tests** |
-| Tests `@payload/shared` | **127** en 7 archivos (`galaxy`, `run`, `surface`, `locales`, `balance`, `purity`, `rng`) |
-| Tests `@payload/client` | **82** en 3 archivos (`game`, `surface`, `i18n`) |
+| `pnpm validate` | Verde: 11/11 tareas (typecheck + test + build). Total **248 tests** |
+| Tests `@payload/shared` | **148** en 7 archivos (`galaxy`, `run`, `surface`, `locales`, `balance`, `purity`, `rng`) |
+| Tests `@payload/client` | **100** en 4 archivos (`game`, `surface`, `minigames`, `i18n`) |
 | `pnpm balance` · tripulación rápida (3,5 s entre puestos), 3 sectores | Supera S1 100 % · S2 100 % · S3 92 % (con 4 sectores: S4 76 %) |
 | `pnpm balance` · tripulación lenta (7 s) | S1 100 % · S2 94 % · S3 73 % (S4 40 %) |
 | `pnpm balance` · nadie atiende las averías | S1 5 % · S2 0 % · S3 0 % |
-| Perfiles de la fase 1 frente a `main` | Idénticos (confirmado por el `validator`; coinciden con las cifras del 2026-11-10) |
-| Explorador prudente (`crew + prudent`) | S1 100 % · S2 99 % · S3 85 % (S4 68 %); 5,0 aterrizajes y 8,4 salidas por partida; vuelven 100 %; salida media 120 s; 47,7 materiales (2046 puntos, 243 por salida); muertes en superficie 1 %; por aterrizaje 413 puntos, 1,7 salidas, 232 s en tierra y 71 % de O₂ de la nave al despegar; puntuación media 6925 frente a 4969 sin explorar |
-| Explorador codicioso (`crew + greedy`) | S1 58 % · S2 31 % · S3 14 % (S4 8 %); 3,3 aterrizajes (13 % bruscos) y 5,7 salidas; vuelven 91 %; salida media 132 s; 31,9 materiales (1798 puntos, 318 por salida); muertes en superficie 49 % |
-| Explorador «hasta vaciar» (`crew + thorough`, 25 % de margen) | S1 100 % · S2 98 % · S3 86 % (S4 63 %); 4,9 aterrizajes y 19,4 salidas; salida media 91 s; 89,4 materiales (2367 puntos, 122 por salida); muertes en superficie 0 %; por aterrizaje 488 puntos, 4,0 salidas y 448 s en tierra |
-| Margen de O₂ para volver (prudente) | 25 % → 213 valor/salida, 0 % muertes · 15 % → 243, 1 % · 8 % → 263, 8 % · 3 % → 265, 35 % (vuelven 95 %) |
+| Perfiles de la fase 1 frente a `main` | Idénticos (siguen coincidiendo con las cifras del 2026-11-10) |
+| Minijuegos de la nave (tripulación rápida; medio / simple / torpe a 5 s) | Medio: S1 100 % · S2 99 % · S3 89 % (S4 66 %), 7,6 roces por partida. Simple: S1 100 % · S2 99 % · S3 89 % (S4 65 %), 18,4 roces. Torpe: S1 100 % · S2 94 % · S3 62 % (S4 30 %) |
+| Explorador prudente (`crew + prudent`) | S1 99 % · S2 97 % · S3 83 % (S4 66 %); 4,9 aterrizajes y 7,7 salidas por partida; vuelven 99 %; salida media 124 s (quieto 21 s, 17 %); 52,4 materiales (2402 puntos, 310 por salida); muertes en superficie 5 %; por aterrizaje 486 puntos, 1,6 salidas, 221 s en tierra y 63 % de O₂ de la nave al despegar; puntuación media 7185 |
+| Explorador codicioso (`crew + greedy`) | S1 66 % · S2 40 % · S3 20 % (S4 8 %); 3,7 aterrizajes (11 % bruscos) y 5,5 salidas; vuelven 92 %; salida media 134 s (quieto 26 s, 19 %); 34,4 materiales (1763 puntos, 323 por salida); muertes en superficie 44 % |
+| Explorador «hasta vaciar» (`crew + thorough`, 25 % de margen) | S1 98 % · S2 96 % · S3 83 % (S4 65 %); 4,9 aterrizajes y 18,1 salidas; salida media 77 s (quieto 13 s, 17 %); 76,5 materiales (2612 puntos, 145 por salida); muertes en superficie 0 %; por aterrizaje 529 puntos, 3,7 salidas y 340 s en tierra |
+| Margen de O₂ para volver (prudente) | 25 % → 291 valor/salida, 0 % muertes · 15 % → 310, 5 % · 8 % → 301, 20 % · 3 % → 289, 39 % (vuelven 93 %) |
 | Duración de un sector (tripulante simulado, sin explorar) | ~800 s en 3 sectores simulados (~4-4,5 min por sector) |
-| Motor | ~9 ms por partida sin explorar; 70 ms (prudente), 31 ms (codicioso) y 96 ms (hasta vaciar) con superficie |
-| Chunks del cliente | `SurfaceWorld` 2,36 MB (0,88 MB gzip; Rapier incrustado, carga diferida); `ShipScene` 63,5 kB; `Models` 1,0 MB; inicio 0,50 MB |
+| Motor | ~9 ms por partida sin explorar; unos 70 ms (prudente) y 50 ms (codicioso) con superficie |
+| Chunks del cliente | `SurfaceWorld` 2,35 MB (0,88 MB gzip; Rapier incrustado, carga diferida); `ShipScene` 79,5 kB; `Models` 1,0 MB; inicio 0,53 MB |
 | Modelos servidos (`assets/web/models/`) | ~13 MB (5 GLB; el mecha no se usa) |
-| Verificación visual de la superficie | Solo Chrome sin cabeza (SwiftShader, 2-3 FPS): revisadas las escenas de descenso, EVA y bodega. **Ningún FPS medido en GPU real, audio sin escuchar, sin jugar con personas** |
+| Verificación visual de la superficie | Solo Chrome sin cabeza (SwiftShader, ~2 FPS): descenso, EVA, bodega, herramientas y minijuegos. **Ningún FPS medido en GPU real, audio sin escuchar, sin jugar con personas; los minijuegos, las herramientas y los filones no se han probado con teclado y ratón reales ni los filones, el «2/3», la corona del filón ni la flecha al timón se han visto en el navegador** |
 | Prueba manual de la fase 1 (2026-11-10, Chrome, 144 Hz) | Menú, interior, mapa estelar, salto, impacto, fuga, panel de energía, derrota; rediseño gráfico revisado con los ocho puestos y siete destinos. Sin errores en consola |
 
-Cifras de `pnpm balance` (200 partidas, 3 sectores); los 4 sectores (`pnpm balance 200 4`) entre paréntesis.
+Cifras de `pnpm balance` (200 partidas, 3 sectores); los 4 sectores (`pnpm balance 200 4`) entre paréntesis. Antes de las herramientas (2026-11-12, 209 tests) el prudente tenía S3 85 %, 243 puntos por salida y 1 % de muertes, y la curva de margen iba de 213 a 265 de valor por salida.
 
 ### Revisión de diseño de la fase 2
 
@@ -135,6 +176,14 @@ el papel cumple el hito (una salida de 2-3 minutos con duda real), con la salida
 tercera pasada se cerraron sus tres flecos: ventanas de frenado del descenso, vetas en zona inestable recogibles
 desde fuera (ahora hay que pisarla) y caída mortal residual sobre el abismo del mundo pesado. **Esa última corrección no
 se ha vuelto a calificar.** Lo que el crítico dejó abierto está en «Decisiones de diseño abiertas».
+
+### Revisión de diseño de las herramientas y los minijuegos
+
+Un crítico independiente la evaluó en dos pasadas: **7,5/10 global** (minería 6,5, esquiva 6,5, averías 7,5) y, tras las
+correcciones, **8/10 global (minería 7,5, esquiva 8, averías 8)**: «las correcciones son reales»; la minería con
+herramientas y filones es «mejor juego, por poco» que mantener E, con la excepción de la curva de riesgo. La última ronda
+(bonus de filón, esquiva de 3 s, flecha y pitido al timón) responde a sus dos recomendaciones finales y **no se ha
+recalificado**.
 
 ## Acciones humanas pendientes
 
@@ -145,14 +194,15 @@ Ningún agente puede hacerlas.
 1. **Medir FPS en GPU real** (portátil de gama media, meta 60) en la superficie y en la nave: solo se ha visto con
    SwiftShader (2-3 FPS), que no mide nada.
 2. **Escuchar el audio** (viento, tormenta, respiración, pitido de O₂, propulsor, jetpack, despegue): nadie lo ha oído.
-3. **Recalificar la última corrección de la revisión de diseño** (8/10 tras tres pasadas; los tres flecos finales no se han vuelto a evaluar) si se quiere una nota definitiva.
-4. **Hito de la fase 1:** prueba con >= 3 personas que no conozcan el juego (ver `docs/phases/fase-1.md`).
-5. **Validación independiente final de la fase 2** (agente `validator` o una persona) y marcar las casillas de `docs/phases/fase-2.md`.
-6. **Decidir el commit y el PR** de `feat/f2-superficie`.
-7. **Probar con ratón capturado** (pointer lock) en una sesión real.
-8. **Mirar el rediseño gráfico y opinar** (`?play=1&seed=7&body=<tipo>`): brillo, color y legibilidad, otras semillas.
-9. **ERIZON** (CC-BY-NC-ND): decidir si se sustituye antes de cualquier uso comercial.
-10. **Crear `.claude/settings.json` compartido** (contenido propuesto en `docs/CONTRIBUTING.md`).
+3. **Jugar las herramientas, los filones y los minijuegos con teclado y ratón reales** (solo se han visto en un navegador sin cabeza a ~2 FPS, y los filones ni eso) y escuchar sus sonidos; decidir si la dificultad de la esquiva y de las averías es la buena y si los tres ajustes de accesibilidad bastan.
+4. **Recalificar la última corrección de la revisión de diseño** (8/10 tras tres pasadas; los tres flecos finales no se han vuelto a evaluar) si se quiere una nota definitiva.
+5. **Hito de la fase 1:** prueba con >= 3 personas que no conozcan el juego (ver `docs/phases/fase-1.md`).
+6. **Validación independiente final de la fase 2** (agente `validator` o una persona) y marcar las casillas de `docs/phases/fase-2.md`.
+7. **Decidir el commit** de `feat/f2-herramientas-e-interacciones` y el PR de la fase 2.
+8. **Probar con ratón capturado** (pointer lock) en una sesión real.
+9. **Mirar el rediseño gráfico y opinar** (`?play=1&seed=7&body=<tipo>`): brillo, color y legibilidad, otras semillas.
+10. **ERIZON** (CC-BY-NC-ND): decidir si se sustituye antes de cualquier uso comercial.
+11. **Crear `.claude/settings.json` compartido** (contenido propuesto en `docs/CONTRIBUTING.md`).
 
 ## Decisiones de diseño abiertas
 
@@ -161,12 +211,23 @@ Ningún agente puede hacerlas.
 - **Sin tutorial.** Solo ayuda con H y carteles. Decidir tras la prueba con jugadores.
 - **El mapa solo se abre en la mesa del puente** (hay que ir andando). Es deliberado, pero puede resultar pesado.
 - **Los sistemas apagados por el jugador no se encienden solos** tras una sobrecarga: decidir si es buena fricción.
-- **Capacidad de carga** (`suit.carryCapacityKg`, hoy 80 kg; lo raro pesa 8-10 kg): a revisar con jugadores (¿se llega al tope antes que al O₂?).
+- **Capacidad de carga** (`suit.carryCapacityKg`, hoy 110 kg; lo raro pesa 8-10 kg): a revisar con jugadores (¿se llega al tope antes que al O₂?).
 - **Curva de «apurar»** (pendiente del crítico): entre 25 % y 3 % de margen de O₂ solo se gana ~+25 % de valor por salida (213 → 265) a costa de pasar de 0 % a 35 % de muertes. Palancas aplazadas: raros en filones o racha no lineal; decidir con datos de personas.
 - **Dos salidas tranquilas rinden algo más que una apurada** (por aterrizaje, el prudente saca 413 puntos y «hasta vaciar» 488 frente a 549 del codicioso, que muere el 49 %): vigilar con jugadores.
 - **Explorar baja la supervivencia:** sector 3 con exploración, 85-86 % frente a 92 % sin explorar.
 - **La mena es relleno hasta la fase 3** (rinde repuestos, pero no tiene más función).
-- **Accesibilidad:** hay intensidad de efectos y recoger con una pulsación, pero no hay mando, táctil ni remapeo de teclas (fase 5).
+- **Accesibilidad:** hay intensidad de efectos y tres ajustes separados (esquiva simple, averías simples, puntería ancha), pero no hay mando, táctil ni remapeo de teclas (fase 5).
+- **Curva de «apurar el oxígeno»: el criterio de cierre del revisor NO se alcanzó.** Pedía +15 % o más de valor por salida entre
+  25 % y 8-15 % de margen con <= 10 % de muertes. Con el bonus de filón queda en **+6,5 % con 5 % de muertes** (291 → 310
+  puntos por salida a 15 %; a 8 % baja a 301 con 20 % de muertes): el bonus sube el botín de todos los perfiles un 15-17 %
+  pero no la pendiente. Por indicación del revisor no se sigue ajustando contra el bot: se decide con jugadores reales. El
+  umbral de `balance.test.ts` está relajado. Palancas: retorno automático de herramientas (descartado: quitaría la decisión
+  de abandonarlas); aviso de cuándo estará lista la siguiente pieza del filón (pendiente).
+- **Esquiva y llegada al timón:** el piloto torpe puede salir mejor llegando un instante tarde que jugando la esquiva (dificultad
+  0,3: 0,20 frente a 0,29), y a régimen máximo (ventana de 1,6 s) casi nunca da tiempo a jugarla.
+- **Los filones no se han visto en pantalla** (solo cifras y tests; tampoco el avance «2/3» ni la veta que completa); su legibilidad y su distancia (8-15 m) son provisionales.
+- **Minijuegos sin datos de personas:** dificultad de la esquiva (`averias.json`, `impact.evade`), tamaño de las zonas de reparación y efecto de acertar o fallar son provisionales.
+- **Qué hace el hielo de la luna volcánica y el mundo de tormentas:** escaso, lejos y con tormentas que paran el concentrador; el bot no lo busca de forma especial. Ver con jugadores si vale el viaje.
 - **Qué valen cristales y muestras:** hoy solo suman puntuación y ocupan bodega; el precio lo decide la fase 3.
 - **Mecha Aurora G9:** aplazado (ADR 0012). Decidir en fases posteriores si vuelve como vehículo o se retira del GDD.
 - **Mascota:** no hay. Si vuelve, Rise sigue necesitando autorización de NASA.
@@ -194,6 +255,6 @@ Ningún agente puede hacerlas.
 
 1. Cerrar la fase 2: segunda revisión de diseño, validación independiente final, prueba con jugadores y medida de FPS;
    ajustar `catalog/mundos.json` con `pnpm balance` (ver `.claude/skills/add-catalog-item`).
-2. Decidir el commit y el PR de `feat/f2-superficie`; después, la prueba con jugadores de la fase 1.
+2. Decidir el commit de las mejoras en `feat/f2-herramientas-e-interacciones` y el PR de la fase 2; después, la prueba con jugadores de la fase 1.
 3. Fase 3 (economía): vender cristales y muestras, mejoras sobre `ShipDef`/traje/jetpack; decidir el destino del servicio gratuito de estación.
 4. Escribir `docs/MULTIPLAYER.md` nuevo antes de tocar `apps/game-server` (fase 4); el antitrampas de `set-position` y la autoridad dividida (ADR 0012) son su punto de partida.

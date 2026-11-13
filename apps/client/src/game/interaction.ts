@@ -4,6 +4,7 @@
  */
 import { catalog as defaultCatalog, getSurfaceCatalog, suitRefill, SYSTEM_IDS, THROTTLE_IDS, type Catalog, type Incident, type IncidentKind, type LandingEstimate, type RunAction, type RunState, type SystemId, type TakeOffEstimate, type ThrottleId } from '@payload/shared';
 import type { Prompt, PromptBadge } from '../state/ui';
+import { canPlayDodge } from './dodge';
 import type { StationId } from './layout';
 
 /** Segundos manteniendo E en el timón para ejecutar la maniobra evasiva. */
@@ -20,7 +21,7 @@ const INCIDENT_PRIORITY: Record<IncidentKind, number> = { fire: 0, leak: 1, shor
 export type Interaction =
   | { kind: 'incident'; systemId: SystemId; incident: Incident }
   | { kind: 'repair'; systemId: SystemId; blocked: boolean }
-  | { kind: 'helm'; canEvade: boolean }
+  | { kind: 'helm'; canEvade: boolean; late?: boolean }
   | { kind: 'land'; worldId: string; gravity: number; fuel: number; canLand: boolean; enoughFuel: boolean; engines: boolean }
   | { kind: 'takeoff'; fuel: number; enoughFuel: boolean; heavy: boolean; canJettison: boolean; lootUnits: number }
   | { kind: 'airlock'; open: boolean; refill?: { shipO2Cost: number; suitO2Pct: number } }
@@ -46,8 +47,10 @@ export function incidentAt(state: RunState, systemId: SystemId): Incident | null
 }
 
 function helmAt(state: RunState, est: HelmEstimates): Interaction {
-  const canEvade = state.warnings.some((w) => !w.evaded);
-  if (canEvade) return { kind: 'helm', canEvade };
+  const warning = state.warnings.find((w) => !w.evaded);
+  const canEvade = !!warning;
+  // Sin tiempo para jugar la esquiva entera: tomar los mandos da una maniobra a medias (`lateDodgeResult`).
+  if (warning) return canPlayDodge(warning.etaS) ? { kind: 'helm', canEvade } : { kind: 'helm', canEvade, late: true };
   if (state.phase === 'surface' && est.takeOff) {
     const t = est.takeOff;
     const lootUnits = state.surface ? state.surface.deposits.reduce((n, d) => n + Math.max(0, d.units), 0) : 0;
@@ -87,22 +90,49 @@ export function nextThrottle(current: ThrottleId): ThrottleId {
 
 const round1 = (n: number): number => Math.round(n * 10) / 10;
 
+/**
+ * Teclas (claves ui de `keys.*`). E = usar/abrir; R = reparar con repuesto; clic (o Espacio) = la
+ * habilidad de cada avería. Con «interacciones simples» las averías se arreglan manteniendo R y la
+ * esquiva manteniendo E.
+ */
+export const KEY_USE = 'keys.interact';
+export const KEY_REPAIR = 'keys.repair';
+export const KEY_SKILL = 'keys.click';
+export const KEY_STEER = 'keys.move';
+
 /** Texto de la acción (claves ui; los nombres de sistema, régimen, mundo y material los traduce quien pinta). */
-export function promptFor(interaction: Interaction | null, state: RunState, chargeProgress = 0): Prompt | null {
+/** Modos simples (ajustes): esquiva sin minijuego y averías/repuestos manteniendo R. `true` = los dos. */
+export type SimpleModes = boolean | { dodge: boolean; repairs: boolean };
+const simpleOf = (s: SimpleModes) => (typeof s === 'boolean' ? { dodge: s, repairs: s } : s);
+
+export function promptFor(interaction: Interaction | null, state: RunState, chargeProgress = 0, simpleModes: SimpleModes = false): Prompt | null {
   if (!interaction) return null;
+  const { dodge: simpleDodge, repairs: simple } = simpleOf(simpleModes);
   const charge = Math.min(1, chargeProgress);
   switch (interaction.kind) {
-    case 'incident':
-      return { key: `prompt.fix.${interaction.incident.kind}`, params: { system: interaction.systemId }, hold: true, progress: Math.min(1, interaction.incident.progress) };
+    case 'incident': {
+      const kind = interaction.incident.kind;
+      return {
+        key: `prompt.fix.${kind}`,
+        params: { system: interaction.systemId },
+        inputKey: simple ? KEY_REPAIR : KEY_SKILL,
+        // Fuego y fuga se mantienen (rociar, cargar presión); el cortocircuito se pulsa a tiempo.
+        hold: simple || kind !== 'short',
+        progress: Math.min(1, interaction.incident.progress),
+        progressBar: true,
+      };
+    }
     case 'repair':
       return interaction.blocked
         ? { key: 'prompt.repairNoSpares', params: { system: interaction.systemId }, hold: true, progress: 0, blocked: true }
-        : { key: 'prompt.repair', params: { system: interaction.systemId, spares: state.ship.spares }, hold: true, progress: state.ship.systems[interaction.systemId].repairProgress };
+        : { key: 'prompt.repair', params: { system: interaction.systemId, spares: state.ship.spares }, inputKey: KEY_REPAIR, hold: true, progress: state.ship.systems[interaction.systemId].repairProgress };
     case 'helm':
       return {
-        key: interaction.canEvade ? 'prompt.evade' : 'prompt.helm',
-        hold: interaction.canEvade,
-        progress: interaction.canEvade ? charge : 0,
+        // Con aviso de impacto: pulsar E toma los mandos (esquiva); con interacciones simples, mantener E.
+        key: interaction.canEvade ? (interaction.late ? 'prompt.evadeLate' : simpleDodge ? 'prompt.evade' : 'prompt.evadeDodge') : 'prompt.helm',
+        ...(interaction.late ? { warn: true } : {}),
+        hold: interaction.canEvade && simpleDodge,
+        progress: interaction.canEvade && simpleDodge ? charge : 0,
         blocked: !interaction.canEvade,
         altKey: 'prompt.throttle',
         altParams: { throttle: state.ship.throttle },
@@ -171,7 +201,7 @@ export function sendInChunks(seconds: number, maxS: number, send: (chunkS: numbe
   return n;
 }
 
-/** Acción del motor al mantener E durante `seconds` (null = nada que mandar, p. ej. abrir un panel). */
+/** Acción del motor al trabajar `seconds` en una avería o reparación (null = nada que mandar, p. ej. abrir un panel). */
 export function holdAction(interaction: Interaction | null, seconds: number): RunAction | null {
   if (!interaction) return null;
   if (interaction.kind === 'incident') return { type: 'work-incident', incidentId: interaction.incident.id, seconds };
@@ -183,11 +213,13 @@ export function holdAction(interaction: Interaction | null, seconds: number): Ru
  * Acciones de «mantener hasta llenar»: el cliente acumula `holdS` segundos con E pulsada y envía la
  * acción una vez (maniobra evasiva, iniciar el descenso, despegar, salir por la esclusa).
  */
-export function chargedAction(interaction: Interaction | null): { action: RunAction; holdS: number } | null {
+export function chargedAction(interaction: Interaction | null, simpleModes: SimpleModes = false): { action: RunAction; holdS: number } | null {
   if (!interaction) return null;
+  const simple = simpleOf(simpleModes).dodge;
   switch (interaction.kind) {
     case 'helm':
-      return interaction.canEvade ? { action: { type: 'evade' }, holdS: EVADE_HOLD_S } : null;
+      // Sin interacciones simples la esquiva es el minijuego (`startsDodge`), no mantener E.
+      return interaction.canEvade && simple ? { action: { type: 'evade' }, holdS: EVADE_HOLD_S } : null;
     case 'land':
       return interaction.canLand ? { action: { type: 'land' }, holdS: LAND_HOLD_S } : null;
     case 'takeoff':
@@ -199,10 +231,23 @@ export function chargedAction(interaction: Interaction | null): { action: RunAct
   }
 }
 
+/** Pulsar E en el timón con un aviso de impacto toma los mandos para esquivar (minijuego). */
+export function startsDodge(interaction: Interaction | null, simple: boolean): boolean {
+  return !simple && interaction?.kind === 'helm' && interaction.canEvade;
+}
+
 /** Acción de la tecla Q en el puesto (régimen en el timón; soltar carga antes de despegar). */
 export function altAction(interaction: Interaction | null, state: RunState): RunAction | null {
   if (!interaction) return null;
   if (interaction.kind === 'takeoff') return interaction.canJettison ? { type: 'jettison' } : null;
   if (interaction.kind === 'helm' || interaction.kind === 'land') return { type: 'set-throttle', throttle: nextThrottle(state.ship.throttle) };
   return null;
+}
+
+/** Roces y choques de la esquiva en curso, como datos breves del aviso. */
+export function dodgeBadges(grazes: number, hits: number): PromptBadge[] {
+  const out: PromptBadge[] = [];
+  if (grazes > 0) out.push({ key: 'prompt.grazes', params: { n: grazes }, tone: 'warn' });
+  if (hits > 0) out.push({ key: 'prompt.hits', params: { n: hits }, tone: 'warn' });
+  return out;
 }

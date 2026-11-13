@@ -18,13 +18,13 @@
 import { catalog as defaultCatalog, getMaterial, getNodeKind, getShip, getSurfaceCatalog, getThrottle, getWorld } from './catalog';
 import { generateSector, getNode, nodeDistanceLy } from './galaxy';
 import { createRng, deriveSeed, type Rng } from './rng';
-import { descentStep, generateSurface, getNodeWorld, landingSeed, simulateDescent, streakMultiplier, suitRefill, takeOffFuel } from './surface';
+import { descentStep, generateSurface, getNodeWorld, landingSeed, lodeBonusApplies, simulateDescent, streakMultiplier, suitRefill, takeOffFuel } from './surface';
 import {
   HAZARD_KINDS, INCIDENT_KINDS, SYSTEM_IDS, THROTTLE_IDS,
   type ActionResult, type Catalog, type CrewMember, type EventTone, type HazardKind, type Incident, type IncidentKind, type JumpEstimate,
   type LandingEstimate, type MessageRef, type PlannedHazard, type PoweredSystemId, type Run, type RunAction, type RunEvent, type RunEventType,
   type RunOptions, type RunState, type RunStats, type ShipDef, type ShipState, type SurfaceState, type SystemId, type SystemState,
-  type TakeOffEstimate, type ThrottleId,
+  type HazardRules, type PlacedTool, type TakeOffEstimate, type ThrottleId,
 } from './types';
 
 /** Paso fijo de la simulación (10 Hz). */
@@ -35,6 +35,7 @@ export const MAX_WORK_SECONDS = 0.5;
 const MIN_ENGINE_SPEED_FACTOR = 0.4;
 const HAZARD_SALT = 0x4a2d;
 const WEAR_SALT = 0x77ea;
+const EVADE_SALT = 0x3e7a;
 const MAX_HAZARDS_PER_KIND = 12;
 const ALERT_HYSTERESIS_PCT = 5;
 const POWERED: readonly PoweredSystemId[] = ['engines', 'lifeSupport', 'shields', 'nav'];
@@ -61,6 +62,26 @@ function poisson(rng: Rng, lambda: number): number {
   return k - 1;
 }
 
+/**
+ * Fracción del daño de un impacto que entra tras una esquiva con `grazes` roces (0 = limpia; con
+ * `maxGrazes` o más, fallo: `failDamageFrac`). Sin reglas de esquiva, 0 (la esquiva anula el impacto).
+ */
+export function evadeDamageFraction(rules: HazardRules, grazes: number): number {
+  const ev = rules.impact.evade;
+  if (!ev || !Number.isFinite(grazes)) return 0;
+  const n = clamp(Math.round(grazes), 0, ev.maxGrazes);
+  return n >= ev.maxGrazes ? ev.failDamageFrac : Math.min(ev.failDamageFrac, n * ev.grazeDamageFrac);
+}
+
+/** Dificultad 0-1 del minijuego de esquiva para un impacto de `hullDamage` en el sector `sectorIndex`. */
+export function evadeDifficulty(rules: HazardRules, sectorIndex: number, hullDamage: number): number {
+  const ev = rules.impact.evade;
+  if (!ev) return 0;
+  const span = rules.impact.hullDamageMax - rules.impact.hullDamageMin;
+  const severity = span > 0 ? clamp((hullDamage - rules.impact.hullDamageMin) / span, 0, 1) : 0;
+  return clamp(ev.difficultyBase + ev.difficultyPerSector * (sectorIndex - 1) + ev.difficultyFromSeverity * severity, 0, 1);
+}
+
 /** Puntuación de la partida: llegar lejos es lo que más cuenta; los materiales guardados a bordo suman su valor. */
 export function computeScore(stats: RunStats): number {
   return Math.round(
@@ -71,7 +92,7 @@ export function computeScore(stats: RunStats): number {
 function newCrewMember(id: number): CrewMember {
   return {
     id, alive: true, deathCause: null, location: 'ship', suitO2Pct: 100, jetpackPct: 100, x: 0, z: 0, grounded: true,
-    carried: {}, carriedKg: 0, carriedValue: 0, carriedValues: {}, evaS: 0, moveBudgetM: 0, o2Alert: 0, carriedUnits: 0, streakUnits: 0, streakMult: 1,
+    carried: {}, carriedKg: 0, carriedValue: 0, carriedValues: {}, evaS: 0, moveBudgetM: 0, o2Alert: 0, carriedUnits: 0, streakUnits: 0, streakMult: 1, tools: {}, lodeVeinsDone: [],
   };
 }
 
@@ -142,6 +163,7 @@ export function createRun(options: RunOptions): Run {
   let eventSeq = 0;
   let incidentSeq = 0;
   let hazardSeq = 0;
+  let toolSeq = 0;
   let pending: RunEvent[] = [];
   let wasOverloaded = false;
   let wasBlackout = false;
@@ -199,7 +221,12 @@ export function createRun(options: RunOptions): Run {
         h.announced = true;
         emit('impact-warning', 'warn', 'event.impactWarning');
       }
-      out.push({ hazardId: h.id, etaS: shipState.speedLyPerS > 0 ? Math.max(0, ahead) / shipState.speedLyPerS : -1, evaded: h.evaded });
+      const warning: RunState['warnings'][number] = { hazardId: h.id, etaS: shipState.speedLyPerS > 0 ? Math.max(0, ahead) / shipState.speedLyPerS : -1, evaded: h.evaded };
+      if (rules.impact.evade) {
+        warning.evadeSeed = deriveSeed(deriveSeed(seed, EVADE_SALT + state.sector.index), h.id);
+        warning.evadeDifficulty = Math.round(evadeDifficulty(rules, state.sector.index, h.hullDamage) * 1000) / 1000;
+      }
+      out.push(warning);
     }
     state.warnings = out;
   }
@@ -262,23 +289,32 @@ export function createRun(options: RunOptions): Run {
       spawnIncident(h.kind, h.systemId);
       return;
     }
-    if (h.evaded) {
+    const frac = h.evaded ? (h.evadeDamageFrac ?? 0) : 1;
+    if (frac <= 0) {
       state.stats.impactsEvaded++;
-      emit('impact-evaded', 'ok', 'event.impactEvaded');
+      // Sin roces informados el evento es el de siempre (sin subtipo); con la esquiva por habilidad, `clean`.
+      emit('impact-evaded', 'ok', 'event.impactEvaded', undefined, h.evadeDamageFrac === undefined ? undefined : { subtype: 'clean' });
       return;
     }
-    state.stats.impactsTaken++;
+    const failed = h.evaded && frac >= (rules.impact.evade?.failDamageFrac ?? 1) - 1e-9;
+    const graze = h.evaded && !failed;
+    if (graze) state.stats.impactsGrazed = (state.stats.impactsGrazed ?? 0) + 1;
+    else state.stats.impactsTaken++;
+    const subtype = graze ? ({ subtype: 'graze' } as const) : failed ? ({ subtype: 'failed' } as const) : {};
     if (sys.shields.online) {
       const absorb = (ship.shieldAbsorb * sys.shields.healthPct) / 100;
-      const damage = h.hullDamage * (1 - absorb);
+      const damage = h.hullDamage * frac * (1 - absorb);
       shipState.hull = Math.max(0, shipState.hull - damage);
-      emit('impact-hit', 'warn', 'event.impactShielded', { damage: Math.round(damage) }, { systemId: 'shields' });
-      damageSystem('shields', ship.shieldWearPctPerHit);
+      emit('impact-hit', 'warn', graze ? 'event.impactGrazed' : 'event.impactShielded', { damage: Math.round(damage) }, { systemId: 'shields', ...subtype });
+      damageSystem('shields', ship.shieldWearPctPerHit * frac);
     } else {
-      shipState.hull = Math.max(0, shipState.hull - h.hullDamage);
-      emit('impact-hit', 'bad', 'event.impactHit', { damage: Math.round(h.hullDamage), system: h.systemId }, { systemId: h.systemId });
-      damageSystem(h.systemId, h.systemDamage);
-      if (h.leakRoll < rules.impact.leakChanceUnshielded) spawnIncident('leak', h.systemId);
+      const damage = h.hullDamage * frac;
+      shipState.hull = Math.max(0, shipState.hull - damage);
+      if (graze) emit('impact-hit', 'warn', 'event.impactGrazed', { damage: Math.round(damage) }, { systemId: h.systemId, ...subtype });
+      else emit('impact-hit', 'bad', 'event.impactHit', { damage: Math.round(damage), system: h.systemId }, { systemId: h.systemId, ...subtype });
+      damageSystem(h.systemId, h.systemDamage * frac);
+      // Un roce no abre fugas; un impacto (o una esquiva fallida) sí puede.
+      if (!graze && h.leakRoll < rules.impact.leakChanceUnshielded) spawnIncident('leak', h.systemId);
     }
   }
 
@@ -403,7 +439,10 @@ export function createRun(options: RunOptions): Run {
       const sysRoll = wearRng.next();
       if (wearRoll < rules.wear.chancePerS * world.shipWearMult * dt) spawnIncident(pickWearKind(kindRoll), SYSTEM_IDS[Math.floor(sysRoll * SYSTEM_IDS.length)]!);
       if (state.phase === 'landing') stepDescent(surface, dt);
-      else stepSurface(surface, dt);
+      else {
+        stepSurface(surface, dt);
+        stepTools(surface, dt);
+      }
     }
 
     refresh();
@@ -460,6 +499,7 @@ export function createRun(options: RunOptions): Run {
     m.carriedUnits = 0;
     m.streakUnits = 0;
     m.streakMult = 1; // la racha se consolida al guardar y se pierde al morir
+    m.lodeVeinsDone = []; // el avance de los filones también
   }
 
   function killCrew(m: CrewMember, cause: 'oxygen' | 'fall'): void {
@@ -470,7 +510,92 @@ export function createRun(options: RunOptions): Run {
     state.stats.crewLost++;
     state.stats.evaTimeS += m.evaS;
     emit('crew-dead', 'bad', `event.crewDead.${cause}`, undefined, { crewId: m.id, subtype: cause });
+    if (state.surface) abandonTools(state.surface);
     if (state.crew.every((c) => !c.alive)) lose('crew');
+  }
+
+  /** Si ya no queda nadie vivo fuera, lo colocado (y lo que tenía extraído) se pierde en este aterrizaje. */
+  function abandonTools(surface: SurfaceState): void {
+    if (surface.tools.length === 0 || state.crew.some((c) => c.alive && c.location === 'eva')) return;
+    for (const t of surface.tools) surface.toolsLost[t.toolId] = (surface.toolsLost[t.toolId] ?? 0) + 1;
+    emit('tool-lost', 'bad', 'event.toolLost', { count: surface.tools.length }, { subtype: 'left' });
+    for (const t of surface.tools) {
+      const d = surface.deposits.find((x) => x.id === t.depositId);
+      if (d) d.progress = 0;
+    }
+    surface.tools = [];
+  }
+
+  /** Herramientas colocadas: extraen solas a paso fijo (el concentrador solar se para con tormenta). */
+  function stepTools(surface: SurfaceState, dt: number): void {
+    for (const t of surface.tools) {
+      const deposit = surface.deposits.find((d) => d.id === t.depositId)!;
+      if (t.stopped === 'depleted') continue;
+      const def = getTool(t.toolId);
+      if (def.stopsInStorm && surface.storm.active) {
+        if (t.stopped !== 'storm') emit('tool-stopped', 'warn', 'event.toolStopped', { tool: t.toolId }, { subtype: 'storm' });
+        t.stopped = 'storm';
+        continue;
+      }
+      if (t.stopped === 'storm') emit('tool-resumed', 'ok', 'event.toolResumed', { tool: t.toolId }, { subtype: 'storm' });
+      t.stopped = null;
+      const mat = getMaterial(t.materialId, cat);
+      t.progress += (dt * def.speedMult) / mat.collectS;
+      if (t.progress >= 1 - 1e-9) {
+        t.progress = 0;
+        deposit.units--;
+        t.ready++;
+        if (deposit.units <= 0) {
+          t.stopped = 'depleted';
+          emit('tool-done', 'ok', 'event.toolDone', { units: t.ready, material: t.materialId });
+        }
+      }
+      deposit.progress = t.progress;
+    }
+  }
+
+  function getTool(toolId: string) {
+    return surfaceCat.tools.find((x) => x.id === toolId)!;
+  }
+
+  /** Pasa a la mochila lo extraído que quepa (con racha y valor) y devuelve cuántas unidades recogió. */
+  function pickUp(m: CrewMember, t: PlacedTool): number {
+    const mat = getMaterial(t.materialId, cat);
+    const deposit = state.surface!.deposits.find((d) => d.id === t.depositId)!;
+    const room = Math.floor((srules.suit.carryCapacityKg - m.carriedKg + 1e-9) / mat.massKg);
+    const n = Math.max(0, Math.min(t.ready, room));
+    // Filón completo: la última veta vale más si este tripulante agotó las demás en esta salida.
+    const lodeMult = lodeBonusApplies(state.surface!.deposits, deposit, m) ? (srules.lodes?.completeMult ?? 1) : 1;
+    for (let k = 0; k < n; k++) {
+      // Racha (solo lo raro): las piezas raras que ya lleva encima revalorizan esta.
+      const unitValue = Math.round((mat.streak ? deposit.valuePerUnit * m.streakMult : deposit.valuePerUnit) * lodeMult);
+      m.carried[mat.id] = (m.carried[mat.id] ?? 0) + 1;
+      m.carriedValues[mat.id] = (m.carriedValues[mat.id] ?? 0) + unitValue;
+      m.carriedKg += mat.massKg;
+      m.carriedValue += unitValue;
+      m.carriedUnits++;
+      if (mat.streak) {
+        m.streakUnits++;
+        m.streakMult = streakMultiplier(srules, m.streakUnits);
+      }
+      state.stats.materialsCollected++;
+    }
+    t.ready -= n;
+    // Veta de filón agotada por este tripulante (cuenta para completar el filón en esta salida).
+    if (deposit.lodeId !== undefined && deposit.units <= 0 && t.ready <= 0 && !m.lodeVeinsDone.includes(deposit.id)) m.lodeVeinsDone.push(deposit.id);
+    if (n > 0) {
+      emit('material-collected', 'ok', 'event.pickedUp', { units: n, material: mat.id, kg: Math.round(m.carriedKg), capacity: srules.suit.carryCapacityKg }, lodeMult > 1 ? { crewId: m.id, subtype: 'lode' } : { crewId: m.id });
+    }
+    return n;
+  }
+
+  /** Devuelve la herramienta a la mochila; lo extraído que no se llevó vuelve a la veta. */
+  function stowTool(m: CrewMember, surface: SurfaceState, t: PlacedTool): void {
+    const deposit = surface.deposits.find((d) => d.id === t.depositId)!;
+    deposit.units += t.ready;
+    deposit.progress = 0;
+    m.tools[t.toolId] = (m.tools[t.toolId] ?? 0) + 1;
+    surface.tools.splice(surface.tools.indexOf(t), 1);
   }
 
   function touchdown(surface: SurfaceState): void {
@@ -601,7 +726,13 @@ export function createRun(options: RunOptions): Run {
     const surface = state.surface;
     if (!surface) return false;
     const gives = (materialId: string): boolean => (getMaterial(materialId, cat).yields?.[kind] ?? 0) > 0;
-    return surface.deposits.some((d) => d.units > 0 && gives(d.materialId)) || state.crew.some((c) => c.alive && Object.keys(c.carried).some(gives));
+    // Una veta solo sirve si alguien vivo conserva la herramienta que la extrae (o ya hay algo extraído).
+    const canMine = (materialId: string): boolean => state.crew.some((c) => c.alive && (c.tools[getMaterial(materialId, cat).tool] ?? 0) > 0);
+    return (
+      surface.deposits.some((d) => d.units > 0 && gives(d.materialId) && canMine(d.materialId)) ||
+      surface.tools.some((t) => gives(t.materialId) && (t.ready > 0 || t.stopped !== 'depleted')) ||
+      state.crew.some((c) => c.alive && Object.keys(c.carried).some(gives))
+    );
   }
 
   function isStrandedOnSurface(dead: boolean): boolean {
@@ -682,7 +813,7 @@ export function createRun(options: RunOptions): Run {
     return m && m.alive ? m : null;
   }
 
-  function actSurface(action: Extract<RunAction, { type: 'land' | 'set-descent-brake' | 'eva-exit' | 'eva-enter' | 'set-position' | 'jetpack' | 'fall-impact' | 'collect' | 'jettison' | 'take-off' }>): ActionResult {
+  function actSurface(action: Extract<RunAction, { type: 'land' | 'set-descent-brake' | 'eva-exit' | 'eva-enter' | 'set-position' | 'jetpack' | 'fall-impact' | 'collect' | 'deploy-tool' | 'retrieve-tool' | 'jettison' | 'take-off' }>): ActionResult {
     if (action.type === 'land') {
       if (state.phase === 'landing' || state.phase === 'surface') return reject('reject.onSurface');
       if (state.phase !== 'docked') return reject('reject.inTransit');
@@ -698,7 +829,9 @@ export function createRun(options: RunOptions): Run {
       state.surface = surface;
       state.phase = 'landing';
       state.landedIds.push(state.locationId);
-      for (const m of state.crew) Object.assign(m, { location: 'ship', x: 0, z: 0, grounded: true, evaS: 0 });
+      // Equipo de extracción completo en cada aterrizaje.
+      const kit = Object.fromEntries(surfaceCat.tools.map((t) => [t.id, t.perCrew]));
+      for (const m of state.crew) Object.assign(m, { location: 'ship', x: 0, z: 0, grounded: true, evaS: 0, tools: { ...kit } });
       emit('descent', 'info', 'event.descent', { world: surface.worldId, gravity: round1(surface.gravityMps2) });
       return OK;
     }
@@ -753,7 +886,7 @@ export function createRun(options: RunOptions): Run {
         const refill = suitRefill(srules, m.suitO2Pct, shipState.oxygenPct);
         shipState.oxygenPct = Math.max(0, shipState.oxygenPct - refill.shipO2Cost);
         Object.assign(m, {
-          location: 'eva', suitO2Pct: refill.suitO2Pct, jetpackPct: 100, x: 0, z: 0, grounded: true, evaS: 0, o2Alert: 0,
+          location: 'eva', suitO2Pct: refill.suitO2Pct, jetpackPct: 100, x: 0, z: 0, grounded: true, evaS: 0, o2Alert: 0, lodeVeinsDone: [],
           moveBudgetM: suit.maxMoveSpeedMps * MOVE_BUDGET_CAP_S,
         });
         state.stats.evas++;
@@ -768,6 +901,7 @@ export function createRun(options: RunOptions): Run {
         state.stats.evaTimeS += m.evaS;
         emit('airlock', 'ok', 'event.airlock.enter', undefined, { crewId: m.id, subtype: 'enter' });
         storeCarried(m, surface);
+        abandonTools(surface);
         return OK;
       }
       case 'set-position': {
@@ -818,34 +952,47 @@ export function createRun(options: RunOptions): Run {
         }
         return OK;
       }
-      case 'collect': {
+      case 'deploy-tool': {
         if (m.location !== 'eva') return reject('reject.notOutside');
         const deposit = surface.deposits.find((d) => d.id === action.depositId);
         if (!deposit || deposit.units <= 0) return reject('reject.noDeposit');
         if (Math.hypot(m.x - deposit.x, m.z - deposit.z) > suit.collectRangeM) return reject('reject.tooFar');
-        // Se arranca con los pies en el suelo (saltar no esquiva el terreno inestable).
-        if (!m.grounded) return reject('reject.collectAirborne');
+        // Se coloca con los pies en el suelo (saltar no esquiva el terreno inestable).
+        if (!m.grounded) return reject('reject.toolAirborne');
+        if (surface.tools.some((t) => t.depositId === deposit.id)) return reject('reject.toolPlaced');
         const mat = getMaterial(deposit.materialId, cat);
-        if (m.carriedKg + mat.massKg > suit.carryCapacityKg + 1e-9) return reject('reject.overCapacity');
-        const seconds = clamp(Number(action.seconds) || 0, 0, MAX_WORK_SECONDS);
-        deposit.progress += seconds / mat.collectS;
-        if (deposit.progress >= 1 - 1e-9) {
-          deposit.progress = 0;
-          deposit.units--;
-          // Racha (solo lo raro): las piezas raras que ya lleva encima revalorizan esta.
-          const unitValue = mat.streak ? Math.round(deposit.valuePerUnit * m.streakMult) : deposit.valuePerUnit;
-          m.carried[mat.id] = (m.carried[mat.id] ?? 0) + 1;
-          m.carriedValues[mat.id] = (m.carriedValues[mat.id] ?? 0) + unitValue;
-          m.carriedKg += mat.massKg;
-          m.carriedValue += unitValue;
-          m.carriedUnits++;
-          if (mat.streak) {
-            m.streakUnits++;
-            m.streakMult = streakMultiplier(srules, m.streakUnits);
+        if ((m.tools[mat.tool] ?? 0) <= 0) return reject('reject.noTool', { tool: mat.tool });
+        m.tools[mat.tool]!--;
+        surface.tools.push({ id: ++toolSeq, toolId: mat.tool, depositId: deposit.id, materialId: mat.id, x: deposit.x, z: deposit.z, progress: 0, ready: 0, stopped: null });
+        deposit.progress = 0;
+        emit('tool-placed', 'info', 'event.toolPlaced', { tool: mat.tool, material: mat.id }, { crewId: m.id });
+        return OK;
+      }
+      case 'collect': {
+        if (m.location !== 'eva') return reject('reject.notOutside');
+        const t = surface.tools.find((x) => x.depositId === action.depositId);
+        if (!t) return reject(surface.deposits.some((d) => d.id === action.depositId) ? 'reject.noToolHere' : 'reject.noDeposit');
+        if (Math.hypot(m.x - t.x, m.z - t.z) > suit.collectRangeM) return reject('reject.tooFar');
+        if (!m.grounded) return reject('reject.collectAirborne');
+        if (t.ready <= 0) {
+          // Veta agotada y nada pendiente: la herramienta vuelve sola a la mochila.
+          if (t.stopped === 'depleted') {
+            stowTool(m, surface, t);
+            return OK;
           }
-          state.stats.materialsCollected++;
-          emit('material-collected', 'ok', 'event.collected', { material: mat.id, kg: Math.round(m.carriedKg), capacity: suit.carryCapacityKg }, { crewId: m.id });
+          return reject('reject.nothingReady');
         }
+        if (pickUp(m, t) === 0) return reject('reject.overCapacity');
+        if (t.ready === 0 && t.stopped === 'depleted') stowTool(m, surface, t);
+        return OK;
+      }
+      case 'retrieve-tool': {
+        if (m.location !== 'eva') return reject('reject.notOutside');
+        const t = surface.tools.find((x) => x.depositId === action.depositId);
+        if (!t) return reject(surface.deposits.some((d) => d.id === action.depositId) ? 'reject.noToolHere' : 'reject.noDeposit');
+        if (Math.hypot(m.x - t.x, m.z - t.z) > suit.collectRangeM) return reject('reject.tooFar');
+        pickUp(m, t);
+        stowTool(m, surface, t);
         return OK;
       }
     }
@@ -901,6 +1048,8 @@ export function createRun(options: RunOptions): Run {
       case 'jetpack':
       case 'fall-impact':
       case 'collect':
+      case 'deploy-tool':
+      case 'retrieve-tool':
       case 'jettison':
       case 'take-off':
         return actSurface(action);
@@ -970,6 +1119,8 @@ export function createRun(options: RunOptions): Run {
         if (shipState.fuel < ship.evadeFuel) return reject('reject.notEnoughFuel');
         shipState.fuel -= ship.evadeFuel;
         hazard.evaded = true;
+        // Esquiva por habilidad: el cliente informa los roces del minijuego; el motor cobra.
+        if (action.grazes !== undefined && rules.impact.evade) hazard.evadeDamageFrac = evadeDamageFraction(rules, Number(action.grazes) || 0);
         return OK;
       }
       case 'service': {

@@ -39,7 +39,9 @@
     "soundCaptions": "Subtítulos de sonido",
     "soundCaptionsHint": "Muestra textos como [alarma] cuando suena un aviso. Los avisos importantes siempre destellan en pantalla.",
     "effects": "Intensidad de efectos (sacudida y viñeta)",
-    "toggleCollect": "Recoger con una pulsación (sin mantener E)"
+    "simpleDodge": "Esquiva simple (mantener E en el timón, sin minijuego)",
+    "simpleRepairs": "Averías simples (mantener R, sin minijuegos)",
+    "wideAim": "Puntería amplia del extintor"
   },
   "credits": {
     "title": "Créditos",
@@ -95,7 +97,13 @@
     "shipAlert": "Nave: alerta",
     "shipOk": "Nave · casco {{hull}}",
     "toShip": "Nave",
-    "streak": "×{{mult}}"
+    "streak": "×{{mult}}",
+    "tools": "Herramientas en la mochila",
+    "toolsReady": "Piezas listas en las herramientas",
+    "o2Fetch": "Oxígeno justo: ve ya a por tus herramientas",
+    "o2Leave": "Oxígeno justo: deja las herramientas y vuelve",
+    "toHelm": "Impacto: al timón",
+    "lode": "Filón: {{done}} de {{total}} vetas"
   },
   "prompt": {
     "hold": "Mantén",
@@ -120,7 +128,6 @@
     "jettison": "Soltar la carga de este mundo",
     "airlockExit": "Salir por la esclusa",
     "airlockSealed": "Esclusa sellada · solo en tierra",
-    "collect": "Recoger {{material}} · {{value}} pts · quedan {{units}}",
     "full": "Sin sitio para {{material}}: vuelve a la nave",
     "enter": "Entrar en la nave",
     "enterCargo": "Entrar y guardar {{kg}} kg",
@@ -129,7 +136,23 @@
     "exitShort": "traje {{suit}} % · nave O₂ −{{cost}} %",
     "collectAirborne": "{{material}} · pies en el suelo para recoger",
     "landNoEngines": "Aterrizar · motores fuera de línea",
-    "shipO2": "nave O₂ {{pct}} %"
+    "shipO2": "nave O₂ {{pct}} %",
+    "evadeDodge": "Tomar los mandos · esquivar",
+    "dodging": "Esquiva las rocas",
+    "grazes": "roces {{n}}",
+    "hits": "choques {{n}}",
+    "deployTool": "Colocar {{tool}} sobre {{material}}",
+    "toolsLeft": "×{{n}}",
+    "noToolLeft": "Sin {{tool}} en la mochila",
+    "toolAirborne": "{{tool}} · pies en el suelo para colocarla",
+    "collectReady": "Recoger {{units}} de {{material}}",
+    "toolPickUp": "Veta agotada · guardar {{tool}}",
+    "toolStorm": "{{tool}} parado por la tormenta",
+    "toolWorking": "{{tool}} extrayendo {{material}} · quedan {{left}}",
+    "retrieveTool": "Retirar la herramienta",
+    "toolsOut": "fuera: {{n}} herr.",
+    "readyOut": "{{n}} piezas sin recoger",
+    "evadeLate": "Maniobra a medias · ya no da tiempo"
   },
   "map": {
     "title": "Mapa estelar · sector {{sector}}",
@@ -213,11 +236,11 @@
   "help": {
     "title": "Cómo se juega",
     "goal": "Salta de destino en destino hasta el portal sin perder el casco, el oxígeno, el combustible ni el reactor.",
-    "move": "Moverte",
+    "move": "Moverte · al timón, pilotar la esquiva",
     "run": "Correr",
     "look": "Mirar",
-    "interact": "Usar un puesto (mantener para arreglar)",
-    "alt": "Cambiar el régimen en el timón",
+    "interact": "Usar: mapa, panel, esclusa, timón · colocar herramienta y recoger",
+    "alt": "Régimen en el timón · retirar herramienta",
     "view": "Cambiar 1ª / 3ª persona",
     "pause": "Pausa",
     "tips": {
@@ -229,10 +252,13 @@
       "o2": "Fuera, el oxígeno del traje baja sin parar: vuelve a la rampa a tiempo.",
       "terrain": "Grietas que brillan: el suelo cede. Sal de ahí o caerás.",
       "storm": "Si el horizonte se oscurece, viene una tormenta: vuelve a cubierto.",
-      "landing": "Al descender, frena cuando la velocidad pase la marca blanca."
+      "landing": "Al descender, frena cuando la velocidad pase la marca blanca.",
+      "tools": "Coloca la herramienta en la veta y ve a por otra; vuelve cuando su baliza parpadee."
     },
     "jump": "Saltar · mantén en el aire: jetpack (cayendo, frena) · en el descenso: frenar",
-    "down": "Jetpack hacia abajo (bajar antes)"
+    "down": "Jetpack hacia abajo (bajar antes)",
+    "click": "Averías: apuntar el extintor, pulsar a tiempo o sellar (clic o Espacio)",
+    "repair": "Repuesto: mantén y suelta en la marca, dos veces"
   },
   "keys": {
     "move": "WASD",
@@ -244,7 +270,9 @@
     "pause": "Esc",
     "help": "H",
     "jump": "Espacio",
-    "down": "C"
+    "down": "C",
+    "repair": "R",
+    "click": "Clic"
   },
   "sound": {
     "fixed": "[reparado]",
@@ -260,7 +288,7 @@
     "landSoft": "[contacto suave]",
     "landHard": "[golpe contra el suelo]",
     "airlock": "[esclusa]",
-    "collect": "[mineral arrancado]",
+    "collect": "[piezas recogidas]",
     "store": "[carga a bodega]",
     "stormWarn": "[viento creciente]",
     "storm": "[tormenta]",
@@ -274,7 +302,18 @@
     "takeOff": "[despegue]",
     "jettison": "[carga soltada]",
     "wind": "[viento]",
-    "fallWarn": "[aviso de caída]"
+    "fallWarn": "[aviso de caída]",
+    "dodgeGraze": "[roce]",
+    "dodgeHit": "[choque]",
+    "skillHit": "[acierto]",
+    "skillMiss": "[fallo]",
+    "extinguisher": "[extintor]",
+    "toolPlace": "[herramienta en marcha]",
+    "toolReady": "[piezas listas]",
+    "toolDone": "[veta agotada]",
+    "toolStop": "[herramienta parada]",
+    "toolResume": "[herramienta reanudada]",
+    "toolLost": "[herramientas abandonadas]"
   },
   "descent": {
     "title": "Descenso",

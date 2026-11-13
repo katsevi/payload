@@ -85,14 +85,16 @@ sensores). Ir rápido además acorta el aviso de los impactos, porque los sensor
 
 ## 5. Averías y peligros [F1]
 
-| Avería | Efecto | Arreglo (mantener E junto al sistema) |
+| Avería | Efecto | Arreglo (junto al sistema; cada una con su habilidad) |
 | --- | --- | --- |
-| **Fuego** | −2,5 %/s al sistema, −0,35/s al casco, −0,5 %/s de O₂; a los 35 s salta a otro sistema | 3,5 s |
-| **Cortocircuito** | El sistema se apaga; a los 28 s se convierte en fuego | 2,5 s |
-| **Fuga de O₂** | −1,4 %/s de oxígeno | 3 s |
-| **Impacto** | 8-18 de casco. Con escudos, el 35 %. Sin escudos, además daña un sistema y puede abrir una fuga | Evadir en el timón (0,7 s, 3 de combustible) |
+| **Fuego** | −2,5 %/s al sistema, −0,35/s al casco, −0,5 %/s de O₂; a los 35 s salta a otro sistema | Extintor: mantener clic o Espacio con la mira sobre el foco; 3,5 s de trabajo |
+| **Cortocircuito** | El sistema se apaga; a los 28 s se convierte en fuego | Pulsos de sincronía: clic cuando la marca pasa por la zona (dos aciertos bastan); 2,5 s de trabajo |
+| **Fuga de O₂** | −1,4 %/s de oxígeno | Mantener para subir la presión y soltar en la zona; 3 s de trabajo |
+| **Impacto** | 8-18 de casco. Con escudos, el 35 %. Sin escudos, además daña un sistema y puede abrir una fuga | Evadir en el timón: pilotar 3 s entre rocas en el holograma (3 de combustible; si llegas con menos de 3,4 s, resultado con roces, nunca limpio; una flecha y un pitido te guían al timón); cada roce deja entrar el 20 % del daño y chocar de lleno el 90 % |
 
-Los **sistemas dañados** se reparan con un kit de repuestos (4 s, +50 % de salud).
+El aviso de un impacto da tiempo para llegar al timón y jugar la esquiva (3 s) solo según el régimen: unos 8,9 s de margen en económico, 4,6 s en crucero y 1,6 s en máxima (un test fija que cruzar la nave cuesta como mucho 3,9 s).
+
+Los **sistemas dañados** se reparan con un kit de repuestos (R junto al sistema: mantener y soltar en la marca, en dos tramos; 4 s, +50 % de salud). Tres ajustes de accesibilidad sustituyen los minijuegos por mantener una tecla (esquiva simple, averías simples) o ensanchan el área del extintor (puntería ancha).
 
 Los peligros de cada salto se sortean al iniciarlo según el destino (un campo de asteroides trae impactos;
 una nebulosa, cortos y fuegos) y el sector. Además hay averías por **desgaste**, más frecuentes a máxima.
@@ -161,8 +163,11 @@ atender nada se supera el sector 1 un 6 % de las veces.
 | --- | --- |
 | WASD / flechas, Mayús | Moverse, correr |
 | Ratón | Mirar (clic para capturar el ratón) |
-| E | Usar el puesto cercano; **mantener** para arreglar, reparar o evadir; en el timón, **mantener** para bajar a un mundo o despegar; en superficie, mantener para recoger [F2] |
-| Q | Cambiar el régimen (en el timón); en tierra, soltar la carga si pesa demasiado [F2] |
+| E | Usar el puesto cercano (abrir mapa o panel, tomar el timón y arrancar la esquiva); en el timón, **mantener** para bajar a un mundo o despegar; en superficie, colocar una herramienta de minería o recoger lo extraído [F2] |
+| Clic o Espacio | La habilidad de cada avería: apuntar el extintor, marcar el pulso, soltar la presión |
+| R | Reparar un sistema con un repuesto (mantener y soltar en la marca, dos tramos) |
+| WASD | En la esquiva: pilotar la nave entre las rocas |
+| Q | Alternativa: cambiar el régimen (en el timón); en tierra, soltar la carga si pesa demasiado o retirar una herramienta [F2] |
 | Espacio | En superficie: salto y jetpack (mantener en el aire); cayendo, frena la caída; en el descenso, frena [F2] |
 | C | En superficie: bajar con el jetpack [F2] |
 | 1-4 | Encender/apagar sistemas (con el panel de energía abierto) |
@@ -198,7 +203,12 @@ Desde un destino atracado que sea planeta, luna o campo de asteroides, el piloto
   asteroides; bajar a lunas y planetas cuesta combustible neto y es una apuesta de puntos). Cristales y muestras
   son raros: puntúan y quedan en la bodega para venderse en la fase 3. Valen más lejos de la nave y cerca del
   peligro, y **solo lo raro hace racha** (cada raro que llevas encima revaloriza el siguiente, con tope; se pierde
-  si mueres). Se recogen manteniendo E; la mochila tiene tope de masa (80 kg; lo raro pesa 8-10 kg).
+  si mueres). Se extraen con **herramientas desplegables** (ver abajo); la mochila tiene tope de masa (110 kg; lo raro pesa 8-10 kg).
+- **Minería con herramientas.** Junto a una veta se coloca con una pulsación de E el **concentrador solar** (hielo:
+  su calor lo sublima; se para con tormenta y sigue después) o el **taladro láser** (mena, cristales, muestras). Extraen
+  solos mientras haces otra cosa; vuelves, pulsas E para recoger lo listo (Q retira la herramienta). Se tienen
+  pocas y se reponen en cada aterrizaje; **lo que queda fuera al volver a la nave se pierde** (con lo extraído
+  dentro). Lo raro se agrupa en **filones** de 2-3 vetas a 8-15 m, para que una herramienta y un paseo corto rindan; **completar un filón** en la misma salida da ×1,5 a su última veta (el HUD muestra «2/3»); extraen en 4-6 s por unidad. La brújula de oxígeno cuenta el rodeo por las herramientas colocadas («ve a por ellas» o «déjalas y vuelve»). El hielo también aparece, escaso y lejos, en la luna volcánica y el mundo de tormentas.
 - **Volver y despegar.** Con todos a bordo; el combustible del despegue crece con la gravedad y la carga que
   se guardó en ese mundo. Si no hay para despegar ni vaciando la bodega, la nave queda varada.
 - **La nave sigue viva** durante la salida (desgaste reducido por mundo): averías y oxígeno siguen.

@@ -12,10 +12,12 @@
 import { getSurfaceCatalog } from './catalog';
 import { getNode } from './galaxy';
 import { createRng, deriveSeed, type Rng } from './rng';
-import type { Catalog, Deposit, PlannedStorm, SectorMap, SurfaceRules, SurfaceState, UnstableZone, WorldDef } from './types';
+import type { Catalog, CrewMember, Deposit, LodeProgress, PlannedStorm, SectorMap, SurfaceRules, SurfaceState, UnstableZone, WorldDef } from './types';
 
 const WORLD_SALT = 0x3b0d;
 const SURFACE_SALT = 0x5f1a;
+/** Flujo de los filones (derivado de la semilla del mundo; no altera las tiradas de las vetas). */
+const LODE_SALT = 0x10de;
 /** Flujo de las tiradas del aterrizaje brusco (derivado de la semilla del mundo). */
 export const LANDING_SALT = 0x1a4d;
 /** Tormentas pre-sorteadas por mundo (suficientes para cualquier estancia razonable). */
@@ -76,6 +78,29 @@ export function referenceBrake(
   // Anticipa un paso de caída libre (con gravedad alta, un paso sin freno ya pasa de la velocidad segura).
   const next = speedMps + world.gravityMps2 * DESCENT_STEP_S;
   return next > Math.sqrt(touchdown * touchdown + margin * margin * 2 * net * Math.max(0, altitudeM));
+}
+
+/**
+ * Avance de cada filón (de 2+ vetas) para un tripulante en la salida en curso: vetas totales, agotadas por él
+ * y si la que queda daría el bonus de filón completo. Puro: sirve igual al cliente que al motor.
+ */
+export function lodeProgress(deposits: readonly Deposit[], member: Pick<CrewMember, 'lodeVeinsDone'>): LodeProgress[] {
+  const byLode = new Map<number, Deposit[]>();
+  for (const d of deposits) if (d.lodeId !== undefined) byLode.set(d.lodeId, [...(byLode.get(d.lodeId) ?? []), d]);
+  const out: LodeProgress[] = [];
+  for (const [lodeId, veins] of byLode) {
+    if (veins.length < 2) continue;
+    const done = veins.filter((v) => member.lodeVeinsDone.includes(v.id)).length;
+    out.push({ lodeId, total: veins.length, done, bonusReady: done === veins.length - 1 });
+  }
+  return out.sort((a, b) => a.lodeId - b.lodeId);
+}
+
+/** ¿Las unidades de esta veta llevan el bonus de filón completo para este tripulante? */
+export function lodeBonusApplies(deposits: readonly Deposit[], deposit: Deposit, member: Pick<CrewMember, 'lodeVeinsDone'>): boolean {
+  if (deposit.lodeId === undefined) return false;
+  const others = deposits.filter((d) => d.lodeId === deposit.lodeId && d.id !== deposit.id);
+  return others.length > 0 && others.every((d) => member.lodeVeinsDone.includes(d.id));
 }
 
 /** Multiplicador de racha para la próxima unidad rara cuando ya se llevan `streakUnits` raras encima. */
@@ -199,6 +224,52 @@ export function generateSurface(seed: number, sector: SectorMap, nodeId: string,
     deposits.push({ id: i + 1, materialId: material.id, x: round1(x), z: round1(z), units, valuePerUnit, progress: 0, risky });
   }
 
+  // Filones (flujo propio, 3 tiradas por veta rara fuera de zonas): lo raro se agrupa a pocos metros de la
+  // primera veta del filón, para que dos taladros trabajen juntos y la racha se haga en un mismo sitio.
+  const lodes = rules.lodes;
+  if (lodes) {
+    const lrng = createRng(deriveSeed(worldSeed(Math.trunc(seed) >>> 0, sector, nodeId), LODE_SALT));
+    let anchor: Deposit | null = null;
+    let left = 0;
+    let lodeSeq = 0;
+    let angle = 0;
+    for (let i = zones.length; i < deposits.length; i++) {
+      const d = deposits[i]!;
+      const material = surface.materials.find((m) => m.id === d.materialId)!;
+      if (!material.streak) continue;
+      const sizeRoll = lrng.next();
+      const angleRoll = lrng.next();
+      const distRoll = lrng.next();
+      if (!anchor || left <= 0) {
+        anchor = d;
+        left = lodes.size.min + Math.floor(sizeRoll * (lodes.size.max - lodes.size.min + 1)) - 1;
+        d.lodeId = ++lodeSeq;
+        angle = angleRoll * Math.PI * 2;
+        continue;
+      }
+      // Cada nueva veta del filón, en otra dirección desde la primera (no se amontonan).
+      angle += Math.PI * (0.6 + 0.8 * angleRoll);
+      const dist = lodes.spacingM.min + distRoll * (lodes.spacingM.max - lodes.spacingM.min);
+      let x = anchor.x + Math.cos(angle) * dist;
+      let z = anchor.z + Math.sin(angle) * dist;
+      const r = Math.hypot(x, z);
+      if (r > R * 0.97) {
+        x *= (R * 0.97) / r;
+        z *= (R * 0.97) / r;
+      }
+      const frac = Math.min(1, Math.hypot(x, z) / R);
+      const risky = zones.some((zn) => Math.hypot(zn.x - x, zn.z - z) <= zn.radiusM + rules.value.dangerMarginM);
+      Object.assign(d, {
+        x: round1(x),
+        z: round1(z),
+        risky,
+        lodeId: anchor.lodeId,
+        valuePerUnit: Math.round(material.value * (1 + rules.value.distanceBonus * frac) * (risky ? 1 + rules.value.dangerBonus : 1)),
+      });
+      left--;
+    }
+  }
+
   // Tormentas (3 tiradas por tormenta, haya o no)
   const storms: PlannedStorm[] = [];
   if (world.storms) {
@@ -230,6 +301,8 @@ export function generateSurface(seed: number, sector: SectorMap, nodeId: string,
     stormCursor: 0,
     zones,
     deposits,
+    tools: [],
+    toolsLost: {},
     loaded: {},
     loadedKg: 0,
     loadedValue: 0,

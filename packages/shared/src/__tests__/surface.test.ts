@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   catalog, computeScore, createRun, FIXED_STEP_S, generateSector, generateSurface, getNode, getNodeKind, getNodeWorld, MAX_WORK_SECONDS,
-  getMaterial, parseCatalog, referenceBrake, simulateDescent, streakMultiplier, suitRefill, takeOffFuel,
+  getMaterial, lodeBonusApplies, lodeProgress, parseCatalog, referenceBrake, simulateDescent, streakMultiplier, suitRefill, takeOffFuel,
   type Catalog, type RunEvent, type Run, type WorldDef,
 } from '../index';
 
@@ -106,15 +106,31 @@ function walkTo(run: Run, x: number, z: number, speed = 4, grounded = true): Run
   return run.takeEvents();
 }
 
+/**
+ * Extrae con herramienta: la coloca (si no lo está), espera y recoge unidad a unidad hasta `maxUnits` o hasta
+ * agotar la veta. Si para antes, retira la herramienta (lo extraído no recogido vuelve a la veta).
+ */
 function collectAll(run: Run, depositId: number, maxUnits = 99): void {
-  for (let i = 0; i < 2000; i++) {
-    const d = run.state.surface!.deposits.find((x) => x.id === depositId)!;
-    if (d.units <= 0 || maxUnits <= 0) return;
-    const before = d.units;
-    if (!run.apply({ type: 'collect', depositId, seconds: FIXED_STEP_S }).ok) return;
-    if (d.units < before) maxUnits--;
+  const s = run.state.surface!;
+  const placed = () => s.tools.find((t) => t.depositId === depositId);
+  if (!placed() && !run.apply({ type: 'deploy-tool', depositId }).ok) return;
+  let got = 0;
+  for (let i = 0; i < 5000 && got < maxUnits && run.state.phase === 'surface'; i++) {
+    const t = placed();
+    if (!t) return;
+    if (t.ready > 0) {
+      const before = run.state.crew[0]!.carriedUnits;
+      if (!run.apply({ type: 'collect', depositId }).ok) break;
+      got += run.state.crew[0]!.carriedUnits - before;
+      continue;
+    }
+    if (t.stopped === 'depleted') {
+      run.apply({ type: 'collect', depositId }); // la herramienta vuelve sola
+      return;
+    }
     run.step(FIXED_STEP_S);
   }
+  if (placed()) run.apply({ type: 'retrieve-tool', depositId });
 }
 
 describe('catálogo de mundos', () => {
@@ -150,9 +166,9 @@ describe('cifras del catálogo de superficie (decisiones de diseño)', () => {
     expect(catalog.surface!.worlds.find((w) => w.id === 'heavy-world')!.unstable.pitDepthM).toBeLessThanOrEqual(7);
   });
 
-  it('el hielo es de los asteroides: bajar a uno da un neto modesto de combustible; a planetas y lunas cuesta', () => {
+  it('el neto de combustible solo es claramente positivo en asteroides; a lunas y planetas bajar cuesta', () => {
     const net: Record<string, number[]> = {};
-    for (let seed = 1; seed <= 60; seed++) {
+    for (let seed = 1; seed <= 120; seed++) {
       const sector = generateSector(seed, 1, catalog);
       for (const node of sector.nodes.filter((n) => getNodeKind(n.kind).landable)) {
         const s = generateSurface(seed, sector, node.id, catalog)!;
@@ -164,16 +180,48 @@ describe('cifras del catálogo de superficie (decisiones de diseño)', () => {
     const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
     expect(mean(net.asteroid!)).toBeGreaterThanOrEqual(8);
     expect(mean(net.asteroid!)).toBeLessThanOrEqual(30);
-    for (const kind of ['moon', 'planet']) expect(Math.max(...net[kind]!), kind).toBeLessThan(0);
+    for (const kind of ['moon', 'planet']) {
+      const xs = [...net[kind]!].sort((a, b) => a - b);
+      expect(mean(xs), kind).toBeLessThan(0);
+      // Algo de hielo lejano en mundos con tormentas: como mucho cerca de cero para quien se la juegue.
+      expect(xs[Math.floor(0.9 * (xs.length - 1))]!, kind).toBeLessThanOrEqual(3);
+      expect(mean(net.asteroid!) - mean(xs), kind).toBeGreaterThan(10);
+    }
   });
 
-  it('se recoge rápido (<= 5 s por unidad) y lo raro pesa: la mochila obliga a elegir', () => {
-    for (const m of catalog.surface!.materials) expect(m.collectS, m.id).toBeLessThanOrEqual(5);
+  it('el hielo fuera de los asteroides está lejos de la nave y solo en mundos con tormentas', () => {
+    for (const w of catalog.surface!.worlds.filter((x) => x.kind !== 'asteroid')) {
+      const ice = w.materials.find((m) => m.materialId === 'ice');
+      if (!ice) continue;
+      expect(w.storms, w.id).not.toBeNull();
+      expect(ice.minDistanceFrac, w.id).toBeGreaterThanOrEqual(0.5);
+    }
+  });
+
+  it('cada material tiene su herramienta, extrae en segundos y lo raro pesa: la mochila obliga a elegir', () => {
+    const tools = catalog.surface!.tools;
+    expect(tools.map((t) => t.id).sort()).toEqual(['laser-drill', 'solar-concentrator']);
+    for (const t of tools) {
+      expect(t.perCrew, t.id).toBeGreaterThanOrEqual(1);
+      expect(t.perCrew, t.id).toBeLessThanOrEqual(2);
+    }
+    expect(tools.find((t) => t.id === 'solar-concentrator')!.stopsInStorm).toBe(true);
+    expect(tools.find((t) => t.id === 'laser-drill')!.stopsInStorm).toBe(false);
+    expect(getMaterial('ice').tool).toBe('solar-concentrator');
+    for (const id of ['ore', 'crystal', 'sample']) expect(getMaterial(id).tool, id).toBe('laser-drill');
+    for (const m of catalog.surface!.materials) {
+      const perUnitS = m.collectS / tools.find((t) => t.id === m.tool)!.speedMult;
+      // Poca espera: 4-6 s por unidad (mientras, se coloca la otra herramienta).
+      expect(perUnitS, m.id).toBeGreaterThanOrEqual(4);
+      expect(perUnitS, m.id).toBeLessThanOrEqual(6);
+    }
     for (const m of catalog.surface!.materials.filter((x) => x.streak)) {
       expect(m.massKg, m.id).toBeGreaterThanOrEqual(8);
       expect(m.massKg, m.id).toBeLessThanOrEqual(12);
     }
-    expect(rules.suit.carryCapacityKg).toBeLessThanOrEqual(90);
+    // Una salida larga de raros llena la mochila (una docena de piezas como mucho).
+    const lightest = Math.min(...catalog.surface!.materials.filter((x) => x.streak).map((x) => x.massKg));
+    expect(Math.floor(rules.suit.carryCapacityKg / lightest)).toBeLessThanOrEqual(14);
   });
 });
 
@@ -222,6 +270,56 @@ describe('mundo de cada nodo', () => {
       }
     }
     expect(checked).toBeGreaterThan(100);
+  });
+
+  it('lo raro se agrupa en filones de 2-3 vetas a pocos metros; lo común sigue disperso', () => {
+    const lodes = rules.lodes!;
+    let groups = 0;
+    let multi = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const sector = generateSector(seed, 1, catalog);
+      for (const node of sector.nodes.filter((n) => getNodeKind(n.kind).landable)) {
+        const s = generateSurface(seed, sector, node.id, catalog)!;
+        const byLode = new Map<number, typeof s.deposits>();
+        s.deposits.forEach((d, i) => {
+          const rare = getMaterial(d.materialId).streak ?? false;
+          if (i < s.zones.length || !rare) {
+            expect(d.lodeId, `${d.materialId} en zona o común`).toBeUndefined();
+            return;
+          }
+          expect(d.lodeId).toBeGreaterThan(0);
+          byLode.set(d.lodeId!, [...(byLode.get(d.lodeId!) ?? []), d]);
+        });
+        for (const members of byLode.values()) {
+          groups++;
+          expect(members.length).toBeLessThanOrEqual(lodes.size.max);
+          if (members.length > 1) multi++;
+          const [first, ...rest] = members;
+          for (const d of rest) {
+            const dist = Math.hypot(d.x - first!.x, d.z - first!.z);
+            expect(dist).toBeLessThanOrEqual(lodes.spacingM.max + 0.2);
+            expect(Math.hypot(d.x, d.z)).toBeLessThanOrEqual(s.radiusM + 0.1);
+          }
+        }
+      }
+    }
+    expect(groups).toBeGreaterThan(50);
+    expect(multi / groups).toBeGreaterThan(0.5);
+  });
+
+  it('los filones usan su propio flujo de azar: sin ellos, las vetas (material, unidades, orden) son las mismas', () => {
+    const raw = JSON.parse(JSON.stringify(catalog)) as Catalog;
+    delete raw.surface!.rules.lodes;
+    const plain = parseCatalog(raw);
+    const sector = generateSector(5, 1, catalog);
+    for (const node of sector.nodes.filter((n) => getNodeKind(n.kind).landable)) {
+      const a = generateSurface(5, sector, node.id, catalog)!;
+      const b = generateSurface(5, sector, node.id, plain)!;
+      expect(a.deposits.map((d) => [d.id, d.materialId, d.units])).toEqual(b.deposits.map((d) => [d.id, d.materialId, d.units]));
+      expect(a.zones).toEqual(b.zones);
+      expect(a.storms).toEqual(b.storms);
+      for (const [i, d] of a.deposits.entries()) if (!getMaterial(d.materialId).streak) expect(d).toEqual(b.deposits[i]);
+    }
   });
 
   it('lo valioso está lejos o junto al peligro; lo común, cerca', () => {
@@ -698,14 +796,19 @@ describe('terreno inestable: saltar no lo anula', () => {
     expect(events.filter((e) => e.type === 'terrain-warning').length).toBeGreaterThanOrEqual(2);
   });
 
-  it('recoger exige estar en el suelo', () => {
+  it('colocar y recoger exigen estar en el suelo', () => {
     const run = landed(surfaceCatalog());
     run.apply({ type: 'eva-exit' });
     const d = run.state.surface!.deposits[0]!;
     walkTo(run, d.x, d.z, 4, false);
-    expect(run.apply({ type: 'collect', depositId: d.id, seconds: 0.1 })).toEqual({ ok: false, reason: { key: 'reject.collectAirborne' } });
+    expect(run.apply({ type: 'deploy-tool', depositId: d.id })).toEqual({ ok: false, reason: { key: 'reject.toolAirborne' } });
     run.apply({ type: 'set-position', x: d.x, z: d.z, grounded: true });
-    expect(run.apply({ type: 'collect', depositId: d.id, seconds: 0.1 })).toEqual({ ok: true });
+    expect(run.apply({ type: 'deploy-tool', depositId: d.id })).toEqual({ ok: true });
+    advance(run, getMaterial('ice').collectS + 0.2);
+    run.apply({ type: 'set-position', x: d.x, z: d.z, grounded: false });
+    expect(run.apply({ type: 'collect', depositId: d.id })).toEqual({ ok: false, reason: { key: 'reject.collectAirborne' } });
+    run.apply({ type: 'set-position', x: d.x, z: d.z, grounded: true });
+    expect(run.apply({ type: 'collect', depositId: d.id })).toEqual({ ok: true });
   });
 });
 
@@ -771,34 +874,86 @@ describe('racha: cada unidad que llevas encima revaloriza la siguiente', () => {
   });
 });
 
+describe('filón completo en una misma salida', () => {
+  const lodeWorld = () =>
+    surfaceCatalog((w) => { w.materials = [{ materialId: 'crystal', weight: 1, units: { min: 1, max: 1 }, minDistanceFrac: 0, dangerWeightMult: 1 }]; });
+  const mult = rules.lodes!.completeMult!;
+
+  function lodeOf(run: Run) {
+    const s = run.state.surface!;
+    const id = lodeProgress(s.deposits, run.state.crew[0]!).find((l) => l.total >= 2)!.lodeId;
+    return s.deposits.filter((d) => d.lodeId === id);
+  }
+
+  it('la última veta vale ×completeMult si las demás del filón se agotaron en la misma salida', () => {
+    expect(mult).toBeGreaterThan(1);
+    const run = landed(lodeWorld());
+    run.apply({ type: 'eva-exit' });
+    const m = run.state.crew[0]!;
+    const veins = lodeOf(run);
+    const last = veins.at(-1)!;
+    for (const v of veins.slice(0, -1)) {
+      walkTo(run, v.x, v.z, 10);
+      collectAll(run, v.id);
+    }
+    expect(m.lodeVeinsDone.sort()).toEqual(veins.slice(0, -1).map((v) => v.id).sort());
+    const progress = lodeProgress(run.state.surface!.deposits, m).find((l) => l.lodeId === last.lodeId)!;
+    expect(progress).toEqual({ lodeId: last.lodeId, total: veins.length, done: veins.length - 1, bonusReady: true });
+    expect(lodeBonusApplies(run.state.surface!.deposits, last, m)).toBe(true);
+    walkTo(run, last.x, last.z, 10);
+    run.apply({ type: 'deploy-tool', depositId: last.id });
+    advance(run, getMaterial('crystal').collectS + 0.2);
+    const before = m.carriedValue;
+    const streak = m.streakMult;
+    run.takeEvents();
+    expect(run.apply({ type: 'collect', depositId: last.id })).toEqual({ ok: true });
+    expect(m.carriedValue - before).toBe(Math.round(last.valuePerUnit * streak * mult));
+    expect(run.takeEvents().find((e) => e.type === 'material-collected')?.subtype).toBe('lode');
+  });
+
+  it('el avance del filón es de esta salida: entrar lo reinicia', () => {
+    const run = landed(lodeWorld());
+    run.apply({ type: 'eva-exit' });
+    const m = run.state.crew[0]!;
+    const veins = lodeOf(run);
+    const first = veins[0]!;
+    walkTo(run, first.x, first.z, 10);
+    collectAll(run, first.id);
+    expect(m.lodeVeinsDone).toEqual([first.id]);
+    walkTo(run, 0, 0, 10);
+    run.apply({ type: 'eva-enter' });
+    run.apply({ type: 'eva-exit' });
+    expect(m.lodeVeinsDone).toEqual([]);
+    expect(lodeProgress(run.state.surface!.deposits, m).every((l) => l.done === 0)).toBe(true);
+    // Sin las demás vetas agotadas en esta salida, la siguiente no lleva bonus.
+    expect(lodeBonusApplies(run.state.surface!.deposits, veins.at(-1)!, m)).toBe(veins.length === 1);
+  });
+
+  it('una veta suelta o común no da bonus de filón', () => {
+    const run = landed(surfaceCatalog());
+    const d = run.state.surface!.deposits[0]!; // hielo: sin filón
+    expect(d.lodeId).toBeUndefined();
+    expect(lodeBonusApplies(run.state.surface!.deposits, d, run.state.crew[0]!)).toBe(false);
+  });
+});
+
 describe('vetas, carga y bodega', () => {
-  it('recoger exige alcance, lleva su tiempo por unidad y está limitado por la masa que se puede cargar', () => {
+  it('la capacidad por masa limita lo que se recoge: si no cabe todo, se recoge lo que quepa', () => {
     const run = landed(surfaceCatalog());
     run.apply({ type: 'eva-exit' });
-    const d = run.state.surface!.deposits[0]!;
-    expect(run.apply({ type: 'collect', depositId: d.id, seconds: 0.1 })).toEqual({ ok: false, reason: { key: 'reject.tooFar' } });
-    expect(run.apply({ type: 'collect', depositId: 999, seconds: 0.1 })).toEqual({ ok: false, reason: { key: 'reject.noDeposit' } });
-    walkTo(run, d.x, d.z);
-    const ice = catalog.surface!.materials.find((m) => m.id === 'ice')!;
-    const needed = Math.round(ice.collectS / FIXED_STEP_S);
-    for (let i = 0; i < needed - 1; i++) run.apply({ type: 'collect', depositId: d.id, seconds: FIXED_STEP_S });
-    expect(d.units).toBe(3);
-    run.apply({ type: 'collect', depositId: d.id, seconds: FIXED_STEP_S });
-    expect(d.units).toBe(2);
-    expect(run.state.crew[0]!.carried).toEqual({ ice: 1 });
-    expect(run.takeEvents().some((e) => e.type === 'material-collected')).toBe(true);
-    // Capacidad por masa: no se puede pasar del límite.
+    const ice = getMaterial('ice');
     const maxUnits = Math.floor(rules.suit.carryCapacityKg / ice.massKg);
     for (const dep of run.state.surface!.deposits) {
+      if (run.state.crew[0]!.carriedKg + ice.massKg > rules.suit.carryCapacityKg) break;
       walkTo(run, dep.x, dep.z, 10);
       collectAll(run, dep.id);
-      if (run.state.crew[0]!.carriedKg + ice.massKg > rules.suit.carryCapacityKg) break;
     }
     expect(run.state.crew[0]!.carried.ice).toBe(maxUnits);
-    const other = run.state.surface!.deposits.find((x) => x.units > 0 && Math.hypot(x.x - run.state.crew[0]!.x, x.z - run.state.crew[0]!.z) <= rules.suit.collectRangeM)
-      ?? run.state.surface!.deposits.find((x) => x.units > 0)!;
+    const other = run.state.surface!.deposits.find((x) => x.units > 0)!;
     walkTo(run, other.x, other.z, 10);
-    expect(run.apply({ type: 'collect', depositId: other.id, seconds: 0.1 })).toEqual({ ok: false, reason: { key: 'reject.overCapacity' } });
+    expect(run.apply({ type: 'deploy-tool', depositId: other.id })).toEqual({ ok: true });
+    advance(run, ice.collectS + 0.2);
+    expect(run.apply({ type: 'collect', depositId: other.id })).toEqual({ ok: false, reason: { key: 'reject.overCapacity' } });
   });
 
   it('al entrar, la carga pasa a la nave: suministros si caben, el resto a la bodega; la puntuación suma su valor', () => {
@@ -838,6 +993,225 @@ describe('vetas, carga y bodega', () => {
     expect(run.state.ship.cargo).toEqual({ crystal: 2 });
     expect(run.state.ship.fuel).toBe(fuel);
     expect(run.state.surface!.loadedKg).toBeCloseTo(2 * catalog.surface!.materials.find((m) => m.id === 'crystal')!.massKg, 6);
+  });
+});
+
+describe('herramientas desplegables (extraen solas)', () => {
+  /** Mundo con hielo y cristal: el concentrador y el taladro tienen trabajo. */
+  const mixed = (patch?: (w: WorldDef) => void) =>
+    surfaceCatalog((w) => {
+      w.materials = [
+        { materialId: 'ice', weight: 1, units: { min: 3, max: 3 }, minDistanceFrac: 0, dangerWeightMult: 1 },
+        { materialId: 'crystal', weight: 1, units: { min: 2, max: 2 }, minDistanceFrac: 0, dangerWeightMult: 1 },
+      ];
+      patch?.(w);
+    });
+  const toolDef = (id: string) => catalog.surface!.tools.find((t) => t.id === id)!;
+  const perUnit = (materialId: string) => getMaterial(materialId).collectS / toolDef(getMaterial(materialId).tool).speedMult;
+  const kit = Object.fromEntries(catalog.surface!.tools.map((t) => [t.id, t.perCrew]));
+  const depositOf = (run: Run, materialId: string) => run.state.surface!.deposits.find((d) => d.materialId === materialId && d.units > 0)!;
+
+  it('cada aterrizaje empieza con el equipo completo en la mochila', () => {
+    const run = landed(mixed());
+    expect(run.state.crew[0]!.tools).toEqual(kit);
+    expect(run.state.surface!.tools).toEqual([]);
+    expect(run.state.surface!.toolsLost).toEqual({});
+  });
+
+  it('colocar: herramienta correcta, en alcance, una por veta y mientras queden en la mochila', () => {
+    const run = landed(mixed());
+    run.apply({ type: 'eva-exit' });
+    const ice = depositOf(run, 'ice');
+    expect(run.apply({ type: 'deploy-tool', depositId: ice.id })).toEqual({ ok: false, reason: { key: 'reject.tooFar' } });
+    expect(run.apply({ type: 'deploy-tool', depositId: 999 })).toEqual({ ok: false, reason: { key: 'reject.noDeposit' } });
+    walkTo(run, ice.x, ice.z, 10);
+    run.takeEvents();
+    expect(run.apply({ type: 'deploy-tool', depositId: ice.id })).toEqual({ ok: true });
+    expect(run.takeEvents().find((e) => e.type === 'tool-placed')?.message).toEqual({ key: 'event.toolPlaced', params: { tool: 'solar-concentrator', material: 'ice' } });
+    expect(run.state.crew[0]!.tools['solar-concentrator']).toBe(kit['solar-concentrator']! - 1);
+    expect(run.apply({ type: 'deploy-tool', depositId: ice.id })).toEqual({ ok: false, reason: { key: 'reject.toolPlaced' } });
+    const ice2 = run.state.surface!.deposits.find((d) => d.materialId === 'ice' && d.id !== ice.id)!;
+    walkTo(run, ice2.x, ice2.z, 10);
+    expect(run.apply({ type: 'deploy-tool', depositId: ice2.id })).toEqual({ ok: false, reason: { key: 'reject.noTool', params: { tool: 'solar-concentrator' } } });
+    // El taladro es otra herramienta: sirve para el cristal.
+    const crystal = depositOf(run, 'crystal');
+    walkTo(run, crystal.x, crystal.z, 10);
+    expect(run.apply({ type: 'deploy-tool', depositId: crystal.id })).toEqual({ ok: true });
+    expect(run.state.surface!.tools.map((t) => t.toolId).sort()).toEqual(['laser-drill', 'solar-concentrator']);
+  });
+
+  it('extrae sola a su ritmo; el estado dice veta, progreso, listas y si está parada', () => {
+    const run = landed(mixed());
+    run.apply({ type: 'eva-exit' });
+    const d = depositOf(run, 'ice');
+    walkTo(run, d.x, d.z, 10);
+    run.apply({ type: 'deploy-tool', depositId: d.id });
+    const t = run.state.surface!.tools[0]!;
+    expect(t).toMatchObject({ toolId: 'solar-concentrator', depositId: d.id, materialId: 'ice', ready: 0, stopped: null });
+    // Mientras trabaja, el tripulante puede irse: la herramienta no lo necesita.
+    walkTo(run, d.x + 20, d.z, 4);
+    run.takeEvents();
+    const t0 = run.state.surface!.elapsedS;
+    let events: RunEvent[] = [];
+    while (t.ready < 1) events.push(...advance(run, FIXED_STEP_S));
+    expect(run.state.surface!.elapsedS - t0).toBeLessThanOrEqual(perUnit('ice') + 0.11);
+    expect(d.units).toBe(2);
+    events = advance(run, perUnit('ice') * 2 + 0.2);
+    expect(t).toMatchObject({ ready: 3, stopped: 'depleted' });
+    expect(d.units).toBe(0);
+    expect(events.find((e) => e.type === 'tool-done')?.message).toEqual({ key: 'event.toolDone', params: { units: 3, material: 'ice' } });
+  });
+
+  it('recoger lo extraído es instantáneo, respeta el valor y devuelve la herramienta si la veta se agotó', () => {
+    const run = landed(mixed());
+    run.apply({ type: 'eva-exit' });
+    const d = depositOf(run, 'ice');
+    walkTo(run, d.x, d.z, 10);
+    run.apply({ type: 'deploy-tool', depositId: d.id });
+    expect(run.apply({ type: 'collect', depositId: d.id })).toEqual({ ok: false, reason: { key: 'reject.nothingReady' } });
+    advance(run, perUnit('ice') * 3 + 0.3);
+    const m = run.state.crew[0]!;
+    run.takeEvents();
+    expect(run.apply({ type: 'collect', depositId: d.id })).toEqual({ ok: true });
+    expect(m.carried).toEqual({ ice: 3 });
+    expect(m.carriedValue).toBe(3 * d.valuePerUnit);
+    expect(run.takeEvents().find((e) => e.type === 'material-collected')?.message.key).toBe('event.pickedUp');
+    expect(run.state.surface!.tools).toEqual([]);
+    expect(m.tools['solar-concentrator']).toBe(kit['solar-concentrator']);
+    // En una veta sin herramienta no hay nada que recoger.
+    expect(run.apply({ type: 'collect', depositId: d.id })).toEqual({ ok: false, reason: { key: 'reject.noToolHere' } });
+  });
+
+  it('retirar la herramienta recoge lo que quepa; lo demás vuelve a la veta', () => {
+    const run = landed(mixed());
+    run.apply({ type: 'eva-exit' });
+    const d = depositOf(run, 'ice');
+    walkTo(run, d.x, d.z, 10);
+    run.apply({ type: 'deploy-tool', depositId: d.id });
+    advance(run, perUnit('ice') * 2 + 0.2);
+    const m = run.state.crew[0]!;
+    m.carriedKg = rules.suit.carryCapacityKg - getMaterial('ice').massKg; // (estado vivo: solo cabe una)
+    expect(run.apply({ type: 'retrieve-tool', depositId: d.id })).toEqual({ ok: true });
+    expect(m.carried.ice).toBe(1);
+    expect(d.units).toBe(2); // 3 − 2 extraídas + 1 que no cupo
+    expect(m.tools['solar-concentrator']).toBe(kit['solar-concentrator']);
+    expect(run.state.surface!.tools).toEqual([]);
+  });
+
+  it('el concentrador solar se para con tormenta y sigue después; el taladro no', () => {
+    const run = landed(mixed((w) => {
+      w.storms = { meanIntervalS: 5, warnS: 5, durationS: { min: 30, max: 30 }, intensity: { min: 1, max: 1 }, o2DrainPctPerS: 0, firstStartMinS: 40 };
+      // Vetas grandes: que nada se agote antes de la tormenta.
+      w.materials = [
+        { materialId: 'ice', weight: 1, units: { min: 40, max: 40 }, minDistanceFrac: 0, dangerWeightMult: 1 },
+        { materialId: 'crystal', weight: 1, units: { min: 40, max: 40 }, minDistanceFrac: 0, dangerWeightMult: 1 },
+      ];
+    }));
+    const s = run.state.surface!;
+    run.apply({ type: 'eva-exit' });
+    for (const id of ['ice', 'crystal']) {
+      const d = depositOf(run, id);
+      walkTo(run, d.x, d.z, 10);
+      run.apply({ type: 'deploy-tool', depositId: d.id });
+    }
+    const [sun, drill] = [s.tools.find((t) => t.toolId === 'solar-concentrator')!, s.tools.find((t) => t.toolId === 'laser-drill')!];
+    // (El traje se rellena a mano: aquí solo importa la herramienta.)
+    let events: RunEvent[] = [];
+    while (!s.storm.active) {
+      events.push(...advance(run, 0.5));
+      run.state.crew[0]!.suitO2Pct = 100;
+    }
+    events.push(...advance(run, 0.2));
+    expect(sun.stopped).toBe('storm');
+    expect(events.find((e) => e.type === 'tool-stopped')).toMatchObject({ subtype: 'storm', message: { params: { tool: 'solar-concentrator' } } });
+    const [sunP, sunReady, drillReady, drillP] = [sun.progress, sun.ready, drill.ready, drill.progress];
+    advance(run, 5);
+    expect([sun.progress, sun.ready]).toEqual([sunP, sunReady]);
+    expect(drill.stopped).toBeNull();
+    expect(drill.ready + drill.progress).toBeGreaterThan(drillReady + drillP);
+    run.state.crew[0]!.suitO2Pct = 100;
+    events = [];
+    while (s.storm.active) events.push(...advance(run, 0.5));
+    events.push(...advance(run, 0.2));
+    expect(events.find((e) => e.type === 'tool-resumed')?.subtype).toBe('storm');
+    expect(sun.stopped).toBeNull();
+  });
+
+  it.each(['volcanic-moon', 'storm-world'])('en %s el concentrador solar llega a pararse por tormenta y reanuda', (worldId) => {
+    const def = catalog.surface!.worlds.find((w) => w.id === worldId)!;
+    expect(def.materials.some((m) => m.materialId === 'ice')).toBe(true);
+    const cat = surfaceCatalog((w) => {
+      const { id: _id, name: _name, kind: _kind, weight: _weight, ...rest } = JSON.parse(JSON.stringify(def)) as WorldDef;
+      Object.assign(w, rest);
+    });
+    let run: Run | null = null;
+    for (let first = 1; first < 400 && !run; first += 7) {
+      const r = landed(cat, first);
+      if (r.state.surface!.deposits.some((d) => d.materialId === 'ice')) run = r;
+    }
+    expect(run).not.toBeNull();
+    const s = run!.state.surface!;
+    const m = run!.state.crew[0]!;
+    const d = s.deposits.find((x) => x.materialId === 'ice')!;
+    run!.apply({ type: 'eva-exit' });
+    walkTo(run!, d.x, d.z, 10);
+    run!.apply({ type: 'set-position', x: d.x, z: d.z, grounded: true });
+    // Espera a pie de veta hasta poco antes de la primera tormenta (el traje se rellena a mano en el test).
+    while (s.storm.nextInS === null || s.storm.nextInS > 3 || s.storm.active) {
+      advance(run!, 0.5);
+      m.suitO2Pct = 100;
+    }
+    expect(run!.apply({ type: 'deploy-tool', depositId: d.id })).toEqual({ ok: true });
+    const t = s.tools[0]!;
+    const events: RunEvent[] = [];
+    while (!s.storm.active) events.push(...advance(run!, 0.1));
+    events.push(...advance(run!, 0.2));
+    expect(t.stopped).toBe('storm');
+    while (s.storm.active) {
+      events.push(...advance(run!, 0.5));
+      m.suitO2Pct = 100;
+    }
+    events.push(...advance(run!, 0.2));
+    expect(events.some((e) => e.type === 'tool-stopped')).toBe(true);
+    expect(events.some((e) => e.type === 'tool-resumed')).toBe(true);
+    expect(t.stopped === null || t.stopped === 'depleted').toBe(true);
+  });
+
+  it('si la zona se hunde, la herramienta y lo extraído siguen ahí (no castiga dos veces)', () => {
+    const run = landed(mixed((w) => { w.unstable = { zones: { min: 1, max: 1 }, radiusM: { min: 8, max: 8 }, pitDepthM: 6 }; }));
+    const zone = run.state.surface!.zones[0]!;
+    const d = run.state.surface!.deposits[0]!; // la primera veta cae dentro de la zona
+    run.apply({ type: 'eva-exit' });
+    walkTo(run, d.x, d.z, 10, false);
+    run.apply({ type: 'set-position', x: d.x, z: d.z, grounded: true });
+    expect(run.apply({ type: 'deploy-tool', depositId: d.id })).toEqual({ ok: true });
+    advance(run, rules.terrain.collapseS + 0.2);
+    expect(zone.collapsed).toBe(true);
+    advance(run, perUnit(d.materialId) + 0.2);
+    const t = run.state.surface!.tools[0]!;
+    expect(t.ready).toBeGreaterThanOrEqual(1);
+    expect(run.apply({ type: 'collect', depositId: d.id })).toEqual({ ok: true });
+  });
+
+  it('lo que se deja fuera al entrar sin nadie más fuera se pierde en este aterrizaje', () => {
+    const run = landed(mixed());
+    run.apply({ type: 'eva-exit' });
+    const d = depositOf(run, 'crystal');
+    walkTo(run, d.x, d.z, 10);
+    run.apply({ type: 'deploy-tool', depositId: d.id });
+    advance(run, perUnit('crystal') + 0.2);
+    walkTo(run, 0, 0, 10);
+    run.takeEvents();
+    run.apply({ type: 'eva-enter' });
+    const lost = run.takeEvents().find((e) => e.type === 'tool-lost');
+    expect(lost).toMatchObject({ subtype: 'left', message: { key: 'event.toolLost', params: { count: 1 } } });
+    expect(run.state.surface!.tools).toEqual([]);
+    expect(run.state.surface!.toolsLost).toEqual({ 'laser-drill': 1 });
+    expect(run.state.crew[0]!.tools['laser-drill']).toBe(kit['laser-drill']! - 1);
+    expect(run.state.stats.materialsValue).toBe(0); // lo extraído no recogido también se pierde
+    // Al volver a salir solo queda lo que había en la mochila.
+    run.apply({ type: 'eva-exit' });
+    expect(run.state.crew[0]!.tools['laser-drill']).toBe(kit['laser-drill']! - 1);
   });
 });
 

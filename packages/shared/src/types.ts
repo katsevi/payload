@@ -109,11 +109,29 @@ export interface HazardRules {
     systemDamageMax: number;
     /** Probabilidad de fuga tras un impacto sin escudos. */
     leakChanceUnshielded: number;
+    /** Esquiva por habilidad (el cliente informa los roces). Sin ella, `evade` anula el impacto entero. */
+    evade?: EvadeRules;
   };
   wear: { chancePerS: number; weights: Record<IncidentKind, number> };
   repair: { kitRepairS: number; kitRestorePct: number };
   alerts: { lowOxygenPct: number; lowFuelPct: number; lowHullPct: number };
   maxIncidents: number;
+}
+
+/**
+ * Esquiva por habilidad: el cliente simula el minijuego y envía `evade { grazes }`; el motor cobra.
+ * Daño = 0 con 0 roces, `grazes × grazeDamageFrac` con algunos y `failDamageFrac` con `maxGrazes` (fallo).
+ */
+export interface EvadeRules {
+  maxGrazes: number;
+  /** Fracción del daño del impacto (casco, sistema, desgaste de escudos) por cada roce. */
+  grazeDamageFrac: number;
+  /** Fracción del daño con `maxGrazes` roces: el impacto entra casi entero (y puede abrir una fuga). */
+  failDamageFrac: number;
+  /** Dificultad 0-1 del minijuego = base + porSector × (sector − 1) + porGravedad × gravedad del impacto. */
+  difficultyBase: number;
+  difficultyPerSector: number;
+  difficultyFromSeverity: number;
 }
 
 // ─── Destinos y sector ──────────────────────────────────────────────────────
@@ -176,12 +194,29 @@ export interface MaterialDef {
   /** Puntos base por unidad guardada a bordo (crece con la distancia y el peligro). */
   value: number;
   massKg: number;
-  /** Segundos de trabajo para arrancar una unidad. */
+  /** Segundos que tarda su herramienta (con `speedMult` 1) en extraer una unidad. */
   collectS: number;
+  /** Herramienta que lo extrae (`SurfaceCatalog.tools`): el hielo se sublima, lo demás se perfora. */
+  tool: string;
   /** Suministros que rinde cada unidad al guardarla en la nave (limitados por su capacidad). */
   yields?: { fuel?: number; spares?: number };
   /** Suma racha (solo lo raro): cada unidad de este tipo que se lleva encima revaloriza la siguiente. */
   streak?: boolean;
+}
+
+/**
+ * Herramienta desplegable: se coloca sobre una veta y extrae sola a paso fijo. Ids kebab-case; nombre
+ * en `catalog.<id>`.
+ */
+export interface ToolDef {
+  id: string;
+  name: LocalizedText;
+  /** Cuántas lleva cada tripulante al empezar cada aterrizaje (se reponen en el siguiente). */
+  perCrew: number;
+  /** Se detiene con tormenta activa (el concentrador solar necesita sol) y sigue al pasar. */
+  stopsInStorm: boolean;
+  /** Ritmo: segundos por unidad = `material.collectS / speedMult`. */
+  speedMult: number;
 }
 
 export interface WorldMaterialDef {
@@ -287,10 +322,24 @@ export interface SurfaceRules {
    * Sin él, regenera como en vuelo.
    */
   shipO2?: { surfaceSurplusRegenMult: number };
+  /**
+   * Filones: lo raro (materiales con `streak`) se agrupa en filones de `size` vetas a `spacingM` metros de
+   * la primera. Sin él, cada veta va por su lado.
+   */
+  lodes?: {
+    size: Range;
+    spacingM: Range;
+    /**
+     * Completar el filón: las unidades de su última veta valen ×`completeMult` si el mismo tripulante agotó
+     * las demás vetas del filón en esta salida (filones de 2+ vetas). Sin él, no hay bonus.
+     */
+    completeMult?: number;
+  };
 }
 
 export interface SurfaceCatalog {
   rules: SurfaceRules;
+  tools: ToolDef[];
   materials: MaterialDef[];
   worlds: WorldDef[];
 }
@@ -365,13 +414,20 @@ export interface PlannedHazard {
   evaded: boolean;
   /** Los sensores ya avisaron de este impacto. */
   announced: boolean;
+  /** Solo si se esquivó informando roces: fracción del daño que entra igualmente (0 = limpia). */
+  evadeDamageFrac?: number;
 }
 
 /** Impacto anunciado por los sensores (requiere navegación en línea). */
 export interface ImpactWarning {
   hazardId: number;
+  /** Segundos hasta el impacto (tiempo disponible para el minijuego de esquiva). */
   etaS: number;
   evaded: boolean;
+  /** Semilla determinista del minijuego de esquiva de este impacto (misma partida = mismo campo de rocas). */
+  evadeSeed?: number;
+  /** Dificultad 0-1 del minijuego (más densidad en sectores altos y con impactos más fuertes). */
+  evadeDifficulty?: number;
 }
 
 export interface TransitState {
@@ -431,6 +487,39 @@ export interface CrewMember {
   streakUnits: number;
   /** Multiplicador de racha que recibirá la PRÓXIMA unidad con racha que recoja (1 = sin racha). */
   streakMult: number;
+  /** Herramientas en la mochila por id (se reponen a `ToolDef.perCrew` en cada aterrizaje). */
+  tools: Record<string, number>;
+  /** Vetas de filón que este tripulante ha agotado (recogido hasta la última unidad) en la salida en curso. */
+  lodeVeinsDone: number[];
+}
+
+/** Avance de un filón para un tripulante en la salida en curso (ver `lodeProgress`). */
+export interface LodeProgress {
+  lodeId: number;
+  /** Vetas del filón. */
+  total: number;
+  /** Vetas que este tripulante ha agotado en esta salida. */
+  done: number;
+  /** La veta que queda daría el bonus de filón completo (todas las demás agotadas por él en esta salida). */
+  bonusReady: boolean;
+}
+
+/** Por qué está parada una herramienta colocada (null = extrayendo). */
+export type ToolStop = 'storm' | 'depleted';
+
+/** Herramienta colocada sobre una veta. Extrae sola; lo extraído espera en ella hasta que se recoge. */
+export interface PlacedTool {
+  id: number;
+  toolId: string;
+  depositId: number;
+  materialId: string;
+  x: number;
+  z: number;
+  /** Avance 0-1 de la unidad en curso. */
+  progress: number;
+  /** Unidades extraídas, listas para recoger (`collect`). */
+  ready: number;
+  stopped: ToolStop | null;
 }
 
 export interface UnstableZone {
@@ -458,6 +547,8 @@ export interface Deposit {
   progress: number;
   /** Está dentro o al borde de terreno inestable. */
   risky: boolean;
+  /** Filón al que pertenece (vetas raras agrupadas a pocos metros); ausente si no está en ninguno. */
+  lodeId?: number;
 }
 
 export interface PlannedStorm {
@@ -504,6 +595,10 @@ export interface SurfaceState {
   stormCursor: number;
   zones: UnstableZone[];
   deposits: Deposit[];
+  /** Herramientas colocadas en este mundo. */
+  tools: PlacedTool[];
+  /** Herramientas perdidas en este aterrizaje (se quedaron fuera cuando no quedaba nadie fuera). */
+  toolsLost: Record<string, number>;
   /** Guardado en la bodega en este mundo y aún en ella (cuenta para el despegue y `jettison`). */
   loaded: Record<string, number>;
   loadedKg: number;
@@ -518,6 +613,8 @@ export interface RunStats {
   incidentsFixed: number;
   impactsTaken: number;
   impactsEvaded: number;
+  /** Esquivas con roces (daño parcial); las que fallan del todo cuentan en `impactsTaken`. */
+  impactsGrazed?: number;
   kitsUsed: number;
   landings: number;
   hardLandings: number;
@@ -587,6 +684,11 @@ export type RunEventType =
   | 'crew-dead'
   | 'take-off'
   | 'jettison'
+  | 'tool-placed'
+  | 'tool-done'
+  | 'tool-stopped'
+  | 'tool-resumed'
+  | 'tool-lost'
   | 'lost';
 
 export type EventTone = 'info' | 'ok' | 'warn' | 'bad';
@@ -596,7 +698,14 @@ export type EventTone = 'info' | 'ok' | 'warn' | 'bad';
  * `landing` soft/hard · `suit-o2` low/critical · `airlock` exit/enter · `crew-dead` oxygen/fall ·
  * `cargo-stored` stored/processed.
  */
-export type RunEventSubtype = 'soft' | 'hard' | 'low' | 'critical' | 'exit' | 'enter' | 'oxygen' | 'fall' | 'stored' | 'processed';
+export type RunEventSubtype =
+  | 'soft' | 'hard' | 'low' | 'critical' | 'exit' | 'enter' | 'oxygen' | 'fall' | 'stored' | 'processed'
+  // esquiva: `impact-evaded` clean · `impact-hit` graze/failed
+  | 'clean' | 'graze' | 'failed'
+  // herramientas: `tool-stopped` storm · `tool-lost` left
+  | 'storm' | 'left'
+  // `material-collected` lode: piezas de la última veta de un filón completado (llevan el bonus)
+  | 'lode';
 
 export interface RunEvent {
   id: number;
@@ -617,7 +726,11 @@ export type RunAction =
   | { type: 'toggle-system'; systemId: SystemId; enabled: boolean }
   | { type: 'work-incident'; incidentId: number; seconds: number }
   | { type: 'repair-system'; systemId: SystemId; seconds: number }
-  | { type: 'evade' }
+  /**
+   * Sin `grazes`: anula el impacto (compatibilidad). Con `grazes` (roces del minijuego, se redondea y
+   * recorta a 0..maxGrazes): el impacto entra con esa fracción del daño.
+   */
+  | { type: 'evade'; grazes?: number }
   | { type: 'service' }
   | { type: 'next-sector' }
   // Superficie (fase 2). `crewId` por defecto: el primer tripulante vivo.
@@ -629,7 +742,16 @@ export type RunAction =
   | { type: 'set-position'; x: number; z: number; grounded: boolean; crewId?: number }
   | { type: 'jetpack'; seconds: number; crewId?: number }
   | { type: 'fall-impact'; speedMps: number; crewId?: number }
-  | { type: 'collect'; depositId: number; seconds: number; crewId?: number }
+  /** Coloca la herramienta que corresponde al material de la veta (en alcance, con los pies en el suelo). */
+  | { type: 'deploy-tool'; depositId: number; crewId?: number }
+  /**
+   * Recoge al instante lo ya extraído por la herramienta de esa veta (lo que quepa). Si la veta está
+   * agotada y no queda nada extraído, la herramienta vuelve sola a la mochila. `seconds` se ignora
+   * (queda por compatibilidad).
+   */
+  | { type: 'collect'; depositId: number; seconds?: number; crewId?: number }
+  /** Retira la herramienta de esa veta: recoge lo que quepa y lo que no, vuelve a la veta. */
+  | { type: 'retrieve-tool'; depositId: number; crewId?: number }
   /** Suelta lo guardado en la bodega en este mundo. */
   | { type: 'jettison' }
   | { type: 'take-off' };

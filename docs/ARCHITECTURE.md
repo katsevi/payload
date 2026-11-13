@@ -66,7 +66,8 @@ createRun({ seed })  ──▶  Run { state, step(dt), apply(action), takeEvents
 
   apply(action): jump · set-throttle · toggle-system · work-incident · repair-system · evade · service · next-sector
                  land · set-descent-brake · eva-exit · eva-enter · set-position · jetpack · fall-impact
-                 collect · jettison · take-off                                       (superficie, fase 2)
+                 deploy-tool · collect · retrieve-tool · jettison · take-off         (superficie, fase 2)
+                 evade {grazes?}   (esquiva por habilidad, ADR 0013)
      devuelve { ok } o { ok: false, reason: MessageRef }
 ```
 
@@ -78,6 +79,7 @@ createRun({ seed })  ──▶  Run { state, step(dt), apply(action), takeEvents
   portal (`won`, tiempo detenido) → `next-sector`; o `lost` en cualquier momento. Desde `docked` en un nodo
   aterrizable: `land` → `landing` (descenso) → `surface` (salidas EVA) → `take-off` → `docked` en el mismo
   nodo (un aterrizaje por nodo). La nave sigue viva en `landing` y `surface`.
+- **Minijuegos y herramientas (ADR 0013):** los minijuegos (esquiva, reparaciones) son del cliente y entran como `RunAction` acotada (`evade {grazes}`, `work-incident {seconds}`); la extracción de las herramientas la hace el motor a paso fijo (`surface.tools`, `crew[].tools`) y `collect` recoge lo extraído. Lo raro se agrupa en filones (`rules.lodes`).
 - **Autoridad en superficie (ADR 0012):** el cliente simula terreno, física (Rapier) y posición, y las
   informa como `RunAction` (`set-position`, `jetpack`, `fall-impact`). El motor no conoce el terreno: es
   autoritativo en oxígeno del traje, jetpack, carga, tormentas, terreno inestable, daño y muerte, y limita
@@ -118,7 +120,7 @@ App.tsx ── pantalla ──▶ MenuScene | ShipScene | SurfaceScene (lazy; `s
    (`mode="eva"`) y carga `SurfaceWorld` (terreno, física con Rapier, vetas, tormenta) bajo demanda. El
    terreno sale de `game/terrain.ts` (puro, determinista por semilla, sector y nodo); el movimiento con
    jetpack, de `game/motion.ts`; las reglas de la escena, de `game/surfaceRules.ts`. `SurfaceLoop` informa al
-   motor (`set-position` a 10 Hz, `jetpack`, `fall-impact`, `collect`) y nunca escribe en `run.state`. La
+   motor (`set-position` a 10 Hz, `jetpack`, `fall-impact`, `deploy-tool`, `collect`, `retrieve-tool`) y nunca escribe en `run.state`. La
    nave posada (`ShipExterior`) y la bodega (`ShipCargo`) se ven desde fuera y desde dentro.
 4. **Estado de interfaz:** `state/ui.ts` (panel abierto, vista 1ª/3ª, aviso de acción) y
    `state/settings.ts` (persistido). `pause`, `settings` y `credits` detienen el tiempo; el mapa y el
@@ -159,6 +161,7 @@ del cliente comprueba además que toda clave literal usada en el código existe.
 | | `purity`, `rng` | Sin Node/DOM/React/relojes/azar global en `src/`; generador de semillas |
 | `@payload/client` | `game` | Distribución de la nave, interacciones, almacén de la partida (salto completo, pausa, derrota), panel de energía, audio |
 | | `surface` | Terreno, movimiento con jetpack, reglas de superficie y qué escena se pinta |
+| | `minigames` | Esquiva, extintor, pulsos y sellado: resultado → `RunAction` |
 | | `i18n` | Paridad de claves, claves usadas en el código, claves dinámicas, longitud |
 
 No hay tests de renderizado 3D ni E2E (fase 5). La escena se comprueba a mano en el navegador.

@@ -3,7 +3,7 @@ import es from '../../locales/es.json';
 import en from '../../locales/en.json';
 import {
   catalog, createRun, FIXED_STEP_S, flattenKeys, formatMessage, getNode, getNodeKind, getWorld, HAZARD_KINDS, INCIDENT_KINDS, lookupSimKey, MAX_WORK_SECONDS,
-  referenceBrake, simLocales, SYSTEM_IDS, THROTTLE_IDS,
+  parseCatalog, referenceBrake, simLocales, SYSTEM_IDS, THROTTLE_IDS,
   type MessageRef, type Run, type RunAction,
 } from '../index';
 import { playRun } from './bot';
@@ -56,6 +56,8 @@ describe('locales del motor (namespace sim)', () => {
       }
     }
     refs.push(...surfaceScript());
+    refs.push(...toolScript());
+    refs.push(...evadeScript());
     // Rechazos: se prueban acciones fuera de lugar en cada fase.
     const actions: RunAction[] = [
       { type: 'jump', toId: 'nope' }, { type: 'evade' }, { type: 'service' }, { type: 'next-sector' },
@@ -103,6 +105,7 @@ describe('locales del motor (namespace sim)', () => {
       'reject.onSurface', 'reject.crewOutside', 'reject.alreadyOutside', 'reject.notOutside', 'reject.tooFar', 'reject.noDeposit',
       'reject.overCapacity', 'reject.jetpackEmpty', 'reject.takeOffFuel', 'reject.takeOffHeavy', 'reject.nothingToJettison', 'reject.crewDead',
       'reject.enginesOffline', 'reject.collectAirborne',
+      'reject.toolAirborne', 'reject.toolPlaced', 'reject.noTool', 'reject.noToolHere', 'reject.nothingReady',
     ]) expect(keys.has(key), key).toBe(true);
     for (const key of ['reject.noRoute', 'reject.notInTransit', 'reject.notAtGate', 'reject.reactorAlwaysOn', 'reject.noIncident', 'reject.noDamage', 'reject.invalid', 'reject.enginesOff', 'reject.inTransit', 'reject.noWarning']) {
       expect(keys.has(key), key).toBe(true);
@@ -183,11 +186,13 @@ function surfaceScript(): MessageRef[] {
     tryA(run, { type: 'repair-system', systemId: 'nav', seconds: 0.1 });
     tryA(run, { type: 'take-off' });
     tryA(run, { type: 'collect', depositId: rare.id, seconds: 0.1 });
+    tryA(run, { type: 'deploy-tool', depositId: rare.id }); // demasiado lejos
     tryA(run, { type: 'collect', depositId: 9999, seconds: 0.1 });
     for (let i = 0; i < 40; i++) tryA(run, { type: 'jetpack', seconds: MAX_WORK_SECONDS });
     walk(run, rare.x, rare.z);
-    for (let i = 0; i < 400 && run.state.surface!.deposits.find((d) => d.id === rare.id)!.units > 0; i++) {
-      run.apply({ type: 'collect', depositId: rare.id, seconds: FIXED_STEP_S });
+    run.apply({ type: 'deploy-tool', depositId: rare.id });
+    for (let i = 0; i < 600 && s.tools.some((t) => t.depositId === rare.id); i++) {
+      run.apply({ type: 'collect', depositId: rare.id });
       run.step(FIXED_STEP_S);
     }
     // Llenar la carga a mano para provocar el rechazo por capacidad.
@@ -196,7 +201,10 @@ function surfaceScript(): MessageRef[] {
     m.carriedKg = rules.suit.carryCapacityKg;
     const other = s.deposits.find((d) => d.units > 0)!;
     walk(run, other.x, other.z);
-    tryA(run, { type: 'collect', depositId: other.id, seconds: 0.1 });
+    run.apply({ type: 'deploy-tool', depositId: other.id });
+    for (let i = 0; i < 200 && !s.tools.some((t) => t.depositId === other.id && t.ready > 0); i++) run.step(FIXED_STEP_S);
+    tryA(run, { type: 'collect', depositId: other.id });
+    run.apply({ type: 'retrieve-tool', depositId: other.id });
     m.carriedKg = kg;
     walk(run, 0, 0);
     tryA(run, { type: 'eva-enter' });
@@ -233,4 +241,110 @@ function surfaceScript(): MessageRef[] {
     return refs;
   }
   throw new Error('ninguna semilla sirvió para el guion de superficie');
+}
+
+/** Catálogo por defecto con hielo y tormentas en todos los mundos (el concentrador solar ve tormentas). */
+function stormyIceCatalog() {
+  const raw = JSON.parse(JSON.stringify(catalog)) as typeof catalog;
+  for (const k of raw.nodeKinds) {
+    k.hazardPerLy = { impact: 0, short: 0, fire: 0, leak: 0 };
+    delete k.cache;
+  }
+  raw.hazards.wear.chancePerS = 0;
+  for (const w of raw.surface!.worlds) {
+    w.storms = { meanIntervalS: 5, warnS: 5, durationS: { min: 15, max: 15 }, intensity: { min: 0.5, max: 0.5 }, o2DrainPctPerS: 0, firstStartMinS: 30 };
+    w.unstable.zones = { min: 0, max: 0 };
+    w.materials = [{ materialId: 'ice', weight: 1, units: { min: 30, max: 30 }, minDistanceFrac: 0, dangerWeightMult: 1 }];
+  }
+  return parseCatalog(raw);
+}
+
+/** Herramientas: colocar, rechazos, parada y reanudación por tormenta, recogida, retirada y pérdida. */
+function toolScript(): MessageRef[] {
+  const refs: MessageRef[] = [];
+  const cat = stormyIceCatalog();
+  const rules = cat.surface!.rules;
+  const tryA = (run: Run, a: RunAction) => {
+    const r = run.apply(a);
+    if (!r.ok) refs.push(r.reason);
+    return r.ok;
+  };
+  for (let seed = 1; seed < 200; seed++) {
+    const run = createRun({ seed, catalog: cat });
+    const here = getNode(run.state.sector, run.state.locationId)!;
+    const target = here.links.map((id) => getNode(run.state.sector, id)!).find((n) => getNodeKind(n.kind, cat).landable);
+    if (!target || !run.apply({ type: 'jump', toId: target.id }).ok) continue;
+    for (let t = 0; t < 600 && run.state.phase === 'transit'; t += FIXED_STEP_S) run.step(FIXED_STEP_S);
+    if (!run.apply({ type: 'land' }).ok) continue;
+    const world = cat.surface!.worlds.find((w) => w.id === run.state.surface!.worldId)!;
+    for (let t = 0; t < 600 && (run.state.phase as string) === 'landing'; t += FIXED_STEP_S) {
+      const d = run.state.surface!.descent!;
+      run.apply({ type: 'set-descent-brake', on: referenceBrake(world, rules, d.altitudeM, d.speedMps) });
+      run.step(FIXED_STEP_S);
+    }
+    const s = run.state.surface!;
+    const m = run.state.crew[0]!;
+    run.apply({ type: 'eva-exit' });
+    const [a, b] = s.deposits;
+    if (!a || !b) continue;
+    const goTo = (x: number, z: number, grounded = true) => {
+      for (let i = 0; i < 3000 && Math.hypot(x - m.x, z - m.z) > 0.1; i++) {
+        const k = Math.min(1, 0.9 / Math.hypot(x - m.x, z - m.z));
+        run.apply({ type: 'set-position', x: m.x + (x - m.x) * k, z: m.z + (z - m.z) * k, grounded });
+        run.step(FIXED_STEP_S);
+        m.suitO2Pct = 100; // (el guion no mide el oxígeno)
+      }
+    };
+    tryA(run, { type: 'collect', depositId: a.id }); // sin herramienta
+    goTo(a.x, a.z, false);
+    tryA(run, { type: 'deploy-tool', depositId: a.id }); // en el aire
+    run.apply({ type: 'set-position', x: m.x, z: m.z, grounded: true });
+    tryA(run, { type: 'deploy-tool', depositId: a.id });
+    tryA(run, { type: 'deploy-tool', depositId: a.id }); // ya tiene una
+    tryA(run, { type: 'collect', depositId: a.id }); // nada listo
+    goTo(b.x, b.z);
+    tryA(run, { type: 'deploy-tool', depositId: b.id }); // no queda concentrador
+    goTo(a.x, a.z);
+    // Tormenta: se para y sigue.
+    for (let t = 0; t < 120 && !s.storm.active; t += FIXED_STEP_S) run.step(FIXED_STEP_S);
+    for (let t = 0; t < 60 && s.storm.active; t += FIXED_STEP_S) run.step(FIXED_STEP_S);
+    run.step(FIXED_STEP_S);
+    m.suitO2Pct = 100;
+    run.apply({ type: 'set-position', x: m.x, z: m.z, grounded: false });
+    tryA(run, { type: 'collect', depositId: a.id }); // en el aire
+    run.apply({ type: 'set-position', x: m.x, z: m.z, grounded: true });
+    tryA(run, { type: 'collect', depositId: a.id });
+    tryA(run, { type: 'retrieve-tool', depositId: a.id });
+    // Una veta pequeña que se agota (tool-done) y otra herramienta que se queda fuera (tool-lost).
+    s.deposits[0]!.units = 1;
+    tryA(run, { type: 'deploy-tool', depositId: a.id });
+    for (let t = 0; t < 30 && s.tools[0]?.stopped !== 'depleted'; t += FIXED_STEP_S) run.step(FIXED_STEP_S);
+    tryA(run, { type: 'collect', depositId: a.id });
+    tryA(run, { type: 'collect', depositId: a.id }); // devuelve la herramienta
+    goTo(b.x, b.z);
+    tryA(run, { type: 'deploy-tool', depositId: b.id });
+    goTo(0, 0);
+    tryA(run, { type: 'eva-enter' });
+    refs.push(...run.takeEvents().map((e) => e.message));
+    return refs;
+  }
+  throw new Error('ninguna semilla sirvió para el guion de herramientas');
+}
+
+/** Esquiva por habilidad: un roce informado por el cliente. */
+function evadeScript(): MessageRef[] {
+  const raw = JSON.parse(JSON.stringify(catalog)) as typeof catalog;
+  for (const k of raw.nodeKinds) k.hazardPerLy = { impact: 0.3, short: 0, fire: 0, leak: 0 };
+  const cat = parseCatalog(raw);
+  for (let seed = 1; seed < 100; seed++) {
+    const run = createRun({ seed, catalog: cat });
+    const to = getNode(run.state.sector, run.state.locationId)!.links[0]!;
+    run.apply({ type: 'jump', toId: to });
+    for (let t = 0; t < 300 && run.state.warnings.length === 0 && run.state.phase === 'transit'; t += FIXED_STEP_S) run.step(FIXED_STEP_S);
+    if (!run.apply({ type: 'evade', grazes: 1 }).ok) continue;
+    for (let t = 0; t < 120 && run.state.phase === 'transit'; t += FIXED_STEP_S) run.step(FIXED_STEP_S);
+    const refs = run.takeEvents().map((e) => e.message);
+    if (refs.some((r) => r.key === 'event.impactGrazed')) return refs;
+  }
+  throw new Error('ninguna semilla sirvió para el guion de esquiva');
 }

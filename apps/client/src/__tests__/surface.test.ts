@@ -28,14 +28,22 @@ import {
   o2BeepIntervalS,
   PAD_RADIUS_M,
   SHIP_CENTER,
+  currentLode,
   fallDanger,
+  lodeFinisherIds,
+  o2RouteStatus,
+  tourDistanceM,
   o2ReturnShort,
   o2ToReturnPct,
   predictedImpactMps,
   sceneFor,
   shipBearing,
+  nearestReadyTool,
+  surfaceAltAction,
   surfaceInteractionAt,
   surfacePromptFor,
+  surfaceUseAction,
+  toolFor,
 } from '../game/surfaceRules';
 import { createTerrain, deepestDropM, gridSizeFor, pitDropM, pitRimM, terrainGrid, TERRAIN_STYLES, type TerrainInput } from '../game/terrain';
 import { useUi } from '../state/ui';
@@ -416,6 +424,51 @@ describe('reglas de la superficie en el cliente', () => {
     expect(shipBearing(-5, 0, 0).angle).toBeCloseTo(Math.PI / 2, 5);
   });
 
+  it('brújula del oxígeno con herramientas: ve ya a por ellas, déjalas y vuelve, o vuelve ya', () => {
+    const drain = rules.suit.o2DrainPctPerS;
+    const walk = 3.2;
+    // Recorrido: la más cercana primero y luego a la rampa.
+    expect(tourDistanceM(10, 0, [])).toBeCloseTo(10, 6);
+    expect(tourDistanceM(10, 0, [{ x: 20, z: 0 }])).toBeCloseTo(10 + 20, 6);
+    expect(tourDistanceM(0, 10, [{ x: 0, z: 20 }, { x: 0, z: 30 }])).toBeCloseTo(20 + 30, 6);
+    const tools = [{ x: 40, z: 0 }];
+    const need = (m: number) => o2ToReturnPct(m, drain, walk);
+    // Junto a la nave (10 m) con una herramienta a 40 m: el rodeo es 30 + 40 = 70 m.
+    expect(o2RouteStatus(need(70) * 2, 10, 0, tools, drain, walk)).toBe('ok');
+    expect(o2RouteStatus(need(70) * 1.3, 10, 0, tools, drain, walk)).toBe('fetch');
+    expect(o2RouteStatus(need(70) * 1.05, 10, 0, tools, drain, walk)).toBe('leave');
+    expect(o2RouteStatus(need(10) * 1.2, 10, 0, tools, drain, walk)).toBe('short');
+    // Sin herramientas no hay estados intermedios.
+    expect(o2RouteStatus(need(10) * 1.6, 10, 0, [], drain, walk)).toBe('ok');
+    expect(o2RouteStatus(need(10) * 1.4, 10, 0, [], drain, walk)).toBe('short');
+  });
+
+  it('filones: «2/3» del filón en el que se trabaja y la veta que lo completa; sin datos, nada', () => {
+    const run = createRun({ seed: 11 });
+    expect(reachSurface(run)).toBe(true);
+    const st = run.state;
+    const me = st.crew[0]!;
+    const dep = st.surface!.deposits;
+    // Un filón de tres vetas (los datos se fuerzan aquí para no depender del catálogo).
+    const lode = dep.slice(0, 3);
+    for (const d of lode) d.lodeId = 99;
+    for (const d of dep.slice(3)) delete d.lodeId;
+    me.lodeVeinsDone = [];
+    const at = lode[0]!;
+    expect(currentLode(st, me, at.x, at.z)).toMatchObject({ lodeId: 99, total: 3, done: 0, bonusReady: false });
+    expect(lodeFinisherIds(st, me)).toEqual([]);
+    me.lodeVeinsDone = [lode[0]!.id, lode[1]!.id];
+    expect(currentLode(st, me, at.x, at.z)).toMatchObject({ done: 2, bonusReady: true });
+    expect(lodeFinisherIds(st, me)).toEqual([lode[2]!.id]);
+    // Lejos de todo: el filón con avance.
+    expect(currentLode(st, me, 9999, 9999)).toMatchObject({ lodeId: 99, done: 2 });
+    // Tolerante: sin el campo del motor, nada.
+    const bare = { ...me } as Partial<typeof me>;
+    delete bare.lodeVeinsDone;
+    expect(currentLode(st, bare as typeof me, at.x, at.z)).toBeNull();
+    expect(lodeFinisherIds(st, bare as typeof me)).toEqual([]);
+  });
+
   it('aviso de caída: antes del golpe, según la altura y el freno', () => {
     const g = 7;
     const harmless = rules.falls.harmlessMps;
@@ -522,20 +575,43 @@ describe('la salida completa (runStore + motor)', () => {
       }
     };
     walkTo(target.x, target.z);
-    const near = surfaceInteractionAt(run.state, run.state.crew[0]!.x, run.state.crew[0]!.z);
-    expect(near).toMatchObject({ kind: 'collect', full: false });
-    expect(surfacePromptFor(near)).toMatchObject({ key: 'prompt.collect', hold: true, params: { material: target.materialId } });
-    // Mantener E hasta arrancar una unidad.
-    for (let i = 0; i < 600 && run.state.crew[0]!.carriedKg === 0; i++) {
-      useGame.getState().act({ type: 'collect', depositId: target.id, seconds: 1 / 30 }, true);
-      play(1 / 30);
+    // Junto a la veta: una pulsación de E coloca la herramienta que toca (la elige el material).
+    const here = () => surfaceInteractionAt(run.state, run.state.crew[0]!.x, run.state.crew[0]!.z);
+    const near = here();
+    const toolId = toolFor(target.materialId)!;
+    expect(near).toMatchObject({ kind: 'deploy', toolId, left: run.state.crew[0]!.tools[toolId] });
+    expect(surfacePromptFor(near)).toMatchObject({ key: 'prompt.deployTool', hold: false, icon: toolId, params: { tool: toolId, material: target.materialId } });
+    expect(surfaceUseAction(near)).toEqual({ type: 'deploy-tool', depositId: target.id });
+    expect(useGame.getState().act(surfaceUseAction(near)!).ok).toBe(true);
+    expect(run.state.surface!.tools).toHaveLength(1);
+    expect(useCues.getState().captions.some((c) => c.key === 'sound.toolPlace')).toBe(true);
+    // Trabaja sola: mientras extrae, el aviso enseña el avance y Q la retiraría.
+    const working = here();
+    expect(working).toMatchObject({ kind: 'tool' });
+    expect(surfacePromptFor(working)).toMatchObject({ key: 'prompt.toolWorking', blocked: true, altKey: 'prompt.retrieveTool' });
+    expect(surfaceAltAction(working)).toEqual({ type: 'retrieve-tool', depositId: target.id });
+    for (let i = 0; i < 900 && run.state.surface!.tools[0]!.ready === 0; i++) {
+      useGame.getState().act({ type: 'set-position', x: run.state.crew[0]!.x, z: run.state.crew[0]!.z, grounded: true }, true);
+      play(0.1);
     }
+    expect(run.state.surface!.tools[0]!.ready).toBeGreaterThan(0);
+    // Con piezas listas: una pulsación las recoge.
+    const ready = here();
+    expect(surfacePromptFor(ready)).toMatchObject({ key: 'prompt.collectReady', hold: false });
+    expect(surfacePromptFor(ready, 0, true)).toMatchObject({ key: 'prompt.collectAirborne', blocked: true });
+    expect(nearestReadyTool(run.state, 0, 0)?.depositId).toBe(target.id);
+    expect(useGame.getState().act(surfaceUseAction(ready)!).ok).toBe(true);
     expect(run.state.crew[0]!.carriedKg).toBeGreaterThan(0);
     expect(useCues.getState().captions.some((c) => c.key === 'sound.collect')).toBe(true);
 
     // De vuelta a la rampa y dentro.
     walkTo(0, 0);
-    expect(surfacePromptFor(surfaceInteractionAt(run.state, run.state.crew[0]!.x, run.state.crew[0]!.z), 0.5)).toMatchObject({ key: 'prompt.enterCargo', progress: 0.5 });
+    // Entrar con la herramienta fuera: el aviso deja ver que se pierde.
+    const door = surfaceInteractionAt(run.state, run.state.crew[0]!.x, run.state.crew[0]!.z);
+    expect(door).toMatchObject({ kind: 'enter', toolsOut: run.state.surface!.tools.length });
+    const doorPrompt = surfacePromptFor(door, 0.5);
+    expect(doorPrompt).toMatchObject({ key: 'prompt.enterCargo', progress: 0.5 });
+    if (run.state.surface!.tools.length > 0) expect(doorPrompt?.badges?.[0]).toMatchObject({ key: 'prompt.toolsOut', tone: 'warn' });
     expect(ENTER_HOLD_S).toBeGreaterThan(0);
     expect(useGame.getState().act({ type: 'eva-enter' }).ok).toBe(true);
     expect(run.state.crew[0]!.location).toBe('ship');
@@ -597,11 +673,23 @@ describe('la salida completa (runStore + motor)', () => {
     // Despegar con la nave baja de O₂: se ve.
     const off = promptFor(interactionAt('helm', st, { takeOff: run.estimateTakeOff() }, run.catalog), st);
     expect(off?.badges?.some((b) => b.key === 'prompt.shipO2' && b.tone === 'warn')).toBe(true);
-    // Recoger en el aire: bloqueado (el motor lo rechaza con `reject.collectAirborne`).
+    // Colocar en el aire o sin herramientas: bloqueado (`reject.toolAirborne` / `reject.noTool`).
     const dep = st.surface!.deposits[0]!;
-    const near = { kind: 'collect' as const, deposit: dep, full: false };
-    expect(surfacePromptFor(near, 0, true)).toMatchObject({ key: 'prompt.collectAirborne', blocked: true });
-    expect(surfacePromptFor(near, 0, false)).toMatchObject({ key: 'prompt.collect' });
+    const deploy = { kind: 'deploy' as const, deposit: dep, toolId: 'laser-drill', left: 2 };
+    expect(surfacePromptFor(deploy, 0, true)).toMatchObject({ key: 'prompt.toolAirborne', blocked: true });
+    expect(surfacePromptFor({ ...deploy, left: 0 })).toMatchObject({ key: 'prompt.noToolLeft', blocked: true });
+    expect(surfaceUseAction({ ...deploy, left: 0 })).toBeNull();
+    // Herramienta parada por tormenta, veta agotada y mochila llena.
+    const tool = { id: 1, toolId: 'solar-concentrator', depositId: dep.id, materialId: 'ice', x: 0, z: 0, progress: 0.4, ready: 0, stopped: null };
+    expect(surfacePromptFor({ kind: 'tool', tool: { ...tool, stopped: 'storm' }, deposit: dep, full: false })).toMatchObject({ key: 'prompt.toolStorm', blocked: true });
+    const done = { kind: 'tool' as const, tool: { ...tool, stopped: 'depleted' as const }, deposit: dep, full: false };
+    expect(surfacePromptFor(done)).toMatchObject({ key: 'prompt.toolPickUp' });
+    expect(surfaceUseAction(done)).toEqual({ type: 'collect', depositId: dep.id });
+    const full = { kind: 'tool' as const, tool: { ...tool, ready: 2 }, deposit: dep, full: true };
+    expect(surfacePromptFor(full)).toMatchObject({ key: 'prompt.full', blocked: true });
+    expect(surfaceUseAction(full)).toBeNull();
+    expect(toolFor('ice')).toBe('solar-concentrator');
+    expect(toolFor('ore')).toBe('laser-drill');
   });
 
   it('sin motores no se puede iniciar el descenso (y se dice por qué)', () => {
@@ -632,6 +720,13 @@ describe('audio y música de la superficie', () => {
       [{ type: 'airlock', subtype: 'exit' }, 'airlock'],
       [{ type: 'airlock', subtype: 'enter' }, 'airlock'],
       [{ type: 'material-collected' }, 'collect'],
+      [{ type: 'tool-placed' }, 'toolPlace'],
+      [{ type: 'tool-done' }, 'toolDone'],
+      [{ type: 'tool-stopped', subtype: 'storm' }, 'toolStop'],
+      [{ type: 'tool-resumed', subtype: 'storm' }, 'toolResume'],
+      [{ type: 'tool-lost', subtype: 'left' }, 'toolLost'],
+      [{ type: 'impact-hit', subtype: 'graze' }, 'dodgeGraze'],
+      [{ type: 'impact-hit', subtype: 'failed' }, 'impact'],
       [{ type: 'cargo-stored', subtype: 'stored' }, 'store'],
       [{ type: 'storm-warning' }, 'stormWarn'],
       [{ type: 'storm-start' }, 'storm'],

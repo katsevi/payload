@@ -528,6 +528,46 @@ export class AudioEngine {
         this.startNoiseLoop(ctx, 'wind', { bus: 'sfx', filter: 'bandpass', f0: 250, f1: 600, rampS: 1.5, vol: 0.4, subHz: 0, subVol: 0, flutterHz: 0.5 });
         this.setLoopLevel('wind', 0.15);
         break;
+      case 'dodgeGraze':
+        // Roce: chirrido metálico corto.
+        this.noiseBurst(ctx, 'sfx', t, { dur: 0.25, vol: 0.3, filter: 'bandpass', f0: 2600, f1: 1400, q: 4 });
+        break;
+      case 'dodgeHit':
+        this.noiseBurst(ctx, 'alerts', t, { dur: 0.7, vol: 0.6, f0: 1400, f1: 90 });
+        this.tone(ctx, 'alerts', t, { freq: 80, dur: 0.5, type: 'sawtooth', vol: 0.3, slideTo: 35 });
+        break;
+      case 'skillHit':
+        this.tone(ctx, 'sfx', t, { freq: 880, dur: 0.09, type: 'triangle', vol: 0.16 });
+        this.tone(ctx, 'sfx', t + 0.07, { freq: 1320, dur: 0.12, type: 'triangle', vol: 0.14 });
+        break;
+      case 'skillMiss':
+        this.tone(ctx, 'sfx', t, { freq: 220, dur: 0.16, type: 'square', vol: 0.1, slideTo: 160 });
+        break;
+      case 'extinguisher':
+        this.startNoiseLoop(ctx, 'extinguisher', { bus: 'sfx', filter: 'highpass', f0: 2200, f1: 3200, rampS: 0.08, vol: 0.3, subHz: 0, subVol: 0, flutterHz: 9 });
+        break;
+      case 'toolPlace':
+        // Patas que se clavan y un zumbido que arranca.
+        this.noiseBurst(ctx, 'sfx', t, { dur: 0.15, vol: 0.3, filter: 'bandpass', f0: 500, q: 2 });
+        this.tone(ctx, 'sfx', t + 0.12, { freq: 180, dur: 0.5, type: 'sawtooth', vol: 0.08, slideTo: 420 });
+        break;
+      case 'toolReady':
+        // Tres pitidos ascendentes: «hay piezas».
+        [988, 1175, 1480].forEach((f, k) => this.tone(ctx, 'alerts', t + k * 0.09, { freq: f, dur: 0.08, type: 'triangle', vol: 0.12 }));
+        break;
+      case 'toolDone':
+        [1480, 1175, 988].forEach((f, k) => this.tone(ctx, 'alerts', t + k * 0.11, { freq: f, dur: 0.12, type: 'triangle', vol: 0.12 }));
+        break;
+      case 'toolStop':
+        this.tone(ctx, 'alerts', t, { freq: 420, dur: 0.6, type: 'sawtooth', vol: 0.1, slideTo: 90 });
+        break;
+      case 'toolResume':
+        this.tone(ctx, 'sfx', t, { freq: 120, dur: 0.5, type: 'sawtooth', vol: 0.08, slideTo: 420 });
+        break;
+      case 'toolLost':
+        this.tone(ctx, 'alerts', t, { freq: 330, dur: 0.3, vol: 0.14 });
+        this.tone(ctx, 'alerts', t + 0.3, { freq: 220, dur: 0.5, vol: 0.14 });
+        break;
       case 'fallWarn':
         // Dos tonos descendentes rápidos: «vas a golpear».
         this.tone(ctx, 'alerts', t, { freq: 980, dur: 0.12, type: 'square', vol: 0.12, slideTo: 700 });

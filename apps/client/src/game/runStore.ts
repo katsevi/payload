@@ -50,7 +50,8 @@ export function stopSurfaceLoops(fadeS = 0.4): void {
 export function shakeForEvent(e: Pick<RunEvent, 'type' | 'subtype' | 'message'>): number {
   switch (e.type) {
     case 'impact-hit':
-      return 1;
+      // Esquiva con roces: sacudida menor; fallida o sin esquivar, el golpe entero.
+      return e.subtype === 'graze' ? 0.45 : 1;
     case 'landing': {
       const speed = Number(e.message.params?.speed ?? 0);
       return e.subtype === 'hard' ? Math.min(1.8, 0.6 + speed * 0.08) : 0.25;

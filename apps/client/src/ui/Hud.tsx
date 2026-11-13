@@ -6,7 +6,10 @@ import { TOAST_MS, useGame } from '../game/runStore';
 import { tr } from '../i18n';
 import { useUi } from '../state/ui';
 import { usePointerLocked } from './common';
-import { DescentHud, FallAlert, O2Vignette, ShipCompass, SuitVitals, WorldBadge } from './SurfaceHud';
+import { HelmPointer } from './HelmPointer';
+import { SkillHud } from './SkillHud';
+import { ToolIcon } from './ToolIcon';
+import { DescentHud, FallAlert, ToolCompass, O2Vignette, ShipCompass, SuitVitals, WorldBadge } from './SurfaceHud';
 
 const TONE_TEXT: Record<EventTone, string> = { info: 'text-slate-200 border-line', ok: 'text-ok border-ok/60', warn: 'text-warn border-warn/60', bad: 'text-bad border-bad/70' };
 const INCIDENT_ICON: Record<IncidentKind, ReactNode> = { fire: <Flame size={14} />, short: <Zap size={14} />, leak: <Wind size={14} /> };
@@ -152,6 +155,7 @@ function PromptBar() {
   // Mundo y material llegan como id: se muestran con su nombre del catálogo.
   if (typeof params.world === 'string') params.world = t(`catalog.${params.world}`, { ns: 'sim' });
   if (typeof params.material === 'string') params.material = t(`catalog.${params.material}`, { ns: 'sim' });
+  if (typeof params.tool === 'string') params.tool = t(`catalog.${params.tool}`, { ns: 'sim' });
   const altParams = prompt.altParams ?? {};
   const throttle = typeof altParams.throttle === 'string' ? t(`throttle.${altParams.throttle}`, { ns: 'sim' }) : null;
   return (
@@ -159,9 +163,14 @@ function PromptBar() {
       <div className={`console-panel flex items-center gap-2 px-4 py-2 text-sm ${prompt.blocked ? 'text-slate-400' : prompt.warn ? 'text-warn' : 'text-slate-100'}`}>
         {!prompt.blocked && (
           <>
-            <span className="kbd">{t('keys.interact')}</span>
-            <span className="text-xs uppercase tracking-wider text-slate-400">{prompt.hold ? t('prompt.hold') : t('prompt.press')}</span>
+            <span className="kbd">{t(prompt.inputKey ?? 'keys.interact')}</span>
+            {!prompt.noVerb && <span className="text-xs uppercase tracking-wider text-slate-400">{prompt.hold ? t('prompt.hold') : t('prompt.press')}</span>}
           </>
+        )}
+        {prompt.icon && (
+          <span className="text-accent">
+            <ToolIcon toolId={prompt.icon} />
+          </span>
         )}
         <span>
           {t(prompt.key, params)}
@@ -173,7 +182,7 @@ function PromptBar() {
           </span>
         ))}
       </div>
-      {prompt.hold && !prompt.blocked && (
+      {(prompt.hold || prompt.progressBar) && !prompt.blocked && (
         <div className="h-2 w-56 overflow-hidden rounded-sm bg-black/60 ring-1 ring-line">
           <div className="h-full bg-accent" style={{ width: `${prompt.progress * 100}%` }} />
         </div>
@@ -211,6 +220,7 @@ export function Hud() {
       {eva && me?.alive && s.phase === 'surface' && (
         <>
           <ShipCompass />
+          <ToolCompass />
           <FallAlert />
         </>
       )}
@@ -219,6 +229,8 @@ export function Hud() {
       {playing && overlay === null && (
         <>
           <div className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/70" aria-hidden="true" />
+          {!eva && <SkillHud />}
+          {!eva && <HelmPointer />}
           <PromptBar />
           {!locked && <div className="num absolute bottom-3 left-1/2 -translate-x-1/2 rounded bg-black/60 px-3 py-1 text-xs text-slate-300">{t('hud.clickToPlay')}</div>}
         </>

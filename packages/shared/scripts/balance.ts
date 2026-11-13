@@ -5,13 +5,16 @@
  *   pnpm --filter @payload/shared balance            (200 semillas, 3 sectores)
  *   pnpm --filter @payload/shared balance 500 5
  */
-import { playRun, type BotOptions, type ExploreStyle } from '../src/__tests__/bot';
+import { playRun, type BotOptions, type ExploreStyle, type ShipSkill } from '../src/__tests__/bot';
 
 const runs = Number(process.argv[2] ?? 200);
 const sectors = Number(process.argv[3] ?? 3);
 
-const profiles: [skill: 'crew' | 'idle', walkS: number, explore?: ExploreStyle][] = [
-  ['crew', 3.5], ['crew', 7], ['idle', 3.5], ['crew', 3.5, 'prudent'], ['crew', 3.5, 'greedy'], ['crew', 3.5, 'thorough'],
+const profiles: [skill: 'crew' | 'idle', walkS: number, explore?: ExploreStyle, shipSkill?: ShipSkill][] = [
+  ['crew', 3.5], ['crew', 7], ['idle', 3.5],
+  // Minijuegos imperfectos (roces en la esquiva, ritmo de reparación): medio, modo simple y torpe en todo.
+  ['crew', 3.5, undefined, 'medium'], ['crew', 3.5, undefined, 'simple'], ['crew', 5, undefined, 'clumsy'],
+  ['crew', 3.5, 'prudent'], ['crew', 3.5, 'greedy'], ['crew', 3.5, 'thorough'],
 ];
 
 const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0);
@@ -34,6 +37,7 @@ interface SurfaceStats {
   o2AtTakeOff: number;
   surfaceS: number;
   landIncidents: number;
+  idleS: number;
 }
 
 function play(options: BotOptions) {
@@ -44,7 +48,8 @@ function play(options: BotOptions) {
   let fuel = 0;
   let incidents = 0;
   let impacts = 0;
-  const surf: SurfaceStats = { evas: 0, returned: 0, evaS: 0, evaSAll: 0, evaValue: 0, landings: 0, hard: 0, stored: 0, value: 0, crewDeaths: 0, score: 0, landed: 0, landValue: 0, takeOffs: 0, o2AtTakeOff: 0, surfaceS: 0, landIncidents: 0 };
+  let grazed = 0;
+  const surf: SurfaceStats = { evas: 0, returned: 0, evaS: 0, evaSAll: 0, evaValue: 0, landings: 0, hard: 0, stored: 0, value: 0, crewDeaths: 0, score: 0, landed: 0, landValue: 0, takeOffs: 0, o2AtTakeOff: 0, surfaceS: 0, landIncidents: 0, idleS: 0 };
   const started = performance.now();
   for (let seed = 1; seed <= runs; seed++) {
     const { state, evas, landings } = playRun(seed, { ...options, sectors });
@@ -67,6 +72,7 @@ function play(options: BotOptions) {
       surf.evas++;
       surf.evaSAll += e.durationS;
       surf.evaValue += e.value;
+      surf.idleS += e.idleS;
       if (e.returned) {
         surf.returned++;
         surf.evaS += e.durationS;
@@ -80,24 +86,26 @@ function play(options: BotOptions) {
     fuel += state.ship.fuel;
     incidents += state.stats.incidentsFixed;
     impacts += state.stats.impactsTaken;
+    grazed += state.stats.impactsGrazed ?? 0;
   }
-  return { reasons, cleared, time, hull, fuel, incidents, impacts, surf, ms: performance.now() - started };
+  return { reasons, cleared, time, hull, fuel, incidents, impacts, grazed, surf, ms: performance.now() - started };
 }
 
-for (const [skill, walkS, explore] of profiles) {
-  const r = play({ skill, walkS, explore });
-  console.log(`\n== ${skill}${explore ? ` + ${explore}` : ''} (puesto a puesto ${walkS} s) · ${runs} partidas · objetivo ${sectors} sectores ==`);
+for (const [skill, walkS, explore, shipSkill] of profiles) {
+  const r = play({ skill, walkS, explore, shipSkill });
+  console.log(`\n== ${skill}${explore ? ` + ${explore}` : ''}${shipSkill ? ` · minijuegos ${shipSkill}` : ''} (puesto a puesto ${walkS} s) · ${runs} partidas · objetivo ${sectors} sectores ==`);
   console.log('final:', r.reasons);
   console.log('superan sector:', r.cleared.slice(1).map((n, i) => `S${i + 1} ${Math.round((n / runs) * 100)} %`).join(' · '));
   console.log(
     `medias: ${Math.round(r.time / runs)} s · casco ${Math.round(r.hull / runs)} · combustible ${Math.round(r.fuel / runs)} · ` +
-      `averías resueltas ${(r.incidents / runs).toFixed(1)} · impactos ${(r.impacts / runs).toFixed(1)} · puntuación ${Math.round(r.surf.score / runs)}`,
+      `averías resueltas ${(r.incidents / runs).toFixed(1)} · impactos ${(r.impacts / runs).toFixed(1)}${shipSkill ? ` · roces ${(r.grazed / runs).toFixed(1)}` : ''} · puntuación ${Math.round(r.surf.score / runs)}`,
   );
   const s = r.surf;
   if (explore) {
     console.log(
       `superficie: ${(s.landings / runs).toFixed(1)} aterrizajes (${pct(s.hard, s.landings)} % bruscos) · ${(s.evas / runs).toFixed(1)} salidas · ` +
-        `vuelven ${pct(s.returned, s.evas)} % · salida media ${Math.round(s.evaSAll / Math.max(1, s.evas))} s (solo las que vuelven ${Math.round(s.evaS / Math.max(1, s.returned))} s) · ` +
+        `vuelven ${pct(s.returned, s.evas)} % · salida media ${Math.round(s.evaSAll / Math.max(1, s.evas))} s (solo las que vuelven ${Math.round(s.evaS / Math.max(1, s.returned))} s; ` +
+        `quieto ${Math.round(s.idleS / Math.max(1, s.evas))} s, ${pct(s.idleS, s.evaSAll)} %) · ` +
         `${(s.stored / runs).toFixed(1)} materiales (${Math.round(s.value / runs)} puntos, ${Math.round(s.evaValue / Math.max(1, s.evas))} por salida) · muertes en superficie ${pct(s.crewDeaths, runs)} %`,
     );
     console.log(landingLine(s));

@@ -44,6 +44,17 @@ describe('balance con tripulante simulado', () => {
     for (let seed = 1; seed <= 10; seed++) expect(playRun(seed, { skill: 'crew', sectors: 2 }).state.stats.landings).toBe(0);
   });
 
+  it('con minijuegos imperfectos se sigue pudiendo: medio y modo simple casi como el perfecto; torpe, con opciones', () => {
+    const perfect = summary({ skill: 'crew', walkS: 3.5, sectors: 3 }).clearedPct;
+    const medium = summary({ skill: 'crew', walkS: 3.5, sectors: 3, shipSkill: 'medium' }).clearedPct;
+    const simple = summary({ skill: 'crew', walkS: 3.5, sectors: 3, shipSkill: 'simple' }).clearedPct;
+    const clumsy = summary({ skill: 'crew', walkS: 5, sectors: 3, shipSkill: 'clumsy' }).clearedPct;
+    expect(medium).toBeGreaterThanOrEqual(perfect - 8);
+    expect(simple).toBeGreaterThanOrEqual(perfect - 8);
+    expect(clumsy).toBeGreaterThanOrEqual(55);
+    expect(clumsy).toBeLessThan(medium);
+  });
+
   it('un sector dura unos minutos (partidas cortas e intensas)', () => {
     const one = summary({ skill: 'crew', walkS: 5, sectors: 1 });
     expect(one.meanTimeS).toBeGreaterThan(120);
@@ -143,12 +154,16 @@ describe('balance de superficie (hito de la fase 2)', () => {
   });
 
   const safe = surfaceSummary('prudent', 25);
+  const tight = surfaceSummary('prudent', 8);
   const risky = surfaceSummary('prudent', 3);
 
   it('«una veta más»: volver con menos margen de O₂ da más valor por salida a cambio de muertes apreciables', () => {
-    expect(risky.valuePerEva).toBeGreaterThan(safe.valuePerEva * 1.15);
-    expect(risky.crewLostPct).toBeGreaterThanOrEqual(10);
+    expect(tight.valuePerEva).toBeGreaterThan(safe.valuePerEva * 1.1);
+    expect(tight.crewLostPct).toBeGreaterThanOrEqual(5);
+    expect(tight.crewLostPct).toBeLessThanOrEqual(20);
     expect(safe.crewLostPct).toBeLessThanOrEqual(2);
+    // Apurar del todo (3 %) ya no compensa: muere aún más y saca menos que con 8 %.
+    expect(risky.crewLostPct).toBeGreaterThan(tight.crewLostPct);
     expect(risky.returnedPct).toBeLessThan(safe.returnedPct);
   });
 

@@ -39,7 +39,9 @@
     "soundCaptions": "Sound captions",
     "soundCaptionsHint": "Shows text such as [alarm] when a warning sounds. Important warnings always flash on screen.",
     "effects": "Effects intensity (shake and vignette)",
-    "toggleCollect": "Collect with one press (no need to hold E)"
+    "simpleDodge": "Simple dodge (hold E at the helm, no minigame)",
+    "simpleRepairs": "Simple repairs (hold R, no minigames)",
+    "wideAim": "Wide extinguisher aim"
   },
   "credits": {
     "title": "Credits",
@@ -95,7 +97,13 @@
     "shipAlert": "Ship: alert",
     "shipOk": "Ship · hull {{hull}}",
     "toShip": "Ship",
-    "streak": "×{{mult}}"
+    "streak": "×{{mult}}",
+    "tools": "Tools in the pack",
+    "toolsReady": "Pieces ready at the tools",
+    "o2Fetch": "Oxygen tight: fetch your tools now",
+    "o2Leave": "Oxygen tight: leave the tools and go back",
+    "toHelm": "Impact: to the helm",
+    "lode": "Lode: {{done}} of {{total}} veins"
   },
   "prompt": {
     "hold": "Hold",
@@ -120,7 +128,6 @@
     "jettison": "Jettison this world's cargo",
     "airlockExit": "Exit through the airlock",
     "airlockSealed": "Airlock sealed · only when landed",
-    "collect": "Collect {{material}} · {{value}} pts · {{units}} left",
     "full": "No room for {{material}}: head back",
     "enter": "Board the ship",
     "enterCargo": "Board and store {{kg}} kg",
@@ -129,7 +136,23 @@
     "exitShort": "suit {{suit}}% · ship O₂ −{{cost}}%",
     "collectAirborne": "{{material}} · feet on the ground to collect",
     "landNoEngines": "Land · engines offline",
-    "shipO2": "ship O₂ {{pct}}%"
+    "shipO2": "ship O₂ {{pct}}%",
+    "evadeDodge": "Take the controls · dodge",
+    "dodging": "Dodge the rocks",
+    "grazes": "grazes {{n}}",
+    "hits": "hits {{n}}",
+    "deployTool": "Place {{tool}} on {{material}}",
+    "toolsLeft": "×{{n}}",
+    "noToolLeft": "No {{tool}} left in the pack",
+    "toolAirborne": "{{tool}} · feet on the ground to place it",
+    "collectReady": "Collect {{units}} {{material}}",
+    "toolPickUp": "Vein exhausted · pack {{tool}}",
+    "toolStorm": "{{tool}} stopped by the storm",
+    "toolWorking": "{{tool}} extracting {{material}} · {{left}} left",
+    "retrieveTool": "Retrieve the tool",
+    "toolsOut": "outside: {{n}} tools",
+    "readyOut": "{{n}} pieces not collected",
+    "evadeLate": "Half a manoeuvre · too late to fly it"
   },
   "map": {
     "title": "Star map · sector {{sector}}",
@@ -213,11 +236,11 @@
   "help": {
     "title": "How to play",
     "goal": "Jump from destination to destination to the gate. Keep the hull, oxygen, fuel and reactor alive.",
-    "move": "Move",
+    "move": "Move · at the helm, fly the dodge",
     "run": "Run",
     "look": "Look",
-    "interact": "Use a station (hold to fix)",
-    "alt": "Change throttle at the helm",
+    "interact": "Use: map, panel, airlock, helm · place a tool and collect",
+    "alt": "Throttle at the helm · retrieve a tool",
     "view": "Switch 1st / 3rd person",
     "pause": "Pause",
     "tips": {
@@ -229,10 +252,13 @@
       "o2": "Outside, suit oxygen drains nonstop: get back to the ramp in time.",
       "terrain": "Glowing cracks: the ground gives way. Get off or you fall.",
       "storm": "A darkening horizon means a storm: get under cover.",
-      "landing": "On descent, brake when your speed passes the white mark."
+      "landing": "On descent, brake when your speed passes the white mark.",
+      "tools": "Place a tool on a vein and move on; come back when its beacon blinks."
     },
     "jump": "Jump · hold in the air: jetpack (falling: brakes) · on descent: brake",
-    "down": "Jetpack down (descend sooner)"
+    "down": "Jetpack down (descend sooner)",
+    "click": "Faults: aim the extinguisher, press on time or seal (click or Space)",
+    "repair": "Spare: hold and release on the mark, twice"
   },
   "keys": {
     "move": "WASD",
@@ -244,7 +270,9 @@
     "pause": "Esc",
     "help": "H",
     "jump": "Space",
-    "down": "C"
+    "down": "C",
+    "repair": "R",
+    "click": "Click"
   },
   "sound": {
     "fixed": "[repaired]",
@@ -260,7 +288,7 @@
     "landSoft": "[soft touchdown]",
     "landHard": "[hard impact]",
     "airlock": "[airlock]",
-    "collect": "[sample cut]",
+    "collect": "[pieces collected]",
     "store": "[cargo stowed]",
     "stormWarn": "[rising wind]",
     "storm": "[storm]",
@@ -274,7 +302,18 @@
     "takeOff": "[lift-off]",
     "jettison": "[cargo jettisoned]",
     "wind": "[wind]",
-    "fallWarn": "[fall warning]"
+    "fallWarn": "[fall warning]",
+    "dodgeGraze": "[graze]",
+    "dodgeHit": "[crash]",
+    "skillHit": "[hit]",
+    "skillMiss": "[miss]",
+    "extinguisher": "[extinguisher]",
+    "toolPlace": "[tool running]",
+    "toolReady": "[pieces ready]",
+    "toolDone": "[vein exhausted]",
+    "toolStop": "[tool stopped]",
+    "toolResume": "[tool resumed]",
+    "toolLost": "[tools abandoned]"
   },
   "descent": {
     "title": "Descent",

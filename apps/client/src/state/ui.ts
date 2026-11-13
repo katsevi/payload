@@ -18,6 +18,14 @@ export interface Prompt {
   /** true = hay que mantener la tecla; `progress` 0-1 es el avance. */
   hold: boolean;
   progress: number;
+  /** Icono junto a la acción (id de herramienta: `solar-concentrator`, `laser-drill`). */
+  icon?: string;
+  /** Tecla o control que se usa (clave ui `keys.*`; por defecto E). */
+  inputKey?: string;
+  /** Sin «Mantén»/«Pulsa» junto a la tecla (p. ej. pilotar con WASD). */
+  noVerb?: boolean;
+  /** Muestra la barra de avance aunque la acción no sea de mantener (p. ej. pulsos, esquiva). */
+  progressBar?: boolean;
   /** Segunda acción (tecla Q), p. ej. cambiar el régimen en el timón. */
   altKey?: string;
   altParams?: Record<string, string | number>;
@@ -49,6 +57,7 @@ interface UiState {
 const samePrompt = (a: Prompt | null, b: Prompt | null): boolean =>
   a === b ||
   (!!a && !!b && a.key === b.key && a.hold === b.hold && a.altKey === b.altKey && a.blocked === b.blocked && a.warn === b.warn &&
+    a.inputKey === b.inputKey && a.icon === b.icon && a.progressBar === b.progressBar && JSON.stringify(a.badges) === JSON.stringify(b.badges) &&
     Math.abs(a.progress - b.progress) < 0.004 && JSON.stringify(a.params) === JSON.stringify(b.params) && JSON.stringify(a.altParams) === JSON.stringify(b.altParams));
 
 export const useUi = create<UiState>((set) => ({
@@ -75,4 +84,13 @@ export const hudView = {
   fallDanger: false,
   /** El O₂ del traje ya no da con holgura para volver andando (tiñe la brújula). */
   o2Short: false,
+  /** Aviso de impacto activo y lejos del timón: flecha que apunta al timón (ángulo respecto a la mirada). */
+  helmOn: false,
+  helmAngle: 0,
+  /** Oxígeno frente al recorrido por las herramientas (`o2RouteStatus`): ok, fetch, leave o short. */
+  o2Route: 'ok' as 'ok' | 'fetch' | 'leave' | 'short',
+  /** Herramienta hacia la que apunta la flecha del HUD (con piezas listas o, si toca ir ya, la más cercana). */
+  toolOn: false,
+  toolX: 0,
+  toolZ: 0,
 };

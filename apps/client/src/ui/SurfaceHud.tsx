@@ -1,9 +1,10 @@
 import { useEffect, useRef, type RefObject } from 'react';
-import { AlertTriangle, ArrowUp, CloudLightning, Fuel, Package, Rocket, Shield, Wind } from 'lucide-react';
+import { AlertTriangle, ArrowUp, CloudLightning, Drill, Fuel, Gem, Package, PackageCheck, PackageX, Rocket, Shield, Sparkles, Wind } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getShip, getSurfaceCatalog, getWorld, type RunState } from '@payload/shared';
 import { getRun } from '../game/runStore';
-import { brakeThresholdMps, shipBearing, stormLevel } from '../game/surfaceRules';
+import { bearingTo, brakeThresholdMps, currentLode, shipBearing, stormLevel } from '../game/surfaceRules';
+import { ToolIcon } from './ToolIcon';
 import { useSettings } from '../state/settings';
 import { hudView } from '../state/ui';
 import { fmt } from './common';
@@ -38,6 +39,7 @@ const FALL_ROW = ['animate-pulse', 'rounded', 'ring-2', 'ring-bad'] as const;
 const FALL_FRAME = ['block', 'animate-pulse'] as const;
 const O2_SHORT = ['animate-pulse', 'border-bad'] as const;
 const O2_SHORT_ARROW = ['text-bad'] as const;
+const O2_TOOLS = ['border-warn'] as const;
 
 /** Nombre y gravedad del mundo (y la tormenta, si la hay): sustituye a «atracada en…» mientras se está en tierra. */
 export function WorldBadge({ s }: { s: RunState }) {
@@ -133,7 +135,9 @@ export function SuitVitals({ s }: { s: RunState }) {
           level={me.carriedKg >= r.suit.carryCapacityKg ? 'warn' : 'ok'}
         />
         <StreakBadge mult={streakMultOf(me)} />
+        <LodeBadge s={s} />
       </div>
+      <ToolsRow s={s} tools={me.tools} />
       <div className={`num flex items-center gap-2 text-xs ${shipAlert ? 'animate-pulse text-bad' : 'text-slate-400'}`}>
         {shipAlert ? <AlertTriangle size={14} /> : <Shield size={14} />}
         {shipAlert ? t('hud.shipAlert') : t('hud.shipOk', { hull: Math.ceil(s.ship.hull) })}
@@ -171,6 +175,96 @@ function StreakBadge({ mult }: { mult: number | null }) {
   return <span className="num rounded border border-accent px-1 text-xs text-accent">{t('hud.streak', { mult: fmt(mult, 1) })}</span>;
 }
 
+/**
+ * Herramientas: las que quedan en la mochila (icono + número por tipo) y, si alguna colocada tiene piezas
+ * listas, cuántas (con un paquete marcado). Sin frases.
+ */
+function ToolsRow({ s, tools }: { s: RunState; tools: Record<string, number> }) {
+  const { t } = useTranslation();
+  const ids = getSurfaceCatalog(getRun()?.catalog).tools.map((x) => x.id);
+  const placed = s.surface?.tools ?? [];
+  const ready = placed.reduce((n, x) => n + x.ready, 0);
+  return (
+    <div className="num flex items-center gap-3 text-xs text-slate-200">
+      <span className="flex items-center gap-2" role="group" aria-label={t('hud.tools')}>
+        {ids.map((id) => (
+          <span key={id} className={`flex items-center gap-0.5 ${(tools[id] ?? 0) > 0 ? '' : 'opacity-40'}`}>
+            <ToolIcon toolId={id} size={14} />×{tools[id] ?? 0}
+          </span>
+        ))}
+      </span>
+      {ready > 0 && (
+        <span className="flex animate-pulse items-center gap-1 rounded border border-ok px-1 text-ok" role="status" aria-label={t('hud.toolsReady')}>
+          <PackageCheck size={14} />
+          {ready}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Flecha hacia la herramienta con piezas listas más cercana (debajo de la de la nave), sin pasar por React
+ * en cada frame: lee `hudView`, que escribe la escena.
+ */
+export function ToolCompass() {
+  const { t } = useTranslation();
+  const box = useRef<HTMLDivElement>(null);
+  const arrow = useRef<HTMLSpanElement>(null);
+  const dist = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    let raf = 0;
+    let last = '';
+    const loop = () => {
+      if (box.current) box.current.style.display = hudView.toolOn ? '' : 'none';
+      if (hudView.toolOn) {
+        const b = bearingTo(hudView.x, hudView.z, hudView.yaw, hudView.toolX, hudView.toolZ);
+        if (arrow.current) arrow.current.style.transform = `rotate(${b.angle}rad)`;
+        const text = `${Math.round(b.distanceM)} m`;
+        if (dist.current && text !== last) {
+          dist.current.textContent = text;
+          last = text;
+        }
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  // Si toca ir ya a por las herramientas, la flecha apunta a la más cercana (tenga o no piezas) en ámbar.
+  useFrameFlag(box, () => hudView.o2Route === 'fetch', ['text-warn', 'animate-pulse'], ['text-ok']);
+  return (
+    <div ref={box} style={{ display: 'none' }} className="console-panel absolute left-1/2 top-36 flex -translate-x-1/2 items-center gap-2 px-3 py-1 text-ok" role="img" aria-label={t('hud.toolsReady')}>
+      <span ref={arrow} className="inline-flex will-change-transform">
+        <ArrowUp size={18} />
+      </span>
+      <PackageCheck size={16} />
+      <span ref={dist} className="num w-12 text-right text-sm text-slate-100" />
+    </div>
+  );
+}
+
+/**
+ * Avance del filón en el que se trabaja: «2/3» con una gema; con el bonus listo (la veta que queda lo
+ * completa) late y añade un destello. Tolerante: sin datos de filón no pinta nada.
+ */
+function LodeBadge({ s }: { s: RunState }) {
+  const { t } = useTranslation();
+  const me = s.crew[0];
+  const p = me ? currentLode(s, me, me.x, me.z) : null;
+  if (!p) return null;
+  return (
+    <span
+      className={`num flex items-center gap-0.5 rounded border px-1 text-xs ${p.bonusReady ? 'animate-pulse border-ok text-ok' : 'border-accent text-accent'}`}
+      role="status"
+      aria-label={t('hud.lode', { done: p.done, total: p.total })}>
+      <Gem size={12} aria-hidden="true" />
+      {p.done}/{p.total}
+      {p.bonusReady && <Sparkles size={12} aria-hidden="true" />}
+    </span>
+  );
+}
+
 /** Marco que parpadea en ámbar mientras la caída en curso va a doler (el sonido lo pone `cue('fallWarn')`). */
 export function FallAlert() {
   const frame = useRef<HTMLDivElement>(null);
@@ -187,9 +281,15 @@ export function ShipCompass() {
   const box = useRef<HTMLDivElement>(null);
   const arrow = useRef<HTMLSpanElement>(null);
   const dist = useRef<HTMLSpanElement>(null);
-  // Con el O₂ justo para volver, la brújula se pone roja y late (sin texto).
+  const fetchIcon = useRef<HTMLSpanElement>(null);
+  const leaveIcon = useRef<HTMLSpanElement>(null);
+  // Con el O₂ justo para volver, la brújula se pone roja y late (sin texto). Contando las herramientas:
+  // ámbar con el taladro = «ve ya a por ellas»; ámbar con el paquete tachado = «déjalas y vuelve».
   useFrameFlag(box, () => hudView.o2Short, O2_SHORT);
+  useFrameFlag(box, () => hudView.o2Route === 'fetch' || hudView.o2Route === 'leave', O2_TOOLS);
   useFrameFlag(arrow, () => hudView.o2Short, O2_SHORT_ARROW, ['text-accent']);
+  useFrameFlag(fetchIcon, () => hudView.o2Route === 'fetch', ['inline-flex'], ['hidden']);
+  useFrameFlag(leaveIcon, () => hudView.o2Route === 'leave', ['inline-flex'], ['hidden']);
   useEffect(() => {
     let raf = 0;
     let last = '';
@@ -213,6 +313,12 @@ export function ShipCompass() {
       </span>
       <span className="num text-xs uppercase tracking-wider text-slate-400">{t('hud.toShip')}</span>
       <span ref={dist} className="num w-14 text-right text-sm text-slate-100" />
+      <span ref={fetchIcon} className="hidden animate-pulse text-warn" aria-label={t('hud.o2Fetch')}>
+        <Drill size={18} />
+      </span>
+      <span ref={leaveIcon} className="hidden text-warn" aria-label={t('hud.o2Leave')}>
+        <PackageX size={18} />
+      </span>
     </div>
   );
 }

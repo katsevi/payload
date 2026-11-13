@@ -16,8 +16,8 @@
  *     `returnMarginPct` fija el margen (curva «una veta más» del informe de balance).
  */
 import {
-  createRng, createRun, FIXED_STEP_S, getMaterial, getNode, getNodeKind, getWorld, referenceBrake, suitRefill,
-  type CrewMember, type Deposit, type Rng, type Run, type RunEvent, type RunState, type SurfaceState, type SystemId,
+  createRng, createRun, FIXED_STEP_S, getMaterial, getNode, getNodeKind, getWorld, lodeBonusApplies, referenceBrake, suitRefill,
+  type CrewMember, type Deposit, type Rng, type Run, type RunAction, type RunEvent, type RunState, type SurfaceState, type SystemId,
 } from '../index';
 
 /** `thorough` («hasta vaciar»): como el prudente, pero repite salidas seguras mientras quede botín y la nave lo permita. */
@@ -37,7 +37,21 @@ export interface BotOptions {
    * Sirve para medir «una veta más»: menos margen = más valor por salida y más muertes.
    */
   returnMarginPct?: number;
+  /**
+   * Habilidad en los minijuegos de la nave (sin él, esquiva limpia sin informar roces y repara a ritmo 1,
+   * como en la fase 1). `medium`: jugador medio; `simple`: modo de interacciones simples; `clumsy`: torpe.
+   */
+  shipSkill?: ShipSkill;
 }
+
+export type ShipSkill = 'medium' | 'simple' | 'clumsy';
+
+/** Roces de la esquiva (probabilidad de 0, 1, 2, 3 y 4 roces) y ritmo de reparación por habilidad. */
+export const SHIP_SKILLS: Record<ShipSkill, { grazes: readonly number[]; repairRate: number }> = {
+  medium: { grazes: [0.55, 0.25, 0.12, 0.05, 0.03], repairRate: 0.85 },
+  simple: { grazes: [0, 1, 0, 0, 0], repairRate: 0.9 },
+  clumsy: { grazes: [0.2, 0.25, 0.25, 0.15, 0.15], repairRate: 0.6 },
+};
 
 export interface EvaRecord {
   durationS: number;
@@ -52,6 +66,8 @@ export interface EvaRecord {
   index: number;
   /** O₂ del traje al volver (0 si murió). */
   suitO2Pct: number;
+  /** Segundos de la salida sin moverse (esperando a las herramientas, recogiendo, colocando). */
+  idleS: number;
   /** Por qué volvió: sin O₂ para otra veta, carga llena, avería a bordo (prudente) o murió. */
   endReason: 'o2' | 'full' | 'incident' | 'dead';
 }
@@ -104,7 +120,24 @@ function chooseJump(run: Run): string | null {
 
 export function playRun(seed: number, options: BotOptions): BotResult {
   // Explorar lleva su tiempo: con el tope de la fase 1 (3600 s) el bot no acababa partidas que iba ganando.
-  const { skill, walkS = 3.5, sectors = 1, explore, returnMarginPct } = options;
+  const { skill, walkS = 3.5, sectors = 1, explore, returnMarginPct, shipSkill } = options;
+  // Flujo propio para los minijuegos: sin `shipSkill` no se tira nada (la fase 1 queda idéntica).
+  const skillRng = shipSkill ? createRng(seed ^ 0x5c11) : null;
+  const skillDef = shipSkill ? SHIP_SKILLS[shipSkill] : null;
+  const workS = FIXED_STEP_S * (skillDef?.repairRate ?? 1);
+  const evadeAction = (): RunAction => {
+    if (!skillDef || !skillRng) return { type: 'evade' };
+    let roll = skillRng.next();
+    let grazes = skillDef.grazes.length - 1;
+    for (let k = 0; k < skillDef.grazes.length; k++) {
+      roll -= skillDef.grazes[k]!;
+      if (roll < 0) {
+        grazes = k;
+        break;
+      }
+    }
+    return { type: 'evade', grazes };
+  };
   const maxSeconds = options.maxSeconds ?? (explore ? 7200 : 3600);
   const run = createRun({ seed });
   const s = run.state;
@@ -146,11 +179,11 @@ export function playRun(seed: number, options: BotOptions): BotResult {
       const urgent = [...s.incidents].sort((a, b) => rank(a.kind) - rank(b.kind))[0];
       const damaged = (['reactor', 'engines', 'lifeSupport', 'shields', 'nav'] as const).find((id) => ship.systems[id].healthPct < 45);
       if (warning && warning.etaS >= 0 && warning.etaS < walkS + 4) {
-        if (goTo('helm')) run.apply({ type: 'evade' });
+        if (goTo('helm')) run.apply(evadeAction());
       } else if (urgent) {
-        if (goTo(urgent.systemId)) run.apply({ type: 'work-incident', incidentId: urgent.id, seconds: FIXED_STEP_S });
+        if (goTo(urgent.systemId)) run.apply({ type: 'work-incident', incidentId: urgent.id, seconds: workS });
       } else if (damaged && ship.spares > 0) {
-        if (goTo(damaged)) run.apply({ type: 'repair-system', systemId: damaged, seconds: FIXED_STEP_S });
+        if (goTo(damaged)) run.apply({ type: 'repair-system', systemId: damaged, seconds: workS });
       }
     }
 
@@ -212,6 +245,9 @@ class Explorer {
    * `BOT_WALK_MPS` y no lo sabe, como una persona que calcula la vuelta a ojo.
    */
   private pace = 1;
+  /** Segundos quieto en la salida en curso (y si en este paso se movió). */
+  private idleS = 0;
+  private moved = false;
   private endReason: EvaRecord['endReason'] = 'o2';
 
   constructor(private readonly run: Run, private readonly style: ExploreStyle, seed: number, private readonly fixedMargin?: number) {
@@ -246,7 +282,11 @@ class Explorer {
     if (s.phase !== 'surface' || !s.surface) return false;
     const m = s.crew[0]!;
     if (m.location === 'ship') this.aboard(s.surface);
-    else if (m.alive) this.outside(s.surface, m);
+    else if (m.alive) {
+      this.moved = false;
+      this.outside(s.surface, m);
+      if (!this.moved) this.idleS += FIXED_STEP_S;
+    }
     return true;
   }
 
@@ -330,7 +370,10 @@ class Explorer {
     // «Hasta vaciar» sale mientras el relleno le deje el traje al menos a 2/3; los demás, con la nave sobrada.
     const rules = this.run.catalog.surface!.rules;
     const shipAllows = thorough ? suitRefill(rules, s.crew[0]!.suitO2Pct, s.ship.oxygenPct).suitO2Pct >= 66 : s.ship.oxygenPct > 60;
-    if (this.evasHere < maxEvas && worth && shipAllows) {
+    // Sin herramienta útil para lo que queda (se perdieron fuera), salir no sirve de nada.
+    const m0 = s.crew[0]!;
+    const canMine = surface.deposits.some((d) => d.units > 0 && (m0.tools[getMaterial(d.materialId).tool] ?? 0) > 0);
+    if (this.evasHere < maxEvas && worth && shipAllows && canMine) {
       if (stormSoon && this.careful) return; // espera a cubierto
       if (this.run.apply({ type: 'eva-exit' }).ok) {
         // El codicioso apura distinto cada vez: a veces calcula de menos.
@@ -339,6 +382,7 @@ class Explorer {
         this.margin = this.fixedMargin ?? (this.style === 'greedy' ? roll * 10 + 2 : this.style === 'thorough' ? 25 : 12 + roll * 6);
         this.daring = this.style === 'greedy' && this.rng.next() < 0.5;
         this.pace = 0.55 + 0.45 * this.rng.next();
+        this.idleS = 0;
         this.evasHere++;
         this.heading = 'out';
         this.target = null;
@@ -374,78 +418,155 @@ class Explorer {
     const prudent = this.careful;
     // El codicioso solo cuenta con la tormenta cuando ya la tiene encima.
     const rate = this.o2Rate(surface, prudent || surface.storm.active);
-    const homeDist = Math.hypot(m.x, m.z);
-    const margin = this.margin;
-    const needHome = (homeDist / BOT_WALK_MPS) * rate + margin;
+    // Si hay una herramienta en la veta que completa un filón, apura un poco más antes de irse.
+    const lodePending = surface.tools.some((t) => lodeBonusApplies(surface.deposits, surface.deposits.find((d) => d.id === t.depositId)!, m));
+    const margin = lodePending ? Math.max(2, this.margin - 4) : this.margin;
+    const range = rules.suit.collectRangeM * 0.8;
+    // Volver pasando a recoger las herramientas colocadas.
+    const needHome = (this.tourS(m.x, m.z, surface.tools) * rate) + margin;
 
     if (this.heading === 'out' && m.suitO2Pct <= needHome) this.goHome('o2');
     // El prudente vuelve si la radio avisa de una avería a bordo.
     if (prudent && this.s.incidents.length > 0 && this.heading === 'out') this.goHome('incident');
     if (this.heading === 'home') {
-      if (homeDist <= rules.suit.airlockRangeM * 0.8) {
-        const value = m.carriedValue;
-        const duration = m.evaS;
-        const kg = m.carriedKg;
-        if (this.run.apply({ type: 'eva-enter' }).ok) {
-          const cur = this.landings.at(-1);
-          if (cur) {
-            cur.evas++;
-            cur.value += value;
-          }
-          this.evas.push({ durationS: duration, returned: true, value, kg, worldId: surface.worldId, index: this.evasHere, suitO2Pct: m.suitO2Pct, endReason: this.endReason });
-        }
-        return;
-      }
-      this.moveToward(surface, m, 0, 0);
+      this.headHome(surface, m, rate);
       return;
     }
 
-    // Elegir veta: la más rentable que quepa y a la que dé tiempo a ir, recoger y volver.
     const room = rules.suit.carryCapacityKg - m.carriedKg;
+    const near = (x: number, z: number) => Math.hypot(x - m.x, z - m.z) <= range;
+    // 1) En una herramienta con algo listo (o agotada): recoger (la agotada vuelve sola a la mochila).
+    const here = surface.tools.find((t) => near(t.x, t.z) && (t.ready > 0 || t.stopped === 'depleted'));
+    if (here) {
+      this.ground(m);
+      const r = this.run.apply({ type: 'collect', depositId: here.depositId });
+      if (!r.ok && r.reason.key === 'reject.overCapacity') this.goHome('full');
+      return;
+    }
+    // 2) Herramienta libre en la mochila: colocarla en la veta más rentable a la que dé tiempo.
+    const best = this.bestDeposit(surface, m, rate, room);
+    if (best) {
+      this.target = best.id;
+      if (near(best.x, best.z)) {
+        this.ground(m);
+        if (!this.run.apply({ type: 'deploy-tool', depositId: best.id }).ok) this.target = null;
+        return;
+      }
+      this.moveToward(surface, m, best.x, best.z);
+      return;
+    }
+    // 3) Todo colocado: esperar junto a la que antes tenga algo que recoger.
+    const fitsSome = surface.tools.some((t) => getMaterial(t.materialId).massKg <= room + 1e-9);
+    if (surface.tools.length > 0 && fitsSome) {
+      const v = BOT_WALK_MPS;
+      const next = (t: (typeof surface.tools)[number]) => {
+        const walk = Math.hypot(t.x - m.x, t.z - m.z) / v;
+        if (t.ready > 0 || t.stopped === 'depleted') return walk;
+        const left = (1 - t.progress) * getMaterial(t.materialId).collectS / this.toolSpeed(t.toolId);
+        return Math.max(walk, t.stopped === 'storm' ? left + 60 : left);
+      };
+      const t = surface.tools.filter((x) => getMaterial(x.materialId).massKg <= room + 1e-9).reduce((a, b) => (next(b) < next(a) ? b : a));
+      if (!near(t.x, t.z)) this.moveToward(surface, m, t.x, t.z);
+      return;
+    }
+    // 4) Nada más que hacer fuera.
+    const fits = surface.deposits.some((d) => d.units > 0 && getMaterial(d.materialId).massKg <= room);
+    this.goHome(room < 6 || !fits ? 'full' : 'o2');
+  }
+
+  private toolSpeed(toolId: string): number {
+    return this.run.catalog.surface!.tools.find((t) => t.id === toolId)!.speedMult;
+  }
+
+  private ground(m: CrewMember): void {
+    this.climbing = false;
+    if (!m.grounded) this.run.apply({ type: 'set-position', x: m.x, z: m.z, grounded: true }); // colocar y recoger exigen suelo
+  }
+
+  /** Segundos de ir desde (x, z) por las herramientas colocadas (la más cercana cada vez) y volver a la nave. */
+  private tourS(x: number, z: number, tools: readonly { x: number; z: number }[]): number {
+    let left = [...tools];
+    let px = x;
+    let pz = z;
+    let dist = 0;
+    while (left.length > 0) {
+      const t = left.reduce((a, b) => (Math.hypot(b.x - px, b.z - pz) < Math.hypot(a.x - px, a.z - pz) ? b : a));
+      dist += Math.hypot(t.x - px, t.z - pz);
+      px = t.x;
+      pz = t.z;
+      left = left.filter((o) => o !== t);
+    }
+    return (dist + Math.hypot(px, pz)) / BOT_WALK_MPS;
+  }
+
+  /** Mejor veta libre para una herramienta que lleva en la mochila (o null). */
+  private bestDeposit(surface: SurfaceState, m: CrewMember, rate: number, room: number): Deposit | null {
+    const homeDist = Math.hypot(m.x, m.z);
     let best: { d: Deposit; score: number } | null = null;
     for (const d of surface.deposits) {
-      if (d.units <= 0) continue;
+      if (d.units <= 0 || surface.tools.some((t) => t.depositId === d.id)) continue;
       const mat = getMaterial(d.materialId);
-      if (mat.massKg > room + 1e-9) continue;
+      if ((m.tools[mat.tool] ?? 0) <= 0 || mat.massKg > room + 1e-9) continue;
       const inZone = surface.zones.some((z) => !z.collapsed && Math.hypot(d.x - z.x, d.z - z.z) <= z.radiusM);
       if (!this.daring && inZone) continue;
       const go = Math.hypot(d.x - m.x, d.z - m.z) / BOT_WALK_MPS;
-      const back = Math.hypot(d.x, d.z) / BOT_WALK_MPS;
-      const cost = (go + mat.collectS + back) * rate + margin;
+      // Ir, esperar una unidad y volver pasando por las demás herramientas.
+      const cost = (go + mat.collectS / this.toolSpeed(mat.tool) + this.tourS(d.x, d.z, surface.tools)) * rate + this.margin;
       if (cost > m.suitO2Pct) continue;
-      // Ir primero a lo lejano y volver recogiendo: solo pesa lo que te aleja de la nave.
+      const back = Math.hypot(d.x, d.z) / BOT_WALK_MPS;
       const away = Math.max(0, back - homeDist / BOT_WALK_MPS);
-      // La capacidad es poca: también cuenta lo que vale cada kilo.
-      // Si la nave va justa de combustible, el hielo vale más (lo que rinde a bordo).
-      // Lo raro se revaloriza con la racha que ya lleva encima.
-      const worth = d.valuePerUnit * (mat.streak ? m.streakMult : 1) + (this.fuelNeed(m) > 0 ? (mat.yields?.fuel ?? 0) * 8 : 0);
+      // Si la nave va justa de combustible, el hielo vale más; lo raro se revaloriza con la racha.
+      const lodeMult = lodeBonusApplies(surface.deposits, d, m) ? (this.run.catalog.surface!.rules.lodes?.completeMult ?? 1) : 1;
+      const worth = d.valuePerUnit * (mat.streak ? m.streakMult : 1) * lodeMult + (this.fuelNeed(m) > 0 ? (mat.yields?.fuel ?? 0) * 8 : 0);
+      const units = Math.min(d.units, Math.floor(room / mat.massKg));
       const perKg = Math.sqrt(worth / mat.massKg);
-      const score = (worth * perKg * (this.daring ? 1.5 + (d.risky ? 1 : 0) : 1)) / (go + away + mat.collectS + 4);
-      if (!best || score > best.score) best = { d, score };
+      const score = (worth * perKg * Math.sqrt(units) * (this.daring ? 1.5 + (d.risky ? 1 : 0) : 1)) / (go + away + 4);
+      if (!best || score > best.score || (d.id === this.target && score > best.score * 0.8)) best = { d, score };
     }
-    if (!best) {
-      const fits = surface.deposits.some((d) => d.units > 0 && getMaterial(d.materialId).massKg <= room);
-      this.goHome(room < 6 || !fits ? 'full' : 'o2');
+    return best?.d ?? null;
+  }
+
+  /** De vuelta: pasa a retirar las herramientas si el O₂ da para el rodeo; si no, las abandona. */
+  private headHome(surface: SurfaceState, m: CrewMember, rate: number): void {
+    const rules = this.run.catalog.surface!.rules;
+    const homeDist = Math.hypot(m.x, m.z);
+    // Para desviarse a por una herramienta exige el mismo margen con el que decidió volver.
+    const reserve = this.careful ? this.margin * 0.5 : this.margin;
+    // Con una avería a bordo no hay rodeos: las herramientas se abandonan.
+    const urgent = this.s.incidents.length > 0;
+    const t = surface.tools.length > 0 && !urgent ? surface.tools.reduce((a, b) => (Math.hypot(b.x - m.x, b.z - m.z) < Math.hypot(a.x - m.x, a.z - m.z) ? b : a)) : null;
+    if (t) {
+      const detour = ((Math.hypot(t.x - m.x, t.z - m.z) + Math.hypot(t.x, t.z)) / BOT_WALK_MPS) * rate + reserve;
+      if (m.suitO2Pct > detour) {
+        if (Math.hypot(t.x - m.x, t.z - m.z) <= rules.suit.collectRangeM * 0.8) {
+          this.ground(m);
+          this.run.apply({ type: 'retrieve-tool', depositId: t.depositId });
+          return;
+        }
+        this.moveToward(surface, m, t.x, t.z);
+        return;
+      }
+    }
+    if (homeDist <= rules.suit.airlockRangeM * 0.8) {
+      const value = m.carriedValue;
+      const duration = m.evaS;
+      const kg = m.carriedKg;
+      if (this.run.apply({ type: 'eva-enter' }).ok) {
+        const cur = this.landings.at(-1);
+        if (cur) {
+          cur.evas++;
+          cur.value += value;
+        }
+        this.evas.push({ durationS: duration, returned: true, value, kg, worldId: surface.worldId, index: this.evasHere, suitO2Pct: m.suitO2Pct, endReason: this.endReason, idleS: this.idleS });
+      }
       return;
     }
-    if (this.target !== best.d.id && this.target !== null) {
-      const cur = surface.deposits.find((d) => d.id === this.target);
-      if (cur && cur.units > 0 && getMaterial(cur.materialId).massKg <= room) best = { d: cur, score: 0 };
-    }
-    this.target = best.d.id;
-    const d = best.d;
-    if (Math.hypot(d.x - m.x, d.z - m.z) <= rules.suit.collectRangeM * 0.8) {
-      this.climbing = false;
-      if (!m.grounded) this.run.apply({ type: 'set-position', x: m.x, z: m.z, grounded: true }); // recoger exige suelo
-      const r = this.run.apply({ type: 'collect', depositId: d.id, seconds: FIXED_STEP_S });
-      if (!r.ok) this.target = null;
-      return;
-    }
-    this.moveToward(surface, m, d.x, d.z);
+    this.moveToward(surface, m, 0, 0);
   }
 
   /** Camina hacia (x, z); sobre terreno inestable, salvo que se arriesgue, cruza con el jetpack. */
   private moveToward(surface: SurfaceState, m: CrewMember, x: number, z: number): void {
+    this.moved = true;
     const dx = x - m.x;
     const dz = z - m.z;
     const dist = Math.hypot(dx, dz);
@@ -467,6 +588,6 @@ class Explorer {
   /** Para el informe: el tripulante murió fuera durante la salida en curso. */
   recordDeath(): void {
     const m = this.s.crew[0];
-    if (m && !m.alive && m.location === 'eva' && !this.evas.some((e) => !e.returned)) this.evas.push({ durationS: m.evaS, returned: false, value: 0, kg: 0, worldId: this.s.surface?.worldId ?? '', index: this.evasHere, suitO2Pct: 0, endReason: 'dead' });
+    if (m && !m.alive && m.location === 'eva' && !this.evas.some((e) => !e.returned)) this.evas.push({ durationS: m.evaS, returned: false, value: 0, kg: 0, worldId: this.s.surface?.worldId ?? '', index: this.evasHere, suitO2Pct: 0, endReason: 'dead', idleS: this.idleS });
   }
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ArrowDownToLine, CloudLightning, Flame, Mountain, Navigation, Wind, Zap } from 'lucide-react';
+import { ArrowDownToLine, CloudLightning, Drill, Flame, Mountain, Navigation, Wind, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Locale } from '@payload/shared';
 import { CREDITS } from '../data/credits';
@@ -98,10 +98,12 @@ export function SettingsPanel() {
           </span>
           <input type="range" min={0} max={1} step={0.05} value={s.effects} onChange={(e) => s.set({ effects: Number(e.target.value) })} />
         </label>
-        <label className={row}>
-          <span>{t('settings.toggleCollect')}</span>
-          <input type="checkbox" checked={s.toggleCollect} onChange={(e) => s.set({ toggleCollect: e.target.checked })} />
-        </label>
+        {(['simpleDodge', 'simpleRepairs', 'wideAim'] as const).map((key) => (
+          <label key={key} className={row}>
+            <span>{t(`settings.${key}`)}</span>
+            <input type="checkbox" checked={s[key]} onChange={(e) => s.set({ [key]: e.target.checked })} />
+          </label>
+        ))}
         <h3 className="num mt-3 border-t border-line pt-3 text-xs uppercase tracking-widest text-accent">{t('settings.audio')}</h3>
         <label className={row}>
           <span>{t('settings.muteAll')}</span>
@@ -170,8 +172,8 @@ export function CreditsScreen() {
   );
 }
 
-const HELP_KEYS = ['move', 'run', 'look', 'interact', 'alt', 'jump', 'down', 'view', 'pause'] as const;
-const HELP_TIPS: { id: 'fire' | 'leak' | 'short' | 'impact' | 'power' | 'landing' | 'o2' | 'terrain' | 'storm'; icon: ReactNode }[] = [
+const HELP_KEYS = ['move', 'run', 'look', 'interact', 'click', 'repair', 'alt', 'jump', 'down', 'view', 'pause'] as const;
+const HELP_TIPS: { id: 'fire' | 'leak' | 'short' | 'impact' | 'power' | 'landing' | 'o2' | 'terrain' | 'storm' | 'tools'; icon: ReactNode }[] = [
   { id: 'fire', icon: <Flame size={16} className="text-bad" /> },
   { id: 'leak', icon: <Wind size={16} className="text-bad" /> },
   { id: 'short', icon: <Zap size={16} className="text-warn" /> },
@@ -181,6 +183,7 @@ const HELP_TIPS: { id: 'fire' | 'leak' | 'short' | 'impact' | 'power' | 'landing
   { id: 'o2', icon: <Wind size={16} className="text-warn" /> },
   { id: 'terrain', icon: <Mountain size={16} className="text-warn" /> },
   { id: 'storm', icon: <CloudLightning size={16} className="text-warn" /> },
+  { id: 'tools', icon: <Drill size={16} className="text-accent" /> },
 ];
 
 /** Toda la explicación del juego cabe en una pantalla: controles y cinco reglas. */

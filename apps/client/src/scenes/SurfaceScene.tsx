@@ -2,10 +2,9 @@ import { useEffect, useMemo, useRef, type RefObject } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
 import { Vector3, type Group, type Points } from 'three';
-import { getSurfaceCatalog, getWorld, MAX_WORK_SECONDS } from '@payload/shared';
+import { getSurfaceCatalog, getWorld } from '@payload/shared';
 import { audio } from '../audio/audioEngine';
 import { cue } from '../audio/cues';
-import { sendInChunks } from '../game/interaction';
 import { flightLimitsOf, surfaceMotion, type MotionParams } from '../game/motion';
 import { fx, getRun, shipSpawn, useGame } from '../game/runStore';
 import {
@@ -15,13 +14,17 @@ import {
   EVA_START,
   fallDanger,
   o2BeepIntervalS,
-  o2ReturnShort,
+  o2RouteStatus,
+  nearestTool,
   SHIP_CENTER,
   SHIP_OFFSET,
   STORM_WIND_MPS,
   stormLevel,
+  nearestReadyTool,
+  surfaceAltAction,
   surfaceInteractionAt,
   surfacePromptFor,
+  surfaceUseAction,
 } from '../game/surfaceRules';
 import { seedGeometry } from '../gfx/fxShaders';
 import { ShaderClock } from '../gfx/Glow';
@@ -33,6 +36,7 @@ import { motionEnv, playerState, resetPlayerState } from '../player/playerState'
 import { useSettings } from '../state/settings';
 import { hudView, useUi } from '../state/ui';
 import { ShipExterior } from './ShipExterior';
+import { LodeFinishers, SurfaceTools } from './SurfaceTools';
 import { deepestDropM } from '../game/terrain';
 import { liveTerrain, SurfaceWorld, windAngleOf } from './SurfaceWorld';
 
@@ -185,14 +189,15 @@ function PadDust({ worldId, strength }: { worldId: string; strength: { value: nu
 
 /**
  * Bucle de la EVA: avanza el motor, informa de lo que simula el cliente (posición, jetpack, golpes),
- * traduce E en recoger o entrar y hace oír el oxígeno.
+ * traduce E/Q en colocar, recoger o retirar herramientas y entrar, y hace oír el oxígeno.
  */
 function SurfaceLoop({ motion }: { motion: MotionParams }) {
   const posClock = useRef(0);
   const windLoop = useRef(false);
   const falling = useRef(false);
-  const collectLatch = useRef<number | null>(null);
   const eWasDown = useRef(false);
+  const qWasDown = useRef(false);
+  const readyBefore = useRef(0);
   const lastGrounded = useRef(true);
   const enter = useRef(0);
   const jetLoop = useRef(false);
@@ -224,6 +229,7 @@ function SurfaceLoop({ motion }: { motion: MotionParams }) {
       windLoop.current = false;
       hudView.fallDanger = false;
       hudView.o2Short = false;
+      hudView.toolOn = false;
       ui.setPrompt(null);
       return;
     }
@@ -259,7 +265,9 @@ function SurfaceLoop({ motion }: { motion: MotionParams }) {
 
     // Oxígeno frente a distancia: la brújula avisa si ya no da con holgura para volver andando.
     const drain = rules.suit.o2DrainPctPerS + (world.storms && s.surface.storm.active ? world.storms.o2DrainPctPerS * s.surface.storm.intensity : 0);
-    hudView.o2Short = o2ReturnShort(me.suitO2Pct, Math.hypot(me.x, me.z), drain, motion.walkMps);
+    // …y contando el rodeo por las herramientas colocadas (lo que ahora mata): ve ya a por ellas o déjalas.
+    hudView.o2Route = o2RouteStatus(me.suitO2Pct, me.x, me.z, s.surface.tools, drain, motion.walkMps);
+    hudView.o2Short = hudView.o2Route === 'short';
 
     // Jetpack: lo gastado se informa; si el motor dice que está vacío, se corta.
     if (playerState.thrustS > 0) {
@@ -288,21 +296,23 @@ function SurfaceLoop({ motion }: { motion: MotionParams }) {
       game.act({ type: 'set-position', x: playerState.pos.x, z: playerState.pos.z, grounded: playerState.grounded }, true);
     }
 
-    // Interacción: recoger (mantener) o entrar (mantener).
+    // Interacción: E coloca la herramienta o recoge lo listo (una pulsación), Q la retira, mantener E entra.
     const i = ui.overlay === null ? surfaceInteractionAt(s, me.x, me.z, run.catalog) : null;
     const eDown = isDown('KeyE') && ui.overlay === null;
     const pressed = eDown && !eWasDown.current;
     eWasDown.current = eDown;
-    const holding = eDown;
-    // Recoger: mantener E, o (ajuste de accesibilidad) pulsar para empezar y otra vez para parar.
-    if (i?.kind !== 'collect' || i.full || (collectLatch.current !== null && collectLatch.current !== i.deposit.id)) collectLatch.current = null;
-    else if (pressed && useSettings.getState().toggleCollect) collectLatch.current = collectLatch.current === null ? i.deposit.id : null;
-    const collecting = i?.kind === 'collect' && !i.full && playerState.grounded && (useSettings.getState().toggleCollect ? collectLatch.current !== null : holding);
-    if (collecting && i?.kind === 'collect') {
-      const depositId = i.deposit.id;
-      sendInChunks(realDt, MAX_WORK_SECONDS, (seconds) => game.act({ type: 'collect', depositId, seconds }, true).ok);
+    const qDown = isDown('KeyQ') && ui.overlay === null;
+    const qPressed = qDown && !qWasDown.current;
+    qWasDown.current = qDown;
+    if (pressed && playerState.grounded) {
+      const action = surfaceUseAction(i);
+      if (action) game.act(action);
     }
-    if (i?.kind === 'enter' && holding) {
+    if (qPressed) {
+      const action = surfaceAltAction(i);
+      if (action) game.act(action);
+    }
+    if (i?.kind === 'enter' && eDown) {
       enter.current += realDt / ENTER_HOLD_S;
       if (enter.current >= 1) {
         enter.current = 0;
@@ -314,6 +324,16 @@ function SurfaceLoop({ motion }: { motion: MotionParams }) {
         }
       }
     } else enter.current = 0;
+
+    // Herramientas: aviso cuando una tiene piezas nuevas listas, y flecha hacia la más cercana con piezas.
+    let readyNow = 0;
+    for (const t of s.surface.tools) readyNow += t.ready;
+    if (readyNow > readyBefore.current) cue('toolReady');
+    readyBefore.current = readyNow;
+    const near = hudView.o2Route === 'fetch' ? nearestTool(s, me.x, me.z) : hudView.o2Route === 'leave' ? null : nearestReadyTool(s, me.x, me.z);
+    hudView.toolOn = !!near;
+    hudView.toolX = near?.x ?? 0;
+    hudView.toolZ = near?.z ?? 0;
     ui.setPrompt(surfacePromptFor(i, enter.current, !playerState.grounded));
 
     // Oxígeno que se oye: respiración cada vez más rápida y pitido al final.
@@ -355,6 +375,8 @@ export function SurfaceScene({ mode }: { mode: 'descent' | 'eva' }) {
       <ShaderClock />
       <Physics gravity={[0, 0, 0]} timeStep="vary">
         <SurfaceWorld physics={mode === 'eva'} />
+        <SurfaceTools />
+        <LodeFinishers />
         <group ref={ship} position={[SHIP_OFFSET.x, SHIP_OFFSET.y + (mode === 'descent' ? descentAlt : 0), SHIP_OFFSET.z]}>
           <ShipExterior colliders={mode === 'eva'} />
         </group>

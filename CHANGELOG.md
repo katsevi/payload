@@ -5,6 +5,29 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+### Mejora fuera del plan: herramientas de minería y minijuegos (rama `feat/f2-herramientas-e-interacciones`, 2026-11-12)
+
+Decisiones: ADR 0013. Pedido del usuario: menos interacciones repetitivas con E y una minería creíble.
+
+#### `@payload/shared`
+- Herramientas desplegables (`surface.tools` en `mundos.json`, `material.tool`): concentrador solar (hielo; se para con tormenta) y taladro láser (mena, cristal, muestra). Acciones `deploy-tool` y `retrieve-tool`; estado `surface.tools` y `crew[].tools`; eventos `tool-*`. Extracción a paso fijo (4/5/5/6 s por unidad); lo que queda fuera al entrar se pierde y se repone al aterrizar. Mochila de 110 kg.
+- Filones: lo raro se agrupa en 2-3 vetas a 8-15 m (`rules.lodes`, `Deposit.lodeId`). Completar un filón en la misma salida da ×1,5 a la última veta (`lodes.completeMult`, `lodeProgress`, `CrewMember.lodeVeinsDone`, subtipo `lode`).
+- Hielo escaso también en la luna volcánica y el mundo de tormentas.
+- Esquiva por habilidad: `evade {grazes}`, aviso con `etaS`, `evadeSeed` y `evadeDifficulty`; reglas en `averias.json` (`hazards.impact.evade`); eventos `impact-evaded` e `impact-hit` con subtipo.
+- Bot de balance con herramientas, tiempo quieto por salida y perfiles de minijuegos (`shipSkill`: medio, simple, torpe) con umbral en `balance.test.ts`. Tests: 148 en 7 archivos.
+
+#### `@payload/client`
+- Esquiva en el holograma del timón (WASD) de duración fija (3 s, se juega si quedan >= 3,4 s); llegar tarde aplica un resultado tardío con roces, nunca limpio; flecha hacia el timón y pitido repetido con el aviso.
+- Averías con interacción propia: extintor apuntado (fuego), pulsos de sincronía (cortocircuito, dos aciertos), mantener y soltar en la zona de presión (fuga); repuesto con R en dos tramos.
+- Accesibilidad en tres ajustes: esquiva simple, averías simples y puntería ancha.
+- `SurfaceTools`, `ToolIcon`, brújula de herramientas, brújula de oxígeno que cuenta el rodeo (cuatro estados), avisos y sonidos; avance del filón («2/3») en el HUD y marca en la veta que lo completa. Tests: 100 en 4 archivos (`minigames.test.ts` nuevo).
+
+### Cambiado (mejora)
+- `collect` ya no se mantiene: recoge lo que la herramienta ha extraído (el campo `seconds` queda opcional e ignorado). Se retira la clave de mensaje `event.collected`.
+- Teclas: E usar, abrir, colocar o recoger; Q alternativa (régimen, soltar carga, retirar herramienta); clic o Espacio la habilidad; R reparar con repuesto. Ya no se mantiene E para recoger ni para arreglar averías (la reparación se hace con su minijuego).
+
+## Fase 2 (resto de lo sin publicar)
+
 Versión propuesta: **0.5.0**, fase 2 «Exploración de superficie» (rama `feat/f2-superficie`, 2026-11-12). Decisiones: ADR 0012.
 
 ### Añadido

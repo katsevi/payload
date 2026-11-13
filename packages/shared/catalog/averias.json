@@ -22,7 +22,15 @@
     "hullDamageMax": 18,
     "systemDamageMin": 10,
     "systemDamageMax": 25,
-    "leakChanceUnshielded": 0.5
+    "leakChanceUnshielded": 0.5,
+    "evade": {
+      "maxGrazes": 4,
+      "grazeDamageFrac": 0.2,
+      "failDamageFrac": 0.9,
+      "difficultyBase": 0.25,
+      "difficultyPerSector": 0.12,
+      "difficultyFromSeverity": 0.2
+    }
   },
   "wear": {
     "chancePerS": 0.009,

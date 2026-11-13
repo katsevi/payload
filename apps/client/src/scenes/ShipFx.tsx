@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
-import { Flame, Navigation, Wind, Zap } from 'lucide-react';
+import { Orbit, Flame, Navigation, Wind, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Color, Vector3, type Group, type MeshBasicMaterial, type PointLight, type Sprite } from 'three';
 import type { IncidentKind, SystemId } from '@payload/shared';
@@ -289,7 +289,9 @@ export function Markers() {
               {m.kind === 'short' && <Zap size={14} />}
               {m.kind === 'leak' && <Wind size={14} />}
               {m.kind === 'evade' && <Navigation size={14} />}
-              {m.kind === 'label' ? name(m.station) : m.kind === 'evade' ? t('marker.evade') : `${t(`incident.${m.kind}`, { ns: 'sim' })} · ${name(m.station)}`}
+              {/* Esquiva: sin texto, la flecha y el icono de rocas señalan el timón (y el holograma late). */}
+              {m.kind === 'evade' && <Orbit size={14} />}
+              {m.kind === 'label' ? name(m.station) : m.kind === 'evade' ? null : `${t(`incident.${m.kind}`, { ns: 'sim' })} · ${name(m.station)}`}
             </div>
           </Html>
         );

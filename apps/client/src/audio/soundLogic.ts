@@ -9,10 +9,12 @@ export type SfxId =
   | 'click' | 'fixed' | 'toggle' | 'alarm' | 'ok' | 'sparks' | 'warnTick' | 'jump' | 'clunk' | 'impact' | 'success' | 'complete' | 'blip'
   // Superficie (fase 2)
   | 'descent' | 'thruster' | 'landSoft' | 'landHard' | 'airlock' | 'jetpack' | 'collect' | 'store' | 'stormWarn' | 'storm'
-  | 'crack' | 'collapse' | 'o2Low' | 'o2Critical' | 'breath' | 'breathFast' | 'suitHit' | 'crewDead' | 'takeOff' | 'jettison' | 'wind' | 'fallWarn';
+  | 'crack' | 'collapse' | 'o2Low' | 'o2Critical' | 'breath' | 'breathFast' | 'suitHit' | 'crewDead' | 'takeOff' | 'jettison' | 'wind' | 'fallWarn'
+  | 'dodgeGraze' | 'dodgeHit' | 'skillHit' | 'skillMiss' | 'extinguisher'
+  | 'toolPlace' | 'toolReady' | 'toolDone' | 'toolStop' | 'toolResume' | 'toolLost';
 
 /** Efectos en bucle: `cue(id)` los arranca y `audio.stopLoop(id)` los para. */
-export const LOOP_SFX: readonly SfxId[] = ['jump', 'thruster', 'jetpack', 'storm', 'takeOff', 'wind'];
+export const LOOP_SFX: readonly SfxId[] = ['jump', 'thruster', 'jetpack', 'storm', 'takeOff', 'wind', 'extinguisher'];
 
 export type SoundBus = 'sfx' | 'alerts' | 'voice';
 export type FlashTone = 'ok' | 'warn' | 'bad' | 'info';
@@ -64,6 +66,17 @@ export const SFX_META: Record<SfxId, SfxMeta> = {
   jettison: { bus: 'sfx', captionKey: 'sound.jettison', flash: 'warn', minGapMs: 1000 },
   wind: { bus: 'sfx', captionKey: 'sound.wind', flash: null, minGapMs: 3000 },
   fallWarn: { bus: 'alerts', captionKey: 'sound.fallWarn', flash: 'warn', minGapMs: 1500 },
+  dodgeGraze: { bus: 'sfx', captionKey: 'sound.dodgeGraze', flash: 'warn', minGapMs: 150 },
+  dodgeHit: { bus: 'alerts', captionKey: 'sound.dodgeHit', flash: 'bad', minGapMs: 250 },
+  skillHit: { bus: 'sfx', captionKey: 'sound.skillHit', flash: 'ok', minGapMs: 100 },
+  skillMiss: { bus: 'sfx', captionKey: 'sound.skillMiss', flash: null, minGapMs: 100 },
+  extinguisher: { bus: 'sfx', captionKey: 'sound.extinguisher', flash: null, minGapMs: 0 },
+  toolPlace: { bus: 'sfx', captionKey: 'sound.toolPlace', flash: 'info', minGapMs: 300 },
+  toolReady: { bus: 'alerts', captionKey: 'sound.toolReady', flash: 'ok', minGapMs: 800 },
+  toolDone: { bus: 'alerts', captionKey: 'sound.toolDone', flash: 'ok', minGapMs: 800 },
+  toolStop: { bus: 'alerts', captionKey: 'sound.toolStop', flash: 'warn', minGapMs: 800 },
+  toolResume: { bus: 'sfx', captionKey: 'sound.toolResume', flash: 'info', minGapMs: 800 },
+  toolLost: { bus: 'alerts', captionKey: 'sound.toolLost', flash: 'bad', minGapMs: 1500 },
 };
 
 export const SFX_IDS = Object.keys(SFX_META) as SfxId[];
@@ -116,8 +129,20 @@ export function sfxForRunEvent(event: Pick<RunEvent, 'type' | 'incidentKind' | '
     case 'impact-warning':
       return 'warnTick';
     case 'impact-hit':
+      // Esquiva con roces: un roce, no el golpe entero.
+      return event.subtype === 'graze' ? 'dodgeGraze' : 'impact';
     case 'lost':
       return 'impact';
+    case 'tool-placed':
+      return 'toolPlace';
+    case 'tool-done':
+      return 'toolDone';
+    case 'tool-stopped':
+      return 'toolStop';
+    case 'tool-resumed':
+      return 'toolResume';
+    case 'tool-lost':
+      return 'toolLost';
     case 'impact-evaded':
     case 'service':
     case 'cache':

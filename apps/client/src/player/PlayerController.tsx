@@ -7,6 +7,7 @@ import { newMotionState, settleMotion, SHIP_MOTION, stepMotion, type MotionInput
 import { fx as viewFx, getRun } from '../game/runStore';
 import { Glow } from '../gfx/Glow';
 import { useSettings } from '../state/settings';
+import { minigame } from '../state/minigame';
 import { useUi } from '../state/ui';
 import { attachKeyboard, isDown } from './input';
 import { lookDir, motionEnv, playerState } from './playerState';
@@ -135,7 +136,8 @@ export function PlayerController({ start, startYaw = 0, bounds, motion = SHIP_MO
     const ui = useUi.getState();
     const settings = useSettings.getState();
     const phase = getRun()?.state.phase;
-    const blocked = ui.overlay !== null || phase === 'lost' || phase === 'won';
+    // Pilotando en el timón (esquiva), WASD mueve la nave del holograma, no al tripulante.
+    const blocked = ui.overlay !== null || phase === 'lost' || phase === 'won' || minigame.dodge !== null;
 
     // ── Movimiento ──
     let fx = 0;
