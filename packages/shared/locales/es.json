@@ -58,12 +58,52 @@
     "lowFuel": "Combustible bajo",
     "lowHull": "Casco crítico",
     "sectorCleared": "¡Sector {{sector}} superado!",
-    "newSector": "Sector {{sector}}"
+    "newSector": "Sector {{sector}}",
+    "descent": "Descenso a $t(catalog.{{world}}) · gravedad {{gravity}} m/s²",
+    "landing": {
+      "soft": "Aterrizaje suave a {{speed}} m/s",
+      "hard": "¡Aterrizaje brusco a {{speed}} m/s! Casco −{{damage}}"
+    },
+    "airlock": {
+      "exit": "Esclusa abierta · traje y jetpack llenos",
+      "enter": "De vuelta a bordo",
+      "exitPartial": "Esclusa abierta · poco O₂ a bordo: traje al {{o2}} %"
+    },
+    "cargoStored": "A bodega: {{units}} uds · +{{value}} puntos",
+    "cargoProcessed": "Procesado: +{{fuel}} combustible · +{{spares}} repuestos",
+    "storm": {
+      "warning": "Tormenta en {{seconds}} s",
+      "start": "¡Tormenta! El traje pierde oxígeno más rápido",
+      "end": "La tormenta amaina"
+    },
+    "terrain": {
+      "warning": "¡El suelo cede!",
+      "collapsed": "¡El terreno se hunde!"
+    },
+    "suitO2": {
+      "low": "Oxígeno del traje bajo",
+      "critical": "¡Oxígeno del traje crítico!"
+    },
+    "suitDamaged": "¡Traje dañado! Oxígeno −{{o2}} %",
+    "crewDead": {
+      "oxygen": "Un tripulante se ha asfixiado en la superficie",
+      "fall": "Un tripulante ha muerto en una caída"
+    },
+    "takeOff": "Despegue · −{{fuel}} combustible",
+    "jettison": "Carga soltada: {{units}} uds · −{{value}} puntos",
+    "impactGrazed": "Roce con un asteroide: casco −{{damage}}",
+    "toolPlaced": "$t(catalog.{{tool}}) en marcha sobre $t(catalog.{{material}})",
+    "toolDone": "Veta agotada: {{units}} uds de $t(catalog.{{material}}) listas para recoger",
+    "toolStopped": "Tormenta: $t(catalog.{{tool}}) detenido",
+    "toolResumed": "$t(catalog.{{tool}}) en marcha de nuevo",
+    "toolLost": "Herramientas abandonadas fuera: {{count}}",
+    "pickedUp": "+{{units}} $t(catalog.{{material}}) · {{kg}}/{{capacity}} kg"
   },
   "loss": {
     "hull": "La nave se ha desintegrado",
     "oxygen": "La tripulación se ha quedado sin oxígeno",
-    "stranded": "La nave ha quedado a la deriva"
+    "stranded": "La nave ha quedado a la deriva",
+    "crew": "Toda la tripulación ha muerto en la superficie"
   },
   "reject": {
     "runOver": "La partida ha terminado",
@@ -83,6 +123,31 @@
     "noService": "Aquí no hay servicio de estación",
     "serviceUsed": "Esta estación ya te ha atendido",
     "serviceNotNeeded": "La nave no necesita servicio",
-    "invalid": "Acción no válida"
+    "invalid": "Acción no válida",
+    "onSurface": "No se puede con la nave en tierra",
+    "notLandable": "Aquí no se puede aterrizar",
+    "alreadyLanded": "Ya has aterrizado en este destino",
+    "landFuel": "Combustible insuficiente: bajar y despegar costará {{fuel}}",
+    "notDescending": "Solo durante el descenso",
+    "notLanded": "Espera a tocar tierra",
+    "notOnSurface": "Solo en la superficie",
+    "crewOutside": "Hace falta estar a bordo",
+    "crewDead": "Ese tripulante ha muerto",
+    "alreadyOutside": "Ya estás fuera",
+    "notOutside": "Solo fuera de la nave",
+    "tooFar": "Demasiado lejos",
+    "noDeposit": "Esa veta está agotada",
+    "overCapacity": "No puedes cargar más",
+    "jetpackEmpty": "Jetpack vacío",
+    "takeOffFuel": "Combustible insuficiente para despegar ({{fuel}})",
+    "takeOffHeavy": "Demasiada carga: despegar costará {{fuel}}",
+    "nothingToJettison": "No has cargado nada en este mundo",
+    "enginesOffline": "Motores sin energía o en corto: no habría freno",
+    "collectAirborne": "Pon los pies en el suelo para recoger",
+    "toolAirborne": "Pon los pies en el suelo para colocar la herramienta",
+    "toolPlaced": "Esa veta ya tiene una herramienta",
+    "noTool": "No te queda $t(catalog.{{tool}})",
+    "noToolHere": "Coloca antes una herramienta en esa veta",
+    "nothingReady": "Aún no hay nada extraído"
   }
 }

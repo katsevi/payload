@@ -1,0 +1,665 @@
+{
+  "rules": {
+    "descent": {
+      "brakeThrustMps2": 24,
+      "brakeFuelPerS": 0.25,
+      "minSpeedMps": 3,
+      "safeSpeedMps": 5,
+      "hullDamagePerMps": 1,
+      "systemDamagePerMps": 2.5,
+      "incidentChancePerMps": 0.06,
+      "referenceMargin": 0.45
+    },
+    "takeOff": {
+      "baseFuel": 4,
+      "fuelPerMps2": 0.5,
+      "massRefKg": 100
+    },
+    "suit": {
+      "o2DrainPctPerS": 0.6,
+      "lowO2Pct": 35,
+      "criticalO2Pct": 15,
+      "carryCapacityKg": 110,
+      "collectRangeM": 3,
+      "airlockRangeM": 4,
+      "maxMoveSpeedMps": 12,
+      "refillShipO2PctPerTank": 25,
+      "refillMinShipO2Pct": 30,
+      "airlockCycleShipO2Pct": 8
+    },
+    "jetpack": {
+      "drainPctPerS": 15,
+      "rechargePctPerS": 3
+    },
+    "falls": {
+      "harmlessMps": 9,
+      "o2LossPctPerMps": 2,
+      "lethalMps": 20
+    },
+    "terrain": {
+      "collapseS": 1.2,
+      "decayPerS": 0.4
+    },
+    "value": {
+      "distanceBonus": 1,
+      "dangerBonus": 0.5,
+      "dangerMarginM": 6
+    },
+    "streak": {
+      "bonusPerUnit": 0.5,
+      "maxBonus": 2.5
+    },
+    "shipO2": {
+      "surfaceSurplusRegenMult": 0.05
+    },
+    "lodes": {
+      "size": {
+        "min": 2,
+        "max": 3
+      },
+      "spacingM": {
+        "min": 8,
+        "max": 15
+      },
+      "completeMult": 1.5
+    }
+  },
+  "tools": [
+    {
+      "id": "solar-concentrator",
+      "name": {
+        "es": "Concentrador solar",
+        "en": "Solar concentrator"
+      },
+      "perCrew": 1,
+      "stopsInStorm": true,
+      "speedMult": 1
+    },
+    {
+      "id": "laser-drill",
+      "name": {
+        "es": "Taladro láser",
+        "en": "Laser drill"
+      },
+      "perCrew": 2,
+      "stopsInStorm": false,
+      "speedMult": 1
+    }
+  ],
+  "materials": [
+    {
+      "id": "ice",
+      "name": {
+        "es": "Hielo",
+        "en": "Ice"
+      },
+      "value": 2,
+      "massKg": 5,
+      "collectS": 4,
+      "yields": {
+        "fuel": 2
+      },
+      "tool": "solar-concentrator"
+    },
+    {
+      "id": "ore",
+      "name": {
+        "es": "Mena metálica",
+        "en": "Metal ore"
+      },
+      "value": 4,
+      "massKg": 9,
+      "collectS": 5,
+      "yields": {
+        "spares": 1
+      },
+      "tool": "laser-drill"
+    },
+    {
+      "id": "crystal",
+      "name": {
+        "es": "Cristales",
+        "en": "Crystals"
+      },
+      "value": 18,
+      "massKg": 8,
+      "collectS": 5,
+      "streak": true,
+      "tool": "laser-drill"
+    },
+    {
+      "id": "sample",
+      "name": {
+        "es": "Muestra científica",
+        "en": "Science sample"
+      },
+      "value": 30,
+      "massKg": 10,
+      "collectS": 6,
+      "streak": true,
+      "tool": "laser-drill"
+    }
+  ],
+  "worlds": [
+    {
+      "id": "drifting-rock",
+      "name": {
+        "es": "Roca errante",
+        "en": "Drifting rock"
+      },
+      "kind": "asteroid",
+      "weight": 2,
+      "gravityMps2": 0.4,
+      "descent": {
+        "altitudeM": 120,
+        "speedMps": 5,
+        "referenceMargin": 0.2
+      },
+      "radiusM": 103,
+      "deposits": {
+        "min": 13,
+        "max": 17
+      },
+      "materials": [
+        {
+          "materialId": "ice",
+          "weight": 2.4,
+          "units": {
+            "min": 1,
+            "max": 3
+          },
+          "minDistanceFrac": 0,
+          "dangerWeightMult": 1
+        },
+        {
+          "materialId": "ore",
+          "weight": 3,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0.15,
+          "dangerWeightMult": 1
+        },
+        {
+          "materialId": "crystal",
+          "weight": 2.4,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0.45,
+          "dangerWeightMult": 3
+        },
+        {
+          "materialId": "sample",
+          "weight": 0.96,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0.6,
+          "dangerWeightMult": 2
+        }
+      ],
+      "storms": null,
+      "unstable": {
+        "zones": {
+          "min": 1,
+          "max": 2
+        },
+        "radiusM": {
+          "min": 4,
+          "max": 6
+        },
+        "pitDepthM": 8
+      },
+      "shipWearMult": 0.1
+    },
+    {
+      "id": "ice-core",
+      "name": {
+        "es": "Núcleo de hielo",
+        "en": "Ice core"
+      },
+      "kind": "asteroid",
+      "weight": 1,
+      "gravityMps2": 0.6,
+      "descent": {
+        "altitudeM": 100,
+        "speedMps": 2,
+        "referenceMargin": 0.2
+      },
+      "radiusM": 113,
+      "deposits": {
+        "min": 15,
+        "max": 19
+      },
+      "materials": [
+        {
+          "materialId": "ice",
+          "weight": 3,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0,
+          "dangerWeightMult": 1
+        },
+        {
+          "materialId": "ore",
+          "weight": 1,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0.2,
+          "dangerWeightMult": 1
+        },
+        {
+          "materialId": "crystal",
+          "weight": 2.4,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0.4,
+          "dangerWeightMult": 3
+        },
+        {
+          "materialId": "sample",
+          "weight": 0.8,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0.6,
+          "dangerWeightMult": 2
+        }
+      ],
+      "storms": null,
+      "unstable": {
+        "zones": {
+          "min": 2,
+          "max": 4
+        },
+        "radiusM": {
+          "min": 4,
+          "max": 7
+        },
+        "pitDepthM": 10
+      },
+      "shipWearMult": 0.12
+    },
+    {
+      "id": "dust-moon",
+      "name": {
+        "es": "Luna de polvo",
+        "en": "Dust moon"
+      },
+      "kind": "moon",
+      "weight": 2,
+      "gravityMps2": 1.6,
+      "descent": {
+        "altitudeM": 140,
+        "speedMps": 0,
+        "referenceMargin": 0.25
+      },
+      "radiusM": 135,
+      "deposits": {
+        "min": 15,
+        "max": 19
+      },
+      "materials": [
+        {
+          "materialId": "ore",
+          "weight": 3,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0,
+          "dangerWeightMult": 1
+        },
+        {
+          "materialId": "crystal",
+          "weight": 2.4,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0.4,
+          "dangerWeightMult": 3
+        },
+        {
+          "materialId": "sample",
+          "weight": 1.28,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0.6,
+          "dangerWeightMult": 2
+        }
+      ],
+      "storms": null,
+      "unstable": {
+        "zones": {
+          "min": 2,
+          "max": 3
+        },
+        "radiusM": {
+          "min": 4,
+          "max": 7
+        },
+        "pitDepthM": 11
+      },
+      "shipWearMult": 0.12
+    },
+    {
+      "id": "volcanic-moon",
+      "name": {
+        "es": "Luna volcánica",
+        "en": "Volcanic moon"
+      },
+      "kind": "moon",
+      "weight": 1,
+      "gravityMps2": 2.4,
+      "descent": {
+        "altitudeM": 160,
+        "speedMps": 0,
+        "referenceMargin": 0.25
+      },
+      "radiusM": 135,
+      "deposits": {
+        "min": 16,
+        "max": 20
+      },
+      "materials": [
+        {
+          "materialId": "ice",
+          "weight": 0.6,
+          "units": {
+            "min": 2,
+            "max": 3
+          },
+          "minDistanceFrac": 0.6,
+          "dangerWeightMult": 1
+        },
+        {
+          "materialId": "ore",
+          "weight": 3,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0,
+          "dangerWeightMult": 1
+        },
+        {
+          "materialId": "crystal",
+          "weight": 4.0,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0.4,
+          "dangerWeightMult": 3
+        },
+        {
+          "materialId": "sample",
+          "weight": 1.28,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0.6,
+          "dangerWeightMult": 2
+        }
+      ],
+      "storms": {
+        "meanIntervalS": 70,
+        "warnS": 25,
+        "durationS": {
+          "min": 20,
+          "max": 35
+        },
+        "intensity": {
+          "min": 0.5,
+          "max": 0.9
+        },
+        "o2DrainPctPerS": 0.9,
+        "firstStartMinS": 90
+      },
+      "unstable": {
+        "zones": {
+          "min": 4,
+          "max": 6
+        },
+        "radiusM": {
+          "min": 5,
+          "max": 8
+        },
+        "pitDepthM": 11
+      },
+      "shipWearMult": 0.2
+    },
+    {
+      "id": "storm-world",
+      "name": {
+        "es": "Mundo de tormentas",
+        "en": "Storm world"
+      },
+      "kind": "planet",
+      "weight": 2,
+      "gravityMps2": 7,
+      "descent": {
+        "altitudeM": 320,
+        "speedMps": 10,
+        "referenceMargin": 0.35
+      },
+      "radiusM": 150,
+      "deposits": {
+        "min": 17,
+        "max": 20
+      },
+      "materials": [
+        {
+          "materialId": "ice",
+          "weight": 0.6,
+          "units": {
+            "min": 2,
+            "max": 3
+          },
+          "minDistanceFrac": 0.6,
+          "dangerWeightMult": 1
+        },
+        {
+          "materialId": "ore",
+          "weight": 2,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0,
+          "dangerWeightMult": 1
+        },
+        {
+          "materialId": "crystal",
+          "weight": 2.4,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0.4,
+          "dangerWeightMult": 3
+        },
+        {
+          "materialId": "sample",
+          "weight": 1.6,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0.6,
+          "dangerWeightMult": 2
+        }
+      ],
+      "storms": {
+        "meanIntervalS": 55,
+        "warnS": 25,
+        "durationS": {
+          "min": 25,
+          "max": 40
+        },
+        "intensity": {
+          "min": 0.6,
+          "max": 1
+        },
+        "o2DrainPctPerS": 1.0,
+        "firstStartMinS": 90
+      },
+      "unstable": {
+        "zones": {
+          "min": 1,
+          "max": 3
+        },
+        "radiusM": {
+          "min": 4,
+          "max": 7
+        },
+        "pitDepthM": 10
+      },
+      "shipWearMult": 0.2
+    },
+    {
+      "id": "fractured-world",
+      "name": {
+        "es": "Mundo fracturado",
+        "en": "Fractured world"
+      },
+      "kind": "planet",
+      "weight": 2,
+      "gravityMps2": 6,
+      "descent": {
+        "altitudeM": 240,
+        "speedMps": 3,
+        "referenceMargin": 0.3
+      },
+      "radiusM": 150,
+      "deposits": {
+        "min": 17,
+        "max": 20
+      },
+      "materials": [
+        {
+          "materialId": "ore",
+          "weight": 2.5,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0,
+          "dangerWeightMult": 1
+        },
+        {
+          "materialId": "crystal",
+          "weight": 3.2,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0.4,
+          "dangerWeightMult": 4
+        },
+        {
+          "materialId": "sample",
+          "weight": 1.28,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0.6,
+          "dangerWeightMult": 2
+        }
+      ],
+      "storms": null,
+      "unstable": {
+        "zones": {
+          "min": 5,
+          "max": 7
+        },
+        "radiusM": {
+          "min": 5,
+          "max": 9
+        },
+        "pitDepthM": 11
+      },
+      "shipWearMult": 0.15
+    },
+    {
+      "id": "heavy-world",
+      "name": {
+        "es": "Mundo pesado",
+        "en": "Heavy world"
+      },
+      "kind": "planet",
+      "weight": 1,
+      "gravityMps2": 13,
+      "descent": {
+        "altitudeM": 500,
+        "speedMps": 4
+      },
+      "radiusM": 126,
+      "deposits": {
+        "min": 15,
+        "max": 18
+      },
+      "materials": [
+        {
+          "materialId": "ore",
+          "weight": 2,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0,
+          "dangerWeightMult": 1
+        },
+        {
+          "materialId": "crystal",
+          "weight": 3.2,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0.4,
+          "dangerWeightMult": 3
+        },
+        {
+          "materialId": "sample",
+          "weight": 2.4,
+          "units": {
+            "min": 1,
+            "max": 2
+          },
+          "minDistanceFrac": 0.6,
+          "dangerWeightMult": 2
+        }
+      ],
+      "storms": null,
+      "unstable": {
+        "zones": {
+          "min": 2,
+          "max": 3
+        },
+        "radiusM": {
+          "min": 4,
+          "max": 6
+        },
+        "pitDepthM": 7
+      },
+      "shipWearMult": 0.25
+    }
+  ]
+}

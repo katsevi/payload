@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Package } from 'lucide-react';
-import { getNode, getNodeKind, HAZARD_KINDS, THROTTLE_IDS, type NodeKind, type RunState, type SectorNode } from '@payload/shared';
+import { getNode, getNodeKind, getNodeWorld, HAZARD_KINDS, THROTTLE_IDS, type NodeKind, type RunState, type SectorNode } from '@payload/shared';
 import { cue } from '../audio/cues';
 import { getRun, useGame } from '../game/runStore';
 import { lt } from '../i18n';
@@ -62,6 +62,20 @@ function useProjection(nodes: SectorNode[]) {
   }, [nodes]);
 }
 
+/** Mundo de un destino aterrizable: nombre y gravedad (o si ya se aterrizó en él). */
+function LandableInfo({ s, node }: { s: RunState; node: SectorNode }) {
+  const { t } = useTranslation();
+  const run = getRun();
+  const world = run ? getNodeWorld(s.seed, s.sector, node.id, run.catalog) : null;
+  if (s.landedIds.includes(node.id)) return <span>{t('map.landed')}</span>;
+  return (
+    <span className="text-accent">
+      {t('map.landable')}
+      {world && ` · ${t(`catalog.${world.id}`, { ns: 'sim' })} · ${t('hud.gravity', { g: fmt(world.gravityMps2, 1) })}`}
+    </span>
+  );
+}
+
 function Details({ s, node, onJump }: { s: RunState; node: SectorNode; onJump: () => void }) {
   const { t } = useTranslation();
   const estimate = getRun()?.estimateJump(node.id) ?? null;
@@ -79,7 +93,7 @@ function Details({ s, node, onJump }: { s: RunState; node: SectorNode; onJump: (
       </div>
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-300">
         {visited && <span>{t('map.visited')}</span>}
-        {kind.landable && <span>{t('map.landable')}</span>}
+        {kind.landable && <LandableInfo s={s} node={node} />}
         {sensors && !visited && node.cache && (
           <span className="flex items-center gap-1 text-ok">
             <Package size={13} /> {t('map.cache')}

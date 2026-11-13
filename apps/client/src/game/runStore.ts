@@ -34,6 +34,41 @@ const SILENT_TOASTS: ReadonlySet<RunEvent['type']> = new Set(['impact-warning', 
 /** Efectos visuales puntuales que lee la escena por frame (sin pasar por React). */
 export const fx = { shake: 0 };
 
+/**
+ * Dónde reaparece el jugador al volver a montar el interior de la nave (tras el descenso o la EVA).
+ * null = el punto de partida de siempre. Lo guarda la escena de la nave al desmontarse.
+ */
+export const shipSpawn: { at: { x: number; z: number; yaw: number } | null } = { at: null };
+
+/** Bucles de sonido de la superficie (se paran al cambiar de fase o de partida). */
+const SURFACE_LOOPS = ['thruster', 'jetpack', 'storm', 'wind'] as const;
+export function stopSurfaceLoops(fadeS = 0.4): void {
+  for (const l of SURFACE_LOOPS) audio.stopLoop(l, fadeS);
+}
+
+/** Sacudida de cámara para los eventos de superficie (0 = ninguna). */
+export function shakeForEvent(e: Pick<RunEvent, 'type' | 'subtype' | 'message'>): number {
+  switch (e.type) {
+    case 'impact-hit':
+      // Esquiva con roces: sacudida menor; fallida o sin esquivar, el golpe entero.
+      return e.subtype === 'graze' ? 0.45 : 1;
+    case 'landing': {
+      const speed = Number(e.message.params?.speed ?? 0);
+      return e.subtype === 'hard' ? Math.min(1.8, 0.6 + speed * 0.08) : 0.25;
+    }
+    case 'terrain-warning':
+      return 0.35;
+    case 'terrain-collapsed':
+      return 1.1;
+    case 'suit-damaged':
+      return 0.7;
+    case 'take-off':
+      return 0.6;
+    default:
+      return 0;
+  }
+}
+
 let run: Run | null = null;
 let hudClockS = 0;
 let toastSeq = 0;
@@ -97,7 +132,15 @@ export const useGame = create<GameState>((set, get) => {
       const sfx = sfxForRunEvent(e);
       if (sfx) cue(sfx);
       if (e.type === 'arrived' || e.type === 'lost') audio.stopLoop('roar', 1.2);
-      if (e.type === 'impact-hit') fx.shake = 1;
+      fx.shake = Math.max(fx.shake, shakeForEvent(e));
+      if (e.type === 'descent') useUi.getState().setDescentView(true);
+      if (e.type === 'landing') audio.stopLoop('thruster', 0.3);
+      if (e.type === 'storm-end') audio.stopLoop('storm', 2.5);
+      if (e.type === 'take-off' || e.type === 'lost') {
+        stopSurfaceLoops(e.type === 'lost' ? 1.2 : 0.4);
+        // Perder la nave en el descenso (o despegar) apaga la vista exterior: el final se pinta sobre el puente.
+        useUi.getState().setDescentView(false);
+      }
       if (!SILENT_TOASTS.has(e.type)) {
         set({ toasts });
         toasts = pushToast(e.tone, e.message);
@@ -127,6 +170,10 @@ export const useGame = create<GameState>((set, get) => {
     newBest: false,
     startRun: (seed = randomSeed()) => {
       audio.stopLoop('roar', 0.2);
+      stopSurfaceLoops(0.2);
+      shipSpawn.at = null;
+      useUi.getState().setDescentView(false);
+      useUi.getState().setPrompt(null);
       run = createRun({ seed });
       hudClockS = 0;
       fx.shake = 0;
@@ -135,6 +182,9 @@ export const useGame = create<GameState>((set, get) => {
     },
     toMenu: () => {
       audio.stopLoop('roar', 0.4);
+      stopSurfaceLoops(0.4);
+      fx.shake = 0;
+      useUi.getState().setDescentView(false);
       run = null;
       useUi.getState().setOverlay(null);
       useUi.getState().setPrompt(null);

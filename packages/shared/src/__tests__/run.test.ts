@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  catalog, computeScore, createRun, cruiseSpeedLyPerS, FIXED_STEP_S, fuelPerLy, getNode, getShip, MAX_WORK_SECONDS, parseCatalog,
+  catalog, computeScore, createRun, cruiseSpeedLyPerS, evadeDamageFraction, evadeDifficulty, FIXED_STEP_S, fuelPerLy, getNode, getShip, MAX_WORK_SECONDS, parseCatalog,
   type Catalog, type Run, type RunEvent, type SystemId,
 } from '../index';
 
@@ -383,6 +383,73 @@ describe('impactos', () => {
     }
     expect(run.state.stats.impactsTaken).toBe(1);
     expect(events.some((e) => e.type === 'impact-warning')).toBe(false);
+  });
+
+  describe('esquiva por habilidad (el cliente informa los roces)', () => {
+    const ev = catalog.hazards.impact.evade!;
+    /** Daño de casco de un impacto (sin escudos, para que sea el bruto) con o sin esquiva informada. */
+    function hullLoss(grazes?: number): { loss: number; events: RunEvent[]; run: Run } {
+      const run = createRun({ seed: 21, catalog: hazardCatalog('impact', 0.2) });
+      run.apply({ type: 'toggle-system', systemId: 'shields', enabled: false });
+      toWarning(run);
+      if (grazes !== undefined) expect(run.apply({ type: 'evade', grazes })).toEqual({ ok: true });
+      const events = passImpact(run);
+      return { loss: ship.hullMax - run.state.ship.hull, events, run };
+    }
+
+    it('el aviso trae semilla y dificultad deterministas para montar el minijuego', () => {
+      const a = createRun({ seed: 21, catalog: hazardCatalog('impact', 0.2) });
+      const b = createRun({ seed: 21, catalog: hazardCatalog('impact', 0.2) });
+      toWarning(a);
+      toWarning(b);
+      const w = a.state.warnings[0]!;
+      expect(w.evadeSeed).toBe(b.state.warnings[0]!.evadeSeed);
+      expect(Number.isInteger(w.evadeSeed)).toBe(true);
+      expect(w.evadeDifficulty).toBeGreaterThanOrEqual(ev.difficultyBase);
+      expect(w.evadeDifficulty).toBeLessThanOrEqual(1);
+      expect(w.etaS).toBeGreaterThan(0);
+      // Más densidad en sectores altos y con impactos más fuertes.
+      const h = catalog.hazards;
+      expect(evadeDifficulty(h, 4, 10)).toBeGreaterThan(evadeDifficulty(h, 1, 10));
+      expect(evadeDifficulty(h, 1, h.impact.hullDamageMax)).toBeGreaterThan(evadeDifficulty(h, 1, h.impact.hullDamageMin));
+      expect(evadeDifficulty(h, 99, h.impact.hullDamageMax)).toBe(1);
+    });
+
+    it('sin roces informados todo es como antes; con 0 roces es una esquiva limpia', () => {
+      const legacy = hullLoss(undefined);
+      expect(legacy.loss).toBeGreaterThan(0); // sin esquivar: entra entero
+      const clean = hullLoss(0);
+      expect(clean.loss).toBe(0);
+      expect(clean.events.find((e) => e.type === 'impact-evaded')?.subtype).toBe('clean');
+      expect(clean.run.state.stats.impactsEvaded).toBe(1);
+    });
+
+    it('cada roce deja pasar una fracción del daño; con el máximo de roces la esquiva fracasa', () => {
+      const full = hullLoss(undefined).loss;
+      const one = hullLoss(1);
+      expect(one.loss).toBeCloseTo(full * ev.grazeDamageFrac, 6);
+      const hit = one.events.find((e) => e.type === 'impact-hit')!;
+      expect(hit).toMatchObject({ subtype: 'graze', message: { key: 'event.impactGrazed' } });
+      expect(one.run.state.stats).toMatchObject({ impactsGrazed: 1, impactsTaken: 0, impactsEvaded: 0 });
+      expect(hullLoss(2).loss).toBeCloseTo(full * 2 * ev.grazeDamageFrac, 6);
+      const failed = hullLoss(ev.maxGrazes);
+      expect(failed.loss).toBeCloseTo(full * ev.failDamageFrac, 6);
+      expect(failed.events.find((e) => e.type === 'impact-hit')?.subtype).toBe('failed');
+      expect(failed.run.state.stats.impactsTaken).toBe(1);
+      // Valores fuera de rango se recortan.
+      expect(hullLoss(99).loss).toBeCloseTo(failed.loss, 6);
+      expect(hullLoss(-3).loss).toBe(0);
+      expect(evadeDamageFraction(catalog.hazards, Number.NaN)).toBe(0);
+      expect(evadeDamageFraction(catalog.hazards, 1.4)).toBeCloseTo(ev.grazeDamageFrac, 9);
+    });
+
+    it('la esquiva cuesta el mismo combustible con o sin minijuego', () => {
+      const run = createRun({ seed: 21, catalog: hazardCatalog('impact', 0.2) });
+      toWarning(run);
+      const fuel = run.state.ship.fuel;
+      run.apply({ type: 'evade', grazes: 2 });
+      expect(run.state.ship.fuel).toBeCloseTo(fuel - ship.evadeFuel, 6);
+    });
   });
 
   it('ir más rápido deja menos tiempo para reaccionar', () => {

@@ -10,6 +10,7 @@ import { Glow } from '../gfx/Glow';
 import { mats } from '../gfx/materials';
 import { beamMaterial, engineGlowMaterial, helmHoloMaterial, ledsMaterial, liquidMaterial, loadMeterMaterial, plasmaMaterial, radarMaterial, shieldMaterial, tableTopMaterial } from '../gfx/shipShaders';
 import { ConsoleModel, GalaxyBackdrop } from '../models/Models';
+import { Airlock3D, CargoBay } from './ShipCargo';
 
 const H = HULL.height;
 const HALF_PI = Math.PI / 2;
@@ -663,6 +664,8 @@ export function Stations() {
       <LifeSupport />
       <Shields />
       <NavRack />
+      <Airlock3D />
+      <CargoBay />
     </RigidBody>
   );
 }

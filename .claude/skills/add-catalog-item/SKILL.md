@@ -1,12 +1,12 @@
 ---
 name: add-catalog-item
-description: Añadir o modificar contenido del catálogo de Payload (nave, avería, tipo de destino o reglas de sector) en packages/shared/catalog/*.json con textos es/en. Úsala para "ajusta el balance", "haz los asteroides más peligrosos", "nuevo tipo de destino", "otra nave".
+description: Añadir o modificar contenido del catálogo de Payload (nave, avería, tipo de destino, reglas de sector, mundo o material de superficie) en packages/shared/catalog/*.json con textos es/en. Úsala para "ajusta el balance", "haz los asteroides más peligrosos", "nuevo tipo de destino", "otra nave".
 ---
 
 # Añadir o ajustar contenido del catálogo
 
 Los tipos están en `packages/shared/src/types.ts` (`ShipDef`, `HazardRules`, `NodeKindDef`,
-`SectorRules`) y el esquema zod en `packages/shared/src/catalog.ts`. Diseño: `docs/GDD.md` § 4-7.
+`SectorRules`, `WorldDef`, `MaterialDef`, `SurfaceRules`) y el esquema zod en `packages/shared/src/catalog.ts`. Diseño: `docs/GDD.md` § 4-7.
 
 | Contenido | Archivo | Qué decide |
 | --- | --- | --- |
@@ -14,6 +14,7 @@ Los tipos están en `packages/shared/src/types.ts` (`ShipDef`, `HazardRules`, `N
 | Averías e impactos | `packages/shared/catalog/averias.json` | Daño y tiempo de arreglo de fuego, corto y fuga; impactos; desgaste; kits |
 | Tipos de destino | `packages/shared/catalog/destinos.json` | Peligros por año luz, contenedores, servicio de estación, si es explorable |
 | Reglas de sector | `packages/shared/catalog/sectores.json` | Columnas, distancias, crecimiento del peligro, sílabas de los nombres |
+| Superficie (mundos, materiales, reglas) | `packages/shared/catalog/mundos.json` | Gravedad, descenso, tormentas, terreno inestable, tabla de materiales, traje, jetpack, caídas, racha |
 
 Pasos:
 1. Mide el punto de partida: `pnpm balance` (guarda la salida).
@@ -22,6 +23,10 @@ Pasos:
 4. Un **tipo de destino nuevo** no es solo datos: `NodeKind` es una unión cerrada en `types.ts`
    (`NODE_KINDS`), y el cliente le da símbolo y aspecto (`ui/StarMap.tsx`, `scenes/SpaceView.tsx`).
    Pide el cambio de motor a `sim-engine` y el de cliente a `client-3d`.
+   Un **mundo nuevo** es solo datos para el motor (su `kind` debe ser aterrizable y los materiales deben
+   existir), pero el cliente le da paleta y relieve en `gfx/surfaceLook.ts` (`SURFACE_LOOKS`) y
+   `game/terrain.ts` (`TERRAIN_STYLES`); sin ellos usa los de la luna de polvo. Pásalo a `client-3d`.
+   Tras tocar superficie mira también el bloque «superficie» y la curva de márgenes de `pnpm balance`.
 5. Comprueba:
    ```bash
    pnpm --filter @payload/shared test   # esquema, sectores completables, mensajes y umbrales de balance

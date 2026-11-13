@@ -22,7 +22,7 @@
     "credits": "Créditos",
     "language": "Idioma",
     "best": "Mejor expedición: {{sectors}} sectores · {{score}} puntos",
-    "goal": "Lleva la nave hasta el portal de salto. Si el casco o el oxígeno llegan a cero, se acabó.",
+    "goal": "Lleva la nave hasta el portal de salto y aterriza a recoger lo que puedas. Si el casco o el oxígeno llegan a cero, se acabó.",
     "coop": "Cooperativo 1-4 en una fase posterior"
   },
   "settings": {
@@ -37,7 +37,11 @@
     "volSfx": "Volumen de efectos",
     "volAlerts": "Volumen de avisos",
     "soundCaptions": "Subtítulos de sonido",
-    "soundCaptionsHint": "Muestra textos como [alarma] cuando suena un aviso. Los avisos importantes siempre destellan en pantalla."
+    "soundCaptionsHint": "Muestra textos como [alarma] cuando suena un aviso. Los avisos importantes siempre destellan en pantalla.",
+    "effects": "Intensidad de efectos (sacudida y viñeta)",
+    "simpleDodge": "Esquiva simple (mantener E en el timón, sin minijuego)",
+    "simpleRepairs": "Averías simples (mantener R, sin minijuegos)",
+    "wideAim": "Puntería amplia del extintor"
   },
   "credits": {
     "title": "Créditos",
@@ -47,7 +51,7 @@
     "source": "Fuente: Sketchfab",
     "usedFor": "Uso",
     "astronaut": "Tripulante (avatar del jugador)",
-    "walker": "Reservado para la exploración de superficie (fase 2)",
+    "walker": "Reservado (sin uso por ahora)",
     "galaxy": "Fondo del menú y holograma del mapa estelar",
     "erizon": "Estación espacial vista desde la nave",
     "console": "Timón de la nave",
@@ -59,7 +63,8 @@
   "station": {
     "helm": "Timón",
     "map": "Mapa estelar",
-    "power": "Panel de energía"
+    "power": "Panel de energía",
+    "airlock": "Esclusa"
   },
   "marker": {
     "evade": "¡Al timón!"
@@ -81,7 +86,24 @@
     "impactIn": "Impacto en {{seconds}} s",
     "impactEvaded": "Esquivado",
     "clickToPlay": "Haz clic para mover la cámara",
-    "helpHint": "H · ayuda"
+    "helpHint": "H · ayuda",
+    "gravity": "{{g}} m/s²",
+    "stormIn": "Tormenta en {{seconds}} s",
+    "stormActive": "Tormenta · {{pct}} %",
+    "suitO2": "Oxígeno del traje",
+    "jetpack": "Jetpack",
+    "carry": "Carga",
+    "kg": "{{kg}}/{{max}} kg",
+    "shipAlert": "Nave: alerta",
+    "shipOk": "Nave · casco {{hull}}",
+    "toShip": "Nave",
+    "streak": "×{{mult}}",
+    "tools": "Herramientas en la mochila",
+    "toolsReady": "Piezas listas en las herramientas",
+    "o2Fetch": "Oxígeno justo: ve ya a por tus herramientas",
+    "o2Leave": "Oxígeno justo: deja las herramientas y vuelve",
+    "toHelm": "Impacto: al timón",
+    "lode": "Filón: {{done}} de {{total}} vetas"
   },
   "prompt": {
     "hold": "Mantén",
@@ -97,7 +119,40 @@
     "helm": "Timón · sin impactos a la vista",
     "throttle": "Cambiar régimen",
     "map": "Abrir el mapa estelar",
-    "power": "Abrir el panel de energía"
+    "power": "Abrir el panel de energía",
+    "land": "Aterrizar en {{world}} · {{gravity}} m/s² · combustible {{fuel}}",
+    "landNoFuel": "Sin combustible para volver a despegar ({{fuel}})",
+    "takeOff": "Despegar · combustible {{fuel}}",
+    "takeOffHeavy": "Demasiada carga: despegar cuesta {{fuel}}",
+    "takeOffNoFuel": "Sin combustible para despegar ({{fuel}})",
+    "jettison": "Soltar la carga de este mundo",
+    "airlockExit": "Salir por la esclusa",
+    "airlockSealed": "Esclusa sellada · solo en tierra",
+    "full": "Sin sitio para {{material}}: vuelve a la nave",
+    "enter": "Entrar en la nave",
+    "enterCargo": "Entrar y guardar {{kg}} kg",
+    "lootLeft": "quedan {{units}} u",
+    "exitCost": "nave O₂ −{{cost}} %",
+    "exitShort": "traje {{suit}} % · nave O₂ −{{cost}} %",
+    "collectAirborne": "{{material}} · pies en el suelo para recoger",
+    "landNoEngines": "Aterrizar · motores fuera de línea",
+    "shipO2": "nave O₂ {{pct}} %",
+    "evadeDodge": "Tomar los mandos · esquivar",
+    "dodging": "Esquiva las rocas",
+    "grazes": "roces {{n}}",
+    "hits": "choques {{n}}",
+    "deployTool": "Colocar {{tool}} sobre {{material}}",
+    "toolsLeft": "×{{n}}",
+    "noToolLeft": "Sin {{tool}} en la mochila",
+    "toolAirborne": "{{tool}} · pies en el suelo para colocarla",
+    "collectReady": "Recoger {{units}} de {{material}}",
+    "toolPickUp": "Veta agotada · guardar {{tool}}",
+    "toolStorm": "{{tool}} parado por la tormenta",
+    "toolWorking": "{{tool}} extrayendo {{material}} · quedan {{left}}",
+    "retrieveTool": "Retirar la herramienta",
+    "toolsOut": "fuera: {{n}} herr.",
+    "readyOut": "{{n}} piezas sin recoger",
+    "evadeLate": "Maniobra a medias · ya no da tiempo"
   },
   "map": {
     "title": "Mapa estelar · sector {{sector}}",
@@ -121,7 +176,7 @@
     "jump": "Saltar a {{node}}",
     "cache": "Contenedor a la deriva",
     "visited": "Visitado",
-    "landable": "Superficie explorable (fase 2)",
+    "landable": "Superficie explorable",
     "service": "Servicio de estación",
     "serviceHint": "Reposta, repara el casco y da repuestos. Una vez por estación.",
     "serviceUsed": "Servicio ya utilizado",
@@ -131,7 +186,8 @@
       "eco": "Lento y barato. Más tiempo para reaccionar.",
       "cruise": "Equilibrado.",
       "burn": "Rápido y caro. Sobrecarga el reactor si no apagas algo."
-    }
+    },
+    "landed": "Ya has aterrizado aquí"
   },
   "power": {
     "title": "Panel de energía",
@@ -168,7 +224,9 @@
     "score": "Puntuación",
     "retry": "Nueva expedición",
     "next": "Saltar al sector {{sector}}",
-    "nextHint": "La nave sigue como está: los daños y el combustible no se reinician."
+    "nextHint": "La nave sigue como está: los daños y el combustible no se reinician.",
+    "landings": "Aterrizajes",
+    "materials": "Materiales guardados"
   },
   "pause": {
     "title": "Pausa",
@@ -178,11 +236,11 @@
   "help": {
     "title": "Cómo se juega",
     "goal": "Salta de destino en destino hasta el portal sin perder el casco, el oxígeno, el combustible ni el reactor.",
-    "move": "Moverte",
+    "move": "Moverte · al timón, pilotar la esquiva",
     "run": "Correr",
     "look": "Mirar",
-    "interact": "Usar un puesto (mantener para arreglar)",
-    "alt": "Cambiar el régimen en el timón",
+    "interact": "Usar: mapa, panel, esclusa, timón · colocar herramienta y recoger",
+    "alt": "Régimen en el timón · retirar herramienta",
     "view": "Cambiar 1ª / 3ª persona",
     "pause": "Pausa",
     "tips": {
@@ -190,8 +248,17 @@
       "leak": "Una fuga vacía el oxígeno en poco más de un minuto.",
       "short": "Un corto apaga su sistema; si lo dejas, se incendia.",
       "impact": "Con sensores verás venir los impactos: corre al timón.",
-      "power": "A régimen máximo no hay energía para todo: decide qué apagas."
-    }
+      "power": "A régimen máximo no hay energía para todo: decide qué apagas.",
+      "o2": "Fuera, el oxígeno del traje baja sin parar: vuelve a la rampa a tiempo.",
+      "terrain": "Grietas que brillan: el suelo cede. Sal de ahí o caerás.",
+      "storm": "Si el horizonte se oscurece, viene una tormenta: vuelve a cubierto.",
+      "landing": "Al descender, frena cuando la velocidad pase la marca blanca.",
+      "tools": "Coloca la herramienta en la veta y ve a por otra; vuelve cuando su baliza parpadee."
+    },
+    "jump": "Saltar · mantén en el aire: jetpack (cayendo, frena) · en el descenso: frenar",
+    "down": "Jetpack hacia abajo (bajar antes)",
+    "click": "Averías: apuntar el extintor, pulsar a tiempo o sellar (clic o Espacio)",
+    "repair": "Repuesto: mantén y suelta en la marca, dos veces"
   },
   "keys": {
     "move": "WASD",
@@ -201,7 +268,11 @@
     "alt": "Q",
     "view": "V",
     "pause": "Esc",
-    "help": "H"
+    "help": "H",
+    "jump": "Espacio",
+    "down": "C",
+    "repair": "R",
+    "click": "Clic"
   },
   "sound": {
     "fixed": "[reparado]",
@@ -212,6 +283,47 @@
     "jump": "[motores de salto]",
     "clunk": "[atraque]",
     "impact": "[impacto]",
-    "success": "[sector superado]"
+    "success": "[sector superado]",
+    "descent": "[separación de órbita]",
+    "landSoft": "[contacto suave]",
+    "landHard": "[golpe contra el suelo]",
+    "airlock": "[esclusa]",
+    "collect": "[piezas recogidas]",
+    "store": "[carga a bodega]",
+    "stormWarn": "[viento creciente]",
+    "storm": "[tormenta]",
+    "crack": "[crujido del suelo]",
+    "collapse": "[derrumbe]",
+    "o2Low": "[aviso de oxígeno]",
+    "o2Critical": "[pitido de oxígeno]",
+    "breathFast": "[respiración agitada]",
+    "suitHit": "[golpe en el traje]",
+    "crewDead": "[constantes perdidas]",
+    "takeOff": "[despegue]",
+    "jettison": "[carga soltada]",
+    "wind": "[viento]",
+    "fallWarn": "[aviso de caída]",
+    "dodgeGraze": "[roce]",
+    "dodgeHit": "[choque]",
+    "skillHit": "[acierto]",
+    "skillMiss": "[fallo]",
+    "extinguisher": "[extintor]",
+    "toolPlace": "[herramienta en marcha]",
+    "toolReady": "[piezas listas]",
+    "toolDone": "[veta agotada]",
+    "toolStop": "[herramienta parada]",
+    "toolResume": "[herramienta reanudada]",
+    "toolLost": "[herramientas abandonadas]"
+  },
+  "descent": {
+    "title": "Descenso",
+    "altitude": "{{m}} m",
+    "speed": "{{v}} m/s",
+    "speedLabel": "Velocidad de caída",
+    "brakeNow": "¡Frena!",
+    "coast": "Caída",
+    "hold": "Mantén para frenar",
+    "braking": "Frenando",
+    "noEngines": "Sin motores: no puedes frenar"
   }
 }

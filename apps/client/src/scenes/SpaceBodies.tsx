@@ -1,37 +1,16 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { BoxGeometry, Color, IcosahedronGeometry, MeshBasicMaterial, MeshStandardMaterial, Object3D, Vector3, type Group, type InstancedMesh, type Mesh, type Sprite } from 'three';
+import { BoxGeometry, Color, MeshBasicMaterial, Object3D, Vector3, type Group, type InstancedMesh, type Mesh, type Sprite } from 'three';
 import type { NodeKind } from '@payload/shared';
 import { Builder, Parts, once } from '../gfx/build';
 import { Glow } from '../gfx/Glow';
 import { mats } from '../gfx/materials';
 import { atmosphereMaterial, nebulaMaterial, planetMaterial, ringMaterial, vortexMaterial, type PlanetLook } from '../gfx/spaceShaders';
-import { rockMaps } from '../gfx/textures';
+import { rockGeometry, rockMaterial } from '../gfx/rocks';
+import { hashOf, rng } from '../game/noise';
 import { ErizonStation } from '../models/Models';
 
 const HALF_PI = Math.PI / 2;
-
-/** Hash estable (FNV-1a) del id del destino: cada cuerpo tiene siempre el mismo aspecto. */
-function hashOf(id: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < id.length; i++) {
-    h ^= id.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-/** PRNG determinista para repartir rocas y restos (el aspecto no depende de `Math.random`). */
-function rng(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 const hsl = (h: number, s: number, l: number): Color => new Color().setHSL(((h % 1) + 1) % 1, s, l);
 
@@ -105,44 +84,6 @@ function Moon({ id }: { id: string }) {
     </mesh>
   );
 }
-
-/** Ruido de valor 3D en JS (solo para deformar la roca una vez, al crear la geometría). */
-function valueNoise3(x: number, y: number, z: number): number {
-  const hash = (ix: number, iy: number, iz: number): number => {
-    let h = Math.imul(ix, 374761393) ^ Math.imul(iy, 668265263) ^ Math.imul(iz, 1274126177);
-    h = Math.imul(h ^ (h >>> 13), 1274126177);
-    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-  };
-  const xi = Math.floor(x);
-  const yi = Math.floor(y);
-  const zi = Math.floor(z);
-  const s = (t: number): number => t * t * (3 - 2 * t);
-  const fx = s(x - xi);
-  const fy = s(y - yi);
-  const fz = s(z - zi);
-  const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
-  const plane = (iz: number): number => lerp(lerp(hash(xi, yi, iz), hash(xi + 1, yi, iz), fx), lerp(hash(xi, yi + 1, iz), hash(xi + 1, yi + 1, iz), fx), fy);
-  return lerp(plane(zi), plane(zi + 1), fz);
-}
-
-/** Roca de radio ~1: un icosaedro abollado. Facetada a propósito (se ve tallada con la luz rasante). */
-const rockGeometry = once(() => {
-  const g = new IcosahedronGeometry(1, 3);
-  const pos = g.getAttribute('position');
-  const v = new Vector3();
-  for (let i = 0; i < pos.count; i++) {
-    v.fromBufferAttribute(pos, i).normalize();
-    const r = 0.72 + 0.5 * valueNoise3(v.x * 1.4 + 5, v.y * 1.4 + 9, v.z * 1.4 + 2) + 0.16 * valueNoise3(v.x * 4 + 1, v.y * 4 + 3, v.z * 4 + 7);
-    pos.setXYZ(i, v.x * r, v.y * r, v.z * r);
-  }
-  g.computeVertexNormals();
-  return g;
-});
-
-const rockMaterial = once(() => {
-  const maps = rockMaps();
-  return new MeshStandardMaterial({ color: '#c4b6a4', map: maps.albedo, normalMap: maps.normal, roughnessMap: maps.rough, roughness: 1, metalness: 0.05, flatShading: true });
-});
 
 const ROCKS = 70;
 

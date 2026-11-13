@@ -1,6 +1,6 @@
 # Arquitectura
 
-Documenta lo que **existe hoy** (fase 1 del juego nuevo) y lo que se **prevé** (fases 2-5). Decisiones de
+Documenta lo que **existe hoy** (fases 1 y 2 del juego nuevo) y lo que se **prevé** (fases 3-5). Decisiones de
 fondo: `docs/adr/`. Estado: `docs/STATUS.md`. Diseño del juego: `docs/GDD.md`.
 
 ## Vista general
@@ -34,8 +34,8 @@ Workspaces: `apps/*` y `packages/*` (`pnpm-workspace.yaml`). Turborepo orquesta 
 
 | Paquete | Estado | Dependencias principales |
 | --- | --- | --- |
-| `@payload/shared` | Fase 1 | `zod`. Dev: `vitest`, `tsx`, `@types/node`. Exporta `./src/index.ts` y `./catalog/*` |
-| `@payload/client` | Fase 1 | `@payload/shared`, `react`/`react-dom` 19, `three`, `@react-three/fiber` 9, `drei`, `rapier`, `zustand`, `i18next`, `react-i18next`, `lucide-react`. Dev: `vite`, `tailwindcss` 4, `vitest` |
+| `@payload/shared` | Fases 1-2 | `zod`. Dev: `vitest`, `tsx`, `@types/node`. Exporta `./src/index.ts` y `./catalog/*` |
+| `@payload/client` | Fases 1-2 | `@payload/shared`, `react`/`react-dom` 19, `three`, `@react-three/fiber` 9, `drei`, `rapier`, `zustand`, `i18next`, `react-i18next`, `lucide-react`. Dev: `vite`, `tailwindcss` 4, `vitest` |
 | `@payload/game-server` | Marcador (fase 4) | Ninguna; scripts `echo` |
 | `@payload/api` | Marcador (fase 5) | Ninguna; scripts `echo` |
 | raíz | | `turbo`, `typescript`, `prettier`, `@gltf-transform/cli` |
@@ -46,9 +46,9 @@ Three.js, DOM ni Node en `src/`; lo vigilan `tsconfig.json` sin tipos de Node y 
 ## `@payload/shared`: el motor
 
 - **Contrato:** `src/types.ts`. Solo cambios aditivos; romperlo exige un ADR.
-- **Catálogo:** `catalog/{naves,averias,destinos,sectores}.json` → `parseCatalog` (zod) → `catalog`.
+- **Catálogo:** `catalog/{naves,averias,destinos,sectores,mundos}.json` → `parseCatalog` (zod) → `catalog`.
 - **Módulos (`src/`):** `types` (contrato), `catalog` (esquema y búsquedas), `galaxy` (generador de
-  sectores), `run` (la partida), `rng` (`createRng`, `deriveSeed`), `messages`/`locales` (i18n `sim`).
+  sectores), `surface` (mundos, superficie y física del descenso), `run` (la partida), `rng` (`createRng`, `deriveSeed`), `messages`/`locales` (i18n `sim`).
 - **API:** `createRun`, `generateSector`, `isSectorSolvable`, `computeScore`, `fuelPerLy`,
   `cruiseSpeedLyPerS`, `formatMessage` (lista completa en `packages/shared/CLAUDE.md`).
 
@@ -65,6 +65,9 @@ createRun({ seed })  ──▶  Run { state, step(dt), apply(action), takeEvents
      permadeath      → casco 0 · oxígeno 0 · varada
 
   apply(action): jump · set-throttle · toggle-system · work-incident · repair-system · evade · service · next-sector
+                 land · set-descent-brake · eva-exit · eva-enter · set-position · jetpack · fall-impact
+                 deploy-tool · collect · retrieve-tool · jettison · take-off         (superficie, fase 2)
+                 evade {grazes?}   (esquiva por habilidad, ADR 0013)
      devuelve { ok } o { ok: false, reason: MessageRef }
 ```
 
@@ -73,7 +76,16 @@ createRun({ seed })  ──▶  Run { state, step(dt), apply(action), takeEvents
   generación del sector, peligros de cada salto (se sortean al iniciarlo, por posición en el trayecto) y
   desgaste (tres tiradas fijas por paso).
 - **Fases:** `docked` (atracada; el tiempo corre y las averías siguen) → `transit` → `docked`… hasta el
-  portal (`won`, tiempo detenido) → `next-sector`; o `lost` en cualquier momento.
+  portal (`won`, tiempo detenido) → `next-sector`; o `lost` en cualquier momento. Desde `docked` en un nodo
+  aterrizable: `land` → `landing` (descenso) → `surface` (salidas EVA) → `take-off` → `docked` en el mismo
+  nodo (un aterrizaje por nodo). La nave sigue viva en `landing` y `surface`.
+- **Minijuegos y herramientas (ADR 0013):** los minijuegos (esquiva, reparaciones) son del cliente y entran como `RunAction` acotada (`evade {grazes}`, `work-incident {seconds}`); la extracción de las herramientas la hace el motor a paso fijo (`surface.tools`, `crew[].tools`) y `collect` recoge lo extraído. Lo raro se agrupa en filones (`rules.lodes`).
+- **Autoridad en superficie (ADR 0012):** el cliente simula terreno, física (Rapier) y posición, y las
+  informa como `RunAction` (`set-position`, `jetpack`, `fall-impact`). El motor no conoce el terreno: es
+  autoritativo en oxígeno del traje, jetpack, carga, tormentas, terreno inestable, daño y muerte, y limita
+  el movimiento aceptado por tiempo (antitrampas pensado para el servidor de la fase 4). Tormentas,
+  zonas inestables y vetas se generan al aterrizar a partir de semillas derivadas del sector y del nodo, sin
+  tocar los otros flujos de azar.
 - **Energía:** potencia = reactor × salud; demanda = sistemas encendidos (los motores solo consumen en
   tránsito y según el régimen). Demanda > potencia ⇒ sobrecarga, que daña el reactor.
 - **Sector (`galaxy.ts`):** columnas de destinos entre la estación de salida y el portal, enlazados con
@@ -85,7 +97,7 @@ createRun({ seed })  ──▶  Run { state, step(dt), apply(action), takeEvents
 ## `@payload/client`: flujo de datos
 
 ```text
-App.tsx ── pantalla ──▶ MenuScene | ShipScene (lazy)
+App.tsx ── pantalla ──▶ MenuScene | ShipScene | SurfaceScene (lazy; `sceneFor(fase, ubicación, descentView)`)
                                      │ cada frame
                                      ▼
    GameLoop (ShipScene) ── tick(dt) ──▶ game/runStore ── run.step / run.apply ──▶ @payload/shared
@@ -104,6 +116,12 @@ App.tsx ── pantalla ──▶ MenuScene | ShipScene (lazy)
    (cielo, estrella, estelas y el destino por la proa). Todo el aspecto es procedural y vive en `gfx/`:
    texturas de canvas, materiales compartidos, shaders y un constructor que fusiona las piezas de cada
    modelo en una malla por material. Los únicos GLB son los de `assets/` (tripulante, consola, galaxia, estación).
+   **Superficie (fase 2):** `SurfaceScene` monta el descenso (vista exterior, `mode="descent"`) o la EVA
+   (`mode="eva"`) y carga `SurfaceWorld` (terreno, física con Rapier, vetas, tormenta) bajo demanda. El
+   terreno sale de `game/terrain.ts` (puro, determinista por semilla, sector y nodo); el movimiento con
+   jetpack, de `game/motion.ts`; las reglas de la escena, de `game/surfaceRules.ts`. `SurfaceLoop` informa al
+   motor (`set-position` a 10 Hz, `jetpack`, `fall-impact`, `deploy-tool`, `collect`, `retrieve-tool`) y nunca escribe en `run.state`. La
+   nave posada (`ShipExterior`) y la bodega (`ShipCargo`) se ven desde fuera y desde dentro.
 4. **Estado de interfaz:** `state/ui.ts` (panel abierto, vista 1ª/3ª, aviso de acción) y
    `state/settings.ts` (persistido). `pause`, `settings` y `credits` detienen el tiempo; el mapa y el
    panel de energía no.
@@ -127,7 +145,8 @@ del cliente comprueba además que toda clave literal usada en el código existe.
   (`.claude/skills/3d-models/scripts/optimize.sh`), mismo nombre.
 - Vite usa `publicDir: '../../assets/web'`: `assets/web/models/x.glb` se sirve como `/models/x.glb`.
 - En uso: astronauta (tripulante), consola (timón), galaxia (menú y holograma) y ERIZON (estación, con
-  carga diferida). El mecha Aurora G9 se sirve pero no se usa hasta la fase 2. Un GLB ausente muestra una
+  carga diferida). El mecha Aurora G9 se sirve pero no se usa (aplazado, ADR 0012). La superficie es
+  procedural, sin assets nuevos. Un GLB ausente muestra una
   forma de respaldo (`ModelBoundary`).
 
 ## Testing
@@ -136,18 +155,20 @@ del cliente comprueba además que toda clave literal usada en el código existe.
 | --- | --- | --- |
 | `@payload/shared` | `galaxy` | Catálogo válido y rechazos; sectores deterministas, enlazados y completables (200 semillas × 5 sectores) |
 | | `run` | Determinismo al trocear `step`; viaje y combustible; energía y sobrecarga; averías; impactos; estaciones, portal y derrotas |
+| | `surface` | Descenso y aterrizaje, EVA, oxígeno del traje, jetpack, caídas, tormentas, terreno inestable, vetas, bodega, despegue, varada y determinismo |
 | | `locales` | Paridad es/en, params, longitud máxima y que toda `MessageRef` emitida existe y se resuelve |
-| | `balance` | Con tripulante simulado (`bot.ts`): se gana jugando bien, se pierde sin hacer nada, la dificultad sube |
+| | `balance` | Con tripulante simulado (`bot.ts`): se gana jugando bien, se pierde sin hacer nada, la dificultad sube; exploradores prudente y codicioso en superficie |
 | | `purity`, `rng` | Sin Node/DOM/React/relojes/azar global en `src/`; generador de semillas |
 | `@payload/client` | `game` | Distribución de la nave, interacciones, almacén de la partida (salto completo, pausa, derrota), panel de energía, audio |
+| | `surface` | Terreno, movimiento con jetpack, reglas de superficie y qué escena se pinta |
+| | `minigames` | Esquiva, extintor, pulsos y sellado: resultado → `RunAction` |
 | | `i18n` | Paridad de claves, claves usadas en el código, claves dinámicas, longitud |
 
 No hay tests de renderizado 3D ni E2E (fase 5). La escena se comprueba a mano en el navegador.
 
 ## Fases siguientes
 
-- **Fase 2 (superficie):** fases nuevas en `RunPhase` (aditivo), mundos en el catálogo, escena de
-  superficie y jetpack en el controlador del jugador.
+- **Fase 2 (superficie):** existe (ver arriba). Pendiente de validación final y de prueba con jugadores.
 - **Fase 3 (economía):** mejoras como cambios sobre `ShipDef`; mercado en las estaciones.
 - **Fase 4 (cooperativo):** `apps/game-server` corre `createRun` y aplica las `RunAction` de cada
   cliente; el cliente gana una capa de sesión local/sala. Base: ADR 0009 y 0010.

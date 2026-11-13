@@ -1,28 +1,24 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
-import { MathUtils, Vector3, type Group, type PerspectiveCamera } from 'three';
+import { MathUtils, Vector3, type Group, type PerspectiveCamera, type Sprite } from 'three';
 import { AstronautModel } from '../models/Models';
+import { newMotionState, settleMotion, SHIP_MOTION, stepMotion, type MotionInput, type MotionParams } from '../game/motion';
 import { fx as viewFx, getRun } from '../game/runStore';
+import { Glow } from '../gfx/Glow';
 import { useSettings } from '../state/settings';
+import { minigame } from '../state/minigame';
 import { useUi } from '../state/ui';
 import { attachKeyboard, isDown } from './input';
-import { lookDir, playerState } from './playerState';
+import { lookDir, motionEnv, playerState } from './playerState';
 
 type KinematicCharacterController = ReturnType<ReturnType<typeof useRapier>['world']['createCharacterController']>;
 
-const WALK = 3.2;
-const RUN = 5.5;
-const GRAVITY = -12;
 const EYE = 1.6;
 const TRANSITION_S = 0.4;
 
 const smooth = (x: number) => x * x * (3 - 2 * x);
 
-/**
- * Personaje con controlador cinemático de Rapier. El mismo cuerpo sirve a la 1ª y 3ª persona:
- * cambiar de vista (V) solo mueve la cámara, nunca la física.
- */
 export interface CameraBounds {
   minX: number;
   maxX: number;
@@ -31,13 +27,35 @@ export interface CameraBounds {
   maxY: number;
 }
 
-/** `bounds`: límites para que la cámara en 3ª persona no atraviese el casco. */
-export function PlayerController({ start, bounds }: { start: readonly [number, number, number]; bounds: CameraBounds }) {
+export interface PlayerControllerProps {
+  start: readonly [number, number, number];
+  /** Giro inicial de la vista (rad). */
+  startYaw?: number;
+  /** Límites para que la cámara en 3ª persona no atraviese el casco (interior de la nave). */
+  bounds?: CameraBounds;
+  /** Física del movimiento: la de la nave por defecto; en la superficie, la del mundo (`surfaceMotion`). */
+  motion?: MotionParams;
+  /** Altura del suelo (superficie): la cámara en 3ª persona nunca baja de ahí. */
+  groundAt?: (x: number, z: number) => number;
+  /** Radio explorable: pasado este borde, un empuje suave hacia dentro (no un muro invisible). */
+  softRadiusM?: number;
+}
+
+/**
+ * Personaje con controlador cinemático de Rapier. El mismo cuerpo sirve a la 1ª y 3ª persona:
+ * cambiar de vista (V) solo mueve la cámara, nunca la física. Las velocidades salen de
+ * `game/motion.ts` (puro); aquí solo se resuelven las colisiones y se coloca la cámara.
+ */
+export function PlayerController({ start, startYaw = 0, bounds, motion = SHIP_MOTION, groundAt, softRadiusM }: PlayerControllerProps) {
   const body = useRef<RapierRigidBody>(null);
   const avatar = useRef<Group>(null);
-  const { world } = useRapier();
+  const jetGlow = useRef<Sprite>(null);
+  const { world, rapier } = useRapier();
+  const camRay = useMemo(() => new rapier.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 1 }), [rapier]);
   const { camera, gl } = useThree();
-  const vy = useRef(0);
+  const ms = useRef(newMotionState());
+  const snapping = useRef(true);
+  const input = useRef<MotionInput>({ dirX: 0, dirZ: 0, run: false, jump: false, down: false, canThrust: false, windX: 0, windZ: 0, heightM: 0 });
   const blend = useRef(useUi.getState().view === 'third' ? 1 : 0); // 0 = 1ª persona, 1 = 3ª persona
   const avatarYaw = useRef(Math.PI); // mirando a -Z (yaw inicial)
   const camPos = useRef(new Vector3());
@@ -66,8 +84,9 @@ export function PlayerController({ start, bounds }: { start: readonly [number, n
   // Teclado, ratón (pointer lock) y estado inicial.
   useEffect(() => {
     playerState.pos.set(start[0], start[1], start[2]);
-    playerState.yaw = 0;
+    playerState.yaw = startYaw;
     playerState.pitch = 0;
+    avatarYaw.current = startYaw + Math.PI;
     const detach = attachKeyboard();
     const canvas = gl.domElement;
     const onClick = () => {
@@ -86,7 +105,8 @@ export function PlayerController({ start, bounds }: { start: readonly [number, n
     document.addEventListener('mousemove', onMove);
     // Solo desarrollo: `__payload.teleport(x, z)` coloca al tripulante (capturas y revisión de la escena).
     if (import.meta.env.DEV) {
-      const teleport = (x: number, z: number) => body.current?.setTranslation({ x, y: 0.85, z }, true);
+      // `aboveM` (opcional) lo suelta a esa altura sobre el suelo (para revisar caídas).
+      const teleport = (x: number, z: number, aboveM = 0) => body.current?.setTranslation({ x, y: (groundAt?.(x, z) ?? 0) + 0.85 + aboveM, z }, true);
       Object.assign(((window as unknown as { __payload?: object }).__payload ??= {}), { teleport });
     }
     return () => {
@@ -116,7 +136,8 @@ export function PlayerController({ start, bounds }: { start: readonly [number, n
     const ui = useUi.getState();
     const settings = useSettings.getState();
     const phase = getRun()?.state.phase;
-    const blocked = ui.overlay !== null || phase === 'lost' || phase === 'won';
+    // Pilotando en el timón (esquiva), WASD mueve la nave del holograma, no al tripulante.
+    const blocked = ui.overlay !== null || phase === 'lost' || phase === 'won' || minigame.dodge !== null;
 
     // ── Movimiento ──
     let fx = 0;
@@ -129,23 +150,65 @@ export function PlayerController({ start, bounds }: { start: readonly [number, n
     }
     const len = Math.hypot(fx, fz);
     const moving = len > 0;
-    const speed = isDown('ShiftLeft') || isDown('ShiftRight') ? RUN : WALK;
     const sy = Math.sin(playerState.yaw);
     const cy = Math.cos(playerState.yaw);
     // forward = (-sin, -cos), right = (cos, -sin)
-    const dx = moving ? ((-sy * fz + cy * fx) / len) * speed * dt : 0;
-    const dz = moving ? ((-cy * fz - sy * fx) / len) * speed * dt : 0;
-    vy.current = Math.max(vy.current + GRAVITY * dt, -20);
+    const inp = input.current;
+    inp.dirX = moving ? (-sy * fz + cy * fx) / len : 0;
+    inp.dirZ = moving ? (-cy * fz - sy * fx) / len : 0;
+    inp.run = isDown('ShiftLeft') || isDown('ShiftRight');
+    inp.jump = !blocked && isDown('Space');
+    // Bajar con el jetpack: C (no Ctrl: Ctrl+W cerraría la pestaña).
+    inp.down = !blocked && isDown('KeyC');
+    inp.canThrust = motionEnv.canThrust;
+    inp.windX = motionEnv.windX;
+    inp.windZ = motionEnv.windZ;
+    const s = ms.current;
+    const p = rb.translation();
+    // Altura de los pies sobre el suelo de debajo (techo de vuelo del jetpack).
+    inp.heightM = groundAt ? p.y - 0.85 - groundAt(p.x, p.z) : 0;
+    stepMotion(s, inp, motion, dt);
+
+    let ex = inp.windX;
+    let ez = inp.windZ;
+    if (softRadiusM !== undefined) {
+      // Frontera suave: pasado el radio, se empuja hacia dentro cada vez con más fuerza.
+      const r = Math.hypot(p.x, p.z);
+      if (r > softRadiusM) {
+        const push = Math.min(7, (r - softRadiusM) * 1.6);
+        ex -= (p.x / r) * push;
+        ez -= (p.z / r) * push;
+        s.vx *= 0.96;
+        s.vz *= 0.96;
+      }
+    }
+    // Pegado al suelo solo al caminar: nunca mientras se sube o se cae (el jetpack no se «engancha»).
+    const wantSnap = motion === SHIP_MOTION || (s.grounded && s.vy <= 0 && !s.thrusting);
+    if (wantSnap !== snapping.current) {
+      if (wantSnap) controller.enableSnapToGround(0.3);
+      else controller.disableSnapToGround();
+      snapping.current = wantSnap;
+    }
 
     const col = rb.collider(0);
-    controller.computeColliderMovement(col, { x: dx, y: vy.current * dt, z: dz });
+    const wantY = s.vy * dt;
+    controller.computeColliderMovement(col, { x: (s.vx + ex) * dt, y: wantY, z: (s.vz + ez) * dt });
     const m = controller.computedMovement();
-    const p = rb.translation();
     rb.setNextKinematicTranslation({ x: p.x + m.x, y: p.y + m.y, z: p.z + m.z });
-    if (controller.computedGrounded()) vy.current = 0;
+    if (motion !== SHIP_MOTION && !s.grounded) {
+      // Contra una pared en el aire se pierde la inercia en ese eje.
+      if (Math.abs(m.x) < Math.abs((s.vx + ex) * dt) * 0.5) s.vx = 0;
+      if (Math.abs(m.z) < Math.abs((s.vz + ez) * dt) * 0.5) s.vz = 0;
+    }
+    const impact = settleMotion(s, controller.computedGrounded(), wantY > 0 && m.y < wantY * 0.5);
 
     playerState.pos.set(p.x, p.y - 0.85, p.z);
     playerState.moving = moving;
+    playerState.grounded = s.grounded;
+    playerState.vy = s.vy;
+    playerState.thrusting = s.thrusting;
+    if (s.thrusting) playerState.thrustS += dt;
+    if (impact > playerState.impactMps) playerState.impactMps = impact;
 
     // ── Cámara (transición suave 1ª ↔ 3ª) ──
     const target = ui.view === 'third' ? 1 : 0;
@@ -156,14 +219,30 @@ export function PlayerController({ start, bounds }: { start: readonly [number, n
     const { dir, fpPos, right, pivot, tpPos, want, lookAt, tmp } = scratch;
     lookDir(dir);
     const feet = playerState.pos;
-    const bob = settings.headBob && moving ? Math.sin(t.current * 9) * 0.035 : 0;
+    const bob = settings.headBob && moving && s.grounded ? Math.sin(t.current * 9) * 0.035 : 0;
     fpPos.set(feet.x, feet.y + EYE + bob, feet.z);
     right.set(cy, 0, -sy);
     pivot.set(feet.x, feet.y + 1.55, feet.z).addScaledVector(right, 0.55);
-    tpPos.copy(pivot).addScaledVector(dir, -3.2);
-    tpPos.x = MathUtils.clamp(tpPos.x, bounds.minX, bounds.maxX);
-    tpPos.z = MathUtils.clamp(tpPos.z, bounds.minZ, bounds.maxZ);
-    tpPos.y = MathUtils.clamp(tpPos.y, 0.3, bounds.maxY);
+    // La cámara en 3ª persona se acerca si algo (mamparo, rampa, ladera) se interpone.
+    let camDist = bounds ? 3.2 : 4.6;
+    if (blend.current > 0.01) {
+      camRay.origin.x = pivot.x;
+      camRay.origin.y = pivot.y;
+      camRay.origin.z = pivot.z;
+      camRay.dir.x = -dir.x;
+      camRay.dir.y = -dir.y;
+      camRay.dir.z = -dir.z;
+      const hit = world.castRay(camRay, camDist + 0.3, true, undefined, undefined, undefined, rb);
+      if (hit) camDist = Math.max(0.4, hit.timeOfImpact - 0.3);
+    }
+    tpPos.copy(pivot).addScaledVector(dir, -camDist);
+    if (bounds) {
+      tpPos.x = MathUtils.clamp(tpPos.x, bounds.minX, bounds.maxX);
+      tpPos.z = MathUtils.clamp(tpPos.z, bounds.minZ, bounds.maxZ);
+      tpPos.y = MathUtils.clamp(tpPos.y, 0.3, bounds.maxY);
+    }
+    // En la superficie la cámara nunca se mete bajo el terreno (ni en la ladera que queda detrás).
+    if (groundAt) tpPos.y = Math.max(tpPos.y, groundAt(tpPos.x, tpPos.z) + 0.7, groundAt((tpPos.x + feet.x) / 2, (tpPos.z + feet.z) / 2) + 0.7);
     want.copy(fpPos).lerp(tpPos, e);
     if (!camInit.current) {
       camPos.current.copy(want);
@@ -174,7 +253,7 @@ export function PlayerController({ start, bounds }: { start: readonly [number, n
     camera.position.copy(camPos.current);
     // Sacudida por impactos (decae sola; la fija el almacén de la partida).
     if (viewFx.shake > 0.001) {
-      const k = viewFx.shake * 0.12;
+      const k = viewFx.shake * 0.12 * settings.effects;
       camera.position.x += Math.sin(t.current * 71) * k;
       camera.position.y += Math.sin(t.current * 93) * k;
       viewFx.shake *= Math.exp(-dt * 3.5);
@@ -193,12 +272,18 @@ export function PlayerController({ start, bounds }: { start: readonly [number, n
       av.visible = e > 0.12;
       av.position.set(feet.x, feet.y, feet.z);
       if (moving) {
-        const heading = Math.atan2(dx, dz); // el modelo mira a +Z: orientarlo hacia el movimiento
+        const heading = Math.atan2(inp.dirX, inp.dirZ); // el modelo mira a +Z: orientarlo hacia el movimiento
         const diff = MathUtils.euclideanModulo(heading - avatarYaw.current + Math.PI, Math.PI * 2) - Math.PI;
         avatarYaw.current += diff * Math.min(1, dt * 10);
       }
-      av.rotation.set(moving ? 0.1 : 0, avatarYaw.current, moving ? Math.sin(t.current * 9) * 0.06 : 0);
-      av.position.y += moving ? Math.abs(Math.sin(t.current * 9)) * 0.04 : 0;
+      const stride = moving && s.grounded;
+      av.rotation.set(stride ? 0.1 : 0, avatarYaw.current, stride ? Math.sin(t.current * 9) * 0.06 : 0);
+      av.position.y += stride ? Math.abs(Math.sin(t.current * 9)) * 0.04 : 0;
+    }
+    if (jetGlow.current) {
+      const on = s.thrusting ? 0.55 + Math.sin(t.current * 47) * 0.15 : 0;
+      jetGlow.current.material.opacity += (on - jetGlow.current.material.opacity) * Math.min(1, dt * 20);
+      jetGlow.current.visible = jetGlow.current.material.opacity > 0.02;
     }
 
   });
@@ -215,6 +300,7 @@ export function PlayerController({ start, bounds }: { start: readonly [number, n
       </RigidBody>
       <group ref={avatar} visible={false}>
         <AstronautModel height={1.8} />
+        {motion !== SHIP_MOTION && <Glow ref={jetGlow} color="#7fd8ff" size={1.3} opacity={0} position={[0, 0.7, -0.35]} />}
       </group>
     </>
   );

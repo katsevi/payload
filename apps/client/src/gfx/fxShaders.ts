@@ -195,7 +195,7 @@ export const sparkMaterial = once(
     }),
 );
 
-function puffMaterial(opts: { additive: boolean; vertexBody: string; color: string }): ShaderMaterial {
+export function puffMaterial(opts: { additive: boolean; vertexBody: string; color: string }): ShaderMaterial {
   return new ShaderMaterial({
     uniforms: { uTime: TIME, uViewH: VIEW_H, uMap: { value: puffTexture() } },
     toneMapped: !opts.additive,

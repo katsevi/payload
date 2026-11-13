@@ -1,4 +1,8 @@
-/** Teclas pulsadas (por `event.code`). Se alimenta con `attachKeyboard()` desde el controlador. */
+/**
+ * Teclas pulsadas (por `event.code`). Se alimenta con `attachKeyboard()` desde el controlador. El botón
+ * izquierdo del ratón cuenta como la tecla `Mouse0` (extintor, pulsos y sellado de las averías).
+ */
+export const MOUSE_PRIMARY = 'Mouse0';
 const down = new Set<string>();
 
 export const isDown = (code: string): boolean => down.has(code);
@@ -14,6 +18,14 @@ export function attachKeyboard(): () => void {
   };
   const onUp = (e: KeyboardEvent) => down.delete(e.code);
   const onBlur = () => down.clear();
+  const onMouseDown = (e: MouseEvent) => {
+    if (e.button === 0) down.add(MOUSE_PRIMARY);
+  };
+  const onMouseUp = (e: MouseEvent) => {
+    if (e.button === 0) down.delete(MOUSE_PRIMARY);
+  };
+  window.addEventListener('mousedown', onMouseDown);
+  window.addEventListener('mouseup', onMouseUp);
   window.addEventListener('keydown', onDown);
   window.addEventListener('keyup', onUp);
   window.addEventListener('blur', onBlur);
@@ -21,6 +33,8 @@ export function attachKeyboard(): () => void {
     window.removeEventListener('keydown', onDown);
     window.removeEventListener('keyup', onUp);
     window.removeEventListener('blur', onBlur);
+    window.removeEventListener('mousedown', onMouseDown);
+    window.removeEventListener('mouseup', onMouseUp);
     down.clear();
   };
 }

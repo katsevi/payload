@@ -109,11 +109,29 @@ export interface HazardRules {
     systemDamageMax: number;
     /** Probabilidad de fuga tras un impacto sin escudos. */
     leakChanceUnshielded: number;
+    /** Esquiva por habilidad (el cliente informa los roces). Sin ella, `evade` anula el impacto entero. */
+    evade?: EvadeRules;
   };
   wear: { chancePerS: number; weights: Record<IncidentKind, number> };
   repair: { kitRepairS: number; kitRestorePct: number };
   alerts: { lowOxygenPct: number; lowFuelPct: number; lowHullPct: number };
   maxIncidents: number;
+}
+
+/**
+ * Esquiva por habilidad: el cliente simula el minijuego y envía `evade { grazes }`; el motor cobra.
+ * Daño = 0 con 0 roces, `grazes × grazeDamageFrac` con algunos y `failDamageFrac` con `maxGrazes` (fallo).
+ */
+export interface EvadeRules {
+  maxGrazes: number;
+  /** Fracción del daño del impacto (casco, sistema, desgaste de escudos) por cada roce. */
+  grazeDamageFrac: number;
+  /** Fracción del daño con `maxGrazes` roces: el impacto entra casi entero (y puede abrir una fuga). */
+  failDamageFrac: number;
+  /** Dificultad 0-1 del minijuego = base + porSector × (sector − 1) + porGravedad × gravedad del impacto. */
+  difficultyBase: number;
+  difficultyPerSector: number;
+  difficultyFromSeverity: number;
 }
 
 // ─── Destinos y sector ──────────────────────────────────────────────────────
@@ -160,6 +178,170 @@ export interface Catalog {
   hazards: HazardRules;
   nodeKinds: NodeKindDef[];
   sector: SectorRules;
+  /**
+   * Fase 2: mundos, materiales y reglas de superficie (`catalog/mundos.json`). `parseCatalog` lo
+   * rellena con el catálogo por defecto si falta, así que tras validar siempre está presente.
+   */
+  surface?: SurfaceCatalog;
+}
+
+// ─── Superficie (fase 2) ────────────────────────────────────────────────────
+
+/** Material que se recoge en superficie. Ids kebab-case; nombre en `catalog.<id>`. */
+export interface MaterialDef {
+  id: string;
+  name: LocalizedText;
+  /** Puntos base por unidad guardada a bordo (crece con la distancia y el peligro). */
+  value: number;
+  massKg: number;
+  /** Segundos que tarda su herramienta (con `speedMult` 1) en extraer una unidad. */
+  collectS: number;
+  /** Herramienta que lo extrae (`SurfaceCatalog.tools`): el hielo se sublima, lo demás se perfora. */
+  tool: string;
+  /** Suministros que rinde cada unidad al guardarla en la nave (limitados por su capacidad). */
+  yields?: { fuel?: number; spares?: number };
+  /** Suma racha (solo lo raro): cada unidad de este tipo que se lleva encima revaloriza la siguiente. */
+  streak?: boolean;
+}
+
+/**
+ * Herramienta desplegable: se coloca sobre una veta y extrae sola a paso fijo. Ids kebab-case; nombre
+ * en `catalog.<id>`.
+ */
+export interface ToolDef {
+  id: string;
+  name: LocalizedText;
+  /** Cuántas lleva cada tripulante al empezar cada aterrizaje (se reponen en el siguiente). */
+  perCrew: number;
+  /** Se detiene con tormenta activa (el concentrador solar necesita sol) y sigue al pasar. */
+  stopsInStorm: boolean;
+  /** Ritmo: segundos por unidad = `material.collectS / speedMult`. */
+  speedMult: number;
+}
+
+export interface WorldMaterialDef {
+  materialId: string;
+  /** Peso al sortear el material de una veta. */
+  weight: number;
+  units: Range;
+  /** Fracción del radio explorable a partir de la que puede aparecer (0 = junto a la nave). */
+  minDistanceFrac: number;
+  /** Multiplicador del peso cerca o dentro de terreno inestable. */
+  dangerWeightMult: number;
+}
+
+export interface WorldStormDef {
+  /** Separación media entre tormentas (s, exponencial). */
+  meanIntervalS: number;
+  /** Aviso previo (s). */
+  warnS: number;
+  durationS: Range;
+  /** Intensidad 0-1 (escala el drenaje extra y el efecto visual). */
+  intensity: Range;
+  /** Drenaje extra de O2 del traje con intensidad 1 al estar fuera de la nave. */
+  o2DrainPctPerS: number;
+  /**
+   * La primera tormenta nunca empieza antes de estos segundos tras el contacto (la primera salida
+   * tiene calma asegurada). Sin él, solo cuenta el sorteo.
+   */
+  firstStartMinS?: number;
+}
+
+/** Un mundo aterrizable. Cada nodo aterrizable recibe uno de su `kind` de forma determinista. */
+export interface WorldDef {
+  id: string;
+  name: LocalizedText;
+  kind: NodeKind;
+  weight: number;
+  gravityMps2: number;
+  /**
+   * Altitud y velocidad de caída al empezar el descenso. `referenceMargin` sustituye al de las reglas
+   * en este mundo (con poca gravedad conviene pedir frenar antes; con mucha, después).
+   */
+  descent: { altitudeM: number; speedMps: number; referenceMargin?: number };
+  /** Radio del área explorable alrededor de la nave (m). */
+  radiusM: number;
+  /** Número de vetas. */
+  deposits: Range;
+  materials: WorldMaterialDef[];
+  storms: WorldStormDef | null;
+  unstable: { zones: Range; radiusM: Range; pitDepthM: number };
+  /** Multiplicador del desgaste de la nave mientras está en el descenso o en tierra. */
+  shipWearMult: number;
+}
+
+export interface SurfaceRules {
+  descent: {
+    /** Deceleración que da el freno (m/s²); si no supera la gravedad, solo frena la aceleración. */
+    brakeThrustMps2: number;
+    brakeFuelPerS: number;
+    /** El piloto automático nunca baja de esta velocidad (no se puede flotar). */
+    minSpeedMps: number;
+    safeSpeedMps: number;
+    hullDamagePerMps: number;
+    systemDamagePerMps: number;
+    /** Probabilidad de fuga o corto por m/s de exceso. */
+    incidentChancePerMps: number;
+    /**
+     * Margen del perfil de frenado de referencia (fracción 0-1): más bajo = pide frenar antes y deja
+     * más tiempo de reacción. Sin él, `REFERENCE_BRAKE_MARGIN`.
+     */
+    referenceMargin?: number;
+  };
+  /** Combustible = (base + porGravedad × g) × (1 + kg cargados aquí / massRefKg). */
+  takeOff: { baseFuel: number; fuelPerMps2: number; massRefKg: number };
+  suit: {
+    o2DrainPctPerS: number;
+    lowO2Pct: number;
+    criticalO2Pct: number;
+    carryCapacityKg: number;
+    collectRangeM: number;
+    airlockRangeM: number;
+    /** Antitrampas: distancia máxima por segundo que acepta `set-position`. */
+    maxMoveSpeedMps: number;
+    /** O2 de la nave (puntos %) que cuesta rellenar el traje de 0 a 100 al salir (proporcional). */
+    refillShipO2PctPerTank: number;
+    /** El relleno nunca deja el O2 de la nave por debajo de este nivel: se sale con lo que haya. */
+    refillMinShipO2Pct: number;
+    /** O2 de la nave que cuesta cada ciclo de esclusa al salir, aunque el traje vaya lleno (trocear sale caro). */
+    airlockCycleShipO2Pct?: number;
+  };
+  jetpack: { drainPctPerS: number; rechargePctPerS: number };
+  falls: { harmlessMps: number; o2LossPctPerMps: number; lethalMps: number };
+  /** `decayPerS`: segundos de agrietado que se recuperan por segundo sin nadie encima (no se reinicia). */
+  terrain: { collapseS: number; decayPerS: number };
+  value: { distanceBonus: number; dangerBonus: number; dangerMarginM: number };
+  /**
+   * Racha: cada unidad de material con `streak` que el tripulante ya lleva encima sube el valor de la siguiente de ese tipo
+   * (`1 + min(maxBonus, bonusPerUnit × unidades)`). Se consolida al guardar en la nave y se pierde al morir.
+   */
+  streak: { bonusPerUnit: number; maxBonus: number };
+  /**
+   * Soporte vital de la nave en `landing`/`surface`: cubre el consumo de quien está a bordo, pero del
+   * excedente solo regenera esta fracción (0 = el O₂ gastado en rellenar trajes no vuelve hasta despegar).
+   * Sin él, regenera como en vuelo.
+   */
+  shipO2?: { surfaceSurplusRegenMult: number };
+  /**
+   * Filones: lo raro (materiales con `streak`) se agrupa en filones de `size` vetas a `spacingM` metros de
+   * la primera. Sin él, cada veta va por su lado.
+   */
+  lodes?: {
+    size: Range;
+    spacingM: Range;
+    /**
+     * Completar el filón: las unidades de su última veta valen ×`completeMult` si el mismo tripulante agotó
+     * las demás vetas del filón en esta salida (filones de 2+ vetas). Sin él, no hay bonus.
+     */
+    completeMult?: number;
+  };
+}
+
+export interface SurfaceCatalog {
+  rules: SurfaceRules;
+  tools: ToolDef[];
+  materials: MaterialDef[];
+  worlds: WorldDef[];
 }
 
 export interface SectorNode {
@@ -187,9 +369,13 @@ export interface SectorMap {
 
 // ─── Estado de la partida ───────────────────────────────────────────────────
 
-/** `won` = sector superado, a la espera de `next-sector`. */
-export type RunPhase = 'docked' | 'transit' | 'won' | 'lost';
-export type LossReason = 'hull' | 'oxygen' | 'stranded';
+/**
+ * `won` = sector superado, a la espera de `next-sector`.
+ * `landing` = descenso a la superficie del nodo actual; `surface` = posada (fase 2).
+ */
+export type RunPhase = 'docked' | 'transit' | 'landing' | 'surface' | 'won' | 'lost';
+/** `crew` = muere toda la tripulación en la superficie. */
+export type LossReason = 'hull' | 'oxygen' | 'stranded' | 'crew';
 
 export interface SystemState {
   healthPct: number;
@@ -228,13 +414,20 @@ export interface PlannedHazard {
   evaded: boolean;
   /** Los sensores ya avisaron de este impacto. */
   announced: boolean;
+  /** Solo si se esquivó informando roces: fracción del daño que entra igualmente (0 = limpia). */
+  evadeDamageFrac?: number;
 }
 
 /** Impacto anunciado por los sensores (requiere navegación en línea). */
 export interface ImpactWarning {
   hazardId: number;
+  /** Segundos hasta el impacto (tiempo disponible para el minijuego de esquiva). */
   etaS: number;
   evaded: boolean;
+  /** Semilla determinista del minijuego de esquiva de este impacto (misma partida = mismo campo de rocas). */
+  evadeSeed?: number;
+  /** Dificultad 0-1 del minijuego (más densidad en sectores altos y con impactos más fuertes). */
+  evadeDifficulty?: number;
 }
 
 export interface TransitState {
@@ -259,6 +452,157 @@ export interface ShipState {
   powerDemandKw: number;
   overloaded: boolean;
   speedLyPerS: number;
+  /** Bodega: unidades por id de material (los raros se venderán en la fase 3). */
+  cargo: Record<string, number>;
+}
+
+/** Tripulante. En solitario hay uno; la fase 4 tendrá hasta cuatro. */
+export interface CrewMember {
+  id: number;
+  alive: boolean;
+  deathCause: 'oxygen' | 'fall' | null;
+  /** `ship` = a bordo; `eva` = fuera, en la superficie. */
+  location: 'ship' | 'eva';
+  suitO2Pct: number;
+  jetpackPct: number;
+  /** Posición relativa a la nave (m), informada por el cliente. */
+  x: number;
+  z: number;
+  grounded: boolean;
+  /** Lo que lleva encima (unidades por material); se pierde si muere. */
+  carried: Record<string, number>;
+  carriedKg: number;
+  carriedValue: number;
+  /** Puntos que lleva encima por material (para repartir el valor al guardar y al soltar). */
+  carriedValues: Record<string, number>;
+  /** Segundos de la salida en curso. */
+  evaS: number;
+  /** Antitrampas: metros que aún puede moverse (se recarga a `maxMoveSpeedMps`). */
+  moveBudgetM: number;
+  /** Aviso de O2 del traje ya dado: 0 ninguno, 1 bajo, 2 crítico. */
+  o2Alert: number;
+  /** Unidades que lleva encima (todas las de `carried`). */
+  carriedUnits: number;
+  /** Unidades de materiales con racha (`MaterialDef.streak`) que lleva encima. */
+  streakUnits: number;
+  /** Multiplicador de racha que recibirá la PRÓXIMA unidad con racha que recoja (1 = sin racha). */
+  streakMult: number;
+  /** Herramientas en la mochila por id (se reponen a `ToolDef.perCrew` en cada aterrizaje). */
+  tools: Record<string, number>;
+  /** Vetas de filón que este tripulante ha agotado (recogido hasta la última unidad) en la salida en curso. */
+  lodeVeinsDone: number[];
+}
+
+/** Avance de un filón para un tripulante en la salida en curso (ver `lodeProgress`). */
+export interface LodeProgress {
+  lodeId: number;
+  /** Vetas del filón. */
+  total: number;
+  /** Vetas que este tripulante ha agotado en esta salida. */
+  done: number;
+  /** La veta que queda daría el bonus de filón completo (todas las demás agotadas por él en esta salida). */
+  bonusReady: boolean;
+}
+
+/** Por qué está parada una herramienta colocada (null = extrayendo). */
+export type ToolStop = 'storm' | 'depleted';
+
+/** Herramienta colocada sobre una veta. Extrae sola; lo extraído espera en ella hasta que se recoge. */
+export interface PlacedTool {
+  id: number;
+  toolId: string;
+  depositId: number;
+  materialId: string;
+  x: number;
+  z: number;
+  /** Avance 0-1 de la unidad en curso. */
+  progress: number;
+  /** Unidades extraídas, listas para recoger (`collect`). */
+  ready: number;
+  stopped: ToolStop | null;
+}
+
+export interface UnstableZone {
+  id: number;
+  x: number;
+  z: number;
+  radiusM: number;
+  /** Segundos de agrietado acumulados: suben con alguien encima y bajan poco a poco sin nadie. */
+  crackingS: number;
+  collapsed: boolean;
+  /** Alguien la pisa ahora mismo (en el suelo, no en jetpack). */
+  pressed: boolean;
+}
+
+export interface Deposit {
+  id: number;
+  materialId: string;
+  x: number;
+  z: number;
+  /** Unidades que quedan. */
+  units: number;
+  /** Puntos por unidad (ya con distancia y peligro). */
+  valuePerUnit: number;
+  /** Avance 0-1 de la unidad en curso. */
+  progress: number;
+  /** Está dentro o al borde de terreno inestable. */
+  risky: boolean;
+  /** Filón al que pertenece (vetas raras agrupadas a pocos metros); ausente si no está en ninguno. */
+  lodeId?: number;
+}
+
+export interface PlannedStorm {
+  /** Segundos desde el aterrizaje. */
+  startS: number;
+  endS: number;
+  intensity: number;
+}
+
+export interface StormStatus {
+  active: boolean;
+  intensity: number;
+  /** Segundos hasta la próxima (null = no hay más). */
+  nextInS: number | null;
+  /** Segundos hasta que acabe la activa (null = no hay). */
+  endsInS: number | null;
+  /** La próxima ya está avisada. */
+  warned: boolean;
+}
+
+export interface DescentState {
+  altitudeM: number;
+  /** Velocidad de caída (positiva hacia abajo). */
+  speedMps: number;
+  brake: boolean;
+  brakeS: number;
+  fuelUsed: number;
+}
+
+export interface SurfaceState {
+  nodeId: string;
+  worldId: string;
+  gravityMps2: number;
+  radiusM: number;
+  /** Solo durante `landing`. */
+  descent: DescentState | null;
+  touchdownSpeedMps: number | null;
+  hardLanding: boolean;
+  /** Segundos en tierra (desde el contacto). */
+  elapsedS: number;
+  storms: PlannedStorm[];
+  storm: StormStatus;
+  /** Índice en `storms` de la próxima tormenta cuyo aviso/inicio/fin queda por emitir. */
+  stormCursor: number;
+  zones: UnstableZone[];
+  deposits: Deposit[];
+  /** Herramientas colocadas en este mundo. */
+  tools: PlacedTool[];
+  /** Herramientas perdidas en este aterrizaje (se quedaron fuera cuando no quedaba nadie fuera). */
+  toolsLost: Record<string, number>;
+  /** Guardado en la bodega en este mundo y aún en ella (cuenta para el despegue y `jettison`). */
+  loaded: Record<string, number>;
+  loadedKg: number;
+  loadedValue: number;
 }
 
 export interface RunStats {
@@ -269,7 +613,18 @@ export interface RunStats {
   incidentsFixed: number;
   impactsTaken: number;
   impactsEvaded: number;
+  /** Esquivas con roces (daño parcial); las que fallan del todo cuentan en `impactsTaken`. */
+  impactsGrazed?: number;
   kitsUsed: number;
+  landings: number;
+  hardLandings: number;
+  evas: number;
+  evaTimeS: number;
+  materialsCollected: number;
+  materialsStored: number;
+  /** Puntos de los materiales guardados a bordo (neto de lo soltado). */
+  materialsValue: number;
+  crewLost: number;
 }
 
 export interface RunState {
@@ -285,6 +640,10 @@ export interface RunState {
   incidents: Incident[];
   warnings: ImpactWarning[];
   transit: TransitState | null;
+  /** Nodos del sector actual en los que ya se aterrizó (una vez por nodo). */
+  landedIds: string[];
+  crew: CrewMember[];
+  surface: SurfaceState | null;
   stats: RunStats;
   score: number;
 }
@@ -310,9 +669,43 @@ export type RunEventType =
   | 'low-hull'
   | 'sector-cleared'
   | 'new-sector'
+  | 'descent'
+  | 'landing'
+  | 'airlock'
+  | 'material-collected'
+  | 'cargo-stored'
+  | 'storm-warning'
+  | 'storm-start'
+  | 'storm-end'
+  | 'terrain-warning'
+  | 'terrain-collapsed'
+  | 'suit-o2'
+  | 'suit-damaged'
+  | 'crew-dead'
+  | 'take-off'
+  | 'jettison'
+  | 'tool-placed'
+  | 'tool-done'
+  | 'tool-stopped'
+  | 'tool-resumed'
+  | 'tool-lost'
   | 'lost';
 
 export type EventTone = 'info' | 'ok' | 'warn' | 'bad';
+
+/**
+ * Subtipo explícito de algunos eventos (para que el cliente no dependa de `tone` ni de la clave):
+ * `landing` soft/hard · `suit-o2` low/critical · `airlock` exit/enter · `crew-dead` oxygen/fall ·
+ * `cargo-stored` stored/processed.
+ */
+export type RunEventSubtype =
+  | 'soft' | 'hard' | 'low' | 'critical' | 'exit' | 'enter' | 'oxygen' | 'fall' | 'stored' | 'processed'
+  // esquiva: `impact-evaded` clean · `impact-hit` graze/failed
+  | 'clean' | 'graze' | 'failed'
+  // herramientas: `tool-stopped` storm · `tool-lost` left
+  | 'storm' | 'left'
+  // `material-collected` lode: piezas de la última veta de un filón completado (llevan el bonus)
+  | 'lode';
 
 export interface RunEvent {
   id: number;
@@ -322,6 +715,8 @@ export interface RunEvent {
   message: MessageRef;
   systemId?: SystemId;
   incidentKind?: IncidentKind;
+  crewId?: number;
+  subtype?: RunEventSubtype;
 }
 
 /** Acciones del jugador. Las que llevan `seconds` se envían mientras se mantiene pulsada la tecla. */
@@ -331,9 +726,35 @@ export type RunAction =
   | { type: 'toggle-system'; systemId: SystemId; enabled: boolean }
   | { type: 'work-incident'; incidentId: number; seconds: number }
   | { type: 'repair-system'; systemId: SystemId; seconds: number }
-  | { type: 'evade' }
+  /**
+   * Sin `grazes`: anula el impacto (compatibilidad). Con `grazes` (roces del minijuego, se redondea y
+   * recorta a 0..maxGrazes): el impacto entra con esa fracción del daño.
+   */
+  | { type: 'evade'; grazes?: number }
   | { type: 'service' }
-  | { type: 'next-sector' };
+  | { type: 'next-sector' }
+  // Superficie (fase 2). `crewId` por defecto: el primer tripulante vivo.
+  | { type: 'land' }
+  | { type: 'set-descent-brake'; on: boolean }
+  | { type: 'eva-exit'; crewId?: number }
+  | { type: 'eva-enter'; crewId?: number }
+  /** Silenciosa: posición relativa a la nave (m) y si pisa el suelo. */
+  | { type: 'set-position'; x: number; z: number; grounded: boolean; crewId?: number }
+  | { type: 'jetpack'; seconds: number; crewId?: number }
+  | { type: 'fall-impact'; speedMps: number; crewId?: number }
+  /** Coloca la herramienta que corresponde al material de la veta (en alcance, con los pies en el suelo). */
+  | { type: 'deploy-tool'; depositId: number; crewId?: number }
+  /**
+   * Recoge al instante lo ya extraído por la herramienta de esa veta (lo que quepa). Si la veta está
+   * agotada y no queda nada extraído, la herramienta vuelve sola a la mochila. `seconds` se ignora
+   * (queda por compatibilidad).
+   */
+  | { type: 'collect'; depositId: number; seconds?: number; crewId?: number }
+  /** Retira la herramienta de esa veta: recoge lo que quepa y lo que no, vuelve a la veta. */
+  | { type: 'retrieve-tool'; depositId: number; crewId?: number }
+  /** Suelta lo guardado en la bodega en este mundo. */
+  | { type: 'jettison' }
+  | { type: 'take-off' };
 
 export type ActionResult = { ok: true } | { ok: false; reason: MessageRef };
 
@@ -348,6 +769,32 @@ export interface JumpEstimate {
   riskLevel: number;
 }
 
+/** Antes de aterrizar en el nodo actual. */
+export interface LandingEstimate {
+  nodeId: string;
+  worldId: string;
+  gravityMps2: number;
+  /** Descenso con el perfil de frenado de referencia. */
+  descentFuel: number;
+  descentTimeS: number;
+  /** Despegue con la bodega vacía. */
+  takeOffFuel: number;
+  totalFuel: number;
+  /** Cubre descenso de referencia + despegue en vacío (requisito de `land`, junto a motores en línea). */
+  canLand: boolean;
+  /** Cubre descenso + despegue. */
+  enoughFuel: boolean;
+  alreadyLanded: boolean;
+}
+
+export interface TakeOffEstimate {
+  fuel: number;
+  fuelEmpty: number;
+  loadedKg: number;
+  enoughFuel: boolean;
+  enoughFuelEmpty: boolean;
+}
+
 export interface Run {
   /** Estado vivo (solo lectura para el consumidor; lo muta el motor). */
   readonly state: RunState;
@@ -359,6 +806,10 @@ export interface Run {
   /** Devuelve y vacía los eventos pendientes (los de `apply` y los no leídos de `step`). */
   takeEvents(): RunEvent[];
   estimateJump(toId: string): JumpEstimate | null;
+  /** Atracada en un nodo aterrizable: coste de descenso y despegue. */
+  estimateLanding(): LandingEstimate | null;
+  /** En superficie: coste del despegue ahora (con lo cargado aquí) y en vacío. */
+  estimateTakeOff(): TakeOffEstimate | null;
   /** Copia profunda del estado (tests, red). */
   snapshot(): RunState;
 }
@@ -367,4 +818,6 @@ export interface RunOptions {
   seed: number;
   shipId?: string;
   catalog?: Catalog;
+  /** Tripulantes (1 en solitario; la fase 4 usará hasta 4). */
+  crewSize?: number;
 }
