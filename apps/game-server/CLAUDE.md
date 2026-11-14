@@ -44,4 +44,10 @@ pnpm --filter @payload/game-server start     # node dist/index.js
 - La sala arranca siempre una partida libre (clásica): aún no se puede elegir misión ni diseño (diseño compartido y voto, `docs/phases/fase-6.md`). El espejo del cliente ya admite estados con diseño.
 - Un jugador que se va con su tripulante fuera de la nave bloquea el despegue hasta que se le acaba el oxígeno.
 - No hay reanudación tras recargar la página (el SDK reconecta solo si la pestaña sigue abierta).
-- Sin Redis ni varias instancias (ADR 0010). Sin despliegue ni TLS (fase 7; el despliegue de AWS Amplify de `docs/despliegue-aws.md` solo sirve el cliente estático).
+- Sin Redis ni varias instancias (ADR 0010).
+
+## Despliegue
+
+En una instancia de AWS Lightsail con Caddy delante (HTTPS/`wss://`): archivos en `deploy/` (`payload-game.service`,
+`Caddyfile`, `update.sh`) y pasos en `docs/despliegue-aws.md` § «Servidor del cooperativo». El cliente publicado
+necesita `VITE_GAME_SERVER_URL=wss://<dominio>` en Amplify (sin ella, el cooperativo da timeout).

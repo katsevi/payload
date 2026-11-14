@@ -465,14 +465,17 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
 - **Mecha Aurora G9:** aplazado (ADR 0012). Decidir en fases posteriores si vuelve como vehículo o se retira del GDD.
 - **Mascota:** no hay. Si vuelve, Rise sigue necesitando autorización de NASA.
 
-## Despliegue (preparado, falta conectar AWS)
+## Despliegue
 
-El repo ya trae la configuración de **AWS Amplify Hosting** (`amplify.yml`, `customHttp.yml`) y la guía
-**`docs/despliegue-aws.md`**. El build de producción se probó en local (`vite preview`: menú, misiones y hangar sin
-errores de consola; `dist` ≈ 17 MB con los modelos). **Falta la acción humana:** conectar el repo en la consola de
-Amplify (cuenta de AWS y autorización de GitHub) y crear una alarma de presupuesto. Nada está publicado todavía.
-
-- **Servidor de la fase 6:** necesitará WebSockets: Lightsail/EC2 o ECS Fargate detrás de un ALB con stickiness (la sala vive en memoria de un proceso).
+- **Cliente: publicado** en AWS Amplify Hosting (`https://main.d24izpi0hbzbl0.amplifyapp.com/`, rama `main`, se publica
+  sola al fusionar). Configuración: `amplify.yml`, `customHttp.yml`. Guía: `docs/despliegue-aws.md`.
+- **Servidor del cooperativo: sin publicar.** Por eso en el sitio publicado «Cooperativo» da **timeout**: el build no
+  lleva `VITE_GAME_SERVER_URL` y el cliente busca `wss://main.d24izpi0hbzbl0.amplifyapp.com:2567`, donde no hay nada
+  (comprobado el 2026-11-14: la conexión no responde en 10 s). Preparado para AWS Lightsail + Caddy:
+  `apps/game-server/deploy/` y `docs/despliegue-aws.md` § «Servidor del cooperativo». El build de producción del
+  servidor (`node dist/index.js`) se probó en local creando una sala con `@colyseus/sdk`.
+- **Acción humana:** crear la instancia de Lightsail, IP estática, dominio `juego.<dominio>` y firewall 80/443; instalar
+  con la guía; añadir `VITE_GAME_SERVER_URL=wss://juego.<dominio>` en Amplify y volver a desplegar.
 - **Licencia:** `programme_erizon.glb` es CC-BY-NC-ND y impide el uso comercial; hay que sustituirlo antes de un despliegue comercial (acción humana 10).
 
 ## Deuda técnica conocida

@@ -1,0 +1,7 @@
+# Caddy delante del servidor de juego (guía: docs/despliegue-aws.md § Servidor del cooperativo).
+# Copiar a /etc/caddy/Caddyfile, cambiar el dominio y ejecutar: sudo systemctl reload caddy
+# Caddy pide y renueva solo el certificado HTTPS (Let's Encrypt) y reenvía WebSocket y HTTP
+# (Colyseus usa los dos: /matchmake por HTTP y la sala por WebSocket).
+juego.tudominio.com {
+	reverse_proxy 127.0.0.1:2567
+}
