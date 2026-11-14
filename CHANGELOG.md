@@ -5,6 +5,9 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+### Despliegue del servidor de juego
+- `apps/game-server/deploy/`: servicio systemd (`payload-game.service`), `Caddyfile` (HTTPS automático y proxy de WebSocket) y `update.sh`. `docs/despliegue-aws.md` explica cómo publicar el servidor en AWS Lightsail y conectar el cliente de Amplify con `VITE_GAME_SERVER_URL`; explica también el timeout del cooperativo cuando falta.
+
 ### Despliegue
 - Configuración de AWS Amplify Hosting: `amplify.yml` (Node de `.nvmrc`, pnpm por corepack, build del cliente) y `customHttp.yml` (caché por tipo de archivo y cabeceras de seguridad). Guía en `docs/despliegue-aws.md`.
 

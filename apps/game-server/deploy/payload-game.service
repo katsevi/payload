@@ -1,0 +1,24 @@
+# Servicio systemd del servidor de juego de Payload (guía: docs/despliegue-aws.md § Servidor del cooperativo).
+# Copiar a /etc/systemd/system/payload-game.service y ejecutar:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now payload-game
+# Supone el repo en /home/ubuntu/payload y Node instalado con nvm para el usuario ubuntu.
+[Unit]
+Description=Payload game server (Colyseus)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/payload/apps/game-server
+Environment=NODE_ENV=production
+# Solo escucha en local: Caddy (puerto 443) le pasa el tráfico con HTTPS.
+Environment=PORT=2567
+Environment=HOST=127.0.0.1
+# Ajusta la ruta si cambias la versión de Node (debe coincidir con .nvmrc).
+ExecStart=/bin/bash -lc 'source ~/.nvm/nvm.sh && nvm use --silent "$(cat /home/ubuntu/payload/.nvmrc)" && exec node dist/index.js'
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
