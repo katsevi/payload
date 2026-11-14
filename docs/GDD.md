@@ -4,7 +4,7 @@ Diseño del juego vigente desde el 2026-11-09. Plan de partida: `docs/plan/plan-
 Por qué se rehízo el juego: `docs/adr/0011-reinicio-tripulacion-de-exploracion.md`. El GDD del simulador
 anterior está en `docs/archivo/v0.3-simulador/GDD.md`.
 
-Leyenda: **[F1]** existe desde la fase 1 · **[F2]** existe desde la fase 2 (superficie) · **[F3] [F4] [F5] [F6] [F7]** diseño previsto para esa fase (nuevo orden: ADR 0015). La fase 3 (economía), la 4 (diseño de misión) y la base de la 6 (cooperativo; ver `docs/MULTIPLAYER.md`) ya existen.
+Leyenda: **[F1]** existe desde la fase 1 · **[F2]** existe desde la fase 2 (superficie) · **[F3] [F4] [F5] [F6] [F7] [F8]** diseño previsto para esa fase (nuevo orden: ADR 0015). La fase 3 (economía), la 4 (diseño de misión) y la base de la 6 (cooperativo; ver `docs/MULTIPLAYER.md`) ya existen.
 
 ## 1. Concepto
 
@@ -240,6 +240,14 @@ Desde un destino atracado que sea planeta, luna o campo de asteroides, el piloto
   pasivas (piloto, ingeniero, explorador; el gestor aún sin ventaja), avatares y ping. Sin voz integrada ni dificultad
   escalada (descartado en la ficha). Faltan los roles por disciplina, el diseño compartido y el voto.
 - **[F7] Pulido.** Rankings, mando y táctil, despliegue, pruebas E2E.
+- **[F8] Cordura de la tripulación.** Cada tripulante tiene una cordura (0-100) que se desgasta con el viaje y la
+  exploración según los peligros RIDGE de la NASA (aislamiento, distancia, entorno hostil, radiación; la gravedad
+  no cuenta) y el sueño. Bandas estable/tensa/crítica/quiebre (65/35/12): **solo debuffs** (trabajo más lento,
+  peor esquiva, más O₂ del traje y jetpack, menos carga, lapsus leves), **nunca muerte ni derrota**. Contramedidas
+  que gastan lo que ya escasea: litera (un tripulante fuera de servicio), llamada a la Tierra (15 kW; rinde menos
+  lejos), atraque, provisiones (créditos), mejoras de tripulación (kg y kW), módulos de hábitat y huerto en el
+  diseño (masa, M$, plazo), rol gestor y cohesión de equipo. Diseño: `docs/diseno/cordura-tripulacion.md`;
+  ficha: `docs/phases/fase-8.md`; ADR 0019 (propuesta).
 
 ## 12. Assets y licencias
 
@@ -257,3 +265,5 @@ escrita de NASA y el sistema debe permitir cambiarla por una propia.
 2. ¿Cuánta ayuda en la primera partida? Hoy hay una pantalla de ayuda (H) y carteles; no hay tutorial.
 3. ¿Dificultad en solitario frente a 4 jugadores? Pendiente de la fase 6.
 4. ¿Se sustituye ERIZON antes de cualquier uso comercial?
+5. ¿Cómo se llama la cordura de cara al jugador («Cordura» o algo menos clínico, como «Ánimo»/«Tensión») y cuánto
+   debe pesar frente a la presión del oxígeno y el combustible? Pendiente de la fase 8.
