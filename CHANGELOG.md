@@ -8,7 +8,7 @@ Cada entrada se agrupa por paquete.
 ### Despliegue
 - Configuración de AWS Amplify Hosting: `amplify.yml` (Node de `.nvmrc`, pnpm por corepack, build del cliente) y `customHttp.yml` (caché por tipo de archivo y cabeceras de seguridad). Guía en `docs/despliegue-aws.md`.
 
-## Fase 6 · Cooperativo 1-4 (Harry Hernández, integrado)
+## Fase 6 · Cooperativo 1-4 (Harry Hernández, integrado en el PR #9)
 
 Commit `6272af2` de Harry Hernández (rama `feat/f4-cooperativo`, 2026-11-13, escrita cuando el cooperativo era la fase 4), integrado en `main` el 2026-11-14 desde `feat/f6-integrar-cooperativo`, **antes de la fase 5**. Decisiones: ADR 0017 (escrito como 0015; renumerado al integrarlo). Contrato de red: `docs/MULTIPLAYER.md`.
 

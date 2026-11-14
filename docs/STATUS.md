@@ -10,9 +10,9 @@ supervivencia sea la *operación* de la misión diseñada (ADR `docs/adr/0015-re
 - **Fase 5 · Ciencia, datos y astronauta articulado:** `docs/phases/fase-5.md` (lista las decisiones que hay que tomar antes de empezar).
 - **Fase 6 · Cooperativo 1-4 con roles** (antigua fase 4; ficha `fase-6.md`) y **fase 7 · Pulido y lanzamiento** (antigua fase 5; `fase-7.md`).
 - **Regla 6 revisada:** se permiten explicaciones opcionales de una línea (ayuda con tecla, glosario, motivo del Go/No-Go, informe final); nunca lectura obligatoria.
-- **Fase 6 · Cooperativo 1-4: base implementada por Harry Hernández e integrada antes de la fase 5** (commit `6272af2` de la rama `feat/f4-cooperativo`, escrita cuando era la fase 4; integrada desde `feat/f6-integrar-cooperativo` el 2026-11-14). Su ADR se renumeró de 0015 a **0017**. Ver «Fase 6 — qué se hizo» y «Fase 6 — pendiente». Los ADR 0009 y 0010 siguen aceptados; el 0017 sustituye el detalle de implementación del 0009. En las notas antiguas de este archivo, el cooperativo que aparece como «fase 4» es ahora la fase 6.
+- **Fase 6 · Cooperativo 1-4: base implementada por Harry Hernández e integrada antes de la fase 5** (commit `6272af2` de la rama `feat/f4-cooperativo`, escrita cuando era la fase 4; integrada desde `feat/f6-integrar-cooperativo` el 2026-11-14 en el **PR #9**). Su ADR se renumeró de 0015 a **0017**. Ver «Fase 6 — qué se hizo» y «Fase 6 — pendiente». Los ADR 0009 y 0010 siguen aceptados; el 0017 sustituye el detalle de implementación del 0009. En las notas antiguas de este archivo, el cooperativo que aparece como «fase 4» es ahora la fase 6.
 
-Última actualización: **2026-11-14** · rama `feat/f6-integrar-cooperativo` (main con la fase 4 fusionada, PR #6, + el cooperativo de Harry integrado; pendiente de PR) · Propuesta: 0.7.0 (fase 4; ver `CHANGELOG.md`). Guía para probar el juego: [`docs/guias/primera-mision.md`](guias/primera-mision.md)
+Última actualización: **2026-11-14** · rama `feat/f6-integrar-cooperativo` (main con la fase 4 fusionada, PR #6, + el cooperativo de Harry integrado en el **PR #9**, abierto) · Propuesta: 0.7.0 (fase 4; ver `CHANGELOG.md`). Guía para probar el juego: [`docs/guias/primera-mision.md`](guias/primera-mision.md)
 
 > Léelo antes de empezar y actualízalo al terminar una tarea relevante. Las casillas de
 > `docs/phases/fase-*.md` las marca quien valida la fase, no quien implementa: aquí solo se resume.
@@ -498,7 +498,12 @@ Amplify (cuenta de AWS y autorización de GitHub) y crear una alarma de presupue
 
 0. **Fase 5 (ciencia, datos y astronauta articulado):** empezar por `docs/phases/fase-5.md` § «Decisiones que debe tomar la fase 5» y un ADR 0018 (el 0017 es el del cooperativo); el punto de partida (campos de datos de instrumentos, antenas y computadoras, `missionTarget`) está en esa ficha y en ADR 0016 § 4. Antes, el hito de la fase 4 con personas (F4-a) y la medida de FPS (F4-b).
 
-### Cooperativo (fase 6, base integrada)
+### Cooperativo (fase 6, base integrada en el PR #9)
+
+- **Cómo probar la sala:** `pnpm dev:server` (ws://localhost:2567) y `pnpm dev` (o `pnpm dev:lan` para otros equipos); Menú → Cooperativo → Crear sala → en otra pestaña o equipo, escribir el código → Estoy listo → el anfitrión pulsa Empezar expedición. Probado con 2 pestañas en un equipo; falta con 3-4 jugadores y en red local.
+- **Siguiente paso de la fase 6:** que el anfitrión elija misión y diseño en el lobby (hoy la sala lanza siempre una partida libre), el diseño compartido por rol y el Go/No-Go con voto; el espejo del cliente ya acepta `state.missionDesign` (`enterRemote`) y hay test de `hydrate` con diseño.
+- **Despliegue:** el servidor necesita WebSockets y no va en Amplify (ver `docs/despliegue-aws.md`).
+
 
 1. Cerrar la fase 2: segunda revisión de diseño, validación independiente final, prueba con jugadores y medida de FPS;
    ajustar `catalog/mundos.json` con `pnpm balance` (ver `.claude/skills/add-catalog-item`).
