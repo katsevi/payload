@@ -1,6 +1,18 @@
 # Estado del proyecto — traspaso entre sesiones
 
-Última actualización: **2026-11-13** · Rama actual: `feat/f3-economia-progresion` (cambios sin commitear) · Versión publicada: 0.4.0 · Propuesta: 0.6.0 (sin publicar; la 0.5.0 propuesta es la fase 2; ver `CHANGELOG.md`)
+## Reto NASA y roadmap nuevo (2026-11-14)
+
+El equipo evaluó Payload frente al reto «Space Mission Design Game» (NASA Space Apps 2026: diseñar, gestionar y simular una
+misión y explicar por qué sale bien o mal). Decisión: conservar el juego y reordenar el roadmap para que la partida de
+supervivencia sea la *operación* de la misión diseñada (ADR `docs/adr/0015-reto-nasa-y-roadmap.md`).
+
+- **Fase 4 · Diseño de misión y sistema solar: implementada · validada con observaciones** (rama `feat/f4-diseno-de-mision`, PR abierto; ADR 0016). `pnpm validate` 11/11 con **430 tests** (257 shared + 173 client). Diseño de misión antes de zarpar (6 misiones, módulos, instrumentos, lanzadores, Go/No-Go con motivo), sistema solar con 25 cuerpos reales y potencia 1/d², hangar y mapa solar 3D, glosario opcional. Partida clásica idéntica a `main`. **Pendiente para la fase 5:** el objetivo de la misión (`missionTarget`) aún no termina ni puntúa la partida (definir la condición de éxito), los avisos `thermal`, `reliability` y `no-battery` no tienen efecto en la partida, la misión guiada de CubeSat necesita otra escala de módulos. **Sin verificar por personas:** diseñar una misión en < 10 min, FPS con el mapa solar abierto (dos `<Canvas>`), tramos con Júpiter/Saturno y los mundos nuevos en superficie.
+- **Fase 5 · Ciencia, datos y astronauta articulado:** `docs/phases/fase-5.md`.
+- **Fase 6 · Cooperativo 1-4 con roles** (antigua fase 4) y **fase 7 · Pulido y lanzamiento** (antigua fase 5): `fase-6.md`, `fase-7.md`.
+- **Regla 6 revisada:** se permiten explicaciones opcionales de una línea (ayuda con tecla, glosario, motivo del Go/No-Go, informe final); nunca lectura obligatoria.
+- Los ADR 0009 y 0010 (servidor) siguen aceptados y en suspenso hasta la fase 6. En las notas antiguas de este archivo, el cooperativo que aparece como «fase 4» es ahora la fase 6.
+
+Última actualización: **2026-11-14** · Rama actual: `feat/f4-diseno-de-mision` · Propuesta: 0.7.0 (fase 4; ver `CHANGELOG.md`)
 
 > Léelo antes de empezar y actualízalo al terminar una tarea relevante. Las casillas de
 > `docs/phases/fase-*.md` las marca quien valida la fase, no quien implementa: aquí solo se resume.
@@ -22,7 +34,7 @@ decisión en ADR 0011). El juego se rehízo el 2026-11-09.
   Créditos, terminal de estación de pago (venta, suministros, 11 mejoras con contrapartida), ayuda de emergencia
   gratuita (sustituye al servicio gratuito) y la masa a bordo encarece cada salto. `pnpm validate` 11/11, **300 tests**
   (181 + 119). Nadie ha jugado 20 minutos para comprobar el hito ni ha visto el terminal con GPU real. Decisiones: ADR 0014.
-- **Siguiente: fase 4 (cooperativo 1-4).** Toda la economía entra como `RunAction` y es determinista (ver «Próximos pasos»).
+- **Siguiente: fase 4 (diseño de misión y sistema solar), en curso; el cooperativo es ahora la fase 6.** Toda la economía entra como `RunAction` y es determinista (ver «Próximos pasos»).
 
 ## Estado por fase
 
@@ -31,8 +43,10 @@ decisión en ADR 0011). El juego se rehízo el 2026-11-09.
 | 1 · Viaje y nave (en solitario) | **Implementada y fusionada en `main`** (PR #3). `pnpm validate` en verde y recorrido manual en Chrome. **Falta:** validación independiente (agente `validator`) y el hito con jugadores. |
 | 2 · Exploración de superficie | **Implementada** (commit `d8ce24d` en `feat/f2-superficie`; mejoras sin commitear en `feat/f2-herramientas-e-interacciones`). `pnpm validate` en verde y una pasada del `validator` sin bloqueantes. **Falta:** validación independiente final, la segunda revisión de diseño y el hito con jugadores. |
 | 3 · Economía y progresión | **Implementada · validada con observaciones** (rama `feat/f3-economia-progresion`, sin commitear). `pnpm validate` en verde (300 tests) y validación independiente «cumple con observaciones» (sin exploits de dinero ni soft-locks). **Falta:** el hito con jugadores (20 min: vender, >= 2 mejoras, la nave se siente otra), ver el terminal y los créditos en un navegador con GPU real y escuchar los cues. |
-| 4 · Cooperativo 1-4 | No iniciada. `apps/game-server` es un marcador. |
-| 5 · Pulido y lanzamiento | No iniciada. `apps/api` es un marcador. |
+| 4 · Diseño de misión y sistema solar | **En curso** (rama `feat/f4-diseno-de-mision`, desde `main` con la fase 3 fusionada). Ficha: `docs/phases/fase-4.md`; decisión: ADR 0015. |
+| 5 · Ciencia, datos y astronauta articulado | No iniciada. Depende de la fase 4. |
+| 6 · Cooperativo 1-4 con roles | No iniciada (antigua fase 4). `apps/game-server` es un marcador. |
+| 7 · Pulido y lanzamiento | No iniciada (antigua fase 5). `apps/api` es un marcador. |
 
 ### Fase 1 — qué se hizo
 
@@ -282,7 +296,7 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
 - **Dos salidas tranquilas rinden algo más que una apurada** (por aterrizaje, el prudente saca 413 puntos y «hasta vaciar» 488 frente a 549 del codicioso, que muere el 49 %): vigilar con jugadores.
 - **Explorar baja la supervivencia:** sector 3 con exploración, 85-86 % frente a 92 % sin explorar.
 - **La mena ya no es relleno:** con los repuestos llenos se vende (4 créditos por unidad), pero pesa y encarece cada salto; vale poco frente a cristales (14) y muestras (24).
-- **Accesibilidad:** hay intensidad de efectos y tres ajustes separados (esquiva simple, averías simples, puntería ancha), pero no hay mando, táctil ni remapeo de teclas (fase 5).
+- **Accesibilidad:** hay intensidad de efectos y tres ajustes separados (esquiva simple, averías simples, puntería ancha), pero no hay mando, táctil ni remapeo de teclas (fase 7).
 - **Curva de «apurar el oxígeno»: el criterio de cierre del revisor NO se alcanzó.** Pedía +15 % o más de valor por salida entre
   25 % y 8-15 % de margen con <= 10 % de muertes. Con el bonus de filón queda en **+6,5 % con 5 % de muertes** (291 → 310
   puntos por salida a 15 %; a 8 % baja a 301 con 20 % de muertes): el bonus sube el botín de todos los perfiles un 15-17 %
@@ -317,16 +331,16 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
 - **Mando y táctil** no implementados. Sin CI ni linter.
 - **`fx` y `playerState`** son objetos mutables de módulo (leídos por frame sin pasar por React).
 
-## Próximos pasos (hacia la fase 4)
+## Próximos pasos (hacia el cooperativo, fase 6)
 
 1. Cerrar la fase 2: segunda revisión de diseño, validación independiente final, prueba con jugadores y medida de FPS;
    ajustar `catalog/mundos.json` con `pnpm balance` (ver `.claude/skills/add-catalog-item`).
 2. La prueba con jugadores de la fase 1.
 3. Cerrar la fase 3: commit y PR de `feat/f3-economia-progresion`, prueba de 20 minutos con personas y ajuste de precios y mejoras (`economia.json`, `mejoras.json`) con `pnpm balance`.
-4. Escribir `docs/MULTIPLAYER.md` nuevo antes de tocar `apps/game-server` (fase 4); el antitrampas de `set-position` y la autoridad dividida (ADR 0012) son su punto de partida.
+4. Escribir `docs/MULTIPLAYER.md` nuevo antes de tocar `apps/game-server` (fase 6); el antitrampas de `set-position` y la autoridad dividida (ADR 0012) son su punto de partida.
 5. **Lo que el cooperativo debe saber de la economía** (para `docs/MULTIPLAYER.md` y `apps/game-server`):
    - Todo el comercio entra como `RunAction` (`sell`, `buy-supply`, `buy-upgrade`, `service`) y es determinista: la oferta sale de semilla + sector + nodo, sin azar propio del servidor. El motor valida estación, créditos y oferta, así que el servidor solo reenvía acciones.
    - `run.stationQuote()` es la fuente única de precios y oferta; `effectiveShip()` y `effectiveSurfaceRules()`, de la nave y las reglas con mejoras. El cliente no calcula cifras y el servidor debe usar las mismas.
-   - Los **créditos y las mejoras son de la tripulación** (un único `RunState`, compartidos). Falta decidir quién gasta: propuesta, el rol «gestor de recursos» lidera el terminal, sin bloqueo rígido (como pide `docs/phases/fase-4.md`). El motor ya rechaza compras duplicadas o sin créditos.
+   - Los **créditos y las mejoras son de la tripulación** (un único `RunState`, compartidos). Falta decidir quién gasta: propuesta, el rol «gestor de recursos» lidera el terminal, sin bloqueo rígido (como pide `docs/phases/fase-6.md`). El motor ya rechaza compras duplicadas o sin créditos.
    - `RunState.credits` y `upgrades` son obligatorios: cualquier `RunState` armado a mano (fixtures, red) debe incluirlos.
    - El terminal **no pausa** el juego: la nave sigue viva mientras se compra.

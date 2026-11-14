@@ -1,0 +1,179 @@
+{
+  "missionId": "mission-asteroid-sample",
+  "valid": [
+    {
+      "name": "taladro-camara-e-infrarrojo-a-ryugu",
+      "design": {
+        "missionId": "mission-asteroid-sample",
+        "destinationId": "ryugu",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-drill",
+          "inst-camera",
+          "inst-ir-spectrometer"
+        ]
+      }
+    },
+    {
+      "name": "ligera-a-bennu",
+      "design": {
+        "missionId": "mission-asteroid-sample",
+        "destinationId": "bennu",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-light",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array-hi",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-drill",
+          "inst-ir-spectrometer",
+          "inst-camera"
+        ]
+      }
+    }
+  ],
+  "failing": [
+    {
+      "name": "ionica-no-llega-a-tiempo",
+      "cause": "schedule",
+      "design": {
+        "missionId": "mission-asteroid-sample",
+        "destinationId": "bennu",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-light",
+          "engine-ion",
+          "solar-array-hi",
+          "solar-array-hi",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-drill",
+          "inst-camera",
+          "inst-ir-spectrometer"
+        ]
+      }
+    },
+    {
+      "name": "coloso-arruina-el-presupuesto",
+      "cause": "cost",
+      "design": {
+        "missionId": "mission-asteroid-sample",
+        "destinationId": "bennu",
+        "launcherId": "launcher-colossus",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-drill",
+          "inst-camera",
+          "inst-ir-spectrometer"
+        ]
+      }
+    },
+    {
+      "name": "sin-antena",
+      "cause": "no-comms",
+      "design": {
+        "missionId": "mission-asteroid-sample",
+        "destinationId": "bennu",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-drill",
+          "inst-camera",
+          "inst-ir-spectrometer"
+        ]
+      }
+    },
+    {
+      "name": "poca-ciencia",
+      "cause": "science",
+      "design": {
+        "missionId": "mission-asteroid-sample",
+        "destinationId": "bennu",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-camera"
+        ]
+      }
+    },
+    {
+      "name": "un-solo-panel-en-ryugu",
+      "cause": "power",
+      "design": {
+        "missionId": "mission-asteroid-sample",
+        "destinationId": "ryugu",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-drill",
+          "inst-camera",
+          "inst-ir-spectrometer"
+        ]
+      }
+    }
+  ]
+}

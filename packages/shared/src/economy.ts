@@ -10,6 +10,7 @@
  */
 import { getSurfaceCatalog } from './catalog';
 import { createRng, deriveSeed } from './rng';
+import { solarKw } from './solar';
 import {
   type Catalog, type EconomyRules, type NodeKindDef, type SectorMap, type ShipDef, type SurfaceRules, type UpgradeDef, type UpgradeEffect, type UpgradeTarget,
 } from './types';
@@ -113,10 +114,11 @@ export function effectiveSurfaceRules(base: SurfaceRules, upgrades: Record<strin
  * Margen eléctrico a régimen de crucero con TODO encendido y el reactor sano: potencia − demanda (kW).
  * Negativo = con todo encendido en un salto a crucero hay sobrecarga (habrá que apagar algo).
  */
-export function cruisePowerMarginKw(ship: ShipDef): number {
+export function cruisePowerMarginKw(ship: ShipDef, sunDistanceAu = 1): number {
   const cruise = ship.throttles.find((t) => t.id === 'cruise')?.engineDrawMult ?? 1;
   const d = ship.systemDrawKw;
-  return ship.reactorOutputKw - (d.engines * cruise + d.lifeSupport + d.shields + d.nav);
+  // Fase 4: los paneles (si los hay) dan 1/d² de su potencia a 1 UA.
+  return ship.reactorOutputKw + solarKw(ship, sunDistanceAu) -(d.engines * cruise + d.lifeSupport + d.shields + d.nav);
 }
 
 /** Masa que añaden las mejoras compradas (kg). */

@@ -3,8 +3,16 @@
  * qué escena se pinta, qué se puede hacer junto a una veta o a la rampa, hacia dónde queda la nave y
  * la guía del descenso. El motor manda en recursos y consecuencias; aquí solo se traduce.
  */
-import { catalog as defaultCatalog, getSurfaceCatalog, lodeProgress, referenceBrake, type Catalog, type Deposit, type LodeProgress, type PlacedTool, type RunAction, type RunPhase, type RunState, type StormStatus, type WorldDef } from '@payload/shared';
+import { catalog as defaultCatalog, getNodeWorld, getSurfaceCatalog, lodeProgress, referenceBrake, type Catalog, type Deposit, type LodeProgress, type PlacedTool, type RunAction, type RunPhase, type RunState, type StormStatus, type WorldDef } from '@payload/shared';
 import { effectiveRulesOf } from './effective';
+
+/**
+ * ¿Se puede aterrizar en este nodo? Lo decide el motor: hay mundo de superficie (`getNodeWorld`). Un cuerpo real con
+ * `landable: false` (gigantes gaseosos, estaciones) no lo tiene aunque su tipo de nodo sea aterrizable.
+ */
+export function isLandableNode(state: Pick<RunState, 'seed' | 'sector'>, nodeId: string, cat: Catalog = defaultCatalog): boolean {
+  return getNodeWorld(state.seed, state.sector, nodeId, cat) !== null;
+}
 import type { Prompt, PromptBadge } from '../state/ui';
 
 // ─── Dónde está la nave ──────────────────────────────────────────────────────────────────────────

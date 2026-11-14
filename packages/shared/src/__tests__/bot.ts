@@ -17,7 +17,7 @@
  */
 import {
   cargoMassKg, createRng, createRun, FIXED_STEP_S, getMaterial, getNode, getNodeKind, getWorld, lodeBonusApplies, referenceBrake, suitRefill,
-  type CrewMember, type Deposit, type Rng, type Run, type RunAction, type RunEvent, type RunState, type SurfaceState, type SystemId,
+  type CrewMember, type Deposit, type MissionDesign, type Rng, type Run, type RunAction, type RunEvent, type RunState, type SurfaceState, type SystemId,
 } from '../index';
 
 /** `thorough` («hasta vaciar»): como el prudente, pero repite salidas seguras mientras quede botín y la nave lo permita. */
@@ -48,6 +48,8 @@ export interface BotOptions {
    * (`returnMarginPct`) lo apaga para medir el compromiso del O₂ con el traje de serie y la conducta de la fase 2.
    */
   economyPolicy?: boolean;
+  /** Fase 4: juega con la nave diseñada sobre el mapa del sistema solar (sin él, la partida clásica). */
+  design?: MissionDesign;
 }
 
 export type ShipSkill = 'medium' | 'simple' | 'clumsy';
@@ -97,6 +99,8 @@ export interface BotResult {
   events: RunEvent[];
   evas: EvaRecord[];
   landings: LandingRecord[];
+  /** Fase 4: llegó (atracó) alguna vez al nodo destino de la misión (`missionTarget`). */
+  targetReached: boolean;
 }
 
 /**
@@ -118,7 +122,9 @@ function chooseJump(run: Run): string | null {
     const forward = node.column > here.column ? 100 : s.visitedIds.includes(id) ? -200 : -50;
     const station = node.kind === 'station' && (s.ship.hull < 60 || s.ship.fuel < 55) ? 60 : 0;
     const goal = id === s.sector.goalId ? 500 : 0;
-    const value = forward + station + goal - est.riskLevel * 22 - est.distanceLy + (node.cache ? 10 : 0);
+    // Fase 4: con misión diseñada, el destino de la misión atrae (en partidas clásicas ningún nodo lo lleva).
+    const target = node.missionTarget && !s.visitedIds.includes(id) ? 120 : 0;
+    const value = forward + station + goal + target - est.riskLevel * 22 - est.distanceLy + (node.cache ? 10 : 0);
     if (!best || value > best.value) best = { id, value };
   }
   return best?.id ?? null;
@@ -145,7 +151,7 @@ export function playRun(seed: number, options: BotOptions): BotResult {
     return { type: 'evade', grazes };
   };
   const maxSeconds = options.maxSeconds ?? (explore ? 7200 : 3600);
-  const run = createRun({ seed });
+  const run = createRun(options.design ? { seed, design: options.design } : { seed });
   const s = run.state;
   const events: RunEvent[] = [];
   const explorer = skill === 'crew' && explore ? new Explorer(run, explore, seed, returnMarginPct, options.economyPolicy !== false) : null;
@@ -153,6 +159,10 @@ export function playRun(seed: number, options: BotOptions): BotResult {
   let walkLeftS = 0;
   let planLeftS = 2;
   let lastVisit = '';
+  let targetReached = false;
+  const checkTarget = () => {
+    if (!targetReached && s.phase !== 'transit' && getNode(s.sector, s.locationId)?.missionTarget) targetReached = true;
+  };
 
   const goTo = (target: Post): boolean => {
     if (post !== target) {
@@ -163,6 +173,7 @@ export function playRun(seed: number, options: BotOptions): BotResult {
   };
 
   for (let t = 0; t < maxSeconds; t += FIXED_STEP_S) {
+    checkTarget();
     if (s.phase === 'lost') break;
     if (s.phase === 'won') {
       if (s.stats.sectorsCleared >= sectors) break;
@@ -178,8 +189,12 @@ export function playRun(seed: number, options: BotOptions): BotResult {
         else if (ship.systems.shields.enabled) run.apply({ type: 'toggle-system', systemId: 'shields', enabled: false });
       } else {
         const spare = ship.powerSupplyKw - ship.powerDemandKw;
-        if (!ship.systems.shields.enabled && spare >= 32) run.apply({ type: 'toggle-system', systemId: 'shields', enabled: true });
-        else if (!ship.systems.nav.enabled && spare >= 12) run.apply({ type: 'toggle-system', systemId: 'nav', enabled: true });
+        // Con nave diseñada (fase 4) los consumos varían: se vuelve a encender solo si cabe lo que pide (+2 kW).
+        const draw = s.missionDesign ? run.effectiveShip().systemDrawKw : null;
+        const needShields = draw ? draw.shields + 2 : 32;
+        const needNav = draw ? draw.nav + 2 : 12;
+        if (!ship.systems.shields.enabled && spare >= needShields) run.apply({ type: 'toggle-system', systemId: 'shields', enabled: true });
+        else if (!ship.systems.nav.enabled && spare >= needNav) run.apply({ type: 'toggle-system', systemId: 'nav', enabled: true });
       }
 
       const warning = s.warnings.find((w) => !w.evaded);
@@ -226,7 +241,8 @@ export function playRun(seed: number, options: BotOptions): BotResult {
     run.step(FIXED_STEP_S);
     events.push(...run.takeEvents());
   }
-  return { state: run.snapshot(), events, evas: explorer?.evas ?? [], landings: explorer?.landings ?? [] };
+  checkTarget();
+  return { state: run.snapshot(), events, evas: explorer?.evas ?? [], landings: explorer?.landings ?? [], targetReached };
 }
 
 /** Prioridad de mejoras del bot (fase 3): primero lo que le salva la nave; el explorador, antes el equipo de salida. */

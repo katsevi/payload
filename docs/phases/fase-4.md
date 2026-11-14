@@ -1,48 +1,59 @@
-# Fase 4 · Cooperativo 1-4 con roles
+# Fase 4 · Diseño de misión y sistema solar
 
-Plan § 3: *dinámica cooperativa y roles de la tripulación*. Diseño previsto: `docs/GDD.md` § 8 y § 11.
-No iniciada: `apps/game-server` es un marcador. La fase 3 (economía) está implementada, así que el cooperativo hereda créditos, mejoras y terminal de estación.
+Decisión: `docs/adr/0015-reto-nasa-y-roadmap.md`. Responde al reto «Space Mission Design Game» (NASA Space Apps 2026):
+antes de zarpar el jugador **diseña la misión** y la partida de supervivencia de las fases 1-3 pasa a ser su *operación*.
+Referencias: webinar NASA «Design and Develop Science Missions» (necesidad y metas, concepto, requisitos, diseño,
+construir y verificar, operar), CubeSat 101, «Build It Yourself: Satellite!» (Webb), Mission Design Lab de Goddard y
+niveles de madurez CML (JPL).
 
-**Hito:** cuatro personas en cuatro equipos distintos (red local, no solo `localhost`) completan un
-sector comunicándose, sin desincronizaciones.
+**En curso** en la rama `feat/f4-diseno-de-mision`.
+
+**Hito:** una persona nueva diseña una misión en menos de 10 minutos (objetivo, instrumentos, módulos, lanzador),
+pasa o no la revisión Go/No-Go entendiendo el motivo por una línea, y la nave que sale de ese diseño es la que juega
+en un sistema solar real, donde la distancia al Sol cambia de verdad lo que le conviene llevar.
 
 ## Punto de partida
 
-- El motor ya está pensado para el servidor: paso fijo (0,1 s), sin reloj ni azar global, y toda decisión entra
-  como `RunAction` (`createRun(...).apply`).
-- ADR 0009 (servidor autoritativo con Colyseus 0.18) y ADR 0010 (un proceso, sin Redis) siguen siendo la base técnica.
-- **Economía (fase 3, ADR 0014):** créditos (`RunState.credits`) y mejoras (`RunState.upgrades`) son de toda la tripulación, en un único `RunState`. `sell`, `buy-supply`, `buy-upgrade` y `service` son `RunAction` deterministas y acotadas: el motor valida estación, créditos y oferta (que sale de semilla + sector + nodo). `run.stationQuote()`, `effectiveShip()` y `effectiveSurfaceRules()` son la fuente única de cifras: el cliente no calcula precios. El terminal no pausa el juego. Falta decidir quién puede gastar (propuesta: el rol «gestor de recursos» lidera el terminal, sin bloqueo rígido).
-- La sala de la versión anterior (`MissionRoom.ts`) sirve de referencia probada para reconexión y límites de tráfico.
+- La fase 3 está fusionada: `RunState`, `effectiveShip()`, `effectiveSurfaceRules()`, catálogo de naves, destinos,
+  mundos, economía y mejoras. Hoy hay una sola nave (Colibrí) y un sector generado por semilla.
+- El motor ya es determinista y por `RunAction`; el diseño debe entrar igual (datos de entrada de `createRun`), sin azar nuevo.
+- Contrato `types.ts`: solo cambios aditivos (regla 2).
 
 ## Alcance previsto
 
-### Servidor (`apps/game-server`)
+### Motor (`packages/shared`)
 
-- [ ] Sala autoritativa de hasta 4 jugadores que ejecuta el bucle de `createRun` y aplica las `RunAction` entrantes.
-- [ ] Estado sincronizado: `RunState` + posición y orientación `(x, y, z, yaw)` de cada tripulante.
-- [ ] Test de paridad: la sala produce el mismo `RunState` que el motor puro con la misma secuencia de acciones.
-- [ ] Reconexión con token y tolerancia temporal ante caídas de red.
+- [ ] Tipos del diseño de misión: objetivo científico, instrumentos, módulos de nave, lanzador y destino (aditivos).
+- [ ] Balance de diseño: presupuesto, masa, potencia y plazo, con una función pura que valida el diseño y lista los motivos de fallo.
+- [ ] Revisión Go/No-Go: resultado y motivo como `MessageRef` de una línea.
+- [ ] El diseño genera la nave de la partida (vía `effectiveShip()` o equivalente) y el lanzador limita masa y destino.
+- [ ] Modelo de potencia solar con la distancia al Sol (1/d²): paneles frente a RTG.
+- [ ] Sistema solar real como mapa: cuerpos y distancias con datos públicos de NASA.
+- [ ] Tests: determinismo, casos límite de presupuesto, masa y potencia, y la caída de potencia con la distancia.
 
-### Motor
+### Cliente (`apps/client`)
 
-- [ ] Varios tripulantes en el estado (`crew[]`): interacción simultánea en puestos y averías.
-- [ ] Roles asimétricos con ventajas pasivas (Piloto: esquiva ágil; Ingeniero: reparación rápida; Explorador: mayor mochila y eficiencia de jetpack). Sin bloqueos exclusivos para evitar dependencias frustrantes.
+- [ ] Pantalla de diseño previa a la partida (objetivo, instrumentos, módulos, lanzador) con indicadores vivos de presupuesto, masa, potencia y plazo.
+- [ ] Revisión Go/No-Go con el motivo en una línea; se puede volver a diseñar.
+- [ ] Mapa del sistema solar (Luna, Marte, Fobos, Ceres/cinturón, Europa, Titán…) en lugar del mapa estelar en el modo misión.
+- [ ] Ayuda opcional con tecla y glosario breve (regla 6 revisada: nunca lectura obligatoria).
 
-### Cliente
+### Contenido (`packages/shared/catalog`)
 
-- [ ] Capa de sesión local/sala; renderizado de los avatares de los compañeros en la nave y en la superficie.
-- [ ] Pantalla de entrada con código de sala privada (sin matchmaking complejo) y selección de rol.
-- [ ] Sistema de pings visuales y sonoros en el espacio 3D para coordinación táctica rápida.
+- [ ] Objetivos, instrumentos, módulos y lanzadores en JSON con zod y textos es/en.
+- [ ] Cuerpos del sistema solar con fuente pública anotada (datos NASA); si hay texturas o imágenes, en `assets/CREDITS.md`.
+- [ ] `pnpm balance` ampliado al diseño: hay diseños viables y diseños que fallan por motivos distintos.
 
-### Fuera de alcance (descartado por tiempo)
+## Fuera de alcance
 
-- [ ] **Voz integrada por WebRTC:** descartada al 100% por alto riesgo técnico y complejidad de infraestructura (servidores STUN/TURN, códecs y eco); se asume uso de comunicación externa (Discord) o pings en el juego.
-- [ ] **Predicción de cliente con rollback para físicas:** descartada; para un cooperativo PvE en red local o baja latencia basta con sincronización de estado autoritativo e interpolación de posiciones (*lerp*).
-- [ ] **Bloqueo rígido de consolas por rol:** descartado; cualquier tripulante puede operar cualquier estación de emergencia para evitar partidas perdidas por inactividad o desconexión de un rol.
-- [ ] **Lobbies públicos, salas abiertas y emparejamiento automático:** descartado; solo conexión directa mediante código de sala privada.
-- [ ] **Escalado dinámico complejo de dificultad por número de jugadores:** descartado para no desestabilizar el balance ya validado.
+- Instrumentos que generan datos, almacenamiento y bajada a la Tierra: fase 5.
+- Informe post-misión y misión guiada de CubeSat: fase 5.
+- Cooperativo y diseño compartido: fase 6.
+- Mecánica orbital completa (trayectorias tipo GMAT): se usan distancias y ventanas simplificadas.
 
 ## Riesgos
 
-- Latencia en minijuegos de averías y esquiva: asegurar que el resultado local se valide de forma tolerante en el servidor.
-- Que un rol se quede sin tareas durante el viaje: las ventajas pasivas y el acceso libre a todas las consolas mitigan el aburrimiento.
+- Que el diseño se convierta en una pantalla de lectura: mantenerlo visual, con números vivos y explicaciones opcionales.
+- Alcance del contenido (instrumentos, módulos, lanzadores): empezar con un conjunto pequeño y balanceado.
+- Cifras reales frente a jugabilidad: simplificar con transparencia y anotar la fuente de cada dato.
+- Romper el balance de las fases 1-3 al cambiar el origen de la nave: conservar un diseño por defecto equivalente a Colibrí.

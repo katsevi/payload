@@ -86,6 +86,14 @@ export interface ShipDef {
   /** Daño al reactor por segundo mientras la demanda supera a la potencia disponible. */
   overloadReactorDamagePctPerS: number;
   throttles: ThrottleDef[];
+  /**
+   * Fase 4 (ADR 0016): potencia de los paneles solares a 1 UA del Sol (kW). Baja con 1/d² según la
+   * distancia de la nave al Sol (`RunState.sunDistanceAu`) y se suma a `reactorOutputKw` (la parte
+   * nuclear, que no depende de la distancia). Ausente = 0 (naves del catálogo).
+   */
+  solarKwAt1Au?: number;
+  /** Fase 4: masa en seco de la nave diseñada (kg); informativa (ya está aplicada a `fuelPerLy`). */
+  dryMassKg?: number;
 }
 
 // ─── Averías y peligros ─────────────────────────────────────────────────────
@@ -195,6 +203,21 @@ export interface Catalog {
   economy?: EconomyRules;
   /** Fase 3: mejoras de nave y equipo (`catalog/mejoras.json`). Igual que `economy`: siempre presente tras validar. */
   upgrades?: UpgradeDef[];
+  /**
+   * Fase 4 (ADR 0016): reglas del diseño de misión (`catalog/misiones.json`, `rules`). Igual que `economy`:
+   * opcional en el JSON y siempre presente tras `parseCatalog`. Lo mismo vale para los cinco campos siguientes.
+   */
+  design?: DesignRules;
+  /** Fase 4: objetivos de misión (`catalog/misiones.json`). */
+  missions?: MissionDef[];
+  /** Fase 4: módulos de nave para el diseño (`catalog/modulos.json`). */
+  modules?: ModuleDef[];
+  /** Fase 4: instrumentos científicos (`catalog/instrumentos.json`). */
+  instruments?: InstrumentDef[];
+  /** Fase 4: lanzadores (`catalog/lanzadores.json`). */
+  launchers?: LauncherDef[];
+  /** Fase 4: cuerpos reales, zonas y reglas de la ruta (`catalog/sistema-solar.json`). */
+  solarSystem?: SolarSystemDef;
 }
 
 // ─── Economía y mejoras (fase 3, ADR 0014) ───────────────────────────────────
@@ -475,6 +498,16 @@ export interface SectorNode {
   links: string[];
   /** Contenedor pre-sorteado (null = no hay). */
   cache: { fuel: number; spares: number } | null;
+  /**
+   * Fase 4 (mapa del sistema solar): cuerpo real o estación del catálogo (`catalog/sistema-solar.json`).
+   * Su nombre localizado es `catalog.<bodyId>`; `name` lleva el español como respaldo. Ausente en los
+   * puntos de paso generados y en los sectores abstractos.
+   */
+  bodyId?: string;
+  /** Fase 4: distancia al Sol (UA). Ausente = 1 (sectores abstractos). */
+  sunDistanceAu?: number;
+  /** Fase 4: es el destino de la misión diseñada. */
+  missionTarget?: boolean;
 }
 
 export interface SectorMap {
@@ -484,6 +517,9 @@ export interface SectorMap {
   nodes: SectorNode[];
   startId: string;
   goalId: string;
+  /** Fase 4: tramo del sistema solar (zona de salida y de llegada, ids de `SolarZoneDef`). */
+  zoneFromId?: string;
+  zoneToId?: string;
 }
 
 // ─── Estado de la partida ───────────────────────────────────────────────────
@@ -575,6 +611,8 @@ export interface ShipState {
   cargo: Record<string, number>;
   /** Fase 3, derivado: masa a bordo que encarece los saltos (bodega + mejoras), en kg. */
   cargoKg?: number;
+  /** Fase 4, derivado: parte de `powerSupplyKw` que dan los paneles solares a la distancia actual (solo con diseño). */
+  solarSupplyKw?: number;
 }
 
 /** Tripulante. En solitario hay uno; la fase 4 tendrá hasta cuatro. */
@@ -778,6 +816,10 @@ export interface RunState {
   credits: number;
   /** Fase 3: nivel comprado de cada mejora (id → nivel; 1 = primer nivel). */
   upgrades: Record<string, number>;
+  /** Fase 4: diseño con el que se creó la partida (mapa del sistema solar y nave diseñada). Ausente = partida clásica. */
+  missionDesign?: MissionDesign;
+  /** Fase 4, derivado (solo con diseño): distancia actual de la nave al Sol (UA); en tránsito, interpolada. */
+  sunDistanceAu?: number;
 }
 
 export type RunEventType =
@@ -981,4 +1023,295 @@ export interface RunOptions {
   catalog?: Catalog;
   /** Tripulantes (1 en solitario; la fase 4 usará hasta 4). */
   crewSize?: number;
+  /**
+   * Fase 4 (ADR 0016): misión diseñada. Con él, la nave sale de `shipFromDesign` (se ignora `shipId`) y el
+   * mapa es el sistema solar (`generateSolarSector`). Sin él, la partida es la clásica de las fases 1-3.
+   */
+  design?: MissionDesign;
+}
+
+// ─── Diseño de misión y sistema solar (fase 4, ADR 0016) ─────────────────────
+
+/** Tipos de ciencia: qué estudia un instrumento y qué pide un objetivo de misión. */
+export const SCIENCE_KINDS = ['geology', 'ice', 'atmosphere', 'fields', 'interior', 'life'] as const;
+export type ScienceKind = (typeof SCIENCE_KINDS)[number];
+
+/** Familias de módulos de nave. `structure` y `propulsion` van una sola vez; el resto se puede repetir. */
+export const MODULE_KINDS = [
+  'structure', 'propulsion', 'solar', 'nuclear', 'battery', 'comms', 'computer', 'attitude', 'thermal', 'tank', 'shielding',
+  'lifeSupport', 'workshop',
+] as const;
+export type ModuleKind = (typeof MODULE_KINDS)[number];
+
+/**
+ * Módulo de nave. Masa, coste, meses de desarrollo y fiabilidad cuentan en los presupuestos; `effects` dice
+ * cómo cambia la nave de la partida (mismos campos que las mejoras: `UPGRADE_FIELDS.ship`). Ids kebab-case;
+ * nombre en `catalog.<id>`.
+ */
+export interface ModuleDef {
+  id: string;
+  name: LocalizedText;
+  kind: ModuleKind;
+  massKg: number;
+  costMUSD: number;
+  devMonths: number;
+  /** Probabilidad 0-1 de que funcione toda la misión. */
+  reliability: number;
+  /** Ranuras de la estructura que ocupa (por defecto 1; la estructura no ocupa). */
+  slotsUsed?: number;
+  /** Efectos sobre la nave: se suman todos los `add` y se multiplican todos los `mult` (no depende del orden). */
+  effects: UpgradeEffect[];
+  /** Solo estructura: masa total que aguanta (kg) y ranuras para módulos e instrumentos. */
+  maxMassKg?: number;
+  slots?: number;
+  /** Paneles: potencia a 1 UA (kW); baja con 1/d². La parte nuclear va en `effects` (`reactorOutputKw`). */
+  solarKwAt1Au?: number;
+  /** Calor que puede disipar (kW): la estructura da algo de serie, los radiadores más. */
+  heatRejectKw?: number;
+  /** Baterías: energía almacenada (kWh). Informativa (en la partida amortiguan la sobrecarga vía `effects`). */
+  batteryKwh?: number;
+  /** Comunicaciones: tasa de bajada (Mbps, para la fase 5) y distancia máxima al Sol con enlace (UA). */
+  dataRateMbps?: number;
+  commsRangeAu?: number;
+  /** Computadora: almacenamiento (GB, para la fase 5) y si aguanta la radiación de Júpiter. */
+  storageGb?: number;
+  radiationHardened?: boolean;
+}
+
+/** Instrumento científico. Ocupa ranuras y consume potencia (se suma a `systemDrawKw.nav`). */
+export interface InstrumentDef {
+  id: string;
+  name: LocalizedText;
+  scienceKind: ScienceKind;
+  massKg: number;
+  powerKw: number;
+  costMUSD: number;
+  devMonths: number;
+  reliability: number;
+  /** Valor científico (cuenta entero si su tipo lo pide la misión; si no, × `DesignRules.offKindScienceMult`). */
+  scienceValue: number;
+  /** Fase 5: datos que genera (Mbps mientras observa). */
+  dataRateMbps: number;
+  slotsUsed?: number;
+}
+
+/** Lanzador (nombres ficticios, cifras inspiradas en lanzadores reales). */
+export interface LauncherDef {
+  id: string;
+  name: LocalizedText;
+  costMUSD: number;
+  reliability: number;
+  /** Meses de espera hasta la ventana de lanzamiento (se suman al calendario). */
+  waitMonths: number;
+  /** Masa máxima que pone en trayectoria hacia cada zona (id de `SolarZoneDef`); sin la zona = no llega. */
+  capacityKgByZone: Record<string, number>;
+}
+
+/** Requisitos medibles de un objetivo de misión. */
+export interface MissionRequirements {
+  /** Ciencia mínima (suma de `scienceValue` de los instrumentos, ver `DesignRules.offKindScienceMult`). */
+  minScience: number;
+  /** Tipos de ciencia obligatorios: al menos un instrumento de cada uno. */
+  requiredKinds: ScienceKind[];
+  /** Fiabilidad mínima recomendada (%, producto de módulos, instrumentos y lanzador): por debajo, aviso. */
+  minReliabilityPct?: number;
+}
+
+export interface MissionDef {
+  id: string;
+  name: LocalizedText;
+  /** Una línea: qué pregunta científica responde. */
+  description: LocalizedText;
+  /** Tipo de ciencia principal (para el icono). */
+  scienceKind: ScienceKind;
+  /** Ids de `SolarBodyDef` válidos como destino. */
+  destinations: string[];
+  requirements: MissionRequirements;
+  budgetMUSD: number;
+  deadlineMonths: number;
+  /** 1 fácil · 2 media · 3 difícil. */
+  difficulty: number;
+}
+
+/** Reglas del diseño (`catalog/misiones.json`, `rules`). */
+export interface DesignRules {
+  /** Nave del catálogo de la que parte la nave diseñada (regímenes, soporte vital, consumos de serie…). */
+  baseShipId: string;
+  /** Nombre de la nave diseñada. */
+  shipName: LocalizedText;
+  /** Campos de la nave base que se ponen a 0 antes de aplicar los módulos (los aportan ellos). */
+  zeroedFields: string[];
+  /** Combustible por año luz × (masa / referenceMassKg)^massFuelExponent. */
+  referenceMassKg: number;
+  massFuelExponent: number;
+  /** Margen por debajo del que un recurso está justo (0.15 = 15 %). */
+  tightMargin: number;
+  /** El desarrollo va en paralelo: el más lento + estos meses por pieza (integración). */
+  integrationMonthsPerItem: number;
+  /** Valor de un instrumento cuyo tipo no pide la misión (0.5 = la mitad). */
+  offKindScienceMult: number;
+  /** Fracción del tramo entre zonas que se recorre sin repostar (estación a mitad de tramo). */
+  rangeLegFactor: number;
+  /** Reserva del depósito que no cuenta para el alcance (%). */
+  rangeReservePct: number;
+  /** Tope de la absorción de los escudos de la nave diseñada (0-1). */
+  maxShieldAbsorb: number;
+}
+
+export type SolarBodyType = 'star' | 'planet' | 'dwarf' | 'moon' | 'asteroid' | 'station';
+
+/**
+ * Cuerpo del sistema solar (datos públicos de NASA; estaciones ficticias). Los que tienen `nodeKind`
+ * aparecen en el mapa; los `landable` se enlazan con un mundo de superficie (`worldId`, del mismo `kind`).
+ */
+export interface SolarBodyDef {
+  id: string;
+  name: LocalizedText;
+  type: SolarBodyType;
+  /** Cuerpo alrededor del que orbita (lunas y estaciones); ausente = alrededor del Sol. */
+  parentId?: string;
+  /** Zona del mapa a la que pertenece (`SolarZoneDef.id`). */
+  zoneId?: string;
+  /** Semieje mayor alrededor del Sol (UA). Las lunas toman el de su planeta. */
+  orbitAu?: number;
+  /** Semieje mayor alrededor de su planeta (km). */
+  orbitKm?: number;
+  /** Periodo orbital (días). */
+  periodDays: number;
+  /** Fase orbital en el instante 0 (grados; ficticia, solo para dibujar). */
+  phaseDeg: number;
+  radiusKm: number;
+  gravityMps2: number;
+  atmosphere: boolean;
+  /** Cómo aparece en el mapa (peligros, contenedores, terminal). Ausente = no es un nodo (Sol, Tierra). */
+  nodeKind?: NodeKind;
+  landable: boolean;
+  /** Mundo de superficie (`surface.worlds`) al aterrizar. */
+  worldId?: string;
+  /** Fuente de las cifras. */
+  source?: string;
+}
+
+/** Zona del sistema solar: cada tramo del viaje va de una zona a la siguiente. */
+export interface SolarZoneDef {
+  id: string;
+  name: LocalizedText;
+  /** Distancia al Sol de la zona (UA). */
+  sunDistanceAu: number;
+  /** Estación de la zona (`SolarBodyDef` de tipo `station`): salida del tramo que parte de aquí. */
+  hubId: string;
+  /** Radiación intensa (Júpiter): la revisión avisa si la computadora no está endurecida. */
+  radiation?: boolean;
+}
+
+/** Cómo se genera el mapa del sistema solar a partir de las zonas. */
+export interface SolarRouteRules {
+  /** Longitud de un tramo (unidades del mapa, las mismas de `distanceLy`) = base + porRaízUA × √ΔUA, acotada. */
+  legBaseUnits: number;
+  legUnitsPerSqrtAu: number;
+  legMinUnits: number;
+  legMaxUnits: number;
+  /** Separación media entre columnas (unidades): fija cuántas columnas tiene un tramo. */
+  columnSpacingUnits: number;
+  /** Tipos de los puntos de paso generados entre zonas (con el peso de `nodeKinds`). */
+  waypointKinds: NodeKind[];
+  /** Solo para dibujar: separación de las lunas respecto a su planeta (UA por cada 10⁶ km, exagerada). */
+  moonDisplayAuPerMkm: number;
+}
+
+export interface SolarSystemDef {
+  route: SolarRouteRules;
+  /** Ordenadas de dentro a fuera; la primera es la de salida (la Tierra). */
+  zones: SolarZoneDef[];
+  bodies: SolarBodyDef[];
+}
+
+/**
+ * Diseño de misión (pantalla de diseño, antes de zarpar). Los ids se pueden repetir en `moduleIds` (dos
+ * tanques, tres alas solares). `null` = aún sin elegir.
+ */
+export interface MissionDesign {
+  missionId: string;
+  destinationId: string | null;
+  moduleIds: string[];
+  instrumentIds: string[];
+  launcherId: string | null;
+}
+
+export const DESIGN_RESOURCE_IDS = ['mass', 'power', 'cost', 'schedule', 'slots', 'fuel'] as const;
+export type DesignResourceId = (typeof DESIGN_RESOURCE_IDS)[number];
+export type DesignResourceStatus = 'ok' | 'tight' | 'over';
+
+export interface DesignResource {
+  id: DesignResourceId;
+  used: number;
+  available: number;
+  /** Código estable de unidad: kg, kW, MUSD, months, slots, fuel. */
+  unit: string;
+  /** (available − used) / available; −1 si no hay nada disponible y algo se usa. */
+  margin: number;
+  status: DesignResourceStatus;
+  /** Una línea: por qué el recurso está así. */
+  why: MessageRef;
+}
+
+export interface DesignTotals {
+  massKg: number;
+  /** Límite de masa: el menor entre el lanzador (a la zona del destino) y la estructura (0 = sin datos). */
+  massLimitKg: number;
+  /** Consumo a crucero con todo encendido (kW). */
+  demandKw: number;
+  solarKwAt1Au: number;
+  nuclearKw: number;
+  /** Distancia al Sol del destino (UA; 1 sin destino). */
+  destinationAu: number;
+  solarKwAtDestination: number;
+  powerAtDestinationKw: number;
+  /**
+   * Peor punto de la ruta (el más alejado del Sol que puede generar: cuerpos de las zonas de la ruta y sus
+   * estaciones). El presupuesto de potencia y el alcance del enlace se miden AQUÍ, no solo en el destino.
+   */
+  worstAu: number;
+  worstBodyId: string;
+  solarKwAtWorst: number;
+  powerAtWorstKw: number;
+  costMUSD: number;
+  scheduleMonths: number;
+  slotsUsed: number;
+  slots: number;
+  fuelCapacity: number;
+  /** Combustible del tramo más largo hasta el destino sin repostar (régimen económico). */
+  legFuel: number;
+  scienceValue: number;
+  /** Producto de fiabilidades (0-100). */
+  reliabilityPct: number;
+  heatRejectKw: number;
+  /** Fase 5: datos que generan los instrumentos y tasa de bajada de las comunicaciones. */
+  dataRateMbps: number;
+  downlinkMbps: number;
+  storageGb: number;
+}
+
+export interface DesignBudgets {
+  resources: DesignResource[];
+  /** Recurso con menos margen (null si el diseño está vacío). */
+  limiting: DesignResourceId | null;
+  totals: DesignTotals;
+}
+
+export type DesignIssueSeverity = 'blocker' | 'warning' | 'info';
+
+export interface DesignIssue {
+  severity: DesignIssueSeverity;
+  /** Código estable (`mass-launcher`, `power`, `range`…): los fixtures y la interfaz lo usan. */
+  code: string;
+  /** Una línea: el motivo. */
+  message: MessageRef;
+}
+
+/** Revisión Go/No-Go: `go` = ningún `blocker`. */
+export interface DesignReview {
+  go: boolean;
+  issues: DesignIssue[];
+  budgets: DesignBudgets;
 }

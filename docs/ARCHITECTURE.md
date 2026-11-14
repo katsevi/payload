@@ -6,8 +6,8 @@ fondo: `docs/adr/`. Estado: `docs/STATUS.md`. Diseño del juego: `docs/GDD.md`.
 ## Vista general
 
 Hoy todo corre en el navegador: el cliente importa el motor de `@payload/shared` y simula la partida en
-local. En la fase 4, un servidor autoritativo correrá **el mismo motor** y los clientes solo le enviarán
-acciones (ADR 0009). La fase 5 añade una API con persistencia.
+local. En la fase 6, un servidor autoritativo correrá **el mismo motor** y los clientes solo le enviarán
+acciones (ADR 0009). La fase 7 añade una API con persistencia.
 
 ```mermaid
 flowchart LR
@@ -17,8 +17,8 @@ flowchart LR
         AUD["Audio procedural<br/><small>Web Audio</small>"]
         SIM1["Motor del juego<br/><small>createRun: paso fijo, determinista</small>"]
     end
-    GS["Servidor de juego<br/><small>hasta 4 jugadores, mismo motor (fase 4)</small>"]
-    API["API<br/><small>rankings y persistencia (fase 5)</small>"]
+    GS["Servidor de juego<br/><small>hasta 4 jugadores, mismo motor (fase 6)</small>"]
+    API["API<br/><small>rankings y persistencia (fase 7)</small>"]
     NAV <-. WebSocket .-> GS
     NAV -. "HTTP/REST" .-> API
     GS -. "guarda resultados" .-> API
@@ -36,8 +36,8 @@ Workspaces: `apps/*` y `packages/*` (`pnpm-workspace.yaml`). Turborepo orquesta 
 | --- | --- | --- |
 | `@payload/shared` | Fases 1-2 | `zod`. Dev: `vitest`, `tsx`, `@types/node`. Exporta `./src/index.ts` y `./catalog/*` |
 | `@payload/client` | Fases 1-2 | `@payload/shared`, `react`/`react-dom` 19, `three`, `@react-three/fiber` 9, `drei`, `rapier`, `zustand`, `i18next`, `react-i18next`, `lucide-react`. Dev: `vite`, `tailwindcss` 4, `vitest` |
-| `@payload/game-server` | Marcador (fase 4) | Ninguna; scripts `echo` |
-| `@payload/api` | Marcador (fase 5) | Ninguna; scripts `echo` |
+| `@payload/game-server` | Marcador (fase 6) | Ninguna; scripts `echo` |
+| `@payload/api` | Marcador (fase 7) | Ninguna; scripts `echo` |
 | raíz | | `turbo`, `typescript`, `prettier`, `@gltf-transform/cli` |
 
 Dependencias entre paquetes: `client -> shared`. `shared` no depende de nadie (TS puro, sin React,
@@ -85,7 +85,7 @@ createRun({ seed })  ──▶  Run { state, step(dt), apply(action), takeEvents
 - **Autoridad en superficie (ADR 0012):** el cliente simula terreno, física (Rapier) y posición, y las
   informa como `RunAction` (`set-position`, `jetpack`, `fall-impact`). El motor no conoce el terreno: es
   autoritativo en oxígeno del traje, jetpack, carga, tormentas, terreno inestable, daño y muerte, y limita
-  el movimiento aceptado por tiempo (antitrampas pensado para el servidor de la fase 4). Tormentas,
+  el movimiento aceptado por tiempo (antitrampas pensado para el servidor de la fase 6). Tormentas,
   zonas inestables y vetas se generan al aterrizar a partir de semillas derivadas del sector y del nodo, sin
   tocar los otros flujos de azar.
 - **Energía:** potencia = reactor × salud; demanda = sistemas encendidos (los motores solo consumen en
@@ -166,12 +166,13 @@ del cliente comprueba además que toda clave literal usada en el código existe.
 | | `minigames` | Esquiva, extintor, pulsos y sellado: resultado → `RunAction` |
 | | `i18n` | Paridad de claves, claves usadas en el código, claves dinámicas, longitud |
 
-No hay tests de renderizado 3D ni E2E (fase 5). La escena se comprueba a mano en el navegador.
+No hay tests de renderizado 3D ni E2E (fase 7). La escena se comprueba a mano en el navegador.
 
 ## Fases siguientes
 
 - **Fase 2 (superficie):** existe (ver arriba). Pendiente de validación final y de prueba con jugadores.
 - **Fase 3 (economía):** existe (ADR 0014). Créditos en `RunState`, terminal de estación y mejoras como cambios numéricos sobre la nave y las reglas del traje (`effectiveShip`, `effectiveSurfaceRules`); precios fijos con multiplicador por sector, sin mercado dinámico. Pendiente de prueba con jugadores.
-- **Fase 4 (cooperativo):** `apps/game-server` corre `createRun` y aplica las `RunAction` de cada
+- **Fases 4 y 5 (diseño de misión, ciencia y datos):** el diseño de misión entra como datos deterministas de `createRun` y genera la nave; ver `docs/phases/fase-4.md`, `fase-5.md` y ADR 0015.
+- **Fase 6 (cooperativo):** `apps/game-server` corre `createRun` y aplica las `RunAction` de cada
   cliente; el cliente gana una capa de sesión local/sala. Base: ADR 0009 y 0010.
-- **Fase 5:** `apps/api`, rankings recalculados por el servidor, despliegue.
+- **Fase 7:** `apps/api`, rankings recalculados por el servidor, despliegue.

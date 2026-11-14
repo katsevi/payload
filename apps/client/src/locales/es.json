@@ -22,8 +22,11 @@
     "credits": "Créditos",
     "language": "Idioma",
     "best": "Mejor expedición: {{sectors}} sectores · {{score}} puntos",
-    "goal": "Lleva la nave hasta el portal de salto y aterriza a recoger lo que puedas. Si el casco o el oxígeno llegan a cero, se acabó.",
-    "coop": "Cooperativo 1-4 en una fase posterior"
+    "goal": "Diseña una misión o juega libre: mantén viva la nave. Si el casco o el oxígeno llegan a cero, se acabó.",
+    "coop": "Cooperativo 1-4 en una fase posterior",
+    "mission": "Diseñar una misión",
+    "free": "Partida libre",
+    "missionHint": "Monta la nave, pasa la revisión y opérala en el sistema solar"
   },
   "settings": {
     "title": "Ajustes",
@@ -106,7 +109,10 @@
     "lode": "Filón: {{done}} de {{total}} vetas",
     "credits": "Créditos",
     "creditsValue": "{{credits}} cr",
-    "upgrades": "Mejoras instaladas"
+    "upgrades": "Mejoras instaladas",
+    "sunAu": "{{au}} UA",
+    "solar": "Paneles {{kw}} kW",
+    "mission": "{{mission}} → {{dest}}"
   },
   "prompt": {
     "hold": "Mantén",
@@ -191,7 +197,17 @@
     },
     "landed": "Ya has aterrizado aquí",
     "terminal": "Terminal de la estación",
-    "cargoFuel": "+{{pct}} % por carga"
+    "cargoFuel": "+{{pct}} % por carga",
+    "solarTitle": "Sistema solar · tramo {{sector}}",
+    "units": "{{value}} u",
+    "unitsHint": "u = unidad de ruta del mapa",
+    "sunDistance": "{{au}} UA del Sol",
+    "solarHere": "Aquí: sol {{pct}} % · paneles {{kw}} kW",
+    "powerThere": "Allí: {{kw}} kW (paneles {{solar}})",
+    "powerShort": "Allí no da la energía a crucero: faltan {{kw}} kW",
+    "target": "Destino de la misión",
+    "reachable": "Saltos posibles",
+    "scaleHint": "Distancias al Sol comprimidas (√UA)"
   },
   "power": {
     "title": "Panel de energía",
@@ -212,7 +228,8 @@
       "shields": "Absorben los impactos",
       "nav": "Avisan de los impactos y leen el mapa"
     },
-    "toggle": "Tecla {{key}}"
+    "toggle": "Tecla {{key}}",
+    "solar": "Paneles: {{kw}} kW a {{au}} UA"
   },
   "end": {
     "lostTitle": "Expedición perdida",
@@ -233,7 +250,10 @@
     "materials": "Materiales guardados",
     "creditsEarned": "Créditos ganados",
     "creditsSpent": "Créditos gastados",
-    "upgrades": "Mejoras compradas"
+    "upgrades": "Mejoras compradas",
+    "redesign": "Rediseñar",
+    "retryMission": "Reintentar la misión",
+    "mission": "Misión"
   },
   "pause": {
     "title": "Pausa",
@@ -421,5 +441,141 @@
     "giveHull": "+{{n}} casco",
     "giveSpares": "+{{n}} repuestos",
     "overload": "sobrecarga con todo encendido"
+  },
+  "missions": {
+    "title": "Elige una misión",
+    "destinations": "Destino: {{bodies}}",
+    "money": "{{budget}} M$ · {{months}} meses",
+    "science": "Ciencia ≥ {{min}} · {{kinds}}",
+    "difficulty": {
+      "1": "Fácil",
+      "2": "Media",
+      "3": "Difícil"
+    },
+    "pick": "Diseñar",
+    "saved": "Diseño guardado"
+  },
+  "design": {
+    "title": "Hangar · {{mission}}",
+    "destination": "Destino",
+    "launcher": "Lanzador",
+    "destOption": "{{au}} UA · sol {{pct}} %",
+    "launcherOption": "{{cost}} M$ · espera {{months}} meses · fiable {{pct}} %",
+    "launcherCap": "{{t}} t al destino",
+    "launcherNoReach": "No llega",
+    "launcherNoDest": "Elige destino",
+    "palette": "Piezas",
+    "group": {
+      "structure": "Estructura",
+      "propulsion": "Propulsión",
+      "power": "Energía",
+      "battery": "Baterías",
+      "comms": "Comunicaciones",
+      "computer": "Computadora",
+      "thermal": "Térmico",
+      "shielding": "Blindaje",
+      "tank": "Tanques",
+      "extra": "Otros",
+      "instruments": "Instrumentos"
+    },
+    "part": {
+      "science": "{{kind}} +{{value}}",
+      "power": "{{value}} kW",
+      "mass": "{{value}} kg",
+      "cost": "{{value}} M$",
+      "months": "{{value}} meses",
+      "slotsUsed": "{{value}} ran.",
+      "slots": "{{value}} ranuras",
+      "maxMass": "aguanta {{value}} t",
+      "solar": "{{value}} kW a 1 UA",
+      "range": "enlace {{value}} UA",
+      "battery": "{{value}} kWh",
+      "heat": "disipa {{value}} kW",
+      "hardened": "anti-radiación",
+      "add": "{{field}} {{value}}",
+      "mult": "{{field}} {{value}} %",
+      "kw": "{{field}} {{value}} kW",
+      "pct": "{{field}} {{value}} %"
+    },
+    "add": "Añadir {{part}}",
+    "remove": "Quitar {{part}}",
+    "breaks": "Excedería: {{resources}}",
+    "budgets": "Presupuestos",
+    "meter": "{{used}} / {{available}} {{unit}}",
+    "science": "Ciencia {{value}} / {{required}}",
+    "reliability": "Fiabilidad {{pct}} %",
+    "review": "Revisión",
+    "launch": "Lanzar",
+    "launchBlocked": "Lanzar · corrige lo rojo",
+    "back": "Misiones",
+    "clear": "Vaciar",
+    "empty": "Añade piezas desde la paleta",
+    "keys": "↑↓ pieza · ←→ grupo · Intro añade · Supr quita · H ¿por qué?",
+    "whyOn": "H · ocultar motivos",
+    "whyOff": "H · ver motivos",
+    "mounted": "Montado",
+    "noGoTitle": "No-Go",
+    "goTitle": "Go",
+    "musd": "{{value}} M$"
+  },
+  "glossary": {
+    "title": "Glosario",
+    "hint": "G · glosario",
+    "au": {
+      "term": "UA",
+      "line": "Unidad astronómica: la distancia media Tierra-Sol, unos 150 millones de km."
+    },
+    "solar": {
+      "term": "Paneles y 1/d²",
+      "line": "A doble distancia del Sol, los paneles dan la cuarta parte: en Júpiter, un 4 %."
+    },
+    "rtg": {
+      "term": "RTG",
+      "line": "Generador de radioisótopos: poca potencia, pero igual a cualquier distancia del Sol."
+    },
+    "goNoGo": {
+      "term": "Go/No-Go",
+      "line": "La revisión antes de lanzar: con un solo problema rojo, no se lanza."
+    },
+    "slot": {
+      "term": "Ranura",
+      "line": "Hueco de la estructura para un módulo o instrumento; cada estructura tiene las suyas."
+    },
+    "launcher": {
+      "term": "Lanzador",
+      "line": "El cohete: cuanto más lejos está el destino, menos masa puede llevar allí."
+    },
+    "dryMass": {
+      "term": "Masa en vacío",
+      "line": "Lo que pesa la nave sin carga; más masa, más combustible por salto."
+    },
+    "structure": {
+      "term": "Estructura",
+      "line": "El armazón: fija el casco, la masa máxima y las ranuras."
+    },
+    "chemical": {
+      "term": "Propulsión química",
+      "line": "Barata y rápida, pero gasta mucho combustible."
+    },
+    "ion": {
+      "term": "Propulsión iónica",
+      "line": "Gasta la mitad de combustible, pero va más lenta y pide mucha potencia."
+    },
+    "reliability": {
+      "term": "Fiabilidad",
+      "line": "Probabilidad de que todo funcione: se multiplica pieza a pieza."
+    },
+    "range": {
+      "term": "Alcance",
+      "line": "El tramo más largo de la ruta tiene que caber en el depósito útil."
+    },
+    "science": {
+      "term": "Ciencia",
+      "line": "Suma de los instrumentos; los del tipo que pide la misión cuentan entero."
+    },
+    "radiation": {
+      "term": "Radiación",
+      "line": "Cerca de Júpiter, una computadora sin endurecer se estropea."
+    }
   }
 }

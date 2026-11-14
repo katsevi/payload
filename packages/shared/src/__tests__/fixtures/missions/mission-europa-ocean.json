@@ -1,0 +1,170 @@
+{
+  "missionId": "mission-europa-ocean",
+  "valid": [
+    {
+      "name": "coloso-nuclear-completa",
+      "design": {
+        "missionId": "mission-europa-ocean",
+        "destinationId": "europa",
+        "launcherId": "launcher-colossus",
+        "moduleIds": [
+          "frame-heavy",
+          "engine-chemical",
+          "fission-reactor",
+          "rtg",
+          "rtg",
+          "comms-hga",
+          "computer-rad",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "thermal-radiator"
+        ],
+        "instrumentIds": [
+          "inst-radar",
+          "inst-magnetometer",
+          "inst-plasma",
+          "inst-neutron"
+        ]
+      }
+    },
+    {
+      "name": "ligera-sin-escudos-a-ganimedes",
+      "design": {
+        "missionId": "mission-europa-ocean",
+        "destinationId": "ganymede",
+        "launcherId": "launcher-condor-heavy",
+        "moduleIds": [
+          "frame-light",
+          "engine-chemical",
+          "fission-reactor",
+          "comms-hga",
+          "computer-rad",
+          "battery-pack",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-radar",
+          "inst-magnetometer",
+          "inst-plasma",
+          "inst-neutron"
+        ]
+      }
+    }
+  ],
+  "failing": [
+    {
+      "name": "paneles-en-jupiter",
+      "cause": "power",
+      "design": {
+        "missionId": "mission-europa-ocean",
+        "destinationId": "europa",
+        "launcherId": "launcher-colossus",
+        "moduleIds": [
+          "frame-heavy",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array-hi",
+          "solar-array-hi",
+          "solar-array-hi",
+          "comms-hga",
+          "computer-rad",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "thermal-radiator"
+        ],
+        "instrumentIds": [
+          "inst-radar",
+          "inst-magnetometer",
+          "inst-plasma",
+          "inst-neutron"
+        ]
+      }
+    },
+    {
+      "name": "sin-magnetometro",
+      "cause": "missing-science-kind",
+      "design": {
+        "missionId": "mission-europa-ocean",
+        "destinationId": "europa",
+        "launcherId": "launcher-colossus",
+        "moduleIds": [
+          "frame-heavy",
+          "engine-chemical",
+          "fission-reactor",
+          "rtg",
+          "rtg",
+          "comms-hga",
+          "computer-rad",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "thermal-radiator"
+        ],
+        "instrumentIds": [
+          "inst-radar",
+          "inst-neutron",
+          "inst-camera"
+        ]
+      }
+    },
+    {
+      "name": "laboratorio-de-mas",
+      "cause": "cost",
+      "design": {
+        "missionId": "mission-europa-ocean",
+        "destinationId": "europa",
+        "launcherId": "launcher-colossus",
+        "moduleIds": [
+          "frame-heavy",
+          "engine-chemical",
+          "fission-reactor",
+          "rtg",
+          "rtg",
+          "comms-hga",
+          "computer-rad",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "thermal-radiator"
+        ],
+        "instrumentIds": [
+          "inst-radar",
+          "inst-magnetometer",
+          "inst-plasma",
+          "inst-neutron",
+          "inst-life-lab"
+        ]
+      }
+    },
+    {
+      "name": "ariete-no-llega",
+      "cause": "launcher-cannot-reach",
+      "design": {
+        "missionId": "mission-europa-ocean",
+        "destinationId": "europa",
+        "launcherId": "launcher-ariete",
+        "moduleIds": [
+          "frame-light",
+          "engine-chemical",
+          "fission-reactor",
+          "comms-hga",
+          "computer-rad",
+          "battery-pack",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-radar",
+          "inst-magnetometer",
+          "inst-plasma",
+          "inst-neutron"
+        ]
+      }
+    }
+  ]
+}

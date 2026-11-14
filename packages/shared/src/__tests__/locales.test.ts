@@ -7,6 +7,7 @@ import {
   type MessageRef, type Run, type RunAction,
 } from '../index';
 import { playRun } from './bot';
+import { referenceDesign } from './missionFixtures';
 
 describe('locales del motor (namespace sim)', () => {
   it('es y en tienen exactamente las mismas claves', () => {
@@ -59,6 +60,12 @@ describe('locales del motor (namespace sim)', () => {
     refs.push(...toolScript());
     refs.push(...evadeScript());
     refs.push(...economyScript());
+    // Fase 4: partidas con misión diseñada sobre el sistema solar (cuerpos reales en los mensajes).
+    for (const missionId of ['mission-mars-habitability', 'mission-europa-ocean']) {
+      for (let seed = 1; seed <= 6; seed++) {
+        refs.push(...playRun(seed, { skill: 'crew', sectors: 2, walkS: 3.5, design: referenceDesign(missionId), explore: seed % 2 ? 'prudent' : undefined }).events.map((e) => e.message));
+      }
+    }
     // Rechazos: se prueban acciones fuera de lugar en cada fase.
     const actions: RunAction[] = [
       { type: 'jump', toId: 'nope' }, { type: 'evade' }, { type: 'service' }, { type: 'next-sector' },

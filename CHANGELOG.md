@@ -5,6 +5,26 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+## Fase 4 · Diseño de misión y sistema solar
+
+Versión propuesta: **0.7.0** (rama `feat/f4-diseno-de-mision`, 2026-11-14). Decisiones: ADR 0015 (reto NASA y roadmap) y ADR 0016.
+
+### Añadido
+
+#### `@payload/shared`
+- Diseño de misión antes de zarpar (`design.ts`): `MissionDesign`, `computeDesignBudgets` (masa, potencia en el peor punto de la ruta, coste, plazo, ranuras, combustible), `reviewDesign` (Go/No-Go con motivo de una línea por problema), `shipFromDesign`, `emptyDesign` y esquema zod del diseño. `createRun({ seed, design })` es aditivo: sin diseño la partida es idéntica a la de `main`.
+- Sistema solar como mapa (`solar.ts`): `generateSolarSector`, ruta por zonas Tierra ↔ destino, potencia solar 1/d² (paneles frente a RTG), `bodyPositionAu` y `solarNodePositionsAu`.
+- Catálogos `misiones.json` (6 misiones), `modulos.json`, `instrumentos.json`, `lanzadores.json` y `sistema-solar.json` (25 cuerpos con datos de NASA). Mundos `mars-surface`, `ice-moon`, `titan-surface` y `enceladus-surface` con `weight: 0` (solo para el sistema solar).
+- Fixtures por misión con ≥ 2 diseños válidos y fallos por causas distintas; balance por misión.
+
+#### `@payload/client`
+- Menú → misiones → hangar de diseño (paleta por tipo, medidores, Go/No-Go, «Lanzar» solo con Go, guardado por misión) → partida → «Rediseñar». «Partida libre» conserva el modo clásico.
+- Mapa del sistema solar en 3D (escala 10·√UA) en partidas con diseño; HUD con distancia al Sol y potencia de los paneles; glosario opcional (G o «?»); paletas de los mundos nuevos.
+
+### Cambiado
+- Roadmap: fase 4 diseño y sistema solar, 5 ciencia y astronauta, 6 cooperativo, 7 pulido (ADR 0015). La regla 6 admite explicaciones opcionales de una línea.
+- La nave base del cliente sale del diseño (`baseShipOf`) y la barra de energía usa la potencia real según la distancia al Sol.
+
 ## Fase 3 · Economía y progresión
 
 Versión propuesta: **0.6.0** (rama `feat/f3-economia-progresion`, 2026-11-13, sin commitear). Decisiones: ADR 0014.

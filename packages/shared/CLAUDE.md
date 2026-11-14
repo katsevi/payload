@@ -1,7 +1,7 @@
 # @payload/shared — motor del juego
 
 TypeScript puro. Sin React, Three.js, DOM ni APIs de Node en `src/` (los tests y `scripts/` sí pueden
-usar Node). Corre en el navegador (solitario) y correrá en el servidor de juego (fase 4).
+usar Node). Corre en el navegador (solitario) y correrá en el servidor de juego (fase 6).
 Diseño que implementa: `docs/GDD.md`. Contrato: `src/types.ts` (reescrito en el ADR 0011).
 
 ## API pública (`src/index.ts`)
@@ -23,7 +23,15 @@ Diseño que implementa: `docs/GDD.md`. Contrato: `src/types.ts` (reescrito en el
 | `generateSector` | `(seed, index, cat?, shipId?) => SectorMap` | Determinista; reintenta hasta dar un sector completable |
 | `isSectorSolvable` | `(sector, ship, marginPct = 15) => boolean` | Ruta hacia delante a régimen económico con repostajes |
 | `ecoFuelCost`, `nodeDistanceLy`, `getNode` | | Utilidades del mapa |
-| `createRun` | `({ seed, shipId?, catalog?, crewSize? }) => Run` | La partida. Ver abajo (`crewSize` 1-4, por defecto 1) |
+| `createRun` | `({ seed, shipId?, catalog?, crewSize?, design? }) => Run` | La partida. Ver abajo (`crewSize` 1-4, por defecto 1). Con `design` (fase 4): nave diseñada y mapa del sistema solar |
+| `computeDesignBudgets`, `reviewDesign` | `(design, cat?) => DesignBudgets` · `(design, cat?) => DesignReview` | Fase 4 (ADR 0016): presupuestos y Go/No-Go del diseño; puras y baratas |
+| `shipFromDesign`, `designMassKg`, `emptyDesign` | `(design, cat?) => ShipDef` · `(design, cat?) => number` · `(missionId) => MissionDesign` | Nave de la partida; las mejoras van encima con `effectiveShip` |
+| `getDesignRules`, `getMissions`/`getMission`, `getModules`/`getModule`, `getInstruments`/`getInstrument`, `getLaunchers`/`getLauncher` | `(cat?)` · `(id, cat?)` | Fase 4; las de un id lanzan si no existe |
+| `generateSolarSector` | `(seed, index, ship, cat?, destinationId?) => SectorMap` | Tramo del sistema solar (misma estructura que `generateSector`), completable con esa nave |
+| `routeZones`, `sectorZones`, `sectorForZone`, `zoneBodies`, `legUnits`, `routeZoneIndex` | | Ruta de ida y vuelta Tierra ↔ zona del destino y longitud de cada tramo |
+| `getSolarSystem`, `findBody`/`getBody`, `getZone`, `bodySunDistanceAu` | | Cuerpos y zonas del catálogo |
+| `solarPowerFactor`, `solarKw`, `shipPowerKw` | `(au)` · `(ship, au = 1)` · `(ship, au = 1)` | 1/d²; paneles a esa distancia; nuclear + paneles |
+| `bodyPositionAu`, `solarNodePositionsAu` | `(body, cat?, days = 0) => {x, y}` · `(sector, cat?, days = 0) => Record<nodeId, {x, y}>` | Posiciones en UA para dibujar el mapa (órbitas circulares) |
 | `computeScore` | `(stats) => number` | 1000·sector + 50·salto + 20·avería + 30·esquiva + años luz + puntos de materiales guardados a bordo (vender no cambia la puntuación; créditos y mejoras no puntúan) |
 | `getEconomy`, `getUpgrades`, `getUpgrade`, `hasShop` | `(cat)` · `(cat)` · `(id, cat)` · `(nodeKindDef)` | Fase 3 (ADR 0014). `hasShop`: `shop` o el obsoleto `service` |
 | `effectiveShip`, `effectiveSurfaceRules` | `(base, upgrades, cat) => ShipDef` · `(baseRules, upgrades, cat) => SurfaceRules` | Nave y reglas de traje/jetpack/caídas con las mejoras (puras) |
@@ -31,7 +39,7 @@ Diseño que implementa: `docs/GDD.md`. Contrato: `src/types.ts` (reescrito en el
 | `sectorPriceMults`, `sellUnitPrice`, `upgradePrice` | `(eco, sector) => { sell, buy }` · `(eco, materialId, sector)` · `(upgrade, level, eco, sector)` | Precios con el multiplicador de sector |
 | `priceOf`, `affordableUnits` | `(units, unitPrice)` · `(credits, unitPrice)` | Coste entero (hacia arriba) y unidades pagables |
 | `cargoMassKg`, `upgradesMassKg`, `cargoFuelMult` | `(cargo, cat)` · `(upgrades, cat)` · `(eco, kg)` | Masa a bordo y su multiplicador del combustible de salto |
-| `cruisePowerMarginKw` | `(ship) => number` | Reactor sano − demanda a crucero con todo encendido (negativo = sobrecarga) |
+| `cruisePowerMarginKw` | `(ship, sunDistanceAu = 1) => number` | Reactor sano (+ paneles a esa distancia) − demanda a crucero con todo encendido (negativo = sobrecarga) |
 | `fuelPerLy`, `cruiseSpeedLyPerS` | `(ship, throttle, engineHealthPct) => number` | Mismas fórmulas que usa la partida |
 | `evadeDamageFraction` | `(hazardRules, grazes) => number` | Fracción del daño que entra tras una esquiva con esos roces |
 | `evadeDifficulty` | `(hazardRules, sectorIndex, hullDamage) => number` | Dificultad 0-1 del minijuego (la misma que va en el aviso) |
@@ -41,7 +49,7 @@ Diseño que implementa: `docs/GDD.md`. Contrato: `src/types.ts` (reescrito en el
 | `formatMessage`, `lookupSimKey`, `flattenKeys` | | Texto final sin i18next (tests, scripts, servidor) |
 
 Constantes del contrato: `SYSTEM_IDS`, `THROTTLE_IDS`, `INCIDENT_KINDS`, `HAZARD_KINDS`, `NODE_KINDS`, `SUPPLY_IDS`,
-`UPGRADE_TARGETS`, `UPGRADE_FIELDS`.
+`UPGRADE_TARGETS`, `UPGRADE_FIELDS` y, en la fase 4, `SCIENCE_KINDS`, `MODULE_KINDS`, `DESIGN_RESOURCE_IDS`.
 
 ## `Run` (la partida)
 
@@ -142,6 +150,56 @@ run.effectiveSurfaceRules()             // reglas de traje/jetpack/caídas con m
   del nodo): determinista y distinta entre partidas. El sector se genera con la nave base.
 - **Hielo y mena** se siguen procesando al guardarse si caben; lo que no cabe va a la bodega y se vende barato.
 
+## Diseño de misión y sistema solar (fase 4, ADR 0016)
+
+Cifras en `catalog/misiones.json` (`rules` + `missions`), `modulos.json`, `instrumentos.json`, `lanzadores.json` y
+`sistema-solar.json` (`route`, `zones`, `bodies`). Todos opcionales en el JSON: `parseCatalog` pone los de serie.
+
+- **Diseño (`MissionDesign`):** `{ missionId, destinationId | null, moduleIds[], instrumentIds[], launcherId | null }`;
+  los ids se pueden repetir (dos tanques, tres alas). `emptyDesign(missionId)` da el punto de partida. Esquema zod
+  `missionDesignSchema`: `createRun` lanza un error claro con un diseño mal formado (`parseMissionDesign`); las
+  funciones puras lo tratan como vacío en lo que falte (`normalizeDesign`). El tope de escudos es `rules.maxShieldAbsorb`.
+- **Presupuestos (`computeDesignBudgets`):** `mass` (vs el menor de lanzador → zona del destino y estructura), `power`
+  (consumo a crucero con todo encendido vs nuclear + paneles × 1/d² en el PEOR punto de la ruta: `routeWorstSunDistance`,
+  el cuerpo o estación más alejado del Sol de las zonas de la ruta, en `totals.worstAu`/`worstBodyId`; el enlace
+  `comms-range` también se mide ahí), `cost` (módulos + instrumentos +
+  lanzador vs `budgetMUSD`), `schedule` (el desarrollo más lento + `integrationMonthsPerItem` por pieza + espera del
+  lanzador vs `deadlineMonths`), `slots` (piezas vs ranuras de la estructura) y `fuel` (tramo más largo de la ruta ×
+  `rangeLegFactor` a régimen económico vs depósito × (1 − reserva)). Cada uno: `used`, `available`, `margin`, `status`
+  (`over` < 0 ≤ `tight` < `tightMargin` ≤ `ok`) y `why` (una línea). `totals` trae además ciencia, fiabilidad, calor,
+  datos (Mbps de instrumentos y bajada, GB a bordo: para la fase 5). La ciencia cuenta entero el tipo que pide la misión
+  y × `offKindScienceMult` el resto.
+- **Go/No-Go (`reviewDesign`):** `go` = ningún `blocker`. Bloquean: misión/destino/lanzador ausente, desconocido o no
+  permitido, pieza desconocida, sin estructura/propulsión/energía/antena/computadora (o dos estructuras o
+  propulsiones), `slots`, `mass-launcher`, `mass-structure`, `launcher-cannot-reach`, `power`, `cost`, `schedule`,
+  `range`, `comms-range`, `missing-science-kind`, `science`. Avisan: `tight` (con `resource`), `reliability`,
+  `no-battery`, `thermal`, `radiation` (zona con radiación sin computadora endurecida), `no-shielding`; sin nada,
+  `all-clear` (info). Mensaje = `design.review.<code>`.
+- **Nave (`shipFromDesign`):** parte de `rules.baseShipId` (mismo `id`, nombre `rules.shipName`), pone a 0
+  `rules.zeroedFields` y aplica los `effects` de los módulos (campos de `UPGRADE_FIELDS.ship`): por campo,
+  `(valor + Σadd) × Πmult`, sin depender del orden. Los instrumentos suman su `powerKw` a `systemDrawKw.nav`. Paneles →
+  `solarKwAt1Au`; RTG y fisión → `reactorOutputKw`. `fuelPerLy × (masa / referenceMassKg)^massFuelExponent`;
+  `dryMassKg` = masa total; `startFuel` = depósito lleno. Las mejoras de la fase 3 se aplican encima (`effectiveShip`).
+- **Partida con diseño** (`createRun({ seed, design })`): ignora `shipId`; `state.missionDesign` (copia),
+  `state.sunDistanceAu` y `ship.solarSupplyKw` (derivados). Potencia = `(reactorOutputKw + solarKwAt1Au / d²) × salud`,
+  con `d` la distancia al Sol del nodo (interpolada en tránsito). El aviso eléctrico de la terminal usa esa distancia.
+  Sin `design`, nada cambia (ni campos nuevos en el estado).
+- **Mapa:** `generateSolarSector` produce la misma estructura que `generateSector`. Zonas de dentro a fuera; la ruta
+  es de ida y vuelta entre la Tierra y la zona del destino (con la Luna, cada tramo es una vuelta por la zona
+  terrestre). Sector `k` = tramo de `routeZones[...]` (`sectorZones`): columna 0 = estación de la zona de salida
+  (`bodyId` = su `hubId`); primeras columnas = cuerpos de esa zona (`zoneBodies`, todos, una vez); el resto, puntos de
+  paso generados (`waypointKinds`, con nombre inventado y `sunDistanceAu` interpolada); estación forzada en la columna
+  central; llegada = `gate` con `bodyId` = estación de la zona de llegada. Longitud = `legBaseUnits +
+  legUnitsPerSqrtAu·√ΔUA` acotada; columnas = longitud / `columnSpacingUnits` − 1. Reintenta (flujo `SOLAR_SALT`)
+  hasta que `isSectorSolvable` con la nave diseñada SIN mejoras. `missionTarget` marca el destino.
+- **Nodos de cuerpos reales:** `bodyId`, `sunDistanceAu`, `name` en español (respaldo); el nombre localizado es
+  `catalog.<bodyId>`. Los eventos `arrived`/`jump` usan entonces `event.arrivedBody`/`event.jumpBody` con `{ body }`.
+  `getNodeWorld` usa el `worldId` del cuerpo (null si no es aterrizable: Júpiter, Saturno, estaciones); si ese mundo no
+  está en el catálogo (catálogos de prueba), uno de su tipo como cualquier nodo.
+- **Fixtures por misión:** `src/__tests__/fixtures/missions/<missionId>.json` (`valid` >= 2 con Go y distintos,
+  `failing` >= 2 con `cause` = un `blocker` y causas distintas). `design.test.ts` falla si una misión no tiene. El primer
+  válido es el diseño de referencia (`referenceDesign`) con el que juega el bot.
+
 ## Superficie (fase 2; cifras en `catalog/mundos.json`)
 
 - **Autoridad:** el cliente simula movimiento y física (Rapier) e informa (`set-position`, `fall-impact`,
@@ -233,7 +291,12 @@ run.effectiveSurfaceRules()             // reglas de traje/jetpack/caídas con m
 - El param `system` lleva un `SystemId` y se muestra con `$t(system.{{system}})` o `$t(systemName.{{system}})`.
   Los nombres propios (`node`) van tal cual. En español evita «a/de + $t(system…)» (daría «a el reactor»): usa «en».
 - `simLocales` añade `catalog.<id>` con el nombre de cada nave, tipo de destino, mundo y material
-  (params `world` y `material` se muestran con `$t(catalog.{{world}})`).
+  (params `world` y `material` se muestran con `$t(catalog.{{world}})`) y, en la fase 4, de cada misión, módulo,
+  instrumento, lanzador, zona y cuerpo.
+- Fase 4: `design.review.<code>` (motivo del Go/No-Go), `design.why.<recurso>…` («¿por qué?» de cada presupuesto) y
+  etiquetas `design.resource.*`, `design.unit.*`, `design.status.*`, `design.science.*` (en minúscula, para frases),
+  `design.moduleKind.*`, `design.go`/`design.noGo`. `design.test.ts` exige que cada `design.review.*`/`design.why.*`
+  salga en algún diseño y se resuelva del todo.
 - `locales.test.ts` comprueba paridad, params, que ningún mensaje pasa de 90 caracteres y que toda
   `MessageRef` emitida en partidas simuladas existe y se resuelve del todo. **Si añades un evento, el test
   falla hasta que algún barrido lo emita.**
@@ -286,6 +349,14 @@ run.effectiveSurfaceRules()             // reglas de traje/jetpack/caídas con m
   combinaciones distintas y ayudas de emergencia; `balance.test.ts` exige que sin minar se supere el sector 1 (>= 95 %)
   y el 3 (>= 80 %), que el explorador compre >= 2 mejoras de media y gane > 2 × los créditos del que no mina, que
   las combinaciones de mejoras varíen entre partidas y que los créditos nunca sean negativos.
+
+- **Fase 4 en el bot:** `design` juega con la nave diseñada sobre el sistema solar; con diseño, vuelve a encender
+  escudos/sensores solo si cabe su consumo real (+2 kW), prefiere el nodo `missionTarget` no visitado y devuelve
+  `targetReached`. El informe juega por misión la ruta completa (2·(zonas − 1) tramos, al menos 2) con los dos
+  primeros diseños válidos (crew 3.5 s, crew 7 s y prudente) y hasta dos No-Go que fallan en vuelo (potencia,
+  combustible, enlace), y muestra el % que llega al destino. `balance.test.ts` exige que cada diseño de referencia supere el primer
+  tramo (>= 90 %, puesto a puesto 7 s), que sin atender nada no se llegue (<= 40 %) y que las misiones de dificultad 3
+  cuesten >= 10 puntos más que las de 1 a tres tramos (fáciles >= 80 %, difíciles >= 25 %).
 
 ## Reglas
 

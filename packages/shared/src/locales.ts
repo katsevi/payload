@@ -14,6 +14,12 @@ function catalogNames(locale: Locale): Record<string, string> {
   const names: Record<string, string> = {};
   const surface = catalog.surface;
   for (const entry of [...catalog.ships, ...catalog.nodeKinds, ...(surface?.worlds ?? []), ...(surface?.materials ?? []), ...(surface?.tools ?? []), ...(catalog.upgrades ?? [])]) names[entry.id] = entry.name[locale];
+  // Fase 4: misiones, módulos, instrumentos, lanzadores, zonas y cuerpos del sistema solar.
+  const solar = catalog.solarSystem;
+  for (const entry of [
+    ...(catalog.missions ?? []), ...(catalog.modules ?? []), ...(catalog.instruments ?? []), ...(catalog.launchers ?? []),
+    ...(solar?.zones ?? []), ...(solar?.bodies ?? []),
+  ]) names[entry.id] = entry.name[locale];
   return names;
 }
 

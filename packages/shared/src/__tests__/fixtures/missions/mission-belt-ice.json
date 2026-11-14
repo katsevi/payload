@@ -1,0 +1,222 @@
+{
+  "missionId": "mission-belt-ice",
+  "valid": [
+    {
+      "name": "fision-doble-rtg-blindada",
+      "design": {
+        "missionId": "mission-belt-ice",
+        "destinationId": "ceres",
+        "launcherId": "launcher-condor-heavy",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "fission-reactor",
+          "rtg",
+          "rtg",
+          "comms-hga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "whipple-armor"
+        ],
+        "instrumentIds": [
+          "inst-neutron",
+          "inst-seismometer",
+          "inst-radar"
+        ]
+      }
+    },
+    {
+      "name": "fision-rtg-justa-de-potencia",
+      "design": {
+        "missionId": "mission-belt-ice",
+        "destinationId": "ceres",
+        "launcherId": "launcher-condor-heavy",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "fission-reactor",
+          "rtg",
+          "comms-hga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "whipple-armor"
+        ],
+        "instrumentIds": [
+          "inst-neutron",
+          "inst-seismometer",
+          "inst-radar"
+        ]
+      }
+    },
+    {
+      "name": "solar-sin-escudos-a-vesta",
+      "design": {
+        "missionId": "mission-belt-ice",
+        "destinationId": "vesta",
+        "launcherId": "launcher-condor-heavy",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "rtg",
+          "solar-array-hi",
+          "solar-array-hi",
+          "solar-array-hi",
+          "rtg",
+          "comms-hga",
+          "computer-flight",
+          "battery-pack",
+          "fuel-tank-module",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-neutron",
+          "inst-seismometer",
+          "inst-radar"
+        ]
+      }
+    }
+  ],
+  "failing": [
+    {
+      "name": "antena-corta",
+      "cause": "comms-range",
+      "design": {
+        "missionId": "mission-belt-ice",
+        "destinationId": "ceres",
+        "launcherId": "launcher-condor-heavy",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "fission-reactor",
+          "rtg",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "whipple-armor"
+        ],
+        "instrumentIds": [
+          "inst-neutron",
+          "inst-seismometer",
+          "inst-radar"
+        ]
+      }
+    },
+    {
+      "name": "fision-sola-no-basta",
+      "cause": "power",
+      "design": {
+        "missionId": "mission-belt-ice",
+        "destinationId": "ceres",
+        "launcherId": "launcher-condor-heavy",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "fission-reactor",
+          "comms-hga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "whipple-armor"
+        ],
+        "instrumentIds": [
+          "inst-neutron",
+          "inst-seismometer",
+          "inst-radar"
+        ]
+      }
+    },
+    {
+      "name": "solo-paneles-en-ceres",
+      "cause": "power",
+      "design": {
+        "missionId": "mission-belt-ice",
+        "destinationId": "ceres",
+        "launcherId": "launcher-condor-heavy",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array-hi",
+          "solar-array-hi",
+          "solar-array-hi",
+          "comms-hga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-neutron",
+          "inst-seismometer",
+          "inst-radar"
+        ]
+      }
+    },
+    {
+      "name": "ariete-se-queda-corto",
+      "cause": "mass-launcher",
+      "design": {
+        "missionId": "mission-belt-ice",
+        "destinationId": "ceres",
+        "launcherId": "launcher-ariete",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "fission-reactor",
+          "rtg",
+          "comms-hga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "whipple-armor"
+        ],
+        "instrumentIds": [
+          "inst-neutron",
+          "inst-seismometer",
+          "inst-radar"
+        ]
+      }
+    },
+    {
+      "name": "sin-sismometro",
+      "cause": "missing-science-kind",
+      "design": {
+        "missionId": "mission-belt-ice",
+        "destinationId": "ceres",
+        "launcherId": "launcher-condor-heavy",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "fission-reactor",
+          "rtg",
+          "comms-hga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "whipple-armor"
+        ],
+        "instrumentIds": [
+          "inst-neutron",
+          "inst-radar",
+          "inst-camera"
+        ]
+      }
+    }
+  ]
+}

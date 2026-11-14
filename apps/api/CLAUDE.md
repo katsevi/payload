@@ -1,7 +1,7 @@
-# @payload/api — marcador de la fase 5
+# @payload/api — marcador de la fase 7
 
 **Hoy no tiene código** (los scripts `typecheck`/`test`/`build` solo hacen `echo`).
-No lo rellenes hasta que el cooperativo (fase 4) esté validado (`docs/phases/fase-5.md`).
+No lo rellenes hasta que el cooperativo (fase 6) esté validado (`docs/phases/fase-7.md`).
 
 ## Qué irá aquí
 

@@ -3,6 +3,7 @@
  * el perfil de referencia y salir de la nave. Solo usan acciones del motor: nada se escribe a mano.
  */
 import { getEconomy, getNode, getNodeKind, getSurfaceCatalog, getWorld, hasShop, referenceBrake, type Run, type RunPhase } from '@payload/shared';
+import { isLandableNode } from './surfaceRules';
 
 /** Fase actual (sin el estrechamiento de tipos de TypeScript: la cambian las acciones). */
 const phaseOf = (run: Run): RunPhase => run.state.phase;
@@ -11,8 +12,7 @@ const phaseOf = (run: Run): RunPhase => run.state.phase;
 export function routeToLandable(run: Run): string[] | null {
   const s = run.state;
   return routeTo(run, (id) => {
-    const n = getNode(s.sector, id);
-    return !!n && getNodeKind(n.kind, run.catalog).landable && !s.landedIds.includes(id);
+    return isLandableNode(s, id, run.catalog) && !s.landedIds.includes(id);
   });
 }
 

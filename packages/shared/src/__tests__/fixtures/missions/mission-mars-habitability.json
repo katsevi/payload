@@ -1,0 +1,170 @@
+{
+  "missionId": "mission-mars-habitability",
+  "valid": [
+    {
+      "name": "tres-alas-solares",
+      "design": {
+        "missionId": "mission-mars-habitability",
+        "destinationId": "mars",
+        "launcherId": "launcher-condor-heavy",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array-hi",
+          "solar-array-hi",
+          "comms-hga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "thermal-radiator"
+        ],
+        "instrumentIds": [
+          "inst-mass-spec",
+          "inst-ir-spectrometer",
+          "inst-drill"
+        ]
+      }
+    },
+    {
+      "name": "hibrida-rtg",
+      "design": {
+        "missionId": "mission-mars-habitability",
+        "destinationId": "mars",
+        "launcherId": "launcher-condor-heavy",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "rtg",
+          "rtg",
+          "solar-array-hi",
+          "solar-array-hi",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-mass-spec",
+          "inst-uv-spectrometer",
+          "inst-drill"
+        ]
+      }
+    }
+  ],
+  "failing": [
+    {
+      "name": "paneles-cortos-en-marte",
+      "cause": "power",
+      "design": {
+        "missionId": "mission-mars-habitability",
+        "destinationId": "mars",
+        "launcherId": "launcher-condor-heavy",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array-hi",
+          "comms-hga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "thermal-radiator"
+        ],
+        "instrumentIds": [
+          "inst-mass-spec",
+          "inst-ir-spectrometer",
+          "inst-drill"
+        ]
+      }
+    },
+    {
+      "name": "condor-no-la-sube",
+      "cause": "mass-launcher",
+      "design": {
+        "missionId": "mission-mars-habitability",
+        "destinationId": "mars",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array-hi",
+          "solar-array-hi",
+          "comms-hga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "thermal-radiator"
+        ],
+        "instrumentIds": [
+          "inst-mass-spec",
+          "inst-ir-spectrometer",
+          "inst-drill"
+        ]
+      }
+    },
+    {
+      "name": "sin-atmosfera",
+      "cause": "missing-science-kind",
+      "design": {
+        "missionId": "mission-mars-habitability",
+        "destinationId": "mars",
+        "launcherId": "launcher-condor-heavy",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array-hi",
+          "solar-array-hi",
+          "comms-hga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "thermal-radiator"
+        ],
+        "instrumentIds": [
+          "inst-camera",
+          "inst-ir-spectrometer",
+          "inst-drill"
+        ]
+      }
+    },
+    {
+      "name": "sin-combustible-de-vuelta",
+      "cause": "range",
+      "design": {
+        "missionId": "mission-mars-habitability",
+        "destinationId": "mars",
+        "launcherId": "launcher-condor-heavy",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array-hi",
+          "solar-array-hi",
+          "comms-hga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "thermal-radiator"
+        ],
+        "instrumentIds": [
+          "inst-mass-spec",
+          "inst-ir-spectrometer",
+          "inst-drill"
+        ]
+      }
+    }
+  ]
+}

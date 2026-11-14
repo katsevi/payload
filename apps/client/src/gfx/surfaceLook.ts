@@ -83,6 +83,35 @@ export const SURFACE_LOOKS: Record<string, SurfaceLook> = {
     hemiSky: '#d0a050', hemiGround: '#3a2a18', hemiIntensity: 0.7,
     stars: false, lava: null, dust: '#8a7250', storm: '#8a7250',
   },
+  // Fase 4: mundos de los cuerpos reales del sistema solar.
+  'mars-surface': {
+    skyTop: '#3a2418', skyHorizon: '#c08a62', fog: '#8a5a3c', fogNearM: 40, fogFarM: 230,
+    ground: ['#8a4a2a', '#b06a40', '#4a2616'], rock: '#7a4430',
+    sun: '#fff0dc', sunIntensity: 1.6, sunDir: [-0.5, 0.45, 0.35],
+    hemiSky: '#d09a70', hemiGround: '#3a1e12', hemiIntensity: 0.8, fillIntensity: 0.35,
+    stars: false, lava: null, dust: '#c08060', storm: '#a8683e',
+  },
+  'ice-moon': {
+    skyTop: '#000003', skyHorizon: '#0e1624', fog: '#080d16', fogNearM: 100, fogFarM: 340,
+    ground: ['#b8c8d4', '#e8f0f6', '#7a6050'], rock: '#a8b8c6',
+    sun: '#eef4ff', sunIntensity: 1.9, sunDir: [0.6, 0.3, -0.4],
+    hemiSky: '#7a90b0', hemiGround: '#40505e', hemiIntensity: 0.9, fillIntensity: 0.9,
+    stars: true, lava: null, dust: '#dfe8f0', storm: '#dfe8f0',
+  },
+  'titan-surface': {
+    skyTop: '#5a3a12', skyHorizon: '#c89040', fog: '#a87830', fogNearM: 20, fogFarM: 150,
+    ground: ['#5a4428', '#7a5e38', '#33261a'], rock: '#4a3a26',
+    sun: '#ffd89a', sunIntensity: 0.9, sunDir: [0.3, 0.7, 0.2],
+    hemiSky: '#d8a050', hemiGround: '#3a2a14', hemiIntensity: 0.9,
+    stars: false, lava: null, dust: '#9a7a48', storm: '#9a7a48',
+  },
+  'enceladus-surface': {
+    skyTop: '#000002', skyHorizon: '#101826', fog: '#090e18', fogNearM: 100, fogFarM: 340,
+    ground: ['#d8e4ee', '#ffffff', '#8aa6bc'], rock: '#c6d6e4',
+    sun: '#f4f8ff', sunIntensity: 1.6, sunDir: [-0.4, 0.3, 0.6],
+    hemiSky: '#8aa6c8', hemiGround: '#4a5a6a', hemiIntensity: 1, fillIntensity: 1,
+    stars: true, lava: null, dust: '#eef4fa', storm: '#eef4fa',
+  },
 };
 
 export function surfaceLook(worldId: string): SurfaceLook {

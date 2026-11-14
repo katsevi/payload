@@ -1,0 +1,65 @@
+{
+  "rules": {
+    "baseShipId": "ship-colibri",
+    "shipName": { "es": "Nave de la misión", "en": "Mission ship" },
+    "zeroedFields": ["hullMax", "fuelCapacity", "reactorOutputKw", "shieldAbsorb", "systemDrawKw.shields", "systemDrawKw.engines"],
+    "referenceMassKg": 14000,
+    "massFuelExponent": 1,
+    "tightMargin": 0.15,
+    "integrationMonthsPerItem": 0.5,
+    "offKindScienceMult": 0.5,
+    "rangeLegFactor": 0.6,
+    "rangeReservePct": 15,
+    "maxShieldAbsorb": 0.95
+  },
+  "missions": [
+    {
+      "id": "mission-lunar-ice",
+      "name": { "es": "Hielo en los polos lunares", "en": "Ice at the lunar poles" },
+      "description": { "es": "¿Cuánta agua helada guardan los cráteres en sombra de la Luna?", "en": "How much water ice hides in the Moon's shadowed craters?" },
+      "scienceKind": "ice", "destinations": ["luna"],
+      "requirements": { "minScience": 60, "requiredKinds": ["ice"], "minReliabilityPct": 80 },
+      "budgetMUSD": 600, "deadlineMonths": 36, "difficulty": 1
+    },
+    {
+      "id": "mission-asteroid-sample",
+      "name": { "es": "Muestras de un asteroide cercano", "en": "Samples from a near-Earth asteroid" },
+      "description": { "es": "¿De qué estaban hechos los ladrillos del sistema solar?", "en": "What were the building blocks of the Solar System made of?" },
+      "scienceKind": "geology", "destinations": ["bennu", "ryugu"],
+      "requirements": { "minScience": 70, "requiredKinds": ["geology"], "minReliabilityPct": 82 },
+      "budgetMUSD": 480, "deadlineMonths": 27, "difficulty": 1
+    },
+    {
+      "id": "mission-mars-habitability",
+      "name": { "es": "¿Fue habitable Marte?", "en": "Was Mars habitable?" },
+      "description": { "es": "Rocas y aire de Marte cuentan si hubo agua líquida y por cuánto tiempo.", "en": "Martian rocks and air tell whether liquid water existed, and for how long." },
+      "scienceKind": "atmosphere", "destinations": ["mars"],
+      "requirements": { "minScience": 80, "requiredKinds": ["atmosphere", "geology"], "minReliabilityPct": 78 },
+      "budgetMUSD": 900, "deadlineMonths": 48, "difficulty": 2
+    },
+    {
+      "id": "mission-belt-ice",
+      "name": { "es": "Agua en el cinturón", "en": "Water in the belt" },
+      "description": { "es": "¿Dónde guarda agua el cinturón y qué hay dentro de Ceres, Vesta y Psique?", "en": "Where does the belt keep its water, and what lies inside Ceres, Vesta and Psyche?" },
+      "scienceKind": "ice", "destinations": ["ceres", "vesta", "psyche"],
+      "requirements": { "minScience": 80, "requiredKinds": ["ice", "interior"], "minReliabilityPct": 82 },
+      "budgetMUSD": 1100, "deadlineMonths": 60, "difficulty": 2
+    },
+    {
+      "id": "mission-europa-ocean",
+      "name": { "es": "El océano de Europa", "en": "Europa's ocean" },
+      "description": { "es": "¿Hay un océano salado bajo el hielo de las lunas de Júpiter?", "en": "Is there a salty ocean under the ice of Jupiter's moons?" },
+      "scienceKind": "ice", "destinations": ["europa", "ganymede", "callisto"],
+      "requirements": { "minScience": 90, "requiredKinds": ["ice", "fields"], "minReliabilityPct": 84 },
+      "budgetMUSD": 1900, "deadlineMonths": 84, "difficulty": 3
+    },
+    {
+      "id": "mission-titan-chemistry",
+      "name": { "es": "Química de Titán y Encélado", "en": "Chemistry of Titan and Enceladus" },
+      "description": { "es": "¿Se dan en las lunas de Saturno los pasos químicos hacia la vida?", "en": "Do Saturn's moons host the chemical steps towards life?" },
+      "scienceKind": "life", "destinations": ["titan", "enceladus"],
+      "requirements": { "minScience": 100, "requiredKinds": ["atmosphere", "life"], "minReliabilityPct": 78 },
+      "budgetMUSD": 2800, "deadlineMonths": 96, "difficulty": 3
+    }
+  ]
+}

@@ -1,0 +1,162 @@
+{
+  "route": {
+    "legBaseUnits": 60,
+    "legUnitsPerSqrtAu": 40,
+    "legMinUnits": 75,
+    "legMaxUnits": 150,
+    "columnSpacingUnits": 19,
+    "waypointKinds": ["asteroid", "derelict", "station"],
+    "moonDisplayAuPerMkm": 0.25
+  },
+  "zones": [
+    { "id": "zone-earth", "name": { "es": "Entorno terrestre", "en": "Earth space" }, "sunDistanceAu": 1.0, "hubId": "station-tsiolkovski" },
+    { "id": "zone-mars", "name": { "es": "Órbita de Marte", "en": "Mars orbit" }, "sunDistanceAu": 1.524, "hubId": "station-schiaparelli" },
+    { "id": "zone-belt", "name": { "es": "Cinturón de asteroides", "en": "Asteroid belt" }, "sunDistanceAu": 2.767, "hubId": "station-piazzi" },
+    { "id": "zone-jupiter", "name": { "es": "Sistema de Júpiter", "en": "Jupiter system" }, "sunDistanceAu": 5.203, "hubId": "station-galileo", "radiation": true },
+    { "id": "zone-saturn", "name": { "es": "Sistema de Saturno", "en": "Saturn system" }, "sunDistanceAu": 9.537, "hubId": "station-huygens" }
+  ],
+  "bodies": [
+    {
+      "id": "sun", "name": { "es": "Sol", "en": "Sun" }, "type": "star",
+      "periodDays": 0, "phaseDeg": 0, "radiusKm": 695700, "gravityMps2": 274, "atmosphere": true, "landable": false,
+      "source": "NASA Sun Fact Sheet"
+    },
+    {
+      "id": "earth", "name": { "es": "Tierra", "en": "Earth" }, "type": "planet", "zoneId": "zone-earth",
+      "orbitAu": 1.0, "periodDays": 365.256, "phaseDeg": 0, "radiusKm": 6371, "gravityMps2": 9.8, "atmosphere": true, "landable": false,
+      "source": "NASA Earth Fact Sheet"
+    },
+    {
+      "id": "station-tsiolkovski", "name": { "es": "Tsiolkovski", "en": "Tsiolkovsky" }, "type": "station", "parentId": "earth", "zoneId": "zone-earth",
+      "orbitKm": 6771, "periodDays": 0.064, "phaseDeg": 0, "radiusKm": 0.1, "gravityMps2": 0, "atmosphere": false, "nodeKind": "station", "landable": false,
+      "source": "ficticia (órbita baja, ~400 km)"
+    },
+    {
+      "id": "luna", "name": { "es": "Luna", "en": "Moon" }, "type": "moon", "parentId": "earth", "zoneId": "zone-earth",
+      "orbitKm": 384400, "periodDays": 27.322, "phaseDeg": 40, "radiusKm": 1737.4, "gravityMps2": 1.62, "atmosphere": false,
+      "nodeKind": "moon", "landable": true, "worldId": "dust-moon",
+      "source": "NASA Moon Fact Sheet"
+    },
+    {
+      "id": "station-lagrange", "name": { "es": "Lagrange", "en": "Lagrange" }, "type": "station", "parentId": "earth", "zoneId": "zone-earth",
+      "orbitKm": 446000, "periodDays": 27.322, "phaseDeg": 40, "radiusKm": 0.1, "gravityMps2": 0, "atmosphere": false, "nodeKind": "station", "landable": false,
+      "source": "ficticia (punto L2 Tierra-Luna)"
+    },
+    {
+      "id": "bennu", "name": { "es": "Bennu", "en": "Bennu" }, "type": "asteroid", "zoneId": "zone-earth",
+      "orbitAu": 1.126, "periodDays": 436.6, "phaseDeg": 70, "radiusKm": 0.245, "gravityMps2": 0.000006, "atmosphere": false,
+      "nodeKind": "asteroid", "landable": true, "worldId": "drifting-rock",
+      "source": "NASA OSIRIS-REx / JPL Small-Body Database"
+    },
+    {
+      "id": "ryugu", "name": { "es": "Ryugu", "en": "Ryugu" }, "type": "asteroid", "zoneId": "zone-earth",
+      "orbitAu": 1.19, "periodDays": 474, "phaseDeg": 300, "radiusKm": 0.45, "gravityMps2": 0.00011, "atmosphere": false,
+      "nodeKind": "asteroid", "landable": true, "worldId": "drifting-rock",
+      "source": "JAXA Hayabusa2 / JPL Small-Body Database"
+    },
+    {
+      "id": "mars", "name": { "es": "Marte", "en": "Mars" }, "type": "planet", "zoneId": "zone-mars",
+      "orbitAu": 1.524, "periodDays": 686.98, "phaseDeg": 120, "radiusKm": 3389.5, "gravityMps2": 3.71, "atmosphere": true,
+      "nodeKind": "planet", "landable": true, "worldId": "mars-surface",
+      "source": "NASA Mars Fact Sheet"
+    },
+    {
+      "id": "station-schiaparelli", "name": { "es": "Schiaparelli", "en": "Schiaparelli" }, "type": "station", "parentId": "mars", "zoneId": "zone-mars",
+      "orbitKm": 20428, "periodDays": 1.03, "phaseDeg": 200, "radiusKm": 0.1, "gravityMps2": 0, "atmosphere": false, "nodeKind": "station", "landable": false,
+      "source": "ficticia (órbita areoestacionaria)"
+    },
+    {
+      "id": "phobos", "name": { "es": "Fobos", "en": "Phobos" }, "type": "moon", "parentId": "mars", "zoneId": "zone-mars",
+      "orbitKm": 9376, "periodDays": 0.319, "phaseDeg": 10, "radiusKm": 11.1, "gravityMps2": 0.0057, "atmosphere": false,
+      "nodeKind": "asteroid", "landable": true, "worldId": "drifting-rock",
+      "source": "NASA Mars Fact Sheet (satélites)"
+    },
+    {
+      "id": "deimos", "name": { "es": "Deimos", "en": "Deimos" }, "type": "moon", "parentId": "mars", "zoneId": "zone-mars",
+      "orbitKm": 23463, "periodDays": 1.263, "phaseDeg": 250, "radiusKm": 6.2, "gravityMps2": 0.003, "atmosphere": false,
+      "nodeKind": "asteroid", "landable": true, "worldId": "drifting-rock",
+      "source": "NASA Mars Fact Sheet (satélites)"
+    },
+    {
+      "id": "vesta", "name": { "es": "Vesta", "en": "Vesta" }, "type": "asteroid", "zoneId": "zone-belt",
+      "orbitAu": 2.362, "periodDays": 1325.75, "phaseDeg": 160, "radiusKm": 262.7, "gravityMps2": 0.25, "atmosphere": false,
+      "nodeKind": "asteroid", "landable": true, "worldId": "drifting-rock",
+      "source": "NASA Dawn / JPL Small-Body Database"
+    },
+    {
+      "id": "ceres", "name": { "es": "Ceres", "en": "Ceres" }, "type": "dwarf", "zoneId": "zone-belt",
+      "orbitAu": 2.767, "periodDays": 1681.6, "phaseDeg": 210, "radiusKm": 469.7, "gravityMps2": 0.28, "atmosphere": false,
+      "nodeKind": "asteroid", "landable": true, "worldId": "ice-core",
+      "source": "NASA Dawn / JPL Small-Body Database"
+    },
+    {
+      "id": "station-piazzi", "name": { "es": "Piazzi", "en": "Piazzi" }, "type": "station", "parentId": "ceres", "zoneId": "zone-belt",
+      "orbitKm": 1600, "periodDays": 0.6, "phaseDeg": 90, "radiusKm": 0.1, "gravityMps2": 0, "atmosphere": false, "nodeKind": "station", "landable": false,
+      "source": "ficticia (órbita de Ceres)"
+    },
+    {
+      "id": "psyche", "name": { "es": "Psique", "en": "Psyche" }, "type": "asteroid", "zoneId": "zone-belt",
+      "orbitAu": 2.92, "periodDays": 1828, "phaseDeg": 260, "radiusKm": 111, "gravityMps2": 0.12, "atmosphere": false,
+      "nodeKind": "asteroid", "landable": true, "worldId": "drifting-rock",
+      "source": "NASA Psyche / JPL Small-Body Database (gravedad estimada por densidad)"
+    },
+    {
+      "id": "jupiter", "name": { "es": "Júpiter", "en": "Jupiter" }, "type": "planet", "zoneId": "zone-jupiter",
+      "orbitAu": 5.203, "periodDays": 4332.6, "phaseDeg": 230, "radiusKm": 69911, "gravityMps2": 24.79, "atmosphere": true,
+      "nodeKind": "planet", "landable": false,
+      "source": "NASA Jupiter Fact Sheet"
+    },
+    {
+      "id": "station-galileo", "name": { "es": "Galileo", "en": "Galileo" }, "type": "station", "parentId": "jupiter", "zoneId": "zone-jupiter",
+      "orbitKm": 2500000, "periodDays": 25, "phaseDeg": 0, "radiusKm": 0.1, "gravityMps2": 0, "atmosphere": false, "nodeKind": "station", "landable": false,
+      "source": "ficticia (fuera de los cinturones de radiación)"
+    },
+    {
+      "id": "io", "name": { "es": "Ío", "en": "Io" }, "type": "moon", "parentId": "jupiter", "zoneId": "zone-jupiter",
+      "orbitKm": 421700, "periodDays": 1.769, "phaseDeg": 30, "radiusKm": 1821.6, "gravityMps2": 1.796, "atmosphere": false,
+      "nodeKind": "moon", "landable": true, "worldId": "volcanic-moon",
+      "source": "NASA Jovian Satellite Fact Sheet"
+    },
+    {
+      "id": "europa", "name": { "es": "Europa", "en": "Europa" }, "type": "moon", "parentId": "jupiter", "zoneId": "zone-jupiter",
+      "orbitKm": 671100, "periodDays": 3.551, "phaseDeg": 110, "radiusKm": 1560.8, "gravityMps2": 1.315, "atmosphere": false,
+      "nodeKind": "moon", "landable": true, "worldId": "ice-moon",
+      "source": "NASA Jovian Satellite Fact Sheet"
+    },
+    {
+      "id": "ganymede", "name": { "es": "Ganímedes", "en": "Ganymede" }, "type": "moon", "parentId": "jupiter", "zoneId": "zone-jupiter",
+      "orbitKm": 1070400, "periodDays": 7.155, "phaseDeg": 200, "radiusKm": 2634.1, "gravityMps2": 1.428, "atmosphere": false,
+      "nodeKind": "moon", "landable": true, "worldId": "ice-moon",
+      "source": "NASA Jovian Satellite Fact Sheet"
+    },
+    {
+      "id": "callisto", "name": { "es": "Calisto", "en": "Callisto" }, "type": "moon", "parentId": "jupiter", "zoneId": "zone-jupiter",
+      "orbitKm": 1882700, "periodDays": 16.689, "phaseDeg": 300, "radiusKm": 2410.3, "gravityMps2": 1.235, "atmosphere": false,
+      "nodeKind": "moon", "landable": true, "worldId": "ice-moon",
+      "source": "NASA Jovian Satellite Fact Sheet"
+    },
+    {
+      "id": "saturn", "name": { "es": "Saturno", "en": "Saturn" }, "type": "planet", "zoneId": "zone-saturn",
+      "orbitAu": 9.537, "periodDays": 10759, "phaseDeg": 330, "radiusKm": 58232, "gravityMps2": 10.44, "atmosphere": true,
+      "nodeKind": "planet", "landable": false,
+      "source": "NASA Saturn Fact Sheet"
+    },
+    {
+      "id": "station-huygens", "name": { "es": "Huygens", "en": "Huygens" }, "type": "station", "parentId": "saturn", "zoneId": "zone-saturn",
+      "orbitKm": 1600000, "periodDays": 21, "phaseDeg": 180, "radiusKm": 0.1, "gravityMps2": 0, "atmosphere": false, "nodeKind": "station", "landable": false,
+      "source": "ficticia (más allá de Titán)"
+    },
+    {
+      "id": "enceladus", "name": { "es": "Encélado", "en": "Enceladus" }, "type": "moon", "parentId": "saturn", "zoneId": "zone-saturn",
+      "orbitKm": 238040, "periodDays": 1.37, "phaseDeg": 60, "radiusKm": 252.1, "gravityMps2": 0.113, "atmosphere": false,
+      "nodeKind": "moon", "landable": true, "worldId": "enceladus-surface",
+      "source": "NASA Saturnian Satellite Fact Sheet"
+    },
+    {
+      "id": "titan", "name": { "es": "Titán", "en": "Titan" }, "type": "moon", "parentId": "saturn", "zoneId": "zone-saturn",
+      "orbitKm": 1221870, "periodDays": 15.945, "phaseDeg": 140, "radiusKm": 2574.7, "gravityMps2": 1.352, "atmosphere": true,
+      "nodeKind": "moon", "landable": true, "worldId": "titan-surface",
+      "source": "NASA Saturnian Satellite Fact Sheet"
+    }
+  ]
+}

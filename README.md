@@ -97,8 +97,8 @@ Diseño completo: [`docs/GDD.md`](docs/GDD.md).
 payload/
 ├─ apps/
 │  ├─ client/        # React 19 + R3F + Rapier + Vite: escenas, interfaz, audio, i18n
-│  ├─ game-server/   # marcador: servidor del cooperativo (fase 4)
-│  └─ api/           # marcador: rankings y persistencia (fase 5)
+│  ├─ game-server/   # marcador: servidor del cooperativo (fase 6)
+│  └─ api/           # marcador: rankings y persistencia (fase 7)
 ├─ packages/
 │  └─ shared/        # motor del juego en TypeScript puro, con tests
 │     ├─ catalog/    # naves, averías, destinos, sectores, mundos, economía y mejoras (.json)

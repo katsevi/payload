@@ -5,8 +5,14 @@
  *
  * Los máximos que pinta la interfaz (depósito, casco, reactor, mochila, O₂ del traje…) salen de aquí, nunca
  * de la `ShipDef` base ni de `getSurfaceCatalog(cat).rules`.
+ *
+ * Fase 4 (ADR 0016): con `state.missionDesign` la nave BASE es `shipFromDesign(diseño)` (el `shipId` sigue
+ * siendo el de la nave del catálogo de la que parte, así que no basta con `getShip(shipId)`).
  */
-import { catalog as defaultCatalog, effectiveShip, effectiveSurfaceRules, getShip, getSurfaceCatalog, type Catalog, type RunState, type ShipDef, type SurfaceRules } from '@payload/shared';
+import {
+  catalog as defaultCatalog, effectiveShip, effectiveSurfaceRules, getShip, getSurfaceCatalog, shipFromDesign, shipPowerKw,
+  type Catalog, type MissionDesign, type RunState, type ShipDef, type SurfaceRules,
+} from '@payload/shared';
 
 type Levels = Readonly<Record<string, number>>;
 
@@ -17,31 +23,68 @@ export function sameLevels(a: Levels, b: Levels): boolean {
   return true;
 }
 
+const sameList = (a: readonly string[], b: readonly string[]): boolean => {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+};
+
+/** Mismo diseño (mismas piezas en el mismo orden; ausente = sin diseño). Sin crear objetos. */
+export function sameDesign(a: MissionDesign | null | undefined, b: MissionDesign | null | undefined): boolean {
+  if (!a || !b) return !a && !b;
+  return a.missionId === b.missionId && a.destinationId === b.destinationId && a.launcherId === b.launcherId && sameList(a.moduleIds, b.moduleIds) && sameList(a.instrumentIds, b.instrumentIds);
+}
+
+const copyDesign = (d: MissionDesign | undefined): MissionDesign | null =>
+  d ? { ...d, moduleIds: [...d.moduleIds], instrumentIds: [...d.instrumentIds] } : null;
+
+type BaseState = Pick<RunState, 'ship'> & Partial<Pick<RunState, 'missionDesign'>>;
+
+const baseMemo: { cat: Catalog | null; shipId: string; design: MissionDesign | null; value: ShipDef | null } = { cat: null, shipId: '', design: null, value: null };
+
+/** Nave base de la partida SIN mejoras: la diseñada si hay diseño; si no, la del catálogo. */
+export function baseShipOf(state: BaseState, cat: Catalog = defaultCatalog): ShipDef {
+  const m = baseMemo;
+  const design = state.missionDesign;
+  if (m.value && m.cat === cat && m.shipId === state.ship.shipId && sameDesign(m.design, design)) return m.value;
+  m.value = design ? shipFromDesign(design, cat) : getShip(state.ship.shipId, cat);
+  m.cat = cat;
+  m.shipId = state.ship.shipId;
+  m.design = copyDesign(design);
+  return m.value;
+}
+
 interface Memo<T> {
   cat: Catalog | null;
-  key: string;
+  base: ShipDef | null;
   levels: Levels;
   value: T | null;
 }
 
-function memo<T>(): Memo<T> {
-  return { cat: null, key: '', levels: {}, value: null };
-}
-
-const shipMemo = memo<ShipDef>();
-const rulesMemo = memo<SurfaceRules>();
+const shipMemo: Memo<ShipDef> = { cat: null, base: null, levels: {}, value: null };
+const rulesMemo: Memo<SurfaceRules> = { cat: null, base: null, levels: {}, value: null };
 const NONE: Levels = {};
 
 /** La nave con las mejoras de `state.upgrades` (la misma que usa el motor). */
-export function effectiveShipOf(state: Pick<RunState, 'ship' | 'upgrades'>, cat: Catalog = defaultCatalog): ShipDef {
+export function effectiveShipOf(state: BaseState & Partial<Pick<RunState, 'upgrades'>>, cat: Catalog = defaultCatalog): ShipDef {
   const levels = state.upgrades ?? NONE;
+  const base = baseShipOf(state, cat);
   const m = shipMemo;
-  if (m.value && m.cat === cat && m.key === state.ship.shipId && sameLevels(m.levels, levels)) return m.value;
-  m.value = effectiveShip(getShip(state.ship.shipId, cat), levels, cat);
+  if (m.value && m.cat === cat && m.base === base && sameLevels(m.levels, levels)) return m.value;
+  m.value = effectiveShip(base, levels, cat);
   m.cat = cat;
-  m.key = state.ship.shipId;
+  m.base = base;
   m.levels = { ...levels };
   return m.value;
+}
+
+/**
+ * Potencia máxima de la nave sana a la distancia al Sol actual (nuclear + paneles × 1/d²): el 100 % de la
+ * barra de energía. Sin diseño es el reactor de siempre. Nunca 0 (evita dividir entre cero en las barras).
+ */
+export function maxPowerKwOf(state: BaseState & Partial<Pick<RunState, 'upgrades' | 'sunDistanceAu'>>, cat: Catalog = defaultCatalog): number {
+  const ship = effectiveShipOf(state, cat);
+  return Math.max(1e-6, shipPowerKw(ship, state.sunDistanceAu ?? 1));
 }
 
 /** Reglas de traje, jetpack y caídas con las mejoras de `state.upgrades`. */

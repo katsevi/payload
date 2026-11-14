@@ -4,7 +4,7 @@ Diseño del juego vigente desde el 2026-11-09. Plan de partida: `docs/plan/plan-
 Por qué se rehízo el juego: `docs/adr/0011-reinicio-tripulacion-de-exploracion.md`. El GDD del simulador
 anterior está en `docs/archivo/v0.3-simulador/GDD.md`.
 
-Leyenda: **[F1]** existe desde la fase 1 · **[F2]** existe desde la fase 2 (superficie) · **[F3] [F4] [F5]** diseño previsto para esa fase.
+Leyenda: **[F1]** existe desde la fase 1 · **[F2]** existe desde la fase 2 (superficie) · **[F3] [F4] [F5] [F6] [F7]** diseño previsto para esa fase (nuevo orden: ADR 0015).
 
 ## 1. Concepto
 
@@ -136,7 +136,7 @@ Cada sector suma un 40 % de peligro y, cada dos, una columna más.
 
 ## 8. Roles de la tripulación
 
-| Rol | Puesto | En la fase 1 (solitario) | En cooperativo [F4] |
+| Rol | Puesto | En la fase 1 (solitario) | En cooperativo [F6] |
 | --- | --- | --- | --- |
 | Piloto | Timón | Régimen, maniobra evasiva, descenso y despegue [F2] | Igual |
 | Ingeniero | Toda la nave | Apagar fuegos, rearmar cortos, sellar fugas, reparar | Igual, a tiempo completo |
@@ -226,9 +226,17 @@ Desde un destino atracado que sea planeta, luna o campo de asteroides, el piloto
   carga y las mejoras pesan: cada salto gasta más combustible. El servicio gratuito de la fase 1 se reduce a una ayuda
   de emergencia, una vez por estación. Los créditos no puntúan. Sin mercado dinámico, sin cambio visual de la nave y
   sin progreso entre partidas.
-- **[F4] Cooperativo 1-4.** Servidor autoritativo que corre el mismo motor (ADR 0009), roles, voz o
-  pings, y dificultad escalada con el número de jugadores.
-- **[F5] Pulido.** Rankings, mando y táctil, despliegue, pruebas E2E.
+- **[F4] Diseño de misión y sistema solar (en curso, ADR 0015).** Antes de zarpar se diseña la misión (objetivo,
+  instrumentos, módulos, lanzador; presupuesto, masa, potencia y plazo; revisión Go/No-Go) y el diseño genera la nave.
+  El mapa es el sistema solar real: la distancia al Sol reduce la potencia solar (1/d²), paneles frente a RTG.
+  Ficha: `docs/phases/fase-4.md`.
+- **[F5] Ciencia, datos y astronauta articulado.** Instrumentos que generan datos, bajada a la Tierra en ventanas de
+  contacto, puntuación por ciencia entregada, informe post-misión con cadena de causas, misión guiada de CubeSat.
+  Ficha: `docs/phases/fase-5.md`.
+- **[F6] Cooperativo 1-4 con roles.** Servidor autoritativo que corre el mismo motor (ADR 0009), roles por
+  disciplina (dirección, ingeniería, ciencia, operaciones), Go/No-Go con voto, pings y astronautas remotos de bajo
+  detalle; dificultad escalada con el número de jugadores. Ficha: `docs/phases/fase-6.md`.
+- **[F7] Pulido.** Rankings, mando y táctil, despliegue, pruebas E2E.
 
 ## 12. Assets y licencias
 
@@ -244,5 +252,5 @@ escrita de NASA y el sistema debe permitir cambiarla por una propia.
 1. ¿El portal de salto encaja con "regresar a estaciones seguras" del plan, o el sector debe ser de ida y
    vuelta a una base? (Hoy: de ida; cada sector empieza en una estación.)
 2. ¿Cuánta ayuda en la primera partida? Hoy hay una pantalla de ayuda (H) y carteles; no hay tutorial.
-3. ¿Dificultad en solitario frente a 4 jugadores? Pendiente de la fase 4.
+3. ¿Dificultad en solitario frente a 4 jugadores? Pendiente de la fase 6.
 4. ¿Se sustituye ERIZON antes de cualquier uso comercial?

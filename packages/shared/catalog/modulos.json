@@ -1,0 +1,127 @@
+{
+  "modules": [
+    {
+      "id": "frame-micro", "kind": "structure", "name": { "es": "Casco compacto", "en": "Compact hull" },
+      "massKg": 1500, "costMUSD": 35, "devMonths": 7, "reliability": 0.99, "maxMassKg": 7500, "slots": 8, "heatRejectKw": 50,
+      "effects": [{ "target": "ship", "field": "hullMax", "add": 60 }]
+    },
+    {
+      "id": "frame-light", "kind": "structure", "name": { "es": "Casco ligero", "en": "Light hull" },
+      "massKg": 2400, "costMUSD": 60, "devMonths": 10, "reliability": 0.995, "maxMassKg": 12000, "slots": 10, "heatRejectKw": 80,
+      "effects": [{ "target": "ship", "field": "hullMax", "add": 80 }]
+    },
+    {
+      "id": "frame-standard", "kind": "structure", "name": { "es": "Casco estándar", "en": "Standard hull" },
+      "massKg": 3600, "costMUSD": 95, "devMonths": 14, "reliability": 0.997, "maxMassKg": 19000, "slots": 14, "heatRejectKw": 100,
+      "effects": [{ "target": "ship", "field": "hullMax", "add": 100 }]
+    },
+    {
+      "id": "frame-heavy", "kind": "structure", "name": { "es": "Casco reforzado", "en": "Reinforced hull" },
+      "massKg": 5400, "costMUSD": 150, "devMonths": 20, "reliability": 0.998, "maxMassKg": 28000, "slots": 18, "heatRejectKw": 120,
+      "effects": [{ "target": "ship", "field": "hullMax", "add": 130 }]
+    },
+    {
+      "id": "engine-chemical", "kind": "propulsion", "name": { "es": "Motor químico", "en": "Chemical engine" },
+      "massKg": 1400, "costMUSD": 45, "devMonths": 8, "reliability": 0.99,
+      "effects": [{ "target": "ship", "field": "systemDrawKw.engines", "add": 40 }]
+    },
+    {
+      "id": "engine-ion", "kind": "propulsion", "name": { "es": "Propulsión iónica", "en": "Ion propulsion" },
+      "massKg": 1200, "costMUSD": 150, "devMonths": 20, "reliability": 0.96,
+      "effects": [
+        { "target": "ship", "field": "systemDrawKw.engines", "add": 85 },
+        { "target": "ship", "field": "fuelPerLy", "mult": 0.5 },
+        { "target": "ship", "field": "cruiseSpeedLyPerS", "mult": 0.65 }
+      ]
+    },
+    {
+      "id": "solar-array", "kind": "solar", "name": { "es": "Alas solares", "en": "Solar wings" },
+      "massKg": 500, "costMUSD": 25, "devMonths": 6, "reliability": 0.985, "solarKwAt1Au": 60,
+      "effects": []
+    },
+    {
+      "id": "solar-array-hi", "kind": "solar", "name": { "es": "Alas solares de alta eficiencia", "en": "High-efficiency solar wings" },
+      "massKg": 650, "costMUSD": 60, "devMonths": 10, "reliability": 0.98, "solarKwAt1Au": 100,
+      "effects": []
+    },
+    {
+      "id": "rtg", "kind": "nuclear", "name": { "es": "Generador RTG", "en": "RTG generator" },
+      "massKg": 900, "costMUSD": 120, "devMonths": 26, "reliability": 0.995,
+      "effects": [{ "target": "ship", "field": "reactorOutputKw", "add": 25 }]
+    },
+    {
+      "id": "fission-reactor", "kind": "nuclear", "name": { "es": "Reactor de fisión compacto", "en": "Compact fission reactor" },
+      "massKg": 2400, "costMUSD": 280, "devMonths": 32, "reliability": 0.98,
+      "effects": [{ "target": "ship", "field": "reactorOutputKw", "add": 90 }]
+    },
+    {
+      "id": "battery-pack", "kind": "battery", "name": { "es": "Banco de baterías", "en": "Battery bank" },
+      "massKg": 350, "costMUSD": 12, "devMonths": 3, "reliability": 0.985, "batteryKwh": 60,
+      "effects": [{ "target": "ship", "field": "overloadReactorDamagePctPerS", "mult": 0.5 }]
+    },
+    {
+      "id": "comms-lga", "kind": "comms", "name": { "es": "Antena omnidireccional", "en": "Low-gain antenna" },
+      "massKg": 80, "costMUSD": 8, "devMonths": 3, "reliability": 0.99, "dataRateMbps": 0.5, "commsRangeAu": 2,
+      "effects": [{ "target": "ship", "field": "systemDrawKw.nav", "add": 2 }]
+    },
+    {
+      "id": "comms-hga", "kind": "comms", "name": { "es": "Antena de alta ganancia", "en": "High-gain antenna" },
+      "massKg": 260, "costMUSD": 40, "devMonths": 9, "reliability": 0.985, "dataRateMbps": 8, "commsRangeAu": 12,
+      "effects": [{ "target": "ship", "field": "systemDrawKw.nav", "add": 5 }]
+    },
+    {
+      "id": "computer-flight", "kind": "computer", "name": { "es": "Computadora de vuelo", "en": "Flight computer" },
+      "massKg": 60, "costMUSD": 10, "devMonths": 4, "reliability": 0.99, "storageGb": 64,
+      "effects": [{ "target": "ship", "field": "systemDrawKw.nav", "add": 1 }]
+    },
+    {
+      "id": "computer-rad", "kind": "computer", "name": { "es": "Computadora antirradiación", "en": "Radiation-hardened computer" },
+      "massKg": 100, "costMUSD": 35, "devMonths": 10, "reliability": 0.998, "storageGb": 256, "radiationHardened": true,
+      "effects": [{ "target": "ship", "field": "systemDrawKw.nav", "add": 2 }]
+    },
+    {
+      "id": "attitude-wheels", "kind": "attitude", "name": { "es": "Ruedas de reacción", "en": "Reaction wheels" },
+      "massKg": 180, "costMUSD": 15, "devMonths": 5, "reliability": 0.98,
+      "effects": [
+        { "target": "ship", "field": "systemDrawKw.nav", "add": 3 },
+        { "target": "ship", "field": "evadeFuel", "mult": 0.7 }
+      ]
+    },
+    {
+      "id": "thermal-radiator", "kind": "thermal", "name": { "es": "Radiadores", "en": "Radiators" },
+      "massKg": 300, "costMUSD": 10, "devMonths": 4, "reliability": 0.995, "heatRejectKw": 80,
+      "effects": [{ "target": "ship", "field": "overloadReactorDamagePctPerS", "mult": 0.8 }]
+    },
+    {
+      "id": "fuel-tank-module", "kind": "tank", "name": { "es": "Tanque de combustible", "en": "Fuel tank" },
+      "massKg": 1500, "costMUSD": 8, "devMonths": 3, "reliability": 0.995,
+      "effects": [{ "target": "ship", "field": "fuelCapacity", "add": 40 }]
+    },
+    {
+      "id": "shield-generator", "kind": "shielding", "name": { "es": "Generador de escudos", "en": "Shield generator" },
+      "massKg": 550, "costMUSD": 40, "devMonths": 8, "reliability": 0.985,
+      "effects": [
+        { "target": "ship", "field": "shieldAbsorb", "add": 0.65 },
+        { "target": "ship", "field": "systemDrawKw.shields", "add": 30 }
+      ]
+    },
+    {
+      "id": "whipple-armor", "kind": "shielding", "name": { "es": "Blindaje Whipple", "en": "Whipple armor" },
+      "massKg": 900, "costMUSD": 12, "devMonths": 4, "reliability": 0.999,
+      "effects": [{ "target": "ship", "field": "hullMax", "add": 40 }]
+    },
+    {
+      "id": "life-recycler", "kind": "lifeSupport", "name": { "es": "Reciclador de aire y agua", "en": "Air and water recycler" },
+      "massKg": 450, "costMUSD": 25, "devMonths": 8, "reliability": 0.99,
+      "effects": [
+        { "target": "ship", "field": "o2RegenPctPerS", "mult": 1.3 },
+        { "target": "ship", "field": "systemDrawKw.lifeSupport", "add": 6 }
+      ]
+    },
+    {
+      "id": "workshop", "kind": "workshop", "name": { "es": "Taller de repuestos", "en": "Spares workshop" },
+      "massKg": 400, "costMUSD": 15, "devMonths": 4, "reliability": 0.995,
+      "effects": [{ "target": "ship", "field": "maxSpares", "add": 4 }]
+    }
+  ]
+}

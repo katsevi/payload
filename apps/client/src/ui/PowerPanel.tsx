@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getThrottle, type PoweredSystemId, type RunState, type SystemId } from '@payload/shared';
 import { cue } from '../audio/cues';
-import { effectiveShipOf } from '../game/effective';
+import { effectiveShipOf, maxPowerKwOf } from '../game/effective';
 import { getRun, useGame } from '../game/runStore';
 import { useUi } from '../state/ui';
 import { Modal, Panel } from './common';
@@ -47,9 +47,10 @@ export function PowerPanel() {
   }, []);
 
   if (!s) return null;
-  const ship = effectiveShipOf(s, getRun()?.catalog);
-  const supplyPct = (s.ship.powerSupplyKw / ship.reactorOutputKw) * 100;
-  const demandPct = Math.min(140, (s.ship.powerDemandKw / ship.reactorOutputKw) * 100);
+  // 100 % = la nave sana a esta distancia del Sol (nuclear + paneles); sin diseño, el reactor.
+  const maxKw = maxPowerKwOf(s, getRun()?.catalog);
+  const supplyPct = (s.ship.powerSupplyKw / maxKw) * 100;
+  const demandPct = Math.min(140, (s.ship.powerDemandKw / maxKw) * 100);
   const reactor = systemStatus(s, 'reactor');
   return (
     <Modal onClose={close}>
@@ -67,6 +68,9 @@ export function PowerPanel() {
           <div className={`absolute inset-y-0 left-0 ${s.ship.overloaded ? 'bg-bad' : 'bg-accent'}`} style={{ width: `${demandPct / 1.4}%`, opacity: 0.85 }} />
           <div className="absolute inset-y-0 w-0.5 bg-white" style={{ left: `${supplyPct / 1.4}%` }} />
         </div>
+        {s.sunDistanceAu !== undefined && (
+          <p className="num mb-1 text-xs text-warn">{t('power.solar', { kw: Math.round(s.ship.solarSupplyKw ?? 0), au: s.sunDistanceAu.toFixed(2) })}</p>
+        )}
         <p className={`mb-3 text-xs ${s.ship.overloaded ? 'text-bad' : 'text-slate-400'}`}>{t('power.hint')}</p>
         <ul className="flex flex-col gap-2">
           {POWERED.map((id, i) => {
