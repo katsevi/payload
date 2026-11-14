@@ -22,11 +22,11 @@ Resumen de quien implementa; las casillas de «Alcance previsto» las marca quie
 | Entrada con código de sala privada y selección de rol | Implementado |
 | Pings visuales y sonoros en el espacio 3D | **Parcial:** solo «mirad aquí» (G), visual; faltan peligro y ayuda en la interfaz y el sonido |
 | Roles por disciplina (dirección, ingeniería, ciencia, operaciones) | Pendiente (alcance añadido con el ADR 0015 del reto NASA) |
-| Diseño compartido y Go/No-Go con voto | Pendiente. Hoy la sala arranca siempre una **partida libre** (clásica, sin diseño). El motor y el espejo del cliente ya admiten una partida con diseño (`createRun({ design })` + `hydrate`, test en `packages/shared/src/__tests__/coop.test.ts`), pero ni el lobby ni el servidor permiten elegir misión |
+| Diseño compartido y Go/No-Go con voto | **Implementado (2026-11-14, rama `feat/f6-diseno-cooperativo`, ADR 0020):** el anfitrión elige la misión; todos editan en el hangar (ediciones discretas que valida el motor); voto con mayoría estricta (empate = No-Go) y Go del motor; la partida arranca con el diseño y su ciencia. Probado en Chrome con dos pestañas |
 
 **Falta para cerrar la fase:** el hito (cuatro equipos en red local), la validación independiente, jugar la
 superficie en sala, modo espectador para quien muere, qué hacer con el tripulante de quien se va, completar
-los pings, y el diseño compartido con voto (que la sala arranque con un diseño). Detalle en `docs/STATUS.md`.
+los pings y los roles por disciplina. El diseño compartido con voto ya está (ADR 0020). Detalle en `docs/STATUS.md`.
 
 ## Punto de partida
 

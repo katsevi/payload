@@ -1,6 +1,7 @@
 // Modelo puro de la sala: lobby, roles, paridad con el motor, antiabuso y presencia.
 import { describe, expect, it } from 'vitest';
-import { createRun, FIXED_STEP_S, getNode, MAX_WORK_SECONDS, type RoleId, type Run, type RunAction } from '@payload/shared';
+import { createRun, designEditsBetween, FIXED_STEP_S, getNode, MAX_WORK_SECONDS, type RoleId, type Run, type RunAction } from '@payload/shared';
+import { referenceDesign } from '../../../../packages/shared/src/__tests__/missionFixtures';
 import { RoomModel } from '../roomModel';
 
 const SEED = 7;
@@ -234,5 +235,98 @@ describe('estado, poses y pings', () => {
     expect(room.ping('p2', { kind: 'danger', x: 0, y: 0, z: 0, area: 'ship' }, 10)).toMatchObject({ crewId: 2, kind: 'danger' });
     expect(room.ping('p2', { kind: 'danger', x: 0, y: 0, z: 0, area: 'ship' }, 10.1)).toBeNull();
     expect(room.ping('p2', { kind: 'look', x: 0, y: 0, z: 0, area: 'ship' }, 11)).not.toBeNull();
+  });
+});
+
+describe('diseño compartido y voto Go/No-Go (ADR 0020)', () => {
+  /** Sala en el lobby con `n` jugadores (p1 anfitrión) y la misión de Marte elegida. */
+  function marsLobby(n: number): RoomModel {
+    const room = newRoom();
+    for (let i = 1; i <= n; i++) room.join(`p${i}`, `J${i}`);
+    expect(room.lobby('p1', { type: 'set-mission', missionId: 'mission-mars-habitability' })).toBe(true);
+    return room;
+  }
+  /** Monta entre todos el diseño de referencia de Marte (cada jugador añade algunas piezas). */
+  function buildMars(room: RoomModel, n: number): void {
+    const target = referenceDesign('mission-mars-habitability');
+    const edits = designEditsBetween(room.view.design!, target);
+    edits.forEach((edit, i) => expect(room.lobby(`p${(i % n) + 1}`, { type: 'edit-design', edit }), JSON.stringify(edit)).toBe(true));
+  }
+
+  it('solo el anfitrión elige la misión; sin misión, partida libre como siempre', () => {
+    const room = newRoom();
+    room.join('p1', 'A');
+    room.join('p2', 'B');
+    expect(room.lobby('p2', { type: 'set-mission', missionId: 'mission-lunar-ice' })).toBe(false);
+    expect(room.lobby('p1', { type: 'set-mission', missionId: 'no-existe' })).toBe(false);
+    expect(room.lobby('p1', { type: 'set-mission', missionId: 'mission-lunar-ice' })).toBe(true);
+    expect(room.view.design?.missionId).toBe('mission-lunar-ice');
+    expect(room.lobby('p1', { type: 'set-mission', missionId: null })).toBe(true);
+    expect(room.view.design).toBeNull();
+  });
+
+  it('cualquiera edita; cada cambio sube la revisión y borra los votos', () => {
+    const room = marsLobby(2);
+    expect(room.lobby('p2', { type: 'edit-design', edit: { op: 'add-module', id: 'frame-standard' } })).toBe(true);
+    expect(room.lobby('p1', { type: 'vote', go: true })).toBe(true);
+    const rev = room.view.designRev!;
+    expect(room.lobby('p2', { type: 'edit-design', edit: { op: 'add-instrument', id: 'inst-drill' } })).toBe(true);
+    expect(room.view.designRev).toBe(rev + 1);
+    expect(room.view.players.map((p) => p.vote)).toEqual([null, null]);
+    // Ediciones inválidas o sin efecto no cambian nada.
+    expect(room.lobby('p2', { type: 'edit-design', edit: { op: 'add-module', id: 'nope' } })).toBe(false);
+    expect(room.lobby('p2', { type: 'edit-design', edit: { op: 'hack' } })).toBe(false);
+  });
+
+  it('solo se zarpa con Go del motor y mayoría estricta de Go; el empate es No-Go', () => {
+    const room = marsLobby(2);
+    // Diseño vacío (No-Go del motor): aunque voten todos Go, no se puede.
+    room.lobby('p1', { type: 'vote', go: true });
+    room.lobby('p2', { type: 'vote', go: true });
+    expect(room.canStart()).toBe(false);
+    buildMars(room, 2);
+    expect(room.lobby('p1', { type: 'vote', go: true })).toBe(true);
+    expect(room.lobby('p2', { type: 'vote', go: false })).toBe(true);
+    expect(room.lobby('p1', { type: 'start' })).toBe(false); // 1 a 1: empate
+    room.lobby('p2', { type: 'vote', go: true });
+    expect(room.lobby('p2', { type: 'start' })).toBe(false); // solo el anfitrión
+    expect(room.lobby('p1', { type: 'start' })).toBe(true);
+    // La partida es la misión diseñada, con su ciencia.
+    const run = room.run!;
+    expect(run.state.missionDesign?.missionId).toBe('mission-mars-habitability');
+    expect(run.state.science).toBeDefined();
+    expect(run.state.crew).toHaveLength(2);
+  });
+
+  it('la sala con diseño produce lo mismo que el motor con ese diseño', () => {
+    const room = marsLobby(1);
+    buildMars(room, 1);
+    room.lobby('p1', { type: 'vote', go: true });
+    expect(room.lobby('p1', { type: 'start' })).toBe(true);
+    const solo = createRun({ seed: SEED, crewSize: 1, roles: [null], design: room.view.design! });
+    for (let i = 0; i < 50; i++) {
+      room.advance(FIXED_STEP_S);
+      solo.step(FIXED_STEP_S);
+    }
+    const { sector: _a, ...a } = room.run!.snapshot();
+    const { sector: _b, ...b } = solo.snapshot();
+    expect(a).toEqual(b);
+  });
+
+  it('al terminar (o perder) se vuelve al lobby con el mismo diseño y sin votos', () => {
+    const room = marsLobby(1);
+    buildMars(room, 1);
+    room.lobby('p1', { type: 'vote', go: true });
+    room.lobby('p1', { type: 'start' });
+    expect(room.lobby('p1', { type: 'restart' })).toBe(false); // la misión sigue
+    room.run!.state.science!.over = true;
+    expect(room.lobby('p1', { type: 'restart' })).toBe(true);
+    expect(room.phase).toBe('lobby');
+    expect(room.view.design?.instrumentIds.length).toBeGreaterThan(0);
+    expect(room.view.players[0]!.vote).toBeNull();
+    // En partida no se edita ni se vota.
+    room.lobby('p1', { type: 'vote', go: true });
+    room.lobby('p1', { type: 'start' });
+    expect(room.lobby('p1', { type: 'edit-design', edit: { op: 'clear' } })).toBe(false);
   });
 });

@@ -14,7 +14,7 @@ import {
   type CrewPose, type LobbyAction, type LobbyView, type PingBroadcast, type PingKind, type PoseArea, type PosesMessage, type ResultMessage, type RunAction, type RunEvent,
   type RunState, type SectorMap, type StateMessage,
 } from '@payload/shared';
-import { useGame } from '../game/runStore';
+import { setSharedDesignSink, useGame } from '../game/runStore';
 import { coopLive, INITIAL_COOP, useCoop, type CoopError } from './coopStore';
 
 /** Lo que usa el cliente de un `Room` de @colyseus/sdk (inyectable en tests). */
@@ -138,6 +138,8 @@ function sendAction(action: RunAction): void {
 
 function onLobby(s: Session, view: LobbyView): void {
   useCoop.setState({ lobby: view, status: 'connected' });
+  // Fase 6: el diseño compartido manda sobre lo que se esté pintando en el hangar.
+  useGame.getState().syncSharedDesign(view.design ?? null);
   // La sala volvió al lobby (reinicio tras perder): se deja de reflejar la partida.
   if (view.phase === 'lobby' && s.mirroredRunId !== -1) {
     s.mirroredRunId = -1;
@@ -168,6 +170,7 @@ function closeSession(error: CoopError | null): void {
   coopLive.poses = {};
   coopLive.pings = [];
   useGame.getState().exitRemote();
+  useGame.getState().closeSharedDesign();
   useCoop.setState({ ...INITIAL_COOP, error });
 }
 
@@ -246,6 +249,11 @@ export async function leaveRoom(): Promise<void> {
 export function sendLobby(action: LobbyAction): void {
   session?.room.send(NET.lobby, action);
 }
+
+// Fase 6 (ADR 0020): los cambios del hangar compartido salen como ediciones discretas, en orden.
+setSharedDesignSink((edits) => {
+  for (const edit of edits) sendLobby({ type: 'edit-design', edit });
+});
 
 /** Informa mi pose a los compañeros (llamar por frame; sale como mucho a `poseHz`). */
 export function reportPose(x: number, y: number, z: number, yaw: number, area: PoseArea): void {

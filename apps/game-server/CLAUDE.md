@@ -41,7 +41,7 @@ pnpm --filter @payload/game-server start     # node dist/index.js
 
 ## Pendiente conocido
 
-- La sala arranca siempre una partida libre (clásica): aún no se puede elegir misión ni diseño (diseño compartido y voto, `docs/phases/fase-6.md`). El espejo del cliente ya admite estados con diseño.
+- Diseño compartido y voto (ADR 0020): `RoomModel` guarda `design`, `designRev` y el voto de cada jugador; `canStart()` exige Go del motor y mayoría estricta de Go entre los conectados (sin diseño, los demás listos). Faltan los roles por disciplina.
 - Un jugador que se va con su tripulante fuera de la nave bloquea el despegue hasta que se le acaba el oxígeno.
 - No hay reanudación tras recargar la página (el SDK reconecta solo si la pestaña sigue abierta).
 - Sin Redis ni varias instancias (ADR 0010).

@@ -50,3 +50,4 @@ Qué se gana, qué se pierde y qué obliga a hacer después.
 | [0017](0017-cooperativo-estado-por-mensajes-y-espejo.md) | Cooperativo: estado entero por mensajes, espejo hidratado en el cliente y roles como ventajas pasivas | Aceptada |
 | [0018](0018-ciencia-datos-y-ventanas-de-contacto.md) | Ciencia, datos y ventanas de contacto: objetivo, fin de misión al volver, puntuación e informe | Propuesta |
 | [0019](0019-cordura-de-la-tripulacion.md) | Cordura de la tripulación: desgaste por tiempo con debuffs y contramedidas atadas a recursos | Propuesta |
+| [0020](0020-diseno-compartido-y-voto.md) | Diseño compartido en sala y voto Go/No-Go (mayoría estricta, empate = No-Go) | Propuesta |

@@ -2,10 +2,11 @@
  * Cooperativo (fase 6): entrada a una sala privada con código, lobby (roles, listo, empezar) y la barra de
  * tripulación que se ve durante la partida. Todo el estado viene de `net/coopStore` (lo que dice el servidor).
  */
-import { useState } from 'react';
-import { Crown, Rocket, Wifi, WifiOff } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { CircleCheck, CircleX, Crown, PencilRuler, Rocket, Wifi, WifiOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { COOP_LIMITS, ROLE_IDS, type RoleId } from '@payload/shared';
+import { COOP_LIMITS, getMissions, reviewDesign, ROLE_IDS, voteTally, type LobbyView, type RoleId, type VoteTally } from '@payload/shared';
+import { lt } from '../i18n';
 import { useGame } from '../game/runStore';
 import { createRoom, joinRoom, leaveRoom, loadPlayerName, sendLobby } from '../net/coopSession';
 import { mePlayer, useCoop } from '../net/coopStore';
@@ -15,6 +16,91 @@ import { Panel } from './common';
 /** Color de cada rol (avatares, barra de tripulación y lobby). */
 export const ROLE_COLORS: Record<RoleId, string> = { pilot: '#5ab0ff', engineer: '#ffb347', manager: '#38e1c0', explorer: '#c58bff' };
 export const NO_ROLE_COLOR = '#9aa7b8';
+
+/**
+ * Fase 6 (ADR 0020): ¿se puede zarpar con el diseño de la sala? Lo mismo que decide el servidor: la revisión del motor da
+ * Go y vota Go la mayoría estricta de los conectados (empate = No-Go). Sin diseño (partida libre), `null`.
+ */
+export function sharedLaunchCheck(lobby: LobbyView): { motorGo: boolean; tally: VoteTally; canStart: boolean } | null {
+  if (!lobby.design) return null;
+  const motorGo = reviewDesign(lobby.design).go;
+  const tally = voteTally(lobby.players.filter((p) => p.connected).map((p) => p.vote ?? null));
+  return { motorGo, tally, canStart: motorGo && tally.passed };
+}
+
+/** Voto Go/No-Go, recuento y (para el anfitrión) zarpar. Se usa en el lobby y en el hangar compartido. */
+export function SharedVote() {
+  const { t } = useTranslation();
+  const lobby = useCoop((s) => s.lobby);
+  const me = useCoop(mePlayer);
+  const check = useMemo(() => (lobby ? sharedLaunchCheck(lobby) : null), [lobby]);
+  if (!lobby || !check || !me) return null;
+  const { motorGo, tally, canStart } = check;
+  const vote = (go: boolean) => sendLobby({ type: 'vote', go: me.vote === go ? null : go });
+  const why = !motorGo ? t('coop.vote.motorNoGo') : tally.passed ? t('coop.vote.ready') : tally.go * 2 === tally.voters && tally.pending === 0 ? t('coop.vote.tie') : t('coop.vote.needMajority');
+  return (
+    <div className="flex flex-col gap-2" aria-live="polite">
+      <div className="grid grid-cols-2 gap-2" role="group" aria-label={t('coop.vote.title')}>
+        <button className={`btn flex items-center justify-center gap-1.5 ${me.vote === true ? 'btn-primary' : ''}`} aria-pressed={me.vote === true} onClick={() => vote(true)}>
+          <CircleCheck size={15} aria-hidden="true" /> {t('coop.vote.go')}
+        </button>
+        <button className={`btn flex items-center justify-center gap-1.5 ${me.vote === false ? '!border-bad !text-bad' : ''}`} aria-pressed={me.vote === false} onClick={() => vote(false)}>
+          <CircleX size={15} aria-hidden="true" /> {t('coop.vote.noGo')}
+        </button>
+      </div>
+      <p className={`num text-center text-xs ${canStart ? 'text-ok' : 'text-warn'}`}>
+        {t('coop.vote.tally', { go: tally.go, noGo: tally.noGo, voters: tally.voters })} · {why}
+      </p>
+      {me.host ? (
+        <button className="btn btn-primary flex items-center justify-center gap-2 !py-3" disabled={!canStart} onClick={() => sendLobby({ type: 'start' })}>
+          <Rocket size={16} aria-hidden="true" /> {canStart ? t('coop.start') : t('coop.vote.waiting')}
+        </button>
+      ) : (
+        <p className="num text-center text-[11px] text-slate-400">{t('coop.vote.hostLaunches')}</p>
+      )}
+    </div>
+  );
+}
+
+/** Fase 6: misión de la sala (la elige el anfitrión) y acceso al hangar compartido. */
+function MissionRow({ lobby, host }: { lobby: LobbyView; host: boolean }) {
+  const { t } = useTranslation();
+  const missions = getMissions();
+  const design = lobby.design ?? null;
+  const motorGo = design ? reviewDesign(design).go : false;
+  return (
+    <div className="mt-4 flex flex-col gap-2 rounded border border-line bg-black/30 p-2">
+      <label className="flex items-center gap-2 text-sm">
+        <span className="num w-20 shrink-0 text-[11px] uppercase tracking-widest text-slate-400">{t('coop.mission')}</span>
+        {host ? (
+          <select
+            className="num flex-1 rounded border border-line bg-black/50 px-2 py-1 text-slate-100"
+            value={design?.missionId ?? ''}
+            onChange={(e) => sendLobby({ type: 'set-mission', missionId: e.target.value || null })}
+          >
+            <option value="">{t('coop.freePlay')}</option>
+            {missions.map((m) => (
+              <option key={m.id} value={m.id}>
+                {lt(m.name)}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="flex-1 text-slate-100">{design ? lt(missions.find((m) => m.id === design.missionId)?.name ?? { es: design.missionId, en: design.missionId }) : t('coop.freePlay')}</span>
+        )}
+      </label>
+      {design && (
+        <div className="flex items-center gap-2">
+          <span className={`num text-xs font-bold ${motorGo ? 'text-ok' : 'text-bad'}`}>{motorGo ? t('design.goTitle') : t('design.noGoTitle')}</span>
+          <span className="num flex-1 truncate text-[11px] text-slate-400">{t('coop.parts', { n: design.moduleIds.length + design.instrumentIds.length })}</span>
+          <button className="btn flex items-center gap-1.5 !py-1 text-xs" onClick={() => useGame.getState().openSharedDesign(design)}>
+            <PencilRuler size={14} aria-hidden="true" /> {t('coop.openHangar')}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function close(): void {
   void leaveRoom();
@@ -72,6 +158,7 @@ function Lobby() {
   const me = useCoop(mePlayer);
   const others = lobby.players.filter((p) => p.id !== me?.id);
   const canStart = others.every((p) => !p.connected || p.ready);
+  const withDesign = !!lobby.design;
   return (
     <Panel title={t('coop.title')} className="mx-auto w-full max-w-md">
       <div className="text-center">
@@ -87,10 +174,18 @@ function Lobby() {
               {p.id === me?.id && <span className="text-slate-500"> · {t('coop.you')}</span>}
             </span>
             <span className="num text-xs text-slate-400">{p.role ? t(`catalog.${p.role}`, { ns: 'sim' }) : t('coop.noRole')}</span>
-            {p.host ? <Crown size={14} className="text-warn" aria-label={t('coop.host')} /> : <span className={`num text-xs ${p.ready ? 'text-ok' : 'text-slate-500'}`}>{p.ready ? t('coop.ready') : t('coop.notReady')}</span>}
+            {p.host && <Crown size={14} className="text-warn" aria-label={t('coop.host')} />}
+            {withDesign ? (
+              <span className={`num text-xs ${p.vote === true ? 'text-ok' : p.vote === false ? 'text-bad' : 'text-slate-500'}`}>
+                {p.vote === true ? t('coop.vote.go') : p.vote === false ? t('coop.vote.noGo') : t('coop.vote.none')}
+              </span>
+            ) : (
+              !p.host && <span className={`num text-xs ${p.ready ? 'text-ok' : 'text-slate-500'}`}>{p.ready ? t('coop.ready') : t('coop.notReady')}</span>
+            )}
           </li>
         ))}
       </ul>
+      <MissionRow lobby={lobby} host={!!me?.host} />
       <div className="mt-4 grid grid-cols-2 gap-2" role="group" aria-label={t('coop.role')}>
         {ROLE_IDS.map((role) => {
           const mine = me?.role === role;
@@ -113,7 +208,9 @@ function Lobby() {
         })}
       </div>
       <div className="mt-4 flex flex-col gap-2">
-        {me?.host ? (
+        {withDesign ? (
+          <SharedVote />
+        ) : me?.host ? (
           <button className="btn btn-primary !py-3" disabled={!canStart} onClick={() => sendLobby({ type: 'start' })}>
             <Rocket size={16} className="mr-2 inline" aria-hidden="true" />
             {canStart ? t('coop.start') : t('coop.waitingReady')}

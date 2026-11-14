@@ -8,7 +8,7 @@
  *   cada estado recibido (`remoteState`) y las acciones se validan aquí y se envían (`enterRemote`).
  */
 import { create } from 'zustand';
-import { createRun, type ActionResult, type EventTone, type MessageRef, type MissionDesign, type Run, type RunAction, type RunEvent, type RunState } from '@payload/shared';
+import { createRun, designEditsBetween, type ActionResult, type DesignEdit, type EventTone, type MessageRef, type MissionDesign, type Run, type RunAction, type RunEvent, type RunState } from '@payload/shared';
 import { getLocalCrewId, setLocalCrewId } from './me';
 import { audio } from '../audio/audioEngine';
 import { cue } from '../audio/cues';
@@ -130,6 +130,15 @@ export type Screen = 'menu' | 'missions' | 'design' | 'game';
 
 const copyDesign = (d: MissionDesign): MissionDesign => ({ ...d, moduleIds: [...d.moduleIds], instrumentIds: [...d.instrumentIds] });
 
+/**
+ * Fase 6 (ADR 0020): a dónde van los cambios del hangar compartido (lo registra `net/coopSession`; así este módulo no
+ * importa la sesión de red). Recibe las ediciones discretas que llevan del diseño anterior al nuevo.
+ */
+let sharedDesignSink: ((edits: DesignEdit[]) => void) | null = null;
+export function setSharedDesignSink(sink: ((edits: DesignEdit[]) => void) | null): void {
+  sharedDesignSink = sink;
+}
+
 interface GameState {
   screen: Screen;
   /** Cambia en cada partida nueva (la escena se vuelve a montar y el jugador reaparece). */
@@ -144,6 +153,14 @@ interface GameState {
   draft: MissionDesign | null;
   /** Diseño con el que se juega la partida actual (null = partida libre). */
   runDesign: MissionDesign | null;
+  /** Fase 6: el hangar edita el diseño compartido de la sala (no se guarda aquí; «Lanzar» es el voto). */
+  sharedDesign: boolean;
+  /** Fase 6: abre el hangar sobre el diseño de la sala. */
+  openSharedDesign: (design: MissionDesign) => void;
+  /** Fase 6: llega el diseño de la sala (si el hangar compartido está abierto, se pinta; `null` lo cierra). */
+  syncSharedDesign: (design: MissionDesign | null) => void;
+  /** Fase 6: vuelve del hangar compartido al lobby de la sala. */
+  closeSharedDesign: () => void;
   /** Sin `design`, partida libre (clásica, fases 1-3). */
   startRun: (seed?: number, design?: MissionDesign | null) => void;
   toMenu: () => void;
@@ -234,6 +251,20 @@ export const useGame = create<GameState>((set, get) => {
     newBest: false,
     draft: null,
     runDesign: null,
+    sharedDesign: false,
+    openSharedDesign: (design) => {
+      useUi.getState().setOverlay(null);
+      set({ screen: 'design', draft: copyDesign(design), sharedDesign: true });
+    },
+    syncSharedDesign: (design) => {
+      if (!get().sharedDesign || get().screen !== 'design') return;
+      if (!design) get().closeSharedDesign();
+      else set({ draft: copyDesign(design) });
+    },
+    closeSharedDesign: () => {
+      if (!get().sharedDesign) return;
+      set({ screen: 'menu', sharedDesign: false, draft: null });
+    },
     startRun: (seed = randomSeed(), design = null) => {
       if (remote) return; // en sala, la partida la empieza el servidor
       audio.stopLoop('roar', 0.2);
@@ -248,6 +279,8 @@ export const useGame = create<GameState>((set, get) => {
       set({ screen: 'game', runId: get().runId + 1, hud: run.snapshot(), toasts: [], newBest: false, runDesign: design ? copyDesign(design) : null });
     },
     openMissions: () => {
+      // Desde el hangar compartido, «volver» es volver a la sala.
+      if (get().sharedDesign) return get().closeSharedDesign();
       get().toMenu();
       set({ screen: 'missions' });
     },
@@ -258,12 +291,19 @@ export const useGame = create<GameState>((set, get) => {
       set({ screen: 'design', draft });
     },
     updateDraft: (design) => {
+      const prev = get().draft;
+      if (get().sharedDesign) {
+        // En sala: se envían las ediciones y se pinta ya (el lobby del servidor manda y lo corrige si hace falta).
+        if (prev) sharedDesignSink?.(designEditsBetween(prev, design));
+        set({ draft: design });
+        return;
+      }
       saveDesign(design);
       set({ draft: design });
     },
     launch: (seed) => {
       const draft = get().draft;
-      if (!draft) return;
+      if (!draft || get().sharedDesign) return;
       saveDesign(draft);
       get().startRun(seed, draft);
     },
@@ -303,7 +343,7 @@ export const useGame = create<GameState>((set, get) => {
       setLocalCrewId(link.crewId);
       hudClockS = 0;
       fx.shake = 0;
-      set({ screen: 'game', runId: get().runId + 1, hud: state, toasts: [], newBest: false, runDesign: design ? copyDesign(design) : null });
+      set({ screen: 'game', runId: get().runId + 1, hud: state, toasts: [], newBest: false, runDesign: design ? copyDesign(design) : null, sharedDesign: false });
     },
     remoteState: (state) => {
       if (!run || !remote) return;

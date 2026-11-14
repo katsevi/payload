@@ -541,7 +541,8 @@
     "musd": "{{value}} M$",
     "difficulty": "Dificultad",
     "difficultyHint": "Cambia presupuesto, plazo y ciencia pedida; en vuelo, averías, peligros y ventanas de contacto",
-    "guidedSteps": "Pasos de la misión guiada"
+    "guidedSteps": "Pasos de la misión guiada",
+    "backToRoom": "Sala"
   },
   "glossary": {
     "title": "Glosario",
@@ -640,6 +641,23 @@
       "not-found": "No existe ninguna sala con ese código",
       "unreachable": "No se pudo conectar con el servidor",
       "lost": "Se perdió la conexión con la sala"
+    },
+    "mission": "Misión",
+    "freePlay": "Partida libre (sin diseño)",
+    "parts": "{{n}} piezas montadas",
+    "openHangar": "Abrir el hangar",
+    "vote": {
+      "title": "Voto Go/No-Go",
+      "go": "Go",
+      "noGo": "No-Go",
+      "none": "Sin votar",
+      "tally": "Go {{go}} · No-Go {{noGo}} · de {{voters}}",
+      "motorNoGo": "El diseño aún es No-Go",
+      "ready": "listos para zarpar",
+      "tie": "empate: no se zarpa",
+      "needMajority": "hace falta mayoría de Go",
+      "waiting": "Esperando el Go",
+      "hostLaunches": "Zarpa el anfitrión cuando hay mayoría de Go"
     }
   }
 }

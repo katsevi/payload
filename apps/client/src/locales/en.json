@@ -541,7 +541,8 @@
     "musd": "{{value}} M$",
     "difficulty": "Difficulty",
     "difficultyHint": "Changes budget, deadline and required science; in flight, failures, hazards and contact windows",
-    "guidedSteps": "Guided mission steps"
+    "guidedSteps": "Guided mission steps",
+    "backToRoom": "Room"
   },
   "glossary": {
     "title": "Glossary",
@@ -640,6 +641,23 @@
       "not-found": "No room with that code",
       "unreachable": "Could not reach the server",
       "lost": "Connection to the room was lost"
+    },
+    "mission": "Mission",
+    "freePlay": "Free play (no design)",
+    "parts": "{{n}} parts mounted",
+    "openHangar": "Open the hangar",
+    "vote": {
+      "title": "Go/No-Go vote",
+      "go": "Go",
+      "noGo": "No-Go",
+      "none": "Not voted",
+      "tally": "Go {{go}} · No-Go {{noGo}} · of {{voters}}",
+      "motorNoGo": "The design is still No-Go",
+      "ready": "ready to launch",
+      "tie": "tie: no launch",
+      "needMajority": "a Go majority is needed",
+      "waiting": "Waiting for Go",
+      "hostLaunches": "The host launches once Go has a majority"
     }
   }
 }

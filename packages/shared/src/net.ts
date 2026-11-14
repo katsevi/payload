@@ -5,7 +5,8 @@
  * El servidor corre la partida (`createRun`) y es la única fuente de verdad. Los clientes envían
  * `RunAction` y su pose; reciben el estado entero a paso fijo, los eventos del motor y las poses de los demás.
  */
-import { ROLE_IDS, type MessageRef, type RoleId, type RunAction, type RunEvent, type RunState, type SectorMap } from './types';
+import { parseDesignEdit, type DesignEdit } from './sharedDesign';
+import { ROLE_IDS, type MessageRef, type MissionDesign, type RoleId, type RunAction, type RunEvent, type RunState, type SectorMap } from './types';
 
 export const COOP_LIMITS = {
   maxPlayers: 4,
@@ -56,6 +57,8 @@ export interface CoopPlayer {
   host: boolean;
   /** Tripulante que controla en la partida en curso (null en el lobby). */
   crewId: number | null;
+  /** Fase 6 (ADR 0020): voto Go/No-Go sobre el diseño compartido (null = sin votar). Se borra con cada cambio del diseño. */
+  vote?: boolean | null;
 }
 
 export interface LobbyView {
@@ -65,6 +68,13 @@ export interface LobbyView {
   players: CoopPlayer[];
   /** Cambia en cada partida nueva de la sala. */
   runId: number;
+  /**
+   * Fase 6 (ADR 0020): diseño de misión compartido. `null` o ausente = partida libre (clásica). Lo elige el anfitrión
+   * (`set-mission`) y lo edita cualquiera (`edit-design`).
+   */
+  design?: MissionDesign | null;
+  /** Sube con cada cambio del diseño (los votos de antes ya no valen). */
+  designRev?: number;
 }
 
 /** Errores de entrada a la sala (códigos estables; el cliente los traduce con claves `ui`). */
@@ -77,8 +87,14 @@ export type LobbyAction =
   | { type: 'set-ready'; ready: boolean }
   /** Solo el anfitrión, con todos los demás listos. */
   | { type: 'start' }
-  /** Solo el anfitrión, con la partida perdida: vuelve al lobby. */
-  | { type: 'restart' };
+  /** Solo el anfitrión, con la partida perdida o la misión terminada: vuelve al lobby (conserva el diseño). */
+  | { type: 'restart' }
+  /** Fase 6 (ADR 0020), solo el anfitrión en el lobby: misión a diseñar (`null` = partida libre). */
+  | { type: 'set-mission'; missionId: string | null }
+  /** Fase 6: una edición discreta del diseño compartido (cualquiera, en el lobby). */
+  | { type: 'edit-design'; edit: DesignEdit }
+  /** Fase 6: voto Go/No-Go sobre el diseño actual (`null` = retirar el voto). */
+  | { type: 'vote'; go: boolean | null };
 
 export interface ActionMessage {
   /** Número de secuencia del cliente (vuelve en `result` si se rechaza). */
@@ -173,6 +189,15 @@ export function parseLobbyAction(raw: unknown): LobbyAction | null {
       return { type: 'start' };
     case 'restart':
       return { type: 'restart' };
+    case 'set-mission':
+      if (raw.missionId === null) return { type: 'set-mission', missionId: null };
+      return typeof raw.missionId === 'string' && raw.missionId.length > 0 && raw.missionId.length <= 64 ? { type: 'set-mission', missionId: raw.missionId } : null;
+    case 'edit-design': {
+      const e = parseDesignEdit(raw.edit);
+      return e ? { type: 'edit-design', edit: e } : null;
+    }
+    case 'vote':
+      return raw.go === null || typeof raw.go === 'boolean' ? { type: 'vote', go: raw.go } : null;
     default:
       return null;
   }

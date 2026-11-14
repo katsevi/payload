@@ -545,8 +545,15 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
 
 ### Cooperativo (fase 6, base integrada en el PR #9)
 
+- **Diseño compartido y voto (2026-11-14, rama `feat/f6-diseno-cooperativo`, ADR 0020 propuesta):** el anfitrión elige la
+  misión en el lobby; todos editan en el hangar (ediciones discretas validadas por el motor, sin pisarse); voto Go/No-Go
+  con mayoría estricta (empate = No-Go) y Go del motor; la partida arranca con el diseño y su ciencia; al terminar la
+  misión se vuelve al lobby con el diseño. Probado en Chrome con dos pestañas (CubeSat guiado: dos ediciones a la vez,
+  2/2 Go, partida en los dos espejos). **Falta:** roles por disciplina, probar con 3-4 equipos en red local, modo espectador
+  y reanudar tras recargar.
+
 - **Cómo probar la sala:** `pnpm dev:server` (ws://localhost:2567) y `pnpm dev` (o `pnpm dev:lan` para otros equipos); Menú → Cooperativo → Crear sala → en otra pestaña o equipo, escribir el código → Estoy listo → el anfitrión pulsa Empezar expedición. Probado con 2 pestañas en un equipo; falta con 3-4 jugadores y en red local.
-- **Siguiente paso de la fase 6:** que el anfitrión elija misión y diseño en el lobby (hoy la sala lanza siempre una partida libre), el diseño compartido por rol y el Go/No-Go con voto; el espejo del cliente ya acepta `state.missionDesign` (`enterRemote`) y hay test de `hydrate` con diseño.
+- **Siguiente paso de la fase 6:** roles por disciplina en el diseño, el hito con 3-4 equipos en red local y la validación.
 - **Despliegue:** el servidor necesita WebSockets y no va en Amplify (ver `docs/despliegue-aws.md`).
 
 

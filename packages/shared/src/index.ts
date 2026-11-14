@@ -25,5 +25,8 @@ export {
 export { getRoles, getRole, crewPerks, crewCarryCapacityKg, crewJetpackDrainPctPerS } from './roles';
 export { createRng, deriveSeed, type Rng } from './rng';
 export * from './net';
+export {
+  applyDesignEdit, designEditsBetween, missionStartDesign, parseDesignEdit, voteTally, MAX_DESIGN_PARTS, type DesignEdit, type VoteTally,
+} from './sharedDesign';
 export { simLocales } from './locales';
 export { formatMessage, lookupSimKey, flattenKeys } from './messages';

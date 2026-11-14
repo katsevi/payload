@@ -153,8 +153,10 @@ describe('presupuestos del diseño', () => {
   });
 
   it('es barata: 300 evaluaciones completas en menos de un segundo', () => {
+    // Los diseños se leen del disco ANTES de cronometrar: se mide la revisión, no la lectura de los fixtures.
+    const designs = getMissions().map((m) => referenceDesign(m.id));
     const t0 = performance.now();
-    for (let i = 0; i < 300; i++) reviewDesign(referenceDesign(getMissions()[i % getMissions().length]!.id));
+    for (let i = 0; i < 300; i++) reviewDesign(designs[i % designs.length]!);
     expect(performance.now() - t0).toBeLessThan(1000);
   });
 });

@@ -1,7 +1,9 @@
 // Cooperativo (fase 6): la sesión de sala del cliente contra una sala real del servidor EN MEMORIA
 // (el modelo puro `RoomModel`, sin red): lobby, espejo de la partida, validación local, envío por lotes.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getNode, NET, type LobbyView, type RunAction } from '@payload/shared';
+import { designEditsBetween, getNode, NET, type LobbyView, type RunAction } from '@payload/shared';
+import { referenceDesign } from '../../../../packages/shared/src/__tests__/missionFixtures';
+import { sharedLaunchCheck } from '../ui/CoopScreen';
 import { RoomModel } from '../../../game-server/src/roomModel';
 import { myCrew } from '../game/me';
 import { effectiveRulesOf } from '../game/effective';
@@ -216,5 +218,54 @@ describe('sesión de sala del cliente', () => {
     server.kick('me');
     expect(useGame.getState().screen).toBe('menu');
     expect(useCoop.getState()).toMatchObject({ status: 'idle', error: 'lost' });
+  });
+});
+
+describe('diseño compartido en sala (ADR 0020)', () => {
+  it('el anfitrión elige misión; el hangar compartido envía ediciones, refleja las de los demás y vota', async () => {
+    await lobbyOfTwo();
+    sendLobby({ type: 'set-mission', missionId: 'mission-mars-habitability' });
+    const design = useCoop.getState().lobby!.design!;
+    expect(design.missionId).toBe('mission-mars-habitability');
+    useGame.getState().openSharedDesign(design);
+    expect(useGame.getState()).toMatchObject({ screen: 'design', sharedDesign: true });
+
+    // Mi cambio en el hangar sale como edición discreta y vuelve en el lobby.
+    useGame.getState().updateDraft({ ...design, moduleIds: ['frame-standard'] });
+    const edits = server.sent.filter((m) => m.type === NET.lobby && (m.payload as { type: string }).type === 'edit-design');
+    expect(edits.map((m) => m.payload)).toEqual([{ type: 'edit-design', edit: { op: 'add-module', id: 'frame-standard' } }]);
+    expect(server.model.view.design!.moduleIds).toEqual(['frame-standard']);
+
+    // Lo que añade otro jugador aparece en mi hangar sin pisar lo mío.
+    server.model.lobby('otro', { type: 'edit-design', edit: { op: 'add-instrument', id: 'inst-drill' } });
+    sendLobby({ type: 'vote', go: false }); // fuerza una difusión del lobby
+    expect(useGame.getState().draft).toMatchObject({ moduleIds: ['frame-standard'], instrumentIds: ['inst-drill'] });
+
+    // El diseño aún es No-Go: aunque se vote Go, no se puede zarpar.
+    sendLobby({ type: 'vote', go: true });
+    const check = sharedLaunchCheck(useCoop.getState().lobby!)!;
+    expect(check.motorGo).toBe(false);
+    expect(check.canStart).toBe(false);
+
+    // Volver del hangar lleva al lobby de la sala, no a las misiones.
+    useGame.getState().openMissions();
+    expect(useGame.getState()).toMatchObject({ screen: 'menu', sharedDesign: false });
+  });
+
+  it('con Go del motor y mayoría de Go, la partida empieza con el diseño en todos los espejos', async () => {
+    await lobbyOfTwo();
+    sendLobby({ type: 'set-mission', missionId: 'mission-mars-habitability' });
+    const target = referenceDesign('mission-mars-habitability');
+    for (const edit of designEditsBetween(useCoop.getState().lobby!.design!, target)) sendLobby({ type: 'edit-design', edit });
+    sendLobby({ type: 'vote', go: true });
+    server.model.lobby('otro', { type: 'vote', go: true });
+    sendLobby({ type: 'vote', go: true }); // sin cambio: no difunde, pero el servidor ya cuenta los dos votos
+    expect(server.model.canStart()).toBe(true);
+    sendLobby({ type: 'start' });
+    expect(useGame.getState().screen).toBe('game');
+    const run = getRun()!;
+    expect(run.state.missionDesign?.missionId).toBe('mission-mars-habitability');
+    expect(run.state.science).toBeDefined();
+    expect(run.snapshot()).toEqual(server.model.run!.snapshot());
   });
 });
