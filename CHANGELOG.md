@@ -5,6 +5,9 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+### Despliegue en producción
+- Servidor del cooperativo publicado en EC2 (Caddy, `wss://18-215-99-217.sslip.io`) y conectado al cliente de Amplify. Script `pnpm --filter @payload/game-server bundle:standalone` (paquete autocontenido) y guía para actualizarlo sin acceso al repo.
+
 ### Despliegue del servidor de juego
 - `apps/game-server/deploy/`: servicio systemd (`payload-game.service`), `Caddyfile` (HTTPS automático y proxy de WebSocket) y `update.sh`. `docs/despliegue-aws.md` explica cómo publicar el servidor en AWS Lightsail y conectar el cliente de Amplify con `VITE_GAME_SERVER_URL`; explica también el timeout del cooperativo cuando falta.
 

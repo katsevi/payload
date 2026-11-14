@@ -476,13 +476,7 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
 
 - **Cliente: publicado** en AWS Amplify Hosting (`https://main.d24izpi0hbzbl0.amplifyapp.com/`, rama `main`, se publica
   sola al fusionar). Configuración: `amplify.yml`, `customHttp.yml`. Guía: `docs/despliegue-aws.md`.
-- **Servidor del cooperativo: sin publicar.** Por eso en el sitio publicado «Cooperativo» da **timeout**: el build no
-  lleva `VITE_GAME_SERVER_URL` y el cliente busca `wss://main.d24izpi0hbzbl0.amplifyapp.com:2567`, donde no hay nada
-  (comprobado el 2026-11-14: la conexión no responde en 10 s). Preparado para AWS Lightsail + Caddy:
-  `apps/game-server/deploy/` y `docs/despliegue-aws.md` § «Servidor del cooperativo». El build de producción del
-  servidor (`node dist/index.js`) se probó en local creando una sala con `@colyseus/sdk`.
-- **Acción humana:** crear la instancia de Lightsail, IP estática, dominio `juego.<dominio>` y firewall 80/443; instalar
-  con la guía; añadir `VITE_GAME_SERVER_URL=wss://juego.<dominio>` en Amplify y volver a desplegar.
+- **Servidor del cooperativo: publicado** (2026-11-14) en EC2 `payload-game` con Caddy en `wss://18-215-99-217.sslip.io`; Amplify lleva `VITE_GAME_SERVER_URL`. Sala creada y unida con el código desde la página publicada. Detalle y cómo actualizarlo: `docs/despliegue-aws.md` § «En producción». Pendiente: limitar el puerto 22 y decidir si se activan las deploy keys en `katsevi` para actualizar con `git pull`.
 - **Licencia:** `programme_erizon.glb` es CC-BY-NC-ND y impide el uso comercial; hay que sustituirlo antes de un despliegue comercial (acción humana 10).
 
 ## Deuda técnica conocida
