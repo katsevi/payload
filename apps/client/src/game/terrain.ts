@@ -31,6 +31,11 @@ export const TERRAIN_STYLES: Record<string, TerrainStyle> = {
   'storm-world': { amp: 2.2, scale: 38, craters: 0, chasmDepthM: 9, chasmWidthM: 8, rings: 1, radialCracks: 0, dunes: true },
   'fractured-world': { amp: 3, scale: 28, craters: 3, chasmDepthM: 14, chasmWidthM: 7, rings: 2, radialCracks: 4, dunes: false },
   'heavy-world': { amp: 1.2, scale: 45, craters: 3, chasmDepthM: 6, chasmWidthM: 9, rings: 1, radialCracks: 0, dunes: false },
+  // Fase 4: mundos de los cuerpos reales del sistema solar.
+  'mars-surface': { amp: 2.4, scale: 36, craters: 5, chasmDepthM: 9, chasmWidthM: 8, rings: 1, radialCracks: 0, dunes: true },
+  'ice-moon': { amp: 1.6, scale: 42, craters: 2, chasmDepthM: 11, chasmWidthM: 8, rings: 1, radialCracks: 3, dunes: false },
+  'titan-surface': { amp: 1.5, scale: 44, craters: 1, chasmDepthM: 8, chasmWidthM: 8, rings: 1, radialCracks: 0, dunes: true },
+  'enceladus-surface': { amp: 1.8, scale: 38, craters: 4, chasmDepthM: 12, chasmWidthM: 8, rings: 1, radialCracks: 2, dunes: false },
 };
 const DEFAULT_STYLE: TerrainStyle = TERRAIN_STYLES['dust-moon']!;
 

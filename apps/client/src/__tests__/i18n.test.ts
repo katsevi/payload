@@ -77,7 +77,8 @@ describe('i18n de la interfaz (namespace ui)', () => {
   it('poca letra: ningún texto de la interfaz de juego pasa de 110 caracteres', () => {
     for (const flat of [esFlat, enFlat]) {
       for (const [key, value] of Object.entries(flat)) {
-        if (/^(hud|prompt|map|power|end|pause|station|marker|help|descent|sound|shop)\./.test(key)) expect(value.length, key).toBeLessThanOrEqual(110);
+        // Fase 4: el hangar, las tarjetas de misión, el glosario y el menú también son de una línea.
+        if (/^(hud|prompt|map|power|end|pause|station|marker|help|descent|sound|shop|design|missions|glossary|menu)\./.test(key)) expect(value.length, key).toBeLessThanOrEqual(110);
       }
     }
   });

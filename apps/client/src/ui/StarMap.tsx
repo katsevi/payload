@@ -1,13 +1,23 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Package, Store, Weight } from 'lucide-react';
-import { getNode, getNodeKind, getNodeWorld, hasShop, HAZARD_KINDS, THROTTLE_IDS, type NodeKind, type RunState, type SectorNode } from '@payload/shared';
+import { AlertTriangle, Package, Star, Store, Sun, Weight } from 'lucide-react';
+import {
+  cruisePowerMarginKw, getNode, getNodeKind, getNodeWorld, hasShop, HAZARD_KINDS, shipPowerKw, solarKw, solarPowerFactor, THROTTLE_IDS,
+  type NodeKind, type RunState, type SectorNode,
+} from '@payload/shared';
+import { effectiveShipOf } from '../game/effective';
 import { getRun, useGame } from '../game/runStore';
 import { cargoFuelPct } from '../game/shop';
+import { isLandableNode } from '../game/surfaceRules';
 import { lt } from '../i18n';
 import { useUi } from '../state/ui';
 import { CreditsBadge } from './Credits';
 import { Modal, Panel, fmt } from './common';
+import { GlossaryButton, GlossaryPanel, useGlossary } from './Glossary';
+import { distanceText, nodeName } from './names';
+
+// Mapa 3D del sistema solar (partidas con diseño): la escena solo se descarga si hace falta.
+const SolarMapScene = lazy(() => import('../scenes/SolarMapScene').then((m) => ({ default: m.SolarMapScene })));
 
 const KIND_COLOR: Record<NodeKind, string> = {
   station: '#38e1c0',
@@ -19,6 +29,7 @@ const KIND_COLOR: Record<NodeKind, string> = {
   gate: '#ffd25a',
 };
 const RISK_COLOR = ['text-ok', 'text-warn', 'text-bad', 'text-bad'];
+const EMPTY: readonly string[] = [];
 
 const VIEW_W = 640;
 const VIEW_H = 330;
@@ -85,29 +96,36 @@ function Details({ s, node, onJump }: { s: RunState; node: SectorNode; onJump: (
   const kind = getNodeKind(node.kind);
   const visited = s.visitedIds.includes(node.id);
   const chosen = estimate?.byThrottle[s.ship.throttle];
+  const solar = !!s.missionDesign;
   return (
     <div className="flex flex-col gap-2 text-sm">
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-base font-bold text-slate-100">{node.name}</h3>
+        <h3 className="text-base font-bold text-slate-100">{nodeName(node)}</h3>
         <span className="num text-xs uppercase tracking-wider" style={{ color: KIND_COLOR[node.kind] }}>
           {lt(kind.name)}
         </span>
       </div>
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-300">
         {visited && <span>{t('map.visited')}</span>}
-        {kind.landable && <LandableInfo s={s} node={node} />}
+        {isLandableNode(s, node.id, getRun()?.catalog) && <LandableInfo s={s} node={node} />}
         {sensors && !visited && node.cache && (
           <span className="flex items-center gap-1 text-ok">
             <Package size={13} /> {t('map.cache')}
           </span>
         )}
         {hasShop(kind) && <span className="text-accent">{t('map.terminal')}</span>}
+        {node.missionTarget && (
+          <span className="flex items-center gap-1 text-warn">
+            <Star size={12} fill="currentColor" aria-hidden="true" /> {t('map.target')}
+          </span>
+        )}
       </div>
+      {solar && <SolarAt s={s} au={node.sunDistanceAu ?? 1} />}
       {estimate && (
         <>
           <div className="num flex items-center justify-between text-xs text-slate-300">
             <span>
-              {t('map.distance')}: {t('map.ly', { value: fmt(estimate.distanceLy, 0) })}
+              {t('map.distance')}: <span title={solar ? t('map.unitsHint') : undefined}>{distanceText(estimate.distanceLy, solar)}</span>
             </span>
             {sensors ? (
               <span className={`flex items-center gap-1 ${RISK_COLOR[estimate.riskLevel]}`}>
@@ -158,11 +176,43 @@ function Details({ s, node, onJump }: { s: RunState; node: SectorNode; onJump: (
           )}
           <p className="text-xs text-slate-400">{t(`map.throttleHint.${s.ship.throttle}`)}</p>
           <button className="btn btn-primary !py-2.5" disabled={s.phase !== 'docked' || !chosen?.enoughFuel} onClick={onJump}>
-            {chosen?.enoughFuel ? t('map.jump', { node: node.name }) : t('map.notEnough')}
+            {chosen?.enoughFuel ? t('map.jump', { node: nodeName(node) }) : t('map.notEnough')}
           </button>
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * Energía en el destino (partidas con diseño): distancia al Sol, lo que darán allí los paneles y si el consumo a
+ * crucero con todo encendido cabe. Las cifras salen del motor (`shipPowerKw`, `cruisePowerMarginKw`).
+ */
+function SolarAt({ s, au }: { s: RunState; au: number }) {
+  const { t } = useTranslation();
+  const ship = effectiveShipOf(s, getRun()?.catalog);
+  const margin = cruisePowerMarginKw(ship, au);
+  return (
+    <div className="num flex flex-col gap-0.5 text-xs">
+      <span className="flex items-center gap-1 text-slate-300">
+        <Sun size={13} className="text-warn" aria-hidden="true" />
+        {t('map.sunDistance', { au: fmt(au, 2) })} · {t('map.powerThere', { kw: fmt(shipPowerKw(ship, au), 0), solar: fmt(solarKw(ship, au), 0) })}
+      </span>
+      {margin < 0 && <span className="text-bad">{t('map.powerShort', { kw: fmt(-margin, 0) })}</span>}
+    </div>
+  );
+}
+
+/** Dónde está la nave respecto al Sol y qué dan ahora los paneles (cabecera del mapa solar). */
+function SolarHere({ s }: { s: RunState }) {
+  const { t } = useTranslation();
+  const au = s.sunDistanceAu ?? 1;
+  return (
+    <p className="num flex flex-wrap items-center gap-x-2 text-xs text-slate-300">
+      <Sun size={13} className="text-warn" aria-hidden="true" />
+      <span>{t('map.sunDistance', { au: fmt(au, 2) })}</span>
+      <span>{t('map.solarHere', { pct: Math.round(solarPowerFactor(au) * 100), kw: fmt(s.ship.solarSupplyKw ?? 0, 0) })}</span>
+    </p>
   );
 }
 
@@ -171,6 +221,7 @@ export function StarMap() {
   const { t } = useTranslation();
   const s = useGame((g) => g.hud);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [glossary, setGlossary] = useGlossary();
   const project = useProjection(s?.sector.nodes ?? []);
   if (!s) return null;
   const close = () => useUi.getState().setOverlay(null);
@@ -182,10 +233,24 @@ export function StarMap() {
   const jump = () => {
     if (selected && useGame.getState().act({ type: 'jump', toId: selected.id }).ok) close();
   };
+  // Con diseño (fase 4) el mapa es el sistema solar en 3D; la escena usa el sector VIVO (misma identidad entre
+  // refrescos del HUD) para no recalcular posiciones diez veces por segundo.
+  const solar = !!s.missionDesign;
+  const liveSector = getRun()?.state.sector ?? s.sector;
+  const liveLinks = s.phase === 'docked' ? (getNode(liveSector, here.id)?.links ?? EMPTY) : EMPTY;
   return (
     <Modal onClose={close} wide>
-      <Panel title={t('map.title', { sector: s.sector.index })}>
+      <Panel title={solar ? t('map.solarTitle', { sector: s.sector.index }) : t('map.title', { sector: s.sector.index })}>
         <div className="flex flex-col gap-4 lg:flex-row">
+          {solar ? (
+            <div className="relative h-[360px] min-w-0 flex-1 overflow-hidden rounded border border-line bg-black/60 lg:h-[460px]">
+              <Suspense fallback={null}>
+                <SolarMapScene sector={liveSector} hereId={here.id} reachable={liveLinks} selectedId={selectedId} onSelect={setSelectedId} />
+              </Suspense>
+              <span className="num pointer-events-none absolute bottom-1 left-2 text-[10px] text-slate-500">{t('map.scaleHint')}</span>
+              {glossary && <GlossaryPanel className="absolute right-2 top-2" onClose={() => setGlossary(false)} />}
+            </div>
+          ) : (
           <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className="min-w-0 flex-1 rounded border border-line bg-black/50" role="group" aria-label={t('map.title', { sector: s.sector.index })}>
             {s.sector.nodes.flatMap((a) =>
               a.links
@@ -251,7 +316,31 @@ export function StarMap() {
               );
             })}
           </svg>
+          )}
           <div className="flex w-full flex-col gap-3 lg:w-72">
+            {solar && (
+              <div className="flex items-start justify-between gap-2">
+                <SolarHere s={s} />
+                <GlossaryButton open={glossary} onToggle={() => setGlossary((g) => !g)} />
+              </div>
+            )}
+            {solar && s.phase === 'docked' && reachable.length > 0 && (
+              <div className="flex flex-col gap-1" role="group" aria-label={t('map.reachable')}>
+                <span className="num text-[11px] uppercase tracking-widest text-slate-400">{t('map.reachable')}</span>
+                <div className="flex flex-wrap gap-1">
+                  {reachable.map((id) => {
+                    const n = getNode(s.sector, id);
+                    if (!n) return null;
+                    return (
+                      <button key={id} className={`num rounded border px-2 py-0.5 text-xs ${id === selectedId ? 'border-accent bg-accent/15 text-accent' : 'border-line text-slate-200 hover:border-accent/60'}`} onClick={() => setSelectedId(id)}>
+                        {n.missionTarget ? '★ ' : ''}
+                        {nodeName(n)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {s.transit ? (
               <p className="num text-sm text-accent">{t('map.inTransit', { pct: Math.round((s.transit.traveledLy / s.transit.distanceLy) * 100) })}</p>
             ) : selected && selected.id !== here.id ? (

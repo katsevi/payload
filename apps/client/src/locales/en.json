@@ -22,8 +22,11 @@
     "credits": "Credits",
     "language": "Language",
     "best": "Best expedition: {{sectors}} sectors · {{score}} points",
-    "goal": "Take the ship to the jump gate and land to gather what you can. If the hull or oxygen hit zero, it's over.",
-    "coop": "1-4 player co-op in a later phase"
+    "goal": "Design a mission or play free: keep the ship alive. If hull or oxygen hit zero, it is over.",
+    "coop": "1-4 player co-op in a later phase",
+    "mission": "Design a mission",
+    "free": "Free play",
+    "missionHint": "Build the ship, pass the review and fly it through the Solar System"
   },
   "settings": {
     "title": "Settings",
@@ -106,7 +109,10 @@
     "lode": "Lode: {{done}} of {{total}} veins",
     "credits": "Credits",
     "creditsValue": "{{credits}} cr",
-    "upgrades": "Installed upgrades"
+    "upgrades": "Installed upgrades",
+    "sunAu": "{{au}} AU",
+    "solar": "Panels {{kw}} kW",
+    "mission": "{{mission}} → {{dest}}"
   },
   "prompt": {
     "hold": "Hold",
@@ -191,7 +197,17 @@
     },
     "landed": "Already landed here",
     "terminal": "Station terminal",
-    "cargoFuel": "+{{pct}} % from cargo"
+    "cargoFuel": "+{{pct}} % from cargo",
+    "solarTitle": "Solar System · leg {{sector}}",
+    "units": "{{value}} u",
+    "unitsHint": "u = map route unit",
+    "sunDistance": "{{au}} AU from the Sun",
+    "solarHere": "Here: sun {{pct}} % · panels {{kw}} kW",
+    "powerThere": "There: {{kw}} kW (panels {{solar}})",
+    "powerShort": "There, cruise power falls short by {{kw}} kW",
+    "target": "Mission target",
+    "reachable": "Possible jumps",
+    "scaleHint": "Sun distances compressed (√AU)"
   },
   "power": {
     "title": "Power panel",
@@ -212,7 +228,8 @@
       "shields": "Absorb impacts",
       "nav": "Warns of impacts and reads the map"
     },
-    "toggle": "Key {{key}}"
+    "toggle": "Key {{key}}",
+    "solar": "Panels: {{kw}} kW at {{au}} AU"
   },
   "end": {
     "lostTitle": "Expedition lost",
@@ -233,7 +250,10 @@
     "materials": "Materials stored",
     "creditsEarned": "Credits earned",
     "creditsSpent": "Credits spent",
-    "upgrades": "Upgrades bought"
+    "upgrades": "Upgrades bought",
+    "redesign": "Redesign",
+    "retryMission": "Retry the mission",
+    "mission": "Mission"
   },
   "pause": {
     "title": "Paused",
@@ -421,5 +441,141 @@
     "giveHull": "+{{n}} hull",
     "giveSpares": "+{{n}} spares",
     "overload": "overload with everything on"
+  },
+  "missions": {
+    "title": "Choose a mission",
+    "destinations": "Target: {{bodies}}",
+    "money": "{{budget}} M$ · {{months}} months",
+    "science": "Science ≥ {{min}} · {{kinds}}",
+    "difficulty": {
+      "1": "Easy",
+      "2": "Medium",
+      "3": "Hard"
+    },
+    "pick": "Design",
+    "saved": "Saved design"
+  },
+  "design": {
+    "title": "Hangar · {{mission}}",
+    "destination": "Target",
+    "launcher": "Launcher",
+    "destOption": "{{au}} AU · sun {{pct}} %",
+    "launcherOption": "{{cost}} M$ · wait {{months}} months · reliable {{pct}} %",
+    "launcherCap": "{{t}} t to target",
+    "launcherNoReach": "Can't reach",
+    "launcherNoDest": "Pick a target",
+    "palette": "Parts",
+    "group": {
+      "structure": "Structure",
+      "propulsion": "Propulsion",
+      "power": "Power",
+      "battery": "Batteries",
+      "comms": "Comms",
+      "computer": "Computer",
+      "thermal": "Thermal",
+      "shielding": "Shielding",
+      "tank": "Tanks",
+      "extra": "Other",
+      "instruments": "Instruments"
+    },
+    "part": {
+      "science": "{{kind}} +{{value}}",
+      "power": "{{value}} kW",
+      "mass": "{{value}} kg",
+      "cost": "{{value}} M$",
+      "months": "{{value}} months",
+      "slotsUsed": "{{value}} slots",
+      "slots": "{{value}} slots",
+      "maxMass": "holds {{value}} t",
+      "solar": "{{value}} kW at 1 AU",
+      "range": "link {{value}} AU",
+      "battery": "{{value}} kWh",
+      "heat": "rejects {{value}} kW",
+      "hardened": "rad-hard",
+      "add": "{{field}} {{value}}",
+      "mult": "{{field}} {{value}} %",
+      "kw": "{{field}} {{value}} kW",
+      "pct": "{{field}} {{value}} %"
+    },
+    "add": "Add {{part}}",
+    "remove": "Remove {{part}}",
+    "breaks": "Would exceed: {{resources}}",
+    "budgets": "Budgets",
+    "meter": "{{used}} / {{available}} {{unit}}",
+    "science": "Science {{value}} / {{required}}",
+    "reliability": "Reliability {{pct}} %",
+    "review": "Review",
+    "launch": "Launch",
+    "launchBlocked": "Launch · fix the red",
+    "back": "Missions",
+    "clear": "Clear",
+    "empty": "Add parts from the palette",
+    "keys": "↑↓ part · ←→ group · Enter adds · Del removes · H why?",
+    "whyOn": "H · hide reasons",
+    "whyOff": "H · show reasons",
+    "mounted": "Mounted",
+    "noGoTitle": "No-Go",
+    "goTitle": "Go",
+    "musd": "{{value}} M$"
+  },
+  "glossary": {
+    "title": "Glossary",
+    "hint": "G · glossary",
+    "au": {
+      "term": "AU",
+      "line": "Astronomical unit: the mean Earth-Sun distance, about 150 million km."
+    },
+    "solar": {
+      "term": "Panels and 1/d²",
+      "line": "Twice as far from the Sun, panels give a quarter: at Jupiter, about 4 %."
+    },
+    "rtg": {
+      "term": "RTG",
+      "line": "Radioisotope generator: little power, but the same at any distance from the Sun."
+    },
+    "goNoGo": {
+      "term": "Go/No-Go",
+      "line": "The review before launch: a single red problem means no launch."
+    },
+    "slot": {
+      "term": "Slot",
+      "line": "A place on the structure for one module or instrument; each structure has its own."
+    },
+    "launcher": {
+      "term": "Launcher",
+      "line": "The rocket: the farther the target, the less mass it can deliver there."
+    },
+    "dryMass": {
+      "term": "Dry mass",
+      "line": "The ship without cargo; more mass, more fuel per jump."
+    },
+    "structure": {
+      "term": "Structure",
+      "line": "The frame: it sets the hull, the maximum mass and the slots."
+    },
+    "chemical": {
+      "term": "Chemical propulsion",
+      "line": "Cheap and fast, but burns a lot of fuel."
+    },
+    "ion": {
+      "term": "Ion propulsion",
+      "line": "Half the fuel, but slower and power-hungry."
+    },
+    "reliability": {
+      "term": "Reliability",
+      "line": "Chance that everything works: it multiplies part by part."
+    },
+    "range": {
+      "term": "Range",
+      "line": "The longest leg of the route must fit in the usable tank."
+    },
+    "science": {
+      "term": "Science",
+      "line": "Sum of the instruments; those of the kind the mission asks for count in full."
+    },
+    "radiation": {
+      "term": "Radiation",
+      "line": "Near Jupiter, a computer that is not hardened breaks down."
+    }
   }
 }

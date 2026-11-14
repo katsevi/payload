@@ -6,11 +6,12 @@
  * - `useGame().hud` es una copia que React recibe a ~10 Hz o cuando hay eventos.
  */
 import { create } from 'zustand';
-import { createRun, type ActionResult, type EventTone, type MessageRef, type Run, type RunAction, type RunEvent, type RunState } from '@payload/shared';
+import { createRun, type ActionResult, type EventTone, type MessageRef, type MissionDesign, type Run, type RunAction, type RunEvent, type RunState } from '@payload/shared';
 import { audio } from '../audio/audioEngine';
 import { cue } from '../audio/cues';
 import { sfxForRunEvent } from '../audio/soundLogic';
 import { useUi } from '../state/ui';
+import { loadDesign, saveDesign } from './missionDesign';
 
 export interface Toast {
   id: number;
@@ -98,8 +99,16 @@ export function randomSeed(): number {
   return (Math.floor(Math.random() * 0xffffffff) ^ Date.now()) >>> 0;
 }
 
+/**
+ * Pantalla: menú → elegir misión (`missions`) → diseño (`design`) → partida (`game`). La partida libre (sin diseño)
+ * va directa del menú a la partida.
+ */
+export type Screen = 'menu' | 'missions' | 'design' | 'game';
+
+const copyDesign = (d: MissionDesign): MissionDesign => ({ ...d, moduleIds: [...d.moduleIds], instrumentIds: [...d.instrumentIds] });
+
 interface GameState {
-  screen: 'menu' | 'game';
+  screen: Screen;
   /** Cambia en cada partida nueva (la escena se vuelve a montar y el jugador reaparece). */
   runId: number;
   /** Copia del estado para la interfaz (null fuera de la partida). */
@@ -108,8 +117,23 @@ interface GameState {
   best: BestRun;
   /** La partida actual ha batido la mejor marca. */
   newBest: boolean;
-  startRun: (seed?: number) => void;
+  /** Diseño en la pantalla de diseño (fase 4). */
+  draft: MissionDesign | null;
+  /** Diseño con el que se juega la partida actual (null = partida libre). */
+  runDesign: MissionDesign | null;
+  /** Sin `design`, partida libre (clásica, fases 1-3). */
+  startRun: (seed?: number, design?: MissionDesign | null) => void;
   toMenu: () => void;
+  /** Menú → tarjetas de misión. */
+  openMissions: () => void;
+  /** Abre el diseño de una misión: el que se pase o el último guardado de esa misión. */
+  openDesign: (missionId: string, design?: MissionDesign) => void;
+  /** Cambia el diseño en curso (y lo guarda como el último de su misión). */
+  updateDraft: (design: MissionDesign) => void;
+  /** Zarpa con el diseño en curso. */
+  launch: (seed?: number) => void;
+  /** Fin de partida → vuelve al diseño con el mismo diseño cargado. */
+  redesign: () => void;
   /** Avanza la partida `dt` segundos reales (lo llama la escena cada frame). */
   tick: (dt: number) => void;
   /** Acción del jugador. Con `quiet`, un rechazo no genera aviso (acciones mantenidas por frame). */
@@ -168,17 +192,44 @@ export const useGame = create<GameState>((set, get) => {
     toasts: [],
     best: loadBest(),
     newBest: false,
-    startRun: (seed = randomSeed()) => {
+    draft: null,
+    runDesign: null,
+    startRun: (seed = randomSeed(), design = null) => {
       audio.stopLoop('roar', 0.2);
       stopSurfaceLoops(0.2);
       shipSpawn.at = null;
       useUi.getState().setDescentView(false);
       useUi.getState().setPrompt(null);
-      run = createRun({ seed });
+      run = design ? createRun({ seed, design: copyDesign(design) }) : createRun({ seed });
       hudClockS = 0;
       fx.shake = 0;
       useUi.getState().setOverlay(null);
-      set({ screen: 'game', runId: get().runId + 1, hud: run.snapshot(), toasts: [], newBest: false });
+      set({ screen: 'game', runId: get().runId + 1, hud: run.snapshot(), toasts: [], newBest: false, runDesign: design ? copyDesign(design) : null });
+    },
+    openMissions: () => {
+      get().toMenu();
+      set({ screen: 'missions' });
+    },
+    openDesign: (missionId, design) => {
+      if (run) get().toMenu();
+      const draft = design ? copyDesign(design) : loadDesign(missionId);
+      useUi.getState().setOverlay(null);
+      set({ screen: 'design', draft });
+    },
+    updateDraft: (design) => {
+      saveDesign(design);
+      set({ draft: design });
+    },
+    launch: (seed) => {
+      const draft = get().draft;
+      if (!draft) return;
+      saveDesign(draft);
+      get().startRun(seed, draft);
+    },
+    redesign: () => {
+      const d = get().runDesign ?? get().draft;
+      if (!d) return get().toMenu();
+      get().openDesign(d.missionId, d);
     },
     toMenu: () => {
       audio.stopLoop('roar', 0.4);

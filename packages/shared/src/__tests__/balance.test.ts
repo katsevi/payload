@@ -4,7 +4,9 @@
  * catálogo); el informe fino es `pnpm --filter @payload/shared balance`.
  */
 import { describe, expect, it } from 'vitest';
+import { getMissions } from '../index';
 import { playRun, type BotOptions, type ExploreStyle } from './bot';
+import { referenceDesign } from './missionFixtures';
 
 const SEEDS = 60;
 
@@ -209,4 +211,36 @@ describe('balance de la economía (hito de la fase 3)', () => {
       expect(s.credits).toBe(Math.round(s.credits));
     }
   });
+});
+
+describe('balance con misión diseñada (hito de la fase 4)', () => {
+  const DESIGN_SEEDS = 30;
+  const clearedPct = (missionId: string, options: BotOptions) => {
+    const design = referenceDesign(missionId);
+    let cleared = 0;
+    for (let seed = 1; seed <= DESIGN_SEEDS; seed++) {
+      if (playRun(seed, { ...options, design }).state.stats.sectorsCleared >= (options.sectors ?? 1)) cleared++;
+    }
+    return (cleared / DESIGN_SEEDS) * 100;
+  };
+
+  it('con el diseño de referencia de cada misión, una tripulación atenta supera el primer tramo', () => {
+    for (const m of getMissions()) expect(clearedPct(m.id, { skill: 'crew', walkS: 7, sectors: 1 }), m.id).toBeGreaterThanOrEqual(90);
+  });
+
+  it('sin atender nada, ni la mejor nave diseñada llega lejos', () => {
+    expect(clearedPct('mission-lunar-ice', { skill: 'idle', sectors: 1 })).toBeLessThanOrEqual(40);
+  });
+
+  it('la dificultad acompaña a la misión: las lejanas (3) cuestan más que las cercanas (1) a tres tramos', () => {
+    const mean = (difficulty: number) => {
+      const ids = getMissions().filter((m) => m.difficulty === difficulty).map((m) => m.id);
+      return ids.reduce((s, id) => s + clearedPct(id, { skill: 'crew', walkS: 7, sectors: 3 }), 0) / ids.length;
+    };
+    const easy = mean(1);
+    const hard = mean(3);
+    expect(easy).toBeGreaterThanOrEqual(80);
+    expect(hard).toBeLessThanOrEqual(easy - 10);
+    expect(hard).toBeGreaterThanOrEqual(25);
+  }, 120_000);
 });

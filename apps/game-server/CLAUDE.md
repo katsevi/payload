@@ -1,8 +1,8 @@
-# @payload/game-server — marcador de la fase 4
+# @payload/game-server — marcador de la fase 6
 
 **Hoy no tiene código** (los scripts `typecheck`/`test`/`build` solo hacen `echo`). El servidor Colyseus
 de la versión 0.3.0 se retiró con el reinicio del juego (ADR 0011): sincronizaba el diseño por turnos de
-un satélite, no una nave en tiempo real. No lo rellenes hasta que toque la fase 4 (`docs/phases/fase-4.md`).
+un satélite, no una nave en tiempo real. No lo rellenes hasta que toque la fase 6 (`docs/phases/fase-6.md`).
 
 ## Qué irá aquí
 

@@ -10,8 +10,13 @@ import sectorJson from '../catalog/sectores.json';
 import surfaceJson from '../catalog/mundos.json';
 import economyJson from '../catalog/economia.json';
 import upgradesJson from '../catalog/mejoras.json';
+import missionsJson from '../catalog/misiones.json';
+import modulesJson from '../catalog/modulos.json';
+import instrumentsJson from '../catalog/instrumentos.json';
+import launchersJson from '../catalog/lanzadores.json';
+import solarJson from '../catalog/sistema-solar.json';
 import {
-  NODE_KINDS, SUPPLY_IDS, THROTTLE_IDS, UPGRADE_FIELDS, UPGRADE_TARGETS,
+  MODULE_KINDS, NODE_KINDS, SCIENCE_KINDS, SUPPLY_IDS, THROTTLE_IDS, UPGRADE_FIELDS, UPGRADE_TARGETS,
   type Catalog, type MaterialDef, type NodeKind, type NodeKindDef, type ShipDef, type SurfaceCatalog, type ThrottleDef, type ThrottleId, type WorldDef,
 } from './types';
 
@@ -53,6 +58,8 @@ const shipSchema = z
     shieldWearPctPerHit: nonNeg,
     overloadReactorDamagePctPerS: nonNeg,
     throttles: z.array(throttleSchema),
+    solarKwAt1Au: nonNeg.optional(),
+    dryMassKg: nonNeg.optional(),
   })
   .superRefine((ship, ctx) => {
     for (const t of THROTTLE_IDS) {
@@ -181,7 +188,8 @@ const worldSchema = z.strictObject({
   id,
   name: localized,
   kind: z.enum(NODE_KINDS),
-  weight: positive,
+  // 0 = solo se usa por `worldId` de un cuerpo del sistema solar (nunca sale en el sorteo de los sectores clásicos).
+  weight: nonNeg,
   gravityMps2: positive,
   descent: z.strictObject({ altitudeM: positive, speedMps: nonNeg, referenceMargin: probability.optional() }),
   radiusM: positive,
@@ -227,6 +235,129 @@ const upgradeSchema = z.strictObject({
   levels: z.array(z.strictObject({ price: positive, massKg: nonNeg, effects: z.array(upgradeEffectSchema).min(1) })).min(1),
 });
 
+// ─── Fase 4: diseño de misión y sistema solar (ADR 0016) ───────────────────
+
+const shipEffectSchema = upgradeEffectSchema.refine((e) => e.target === 'ship', { message: 'los módulos solo tocan la nave (target "ship")' });
+
+const moduleSchema = z
+  .strictObject({
+    id,
+    name: localized,
+    kind: z.enum(MODULE_KINDS),
+    massKg: positive,
+    costMUSD: nonNeg,
+    devMonths: nonNeg,
+    reliability: probability,
+    slotsUsed: nonNeg.int().optional(),
+    effects: z.array(shipEffectSchema),
+    maxMassKg: positive.optional(),
+    slots: positive.int().optional(),
+    solarKwAt1Au: positive.optional(),
+    heatRejectKw: nonNeg.optional(),
+    batteryKwh: nonNeg.optional(),
+    dataRateMbps: nonNeg.optional(),
+    commsRangeAu: positive.optional(),
+    storageGb: nonNeg.optional(),
+    radiationHardened: z.boolean().optional(),
+  })
+  .superRefine((m, ctx) => {
+    if (m.kind === 'structure' && (m.maxMassKg === undefined || m.slots === undefined)) ctx.addIssue({ code: 'custom', message: `la estructura "${m.id}" necesita maxMassKg y slots` });
+    if (m.kind === 'solar' && m.solarKwAt1Au === undefined) ctx.addIssue({ code: 'custom', message: `los paneles "${m.id}" necesitan solarKwAt1Au` });
+    if (m.kind === 'comms' && m.commsRangeAu === undefined) ctx.addIssue({ code: 'custom', message: `las comunicaciones "${m.id}" necesitan commsRangeAu` });
+  });
+
+const instrumentSchema = z.strictObject({
+  id,
+  name: localized,
+  scienceKind: z.enum(SCIENCE_KINDS),
+  massKg: positive,
+  powerKw: nonNeg,
+  costMUSD: nonNeg,
+  devMonths: nonNeg,
+  reliability: probability,
+  scienceValue: nonNeg,
+  dataRateMbps: nonNeg,
+  slotsUsed: nonNeg.int().optional(),
+});
+
+const launcherSchema = z.strictObject({
+  id,
+  name: localized,
+  costMUSD: nonNeg,
+  reliability: probability,
+  waitMonths: nonNeg,
+  capacityKgByZone: z.record(id, nonNeg),
+});
+
+const missionSchema = z.strictObject({
+  id,
+  name: localized,
+  description: localized,
+  scienceKind: z.enum(SCIENCE_KINDS),
+  destinations: z.array(id).min(1),
+  requirements: z.strictObject({
+    minScience: nonNeg,
+    requiredKinds: z.array(z.enum(SCIENCE_KINDS)),
+    minReliabilityPct: pct.optional(),
+  }),
+  budgetMUSD: positive,
+  deadlineMonths: positive,
+  difficulty: positive.int().max(3),
+});
+
+const designRulesSchema = z
+  .strictObject({
+    baseShipId: id,
+    shipName: localized,
+    zeroedFields: z.array(z.string()),
+    referenceMassKg: positive,
+    massFuelExponent: nonNeg,
+    tightMargin: probability,
+    integrationMonthsPerItem: nonNeg,
+    offKindScienceMult: probability,
+    rangeLegFactor: positive,
+    rangeReservePct: pct,
+    maxShieldAbsorb: probability,
+  })
+  .superRefine((r, ctx) => {
+    for (const f of r.zeroedFields) if (!UPGRADE_FIELDS.ship.includes(f)) ctx.addIssue({ code: 'custom', message: `zeroedFields: "${f}" no es un campo de nave (UPGRADE_FIELDS.ship)` });
+  });
+
+const bodySchema = z.strictObject({
+  id,
+  name: localized,
+  type: z.enum(['star', 'planet', 'dwarf', 'moon', 'asteroid', 'station']),
+  parentId: id.optional(),
+  zoneId: id.optional(),
+  orbitAu: positive.optional(),
+  orbitKm: positive.optional(),
+  periodDays: nonNeg,
+  phaseDeg: z.number().finite(),
+  radiusKm: positive,
+  gravityMps2: nonNeg,
+  atmosphere: z.boolean(),
+  nodeKind: z.enum(NODE_KINDS).optional(),
+  landable: z.boolean(),
+  worldId: id.optional(),
+  source: z.string().optional(),
+});
+
+const solarSystemSchema = z.strictObject({
+  route: z
+    .strictObject({
+      legBaseUnits: nonNeg,
+      legUnitsPerSqrtAu: nonNeg,
+      legMinUnits: positive,
+      legMaxUnits: positive,
+      columnSpacingUnits: positive,
+      waypointKinds: z.array(z.enum(NODE_KINDS)).min(1),
+      moonDisplayAuPerMkm: nonNeg,
+    })
+    .refine((r) => r.legMinUnits <= r.legMaxUnits, { message: 'legMinUnits debe ser <= legMaxUnits' }),
+  zones: z.array(z.strictObject({ id, name: localized, sunDistanceAu: positive, hubId: id, radiation: z.boolean().optional() })).min(2),
+  bodies: z.array(bodySchema).min(1),
+});
+
 const catalogSchema = z
   .strictObject({
     ships: z.array(shipSchema).min(1),
@@ -236,6 +367,12 @@ const catalogSchema = z
     surface: surfaceSchema.optional(),
     economy: economySchema.optional(),
     upgrades: z.array(upgradeSchema).optional(),
+    design: designRulesSchema.optional(),
+    missions: z.array(missionSchema).optional(),
+    modules: z.array(moduleSchema).optional(),
+    instruments: z.array(instrumentSchema).optional(),
+    launchers: z.array(launcherSchema).optional(),
+    solarSystem: solarSystemSchema.optional(),
   })
   .superRefine((cat, ctx) => {
     const shipIds = new Set<string>();
@@ -270,7 +407,48 @@ const catalogSchema = z
       if (!materialIds.has(materialId)) ctx.addIssue({ code: 'custom', message: `economy.sellPrices usa un material desconocido: ${materialId}` });
     }
     for (const k of cat.nodeKinds) {
-      if (k.landable && !surface.worlds.some((w) => w.kind === k.id)) ctx.addIssue({ code: 'custom', message: `el tipo aterrizable "${k.id}" no tiene ningún mundo` });
+      if (k.landable && !surface.worlds.some((w) => w.kind === k.id && w.weight > 0)) ctx.addIssue({ code: 'custom', message: `el tipo aterrizable "${k.id}" no tiene ningún mundo con peso > 0` });
+    }
+
+    // ── Fase 4: diseño de misión y sistema solar
+    const issue = (message: string) => ctx.addIssue({ code: 'custom', message });
+    const solar = cat.solarSystem;
+    const bodies = new Map((solar?.bodies ?? []).map((b) => [b.id, b]));
+    const zones = new Map((solar?.zones ?? []).map((z) => [z.id, z]));
+    for (const entry of [...(cat.modules ?? []), ...(cat.instruments ?? []), ...(cat.launchers ?? []), ...(cat.missions ?? []), ...(solar?.zones ?? []), ...(solar?.bodies ?? [])]) {
+      if (ids.has(entry.id)) issue(`id repetido en el catálogo: ${entry.id}`);
+      ids.add(entry.id);
+    }
+    if (cat.design && !shipIds.has(cat.design.baseShipId)) issue(`design.baseShipId: nave desconocida ${cat.design.baseShipId}`);
+    if (solar) {
+      const order = solar.zones.map((z) => z.sunDistanceAu);
+      if (order.some((d, i) => i > 0 && d <= order[i - 1]!)) issue('solarSystem.zones: deben ir de dentro a fuera');
+      for (const z of solar.zones) {
+        const hub = bodies.get(z.hubId);
+        if (!hub || hub.nodeKind !== 'station' || hub.zoneId !== z.id) issue(`la zona "${z.id}" necesita una estación propia como hubId`);
+      }
+      for (const b of solar.bodies) {
+        if (b.parentId && !bodies.has(b.parentId)) issue(`el cuerpo "${b.id}" orbita uno desconocido: ${b.parentId}`);
+        if (b.zoneId && !zones.has(b.zoneId)) issue(`el cuerpo "${b.id}" está en una zona desconocida: ${b.zoneId}`);
+        if (b.nodeKind && !b.zoneId) issue(`el cuerpo "${b.id}" aparece en el mapa y necesita zoneId`);
+        if (b.type !== 'star' && b.orbitAu === undefined && (!b.parentId || bodies.get(b.parentId)?.orbitAu === undefined)) issue(`el cuerpo "${b.id}" necesita orbitAu o un padre con orbitAu`);
+        if (b.landable) {
+          // Si el mundo no existe (un catálogo de pruebas que sustituye los mundos), se usa uno de su tipo al azar.
+          const world = b.worldId ? surface.worlds.find((w) => w.id === b.worldId) : undefined;
+          if (!b.worldId || !b.nodeKind) issue(`el cuerpo aterrizable "${b.id}" necesita nodeKind y worldId`);
+          else if (world && world.kind !== b.nodeKind) issue(`el cuerpo "${b.id}" (${b.nodeKind}) usa un mundo de otro tipo: ${world.id} (${world.kind})`);
+          else if (!cat.nodeKinds.find((k) => k.id === b.nodeKind)?.landable) issue(`el cuerpo aterrizable "${b.id}" es de un tipo no aterrizable: ${b.nodeKind}`);
+        } else if (b.worldId) issue(`el cuerpo "${b.id}" no es aterrizable pero declara worldId`);
+      }
+    }
+    for (const l of cat.launchers ?? []) {
+      for (const zoneId of Object.keys(l.capacityKgByZone)) if (!zones.has(zoneId)) issue(`el lanzador "${l.id}" usa una zona desconocida: ${zoneId}`);
+    }
+    for (const m of cat.missions ?? []) {
+      for (const d of m.destinations) {
+        const b = bodies.get(d);
+        if (!b || !b.nodeKind) issue(`la misión "${m.id}" tiene un destino que no está en el mapa: ${d}`);
+      }
     }
   });
 
@@ -285,6 +463,13 @@ export function parseCatalog(raw: unknown): Catalog {
         ...(!('surface' in raw) ? { surface: surfaceJson } : {}),
         ...(!('economy' in raw) ? { economy: economyJson.economy } : {}),
         ...(!('upgrades' in raw) ? { upgrades: upgradesJson.upgrades } : {}),
+        // Fase 4: diseño de misión y sistema solar.
+        ...(!('design' in raw) ? { design: missionsJson.rules } : {}),
+        ...(!('missions' in raw) ? { missions: missionsJson.missions } : {}),
+        ...(!('modules' in raw) ? { modules: modulesJson.modules } : {}),
+        ...(!('instruments' in raw) ? { instruments: instrumentsJson.instruments } : {}),
+        ...(!('launchers' in raw) ? { launchers: launchersJson.launchers } : {}),
+        ...(!('solarSystem' in raw) ? { solarSystem: solarJson } : {}),
       }
     : raw;
   const r = catalogSchema.safeParse(input);
@@ -304,6 +489,12 @@ export const catalog: Catalog = parseCatalog({
   surface: surfaceJson,
   economy: economyJson.economy,
   upgrades: upgradesJson.upgrades,
+  design: missionsJson.rules,
+  missions: missionsJson.missions,
+  modules: modulesJson.modules,
+  instruments: instrumentsJson.instruments,
+  launchers: launchersJson.launchers,
+  solarSystem: solarJson,
 });
 
 export function getShip(shipId: string | undefined, cat: Catalog = catalog): ShipDef {

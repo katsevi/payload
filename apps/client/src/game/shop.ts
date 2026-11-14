@@ -5,9 +5,10 @@
  * ninguna cifra de juego: solo cómo se presenta cada campo (qué es mejor, en qué unidad).
  */
 import {
-  catalog as defaultCatalog, effectiveShip, effectiveSurfaceRules, getShip, getSurfaceCatalog, getThrottle, getUpgrade, SUPPLY_IDS, UPGRADE_FIELDS,
+  catalog as defaultCatalog, cruisePowerMarginKw, effectiveShip, effectiveSurfaceRules, getShip, getSurfaceCatalog, getUpgrade, SUPPLY_IDS, UPGRADE_FIELDS,
   type ActionResult, type Catalog, type MessageRef, type RunAction, type RunState, type ShipDef, type StationQuote, type SupplyId, type SurfaceRules, type UpgradeTarget,
 } from '@payload/shared';
+import { baseShipOf } from './effective';
 
 // ─── Venta ────────────────────────────────────────────────────────────────────────────────────────
 
@@ -176,13 +177,20 @@ function read(obj: unknown, path: string): number {
   return typeof cur === 'number' ? cur : 0;
 }
 
+/**
+ * Nave base SIN mejoras: o la `ShipDef` ya resuelta (la diseñada, `baseShipOf` en `effective.ts`) o el id de una
+ * nave del catálogo (partida clásica).
+ */
+export type BaseShip = ShipDef | string;
+const resolveBase = (base: BaseShip, cat: Catalog): ShipDef => (typeof base === 'string' ? getShip(base, cat) : base);
+
 /** Lo que cambia (nave y reglas efectivas) al comprar el SIGUIENTE nivel de una mejora. Vacío si está al máximo. */
-export function upgradeDeltas(upgradeId: string, levels: Readonly<Record<string, number>>, shipId: string, cat: Catalog = defaultCatalog): EffectDelta[] {
+export function upgradeDeltas(upgradeId: string, levels: Readonly<Record<string, number>>, baseShip: BaseShip, cat: Catalog = defaultCatalog): EffectDelta[] {
   const def = getUpgrade(upgradeId, cat);
   const level = levels[upgradeId] ?? 0;
   if (level >= def.levels.length) return [];
   const next = { ...levels, [upgradeId]: level + 1 };
-  const base = getShip(shipId, cat);
+  const base = resolveBase(baseShip, cat);
   const baseRules = getSurfaceCatalog(cat).rules;
   const now = shipAndRules(effectiveShip(base, levels, cat), effectiveSurfaceRules(baseRules, levels, cat));
   const then = shipAndRules(effectiveShip(base, next, cat), effectiveSurfaceRules(baseRules, next, cat));
@@ -240,24 +248,24 @@ export interface UpgradeRow {
 }
 
 /**
- * ¿La nave sobrecarga el reactor a régimen de crucero con todos los sistemas encendidos? (Misma cuenta que el
- * motor: suma de consumos, motores × `engineDrawMult` del régimen, frente a `reactorOutputKw` sano.)
+ * ¿La nave sobrecarga el reactor a régimen de crucero con todos los sistemas encendidos? Es la cuenta del motor
+ * (`cruisePowerMarginKw`): reactor sano + paneles a `sunDistanceAu` (1 UA sin diseño) − consumo a crucero.
  */
-export function overloadsAtCruise(ship: ShipDef): boolean {
-  const draw = ship.systemDrawKw;
-  const demand = draw.engines * getThrottle(ship, 'cruise').engineDrawMult + draw.lifeSupport + draw.shields + draw.nav;
-  return demand > ship.reactorOutputKw + 1e-9;
+export function overloadsAtCruise(ship: ShipDef, sunDistanceAu = 1): boolean {
+  return cruisePowerMarginKw(ship, sunDistanceAu) < -1e-9;
 }
 
 /**
  * Aviso de sobrecarga de una línea de la terminal: el del motor si lo da (`overloadsAtCruise` en la cotización,
  * aditivo) y, si no, calculado con la nave efectiva con un nivel más.
  */
-export function upgradeOverloads(entry: StationQuote['upgrades'][number], levels: Readonly<Record<string, number>>, shipId: string, cat: Catalog = defaultCatalog): boolean {
+export function upgradeOverloads(
+  entry: StationQuote['upgrades'][number], levels: Readonly<Record<string, number>>, baseShip: BaseShip, cat: Catalog = defaultCatalog, sunDistanceAu = 1,
+): boolean {
   if (entry.nextLevel === null) return false;
   const fromEngine = (entry as { overloadsAtCruise?: unknown }).overloadsAtCruise;
   if (typeof fromEngine === 'boolean') return fromEngine;
-  return overloadsAtCruise(effectiveShip(getShip(shipId, cat), { ...levels, [entry.upgradeId]: entry.level + 1 }, cat));
+  return overloadsAtCruise(effectiveShip(resolveBase(baseShip, cat), { ...levels, [entry.upgradeId]: entry.level + 1 }, cat), sunDistanceAu);
 }
 
 /** Campo del primer efecto del primer nivel: decide el icono de la mejora (sin mirar su id). */
@@ -266,9 +274,11 @@ export function iconFieldOf(upgradeId: string, cat: Catalog = defaultCatalog): s
   return e ? `${e.target}.${e.field}` : '';
 }
 
-export function upgradeRows(quote: StationQuote, state: Pick<RunState, 'upgrades' | 'ship'>, cat: Catalog = defaultCatalog): UpgradeRow[] {
+export function upgradeRows(quote: StationQuote, state: Pick<RunState, 'upgrades' | 'ship'> & Partial<Pick<RunState, 'missionDesign' | 'sunDistanceAu'>>, cat: Catalog = defaultCatalog): UpgradeRow[] {
+  // Con diseño (fase 4) la base es la nave diseñada, no la del catálogo con su mismo id.
+  const base = baseShipOf(state, cat);
   return quote.upgrades.map((u) => {
-    const deltas = upgradeDeltas(u.upgradeId, state.upgrades ?? {}, state.ship.shipId, cat);
+    const deltas = upgradeDeltas(u.upgradeId, state.upgrades ?? {}, base, cat);
     return {
       upgradeId: u.upgradeId,
       level: u.level,
@@ -280,7 +290,7 @@ export function upgradeRows(quote: StationQuote, state: Pick<RunState, 'upgrades
       costs: deltas.filter((d) => !d.good).slice(0, MAX_COSTS),
       block: u.nextLevel === null ? 'maxed' : !u.affordable ? 'noCredits' : null,
       iconField: iconFieldOf(u.upgradeId, cat),
-      overloads: upgradeOverloads(u, state.upgrades ?? {}, state.ship.shipId, cat),
+      overloads: upgradeOverloads(u, state.upgrades ?? {}, base, cat, state.sunDistanceAu ?? 1),
     };
   });
 }

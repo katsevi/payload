@@ -20,10 +20,12 @@ archivo, el `CLAUDE.md` del paquete que vas a tocar y `docs/STATUS.md` (estado a
 | 1 · Viaje y nave (en solitario) | Mapa estelar, saltos, combustible, interior caminable 1ª/3ª persona, sistemas, averías en tiempo real, permadeath | Implementada · pendiente de validación independiente y de prueba con jugadores (ver `docs/phases/fase-1.md`) |
 | 2 · Exploración de superficie | Descenso y aterrizaje, jetpack, oxígeno personal, recolección | Implementada (rama `feat/f2-superficie`) · pendiente de validación independiente final y de prueba con jugadores (ver `docs/phases/fase-2.md`) |
 | 3 · Economía y progresión | Créditos, venta en estaciones, suministros y 11 mejoras de nave y equipo | Implementada (rama `feat/f3-economia-progresion`) · validada con observaciones · hito pendiente de prueba con jugadores (ver `docs/phases/fase-3.md`) |
-| 4 · Cooperativo 1-4 | Servidor autoritativo, roles (piloto, ingeniero, gestor de recursos, explorador) | Pendiente (`apps/game-server` es un marcador) |
-| 5 · Pulido y lanzamiento | Rankings, mando/táctil, E2E, despliegue | Pendiente (`apps/api` es un marcador) |
+| 4 · Diseño de misión y sistema solar | Diseño antes de zarpar (objetivo, instrumentos, módulos, lanzador; presupuesto, masa, potencia, plazo; Go/No-Go) y sistema solar real como mapa | En curso (rama `feat/f4-diseno-de-mision`; ver `docs/phases/fase-4.md`) |
+| 5 · Ciencia, datos y astronauta articulado | Instrumentos que generan datos, bajada a la Tierra en ventanas de contacto, puntuación por ciencia, informe post-misión, misión guiada de CubeSat | Pendiente (ver `docs/phases/fase-5.md`) |
+| 6 · Cooperativo 1-4 con roles | Servidor autoritativo, roles por disciplina (dirección, ingeniería, ciencia, operaciones), Go/No-Go con voto | Pendiente (`apps/game-server` es un marcador) |
+| 7 · Pulido y lanzamiento | Rankings, mando/táctil, E2E, despliegue | Pendiente (`apps/api` es un marcador) |
 
-Plan: `docs/plan/plan-tripulacion-de-exploracion.md`. Diseño: `docs/GDD.md`. Más documentación:
+Plan: `docs/plan/plan-tripulacion-de-exploracion.md`. Reto NASA y roadmap: `docs/adr/0015-reto-nasa-y-roadmap.md`. Diseño: `docs/GDD.md`. Más documentación:
 `docs/STATUS.md` (estado y pendientes), `docs/ARCHITECTURE.md`, `docs/phases/`, `docs/CONTRIBUTING.md` y `CHANGELOG.md`.
 
 ## Mapa del monorepo
@@ -32,8 +34,8 @@ Plan: `docs/plan/plan-tripulacion-de-exploracion.md`. Diseño: `docs/GDD.md`. M�
 payload/
 ├─ apps/
 │  ├─ client/        # React 19 + R3F v9 + Drei + Rapier + Vite (escenas, interfaz, audio, i18n)
-│  ├─ game-server/   # marcador: servidor del cooperativo (fase 4)
-│  └─ api/           # marcador: rankings y persistencia (fase 5)
+│  ├─ game-server/   # marcador: servidor del cooperativo (fase 6)
+│  └─ api/           # marcador: rankings y persistencia (fase 7)
 ├─ packages/
 │  └─ shared/        # motor del juego: tipos, generador de sectores, partida (TS puro, con tests)
 │     ├─ catalog/    # naves, averias, destinos, sectores, mundos, economia, mejoras (.json)
@@ -62,7 +64,7 @@ pnpm --filter @payload/shared test:watch   # TDD del motor
 ## Reglas del proyecto (no negociables)
 
 1. **El motor es TS puro.** `packages/shared` no importa React, Three.js, DOM ni APIs de Node en `src/`.
-   Debe poder correr igual en el navegador (solitario) y en el servidor de juego (fase 4).
+   Debe poder correr igual en el navegador (solitario) y en el servidor de juego (fase 6).
 2. **El contrato es `packages/shared/src/types.ts`.** Solo cambios aditivos; un cambio que rompa
    exige ADR en `docs/adr/` y actualizar a todos los consumidores en el mismo cambio.
 3. **Contenido en datos, no en código.** Naves, averías, destinos y reglas de sector viven en
@@ -76,7 +78,9 @@ pnpm --filter @payload/shared test:watch   # TDD del motor
    Hay tests de paridad de claves en ambos paquetes.
 6. **Se juega, no se lee.** Los compromisos se sienten en la mecánica. El motor devuelve `MessageRef`
    (clave + parámetros), nunca texto final, y cada mensaje cabe en una línea (los tests limitan su
-   longitud). Nada de pantallas de lectura obligatoria, tutoriales de texto ni paneles explicativos.
+   longitud). Nada de pantallas de lectura obligatoria, tutoriales de texto ni paneles explicativos. Revisada por el
+   ADR 0015: se permiten explicaciones **opcionales** de una línea (ayuda con tecla, glosario breve, motivo del
+   Go/No-Go, informe final).
 7. **Licencias de assets.** Todo asset nuevo se registra en `assets/CREDITS.md` con autor, fuente y
    licencia. Ver la skill `3d-models` antes de tocar modelos. Atención: `programme_erizon.glb` es
    CC-BY-NC-ND (sin uso comercial, sin derivados).
@@ -96,7 +100,7 @@ pnpm --filter @payload/shared test:watch   # TDD del motor
 
 - **Agentes del proyecto** (`.claude/agents/`): `sim-engine` (motor), `client-3d` (cliente R3F),
   `content-designer` (catálogo y balance), `asset-pipeline` (modelos 3D), `validator` (revisión
-  previa a entregar), `docs-writer` (documentación), `game-server` (servidor del cooperativo, fase 4).
+  previa a entregar), `docs-writer` (documentación), `game-server` (servidor del cooperativo, fase 6).
   Úsalos para delegar en la parte que les toca.
 - **Skills del proyecto** (`.claude/skills/`): `3d-models` (inspeccionar/optimizar GLB),
   `validate` (validación completa), `add-catalog-item` (añadir o ajustar contenido del catálogo).

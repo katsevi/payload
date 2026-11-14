@@ -9,7 +9,7 @@ import { dangerLevel, musicMixFor, type MusicContext } from './musicLogic';
 /** Contexto de música a partir del estado de la partida (puro respecto al motor de audio). */
 export function currentMusicContext(): MusicContext {
   const { screen, hud } = useGame.getState();
-  if (screen === 'menu' || !hud) return { screen: 'menu' };
+  if (screen !== 'game' || !hud) return { screen: 'menu' };
   const ship = effectiveShipOf(hud, getRun()?.catalog);
   const me = hud.crew.find((c) => c.alive) ?? hud.crew[0];
   const outside = me?.location === 'eva';
@@ -76,7 +76,7 @@ export function useAudioDirector(): void {
     update();
     return useGame.subscribe((s, p) => {
       if (s.hud !== p.hud || s.screen !== p.screen) update();
-      if (s.screen === 'menu' && p.screen !== 'menu') resetCueMemory();
+      if (s.screen !== 'game' && p.screen === 'game') resetCueMemory();
     });
   }, []);
 }

@@ -12,6 +12,7 @@
 import { getSurfaceCatalog } from './catalog';
 import { getNode } from './galaxy';
 import { createRng, deriveSeed, type Rng } from './rng';
+import { findBody } from './solar';
 import type { Catalog, CrewMember, Deposit, LodeProgress, PlannedStorm, SectorMap, SurfaceRules, SurfaceState, UnstableZone, WorldDef } from './types';
 
 const WORLD_SALT = 0x3b0d;
@@ -41,9 +42,16 @@ function worldSeed(seed: number, sector: SectorMap, nodeId: string): number {
 export function getNodeWorld(seed: number, sector: SectorMap, nodeId: string, cat: Catalog): WorldDef | null {
   const node = getNode(sector, nodeId);
   if (!node) return null;
+  // Fase 4: un cuerpo real del sistema solar usa su mundo (o ninguno si no es aterrizable: Júpiter, estaciones).
+  // Si su mundo no está en el catálogo (catálogos de pruebas), uno de su tipo como cualquier otro nodo.
+  const body = node.bodyId ? findBody(node.bodyId, cat) : undefined;
+  if (body && !body.landable) return null;
+  const own = body?.worldId ? getSurfaceCatalog(cat).worlds.find((w) => w.id === body.worldId) : undefined;
+  if (own) return own;
   const kind = cat.nodeKinds.find((k) => k.id === node.kind);
   if (!kind?.landable) return null;
-  const options = getSurfaceCatalog(cat).worlds.filter((w) => w.kind === node.kind);
+  // Los mundos con peso 0 solo se usan por `worldId` (sistema solar): nunca salen en el sorteo.
+  const options = getSurfaceCatalog(cat).worlds.filter((w) => w.kind === node.kind && w.weight > 0);
   if (options.length === 0) return null;
   const rng = createRng(deriveSeed(deriveSeed(Math.trunc(seed) >>> 0, WORLD_SALT + sector.index), nodeIndex(sector, nodeId)));
   const total = options.reduce((s, w) => s + w.weight, 0);

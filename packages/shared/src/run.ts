@@ -20,8 +20,10 @@ import {
   affordableUnits, cargoFuelMult, cargoMassKg, cruisePowerMarginKw, effectiveShip, effectiveSurfaceRules, getEconomy, getUpgrades, hasShop, priceOf, sectorPriceMults,
   sellUnitPrice, stationOffer, upgradePrice, upgradesMassKg,
 } from './economy';
+import { parseMissionDesign, shipFromDesign } from './design';
 import { generateSector, getNode, nodeDistanceLy } from './galaxy';
 import { createRng, deriveSeed, type Rng } from './rng';
+import { generateSolarSector, solarKw } from './solar';
 import { descentStep, generateSurface, getNodeWorld, landingSeed, lodeBonusApplies, simulateDescent, streakMultiplier, suitRefill, takeOffFuel } from './surface';
 import {
   HAZARD_KINDS, INCIDENT_KINDS, SUPPLY_IDS, SYSTEM_IDS, THROTTLE_IDS,
@@ -118,7 +120,10 @@ export function cruiseSpeedLyPerS(ship: ShipDef, throttle: ThrottleId, engineHea
 
 export function createRun(options: RunOptions): Run {
   const cat: Catalog = options.catalog ?? defaultCatalog;
-  const baseShip = getShip(options.shipId, cat);
+  // Fase 4: con diseño, la nave sale del diseño y el mapa es el sistema solar (ADR 0016).
+  // Un diseño mal formado lanza un error claro (`parseMissionDesign`); la copia validada no comparte listas.
+  const design = options.design !== undefined ? parseMissionDesign(options.design) : undefined;
+  const baseShip = design ? shipFromDesign(design, cat) : getShip(options.shipId, cat);
   const economy = getEconomy(cat);
   const upgrades: Record<string, number> = {};
   /** La nave efectiva (con mejoras): la que usa TODO el motor. Se recalcula al comprar una mejora. */
@@ -131,7 +136,10 @@ export function createRun(options: RunOptions): Run {
   let srules = effectiveSurfaceRules(surfaceCat.rules, upgrades, cat);
   const crewSize = clamp(Math.trunc(options.crewSize ?? 1), 1, MAX_CREW);
 
-  const firstSector = generateSector(seed, 1, cat, ship.id);
+  /** Mapa del sector `index`: el sistema solar con diseño (generado con la nave diseñada, sin mejoras); si no, el abstracto. */
+  const makeSector = (index: number) =>
+    design ? generateSolarSector(seed, index, baseShip, cat, design.destinationId) : generateSector(seed, index, cat, baseShip.id);
+  const firstSector = makeSector(1);
   const shipState: ShipState = {
     shipId: ship.id,
     hull: ship.hullMax,
@@ -171,6 +179,11 @@ export function createRun(options: RunOptions): Run {
     credits: economy.startCredits,
     upgrades,
   };
+  if (design) {
+    state.missionDesign = design;
+    state.sunDistanceAu = firstSector.nodes.find((n) => n.id === firstSector.startId)?.sunDistanceAu ?? 1;
+    shipState.solarSupplyKw = 0;
+  }
 
   let accumulatorS = 0;
   let eventSeq = 0;
@@ -188,13 +201,35 @@ export function createRun(options: RunOptions): Run {
     pending.push({ id: ++eventSeq, type, tS: Math.round(state.stats.timeS * 10) / 10, tone, message: params ? { key, params } : { key }, ...extra });
   }
 
+  /** Fase 4: distancia de la nave al Sol (UA): la del nodo, o interpolada en tránsito. 1 en sectores abstractos. */
+  function sunDistanceAu(): number {
+    const transit = state.transit;
+    if (transit) {
+      const a = getNode(state.sector, transit.fromId)?.sunDistanceAu ?? 1;
+      const b = getNode(state.sector, transit.toId)?.sunDistanceAu ?? 1;
+      return a + (b - a) * (transit.distanceLy > 0 ? Math.min(1, transit.traveledLy / transit.distanceLy) : 1);
+    }
+    return getNode(state.sector, state.locationId)?.sunDistanceAu ?? 1;
+  }
+
+  /** Parámetros de un nodo en los mensajes: los cuerpos reales van por id (nombre localizado en `catalog.<id>`). */
+  function nodeMessage(base: 'event.arrived' | 'event.jump', node: { name: string; bodyId?: string }): { key: string; params: Record<string, string> } {
+    return node.bodyId ? { key: `${base}Body`, params: { body: node.bodyId } } : { key: base, params: { node: node.name } };
+  }
+
   // ── Estado derivado: cortos, energía, sistemas en línea y velocidad ─────────────────────────
   function refresh(): void {
     for (const idSys of SYSTEM_IDS) sys[idSys].shorted = false;
     for (const inc of state.incidents) if (inc.kind === 'short') sys[inc.systemId].shorted = true;
 
     const reactorUp = sys.reactor.healthPct > 0 && !sys.reactor.shorted;
-    const supply = reactorUp ? (ship.reactorOutputKw * sys.reactor.healthPct) / 100 : 0;
+    // Fase 4: los paneles dan menos lejos del Sol (1/d²); la parte nuclear no cambia. Sin paneles, como siempre.
+    const solar = design ? solarKw(ship, sunDistanceAu()) : 0;
+    const supply = reactorUp ? ((ship.reactorOutputKw + solar) * sys.reactor.healthPct) / 100 : 0;
+    if (design) {
+      state.sunDistanceAu = Math.round(sunDistanceAu() * 1000) / 1000;
+      shipState.solarSupplyKw = reactorUp ? (solar * sys.reactor.healthPct) / 100 : 0;
+    }
     const throttle = getThrottle(ship, shipState.throttle);
     let demand = 0;
     for (const idSys of POWERED) {
@@ -419,11 +454,13 @@ export function createRun(options: RunOptions): Run {
         const price = next === null ? null : upgradePrice(def, next, economy, idx);
         // Efecto eléctrico del siguiente nivel: margen a crucero con todo encendido, antes y después.
         const after = next === null ? ship : effectiveShip(baseShip, { ...upgrades, [upgradeId]: next }, cat);
-        const marginAfter = cruisePowerMarginKw(after);
+        // Fase 4: con paneles, el margen depende de la distancia al Sol de la estación.
+        const au = design ? sunDistanceAu() : 1;
+        const marginAfter = cruisePowerMarginKw(after, au);
         return {
           upgradeId, level, maxLevel: def.levels.length, nextLevel: next, price,
           massKg: next === null ? 0 : def.levels[next - 1]!.massKg, affordable: price !== null && price <= state.credits,
-          powerMarginDeltaKw: marginAfter - cruisePowerMarginKw(ship),
+          powerMarginDeltaKw: marginAfter - cruisePowerMarginKw(ship, au),
           overloadsAtCruise: marginAfter < -1e-9,
         };
       }),
@@ -461,7 +498,8 @@ export function createRun(options: RunOptions): Run {
     state.phase = 'docked';
     state.stats.jumps++;
     if (firstVisit) state.visitedIds.push(node.id);
-    emit('arrived', 'info', 'event.arrived', { node: node.name });
+    const arrivedMsg = nodeMessage('event.arrived', node);
+    emit('arrived', 'info', arrivedMsg.key, arrivedMsg.params);
     if (firstVisit && node.cache) {
       const fuel = Math.min(node.cache.fuel, ship.fuelCapacity - shipState.fuel);
       const spares = Math.min(node.cache.spares, ship.maxSpares - shipState.spares);
@@ -1215,7 +1253,7 @@ export function createRun(options: RunOptions): Run {
     if (state.phase === 'lost') return reject('reject.runOver');
     if (action.type === 'next-sector') {
       if (state.phase !== 'won') return reject('reject.notAtGate');
-      const sector = generateSector(seed, state.sector.index + 1, cat, ship.id);
+      const sector = makeSector(state.sector.index + 1);
       state.sector = sector;
       state.locationId = sector.startId;
       state.visitedIds = [sector.startId];
@@ -1253,7 +1291,8 @@ export function createRun(options: RunOptions): Run {
         const to = getNode(state.sector, action.toId)!;
         state.transit = { fromId: state.locationId, toId: to.id, distanceLy: estimate.distanceLy, traveledLy: 0, hazards: planHazards(to.id, estimate.distanceLy) };
         state.phase = 'transit';
-        emit('jump', 'info', 'event.jump', { node: to.name, distanceLy: Math.round(estimate.distanceLy) });
+        const jumpMsg = nodeMessage('event.jump', to);
+        emit('jump', 'info', jumpMsg.key, { ...jumpMsg.params, distanceLy: Math.round(estimate.distanceLy) });
         return OK;
       }
       case 'set-throttle':

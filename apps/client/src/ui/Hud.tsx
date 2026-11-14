@@ -1,12 +1,13 @@
-import { AlertTriangle, Flame, Fuel, Heart, Navigation, Shield, Wind, Wrench, Zap } from 'lucide-react';
+import { AlertTriangle, Flame, Fuel, Heart, Navigation, Shield, Sun, Wind, Wrench, Zap } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getNode, type EventTone, type IncidentKind, type RunState } from '@payload/shared';
-import { effectiveShipOf } from '../game/effective';
+import { findBody, getMissions, getNode, type EventTone, type IncidentKind, type RunState } from '@payload/shared';
+import { effectiveShipOf, maxPowerKwOf } from '../game/effective';
 import { getRun, TOAST_MS, useGame } from '../game/runStore';
-import { tr } from '../i18n';
+import { lt, tr } from '../i18n';
 import { useUi } from '../state/ui';
-import { usePointerLocked } from './common';
+import { fmt, usePointerLocked } from './common';
+import { nodeName } from './names';
 import { CreditsBadge, UpgradeStrip } from './Credits';
 import { HelmPointer } from './HelmPointer';
 import { SkillHud } from './SkillHud';
@@ -43,11 +44,14 @@ export function Gauge({ icon, label, pct, text, level, marker }: { icon: ReactNo
 function Vitals({ s }: { s: RunState }) {
   const { t } = useTranslation();
   // Máximos de la nave EFECTIVA: un depósito o un casco mejorados se ven con su nuevo tope.
-  const ship = effectiveShipOf(s, getRun()?.catalog);
+  const cat = getRun()?.catalog;
+  const ship = effectiveShipOf(s, cat);
   const hullPct = (s.ship.hull / ship.hullMax) * 100;
   const fuelPct = (s.ship.fuel / ship.fuelCapacity) * 100;
-  const supplyPct = (s.ship.powerSupplyKw / ship.reactorOutputKw) * 100;
-  const demandPct = (s.ship.powerDemandKw / ship.reactorOutputKw) * 100;
+  // 100 % de la barra de energía = la nave sana a esta distancia del Sol (nuclear + paneles); sin diseño, el reactor.
+  const maxKw = maxPowerKwOf(s, cat);
+  const supplyPct = (s.ship.powerSupplyKw / maxKw) * 100;
+  const demandPct = (s.ship.powerDemandKw / maxKw) * 100;
   const blackout = s.ship.powerSupplyKw <= 0;
   return (
     <div className="console-panel absolute left-3 top-3 flex flex-col gap-1.5 p-3">
@@ -62,6 +66,14 @@ function Vitals({ s }: { s: RunState }) {
         text={blackout ? t('hud.blackout') : s.ship.overloaded ? t('hud.overload') : `${Math.round(s.ship.powerDemandKw)}/${Math.round(s.ship.powerSupplyKw)} kW`}
         level={blackout || s.ship.overloaded ? 'bad' : demandPct > supplyPct * 0.92 ? 'warn' : 'ok'}
       />
+      {/* Con diseño (fase 4): distancia al Sol y lo que dan ahora los paneles, junto a la energía. */}
+      {s.sunDistanceAu !== undefined && (
+        <div className="num flex items-center gap-2 pl-6 text-[11px] text-slate-300" title={t('hud.solar', { kw: fmt(s.ship.solarSupplyKw ?? 0, 0) })}>
+          <Sun size={13} className="text-warn" aria-hidden="true" />
+          <span>{t('hud.sunAu', { au: fmt(s.sunDistanceAu, 2) })}</span>
+          <span className="text-warn">{t('hud.solar', { kw: fmt(s.ship.solarSupplyKw ?? 0, 0) })}</span>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-2 text-xs text-slate-200">
         <span className="flex items-center gap-2" title={t('hud.spares')}>
           <Wrench size={16} />
@@ -76,6 +88,16 @@ function Vitals({ s }: { s: RunState }) {
   );
 }
 
+/** Misión de la partida con diseño y su destino (una línea). */
+function MissionLine({ s }: { s: RunState }) {
+  const { t } = useTranslation();
+  const d = s.missionDesign;
+  if (!d) return null;
+  const mission = getMissions(getRun()?.catalog).find((m) => m.id === d.missionId);
+  const dest = d.destinationId && findBody(d.destinationId, getRun()?.catalog) ? t(`catalog.${d.destinationId}`, { ns: 'sim' }) : '—';
+  return <div className="num text-[11px] text-warn">{t('hud.mission', { mission: mission ? lt(mission.name) : d.missionId, dest })}</div>;
+}
+
 /** Dónde está la nave: atracada o en pleno salto, con el avance y el régimen. */
 function Voyage({ s }: { s: RunState }) {
   const { t } = useTranslation();
@@ -87,10 +109,11 @@ function Voyage({ s }: { s: RunState }) {
       <div className="num text-[10px] uppercase tracking-widest text-slate-400">
         {t('hud.sector', { sector: s.sector.index })} · {t('hud.score', { score: s.score })}
       </div>
+      {s.missionDesign && <MissionLine s={s} />}
       {s.surface ? (
         <WorldBadge s={s} />
       ) : (
-        <div className="text-sm text-slate-100">{s.transit ? t('hud.transit', { node: target?.name ?? '' }) : t('hud.docked', { node: target?.name ?? '' })}</div>
+        <div className="text-sm text-slate-100">{s.transit ? t('hud.transit', { node: nodeName(target) }) : t('hud.docked', { node: nodeName(target) })}</div>
       )}
       {s.transit && (
         <>

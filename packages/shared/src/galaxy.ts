@@ -21,7 +21,8 @@ export function getNode(sector: SectorMap, nodeId: string): SectorNode | undefin
   return sector.nodes.find((n) => n.id === nodeId);
 }
 
-function nodeName(rng: Rng, syllables: string[], used: Set<string>): string {
+/** Nombre inventado de un nodo (uso interno: también lo usan los puntos de paso del sistema solar). */
+export function nodeName(rng: Rng, syllables: string[], used: Set<string>): string {
   for (let attempt = 0; attempt < 50; attempt++) {
     const parts = rng.int(2, 3);
     let word = '';
@@ -37,7 +38,7 @@ function nodeName(rng: Rng, syllables: string[], used: Set<string>): string {
   return fallback;
 }
 
-function pickKind(rng: Rng, kinds: NodeKindDef[]): NodeKind {
+export function pickKind(rng: Rng, kinds: NodeKindDef[]): NodeKind {
   const total = kinds.reduce((s, k) => s + k.weight, 0);
   let roll = rng.next() * total;
   for (const k of kinds) {
@@ -47,7 +48,7 @@ function pickKind(rng: Rng, kinds: NodeKindDef[]): NodeKind {
   return kinds[kinds.length - 1]!.id;
 }
 
-function rollCache(rng: Rng, def: NodeKindDef): SectorNode['cache'] {
+export function rollCache(rng: Rng, def: NodeKindDef): SectorNode['cache'] {
   // Se consumen siempre las mismas tiradas, haya o no contenedor.
   const has = rng.chance(def.cache?.chance ?? 0);
   const fuel = def.cache ? rng.int(def.cache.fuel.min, def.cache.fuel.max) : rng.int(0, 0);
@@ -99,16 +100,23 @@ function buildSector(rng: Rng, index: number, cat: Catalog): SectorMap {
   }
   x += rules.columnSpacingLy.min + rng.next() * (rules.columnSpacingLy.max - rules.columnSpacingLy.min);
   const goal = make('gate', columns + 1, x, 0);
+  linkColumns(byColumn, rules.maxLinkLy);
+  return { index, hazardMult: 1 + rules.hazardGrowthPerSector * (index - 1), nodes, startId: start.id, goalId: goal.id };
+}
 
-  // Enlaces entre columnas contiguas: todos los que estén a tiro y, como mínimo, el más cercano
-  // en cada sentido (ningún nodo queda aislado).
+/**
+ * Enlaces entre columnas contiguas: todos los que estén a tiro y, como mínimo, el más cercano en cada
+ * sentido (ningún nodo queda aislado). Sin azar.
+ */
+export function linkColumns(byColumn: SectorNode[][], maxLinkLy: number): void {
+  const columns = byColumn.length - 2;
   for (let c = 0; c <= columns; c++) {
     const from = byColumn[c]!;
     const to = byColumn[c + 1]!;
     for (const a of from) {
       let nearest = to[0]!;
       for (const b of to) {
-        if (nodeDistanceLy(a, b) <= rules.maxLinkLy) link(a, b);
+        if (nodeDistanceLy(a, b) <= maxLinkLy) link(a, b);
         if (nodeDistanceLy(a, b) < nodeDistanceLy(a, nearest)) nearest = b;
       }
       link(a, nearest);
@@ -120,8 +128,6 @@ function buildSector(rng: Rng, index: number, cat: Catalog): SectorMap {
       link(nearest, b);
     }
   }
-
-  return { index, hazardMult: 1 + rules.hazardGrowthPerSector * (index - 1), nodes, startId: start.id, goalId: goal.id };
 }
 
 /** Combustible de un salto a régimen económico con motores sanos. */

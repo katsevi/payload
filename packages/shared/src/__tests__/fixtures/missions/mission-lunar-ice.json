@@ -1,0 +1,156 @@
+{
+  "missionId": "mission-lunar-ice",
+  "valid": [
+    {
+      "name": "alas-solares-y-radar",
+      "design": {
+        "missionId": "mission-lunar-ice",
+        "destinationId": "luna",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "thermal-radiator"
+        ],
+        "instrumentIds": [
+          "inst-neutron",
+          "inst-radar"
+        ]
+      }
+    },
+    {
+      "name": "ionica-estandar",
+      "design": {
+        "missionId": "mission-lunar-ice",
+        "destinationId": "luna",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-standard",
+          "engine-ion",
+          "solar-array-hi",
+          "solar-array-hi",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "solar-array"
+        ],
+        "instrumentIds": [
+          "inst-neutron",
+          "inst-radar"
+        ]
+      }
+    },
+    {
+      "name": "compacta-sin-escudos",
+      "design": {
+        "missionId": "mission-lunar-ice",
+        "destinationId": "luna",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-micro",
+          "engine-chemical",
+          "solar-array-hi",
+          "comms-lga",
+          "computer-flight",
+          "fuel-tank-module",
+          "solar-array"
+        ],
+        "instrumentIds": [
+          "inst-neutron",
+          "inst-radar"
+        ]
+      }
+    }
+  ],
+  "failing": [
+    {
+      "name": "rtg-no-llega-a-tiempo",
+      "cause": "schedule",
+      "design": {
+        "missionId": "mission-lunar-ice",
+        "destinationId": "luna",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "rtg",
+          "solar-array-hi",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "thermal-radiator"
+        ],
+        "instrumentIds": [
+          "inst-neutron",
+          "inst-radar"
+        ]
+      }
+    },
+    {
+      "name": "sin-instrumento-de-hielo",
+      "cause": "missing-science-kind",
+      "design": {
+        "missionId": "mission-lunar-ice",
+        "destinationId": "luna",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-camera",
+          "inst-drill"
+        ]
+      }
+    },
+    {
+      "name": "demasiado-pesada-para-condor",
+      "cause": "mass-launcher",
+      "design": {
+        "missionId": "mission-lunar-ice",
+        "destinationId": "luna",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-heavy",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "whipple-armor"
+        ],
+        "instrumentIds": [
+          "inst-neutron",
+          "inst-radar"
+        ]
+      }
+    }
+  ]
+}

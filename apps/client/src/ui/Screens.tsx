@@ -8,6 +8,7 @@ import { currentLocale, setLocale, tr } from '../i18n';
 import { useSettings } from '../state/settings';
 import { useUi } from '../state/ui';
 import { Modal, Panel, fmt } from './common';
+import { distanceText } from './names';
 
 export function LanguageSelect() {
   const { t } = useTranslation();
@@ -38,8 +39,11 @@ export function MenuScreen() {
         <p className="num mt-1 text-xs uppercase tracking-widest text-slate-500">{t('menu.tagline')}</p>
       </div>
       <nav className="flex w-64 flex-col gap-3">
-        <button className="btn btn-primary !py-3" onClick={() => useGame.getState().startRun()}>
-          {t('menu.play')}
+        <button className="btn btn-primary !py-3" onClick={() => useGame.getState().openMissions()} title={t('menu.missionHint')}>
+          {t('menu.mission')}
+        </button>
+        <button className="btn" onClick={() => useGame.getState().startRun()}>
+          {t('menu.free')}
         </button>
         <button className="btn" onClick={() => setOverlay('help')}>
           {t('help.title')}
@@ -225,6 +229,7 @@ export function HelpOverlay() {
 export function PauseScreen() {
   const { t } = useTranslation();
   const setOverlay = useUi((s) => s.setOverlay);
+  const hasDesign = useGame((g) => g.runDesign !== null);
   return (
     <Modal onClose={() => setOverlay(null)}>
       <Panel title={t('pause.title')} className="mx-auto max-w-xs">
@@ -235,6 +240,11 @@ export function PauseScreen() {
           <button className="btn" onClick={() => setOverlay('settings')}>
             {t('common.settings')}
           </button>
+          {hasDesign && (
+            <button className="btn" onClick={() => useGame.getState().redesign()}>
+              {t('end.redesign')}
+            </button>
+          )}
           <button className="btn" onClick={() => useGame.getState().toMenu()}>
             {t('pause.quit')}
           </button>
@@ -259,7 +269,7 @@ export function EndScreen() {
   const stats: [string, string][] = [
     [t('end.sectors'), String(s.stats.sectorsCleared)],
     [t('end.jumps'), String(s.stats.jumps)],
-    [t('end.distance'), t('map.ly', { value: fmt(s.stats.distanceLy, 0) })],
+    [t('end.distance'), distanceText(s.stats.distanceLy, !!s.missionDesign)],
     [t('end.fixed'), String(s.stats.incidentsFixed)],
     [t('end.evaded'), String(s.stats.impactsEvaded)],
     [t('end.hits'), String(s.stats.impactsTaken)],
@@ -291,8 +301,8 @@ export function EndScreen() {
         </dl>
         <div className="mt-5 flex flex-col gap-2">
           {lost ? (
-            <button className="btn btn-primary !py-3" onClick={() => useGame.getState().startRun()} autoFocus>
-              {t('end.retry')}
+            <button className="btn btn-primary !py-3" onClick={() => useGame.getState().startRun(undefined, s.missionDesign ?? null)} autoFocus>
+              {s.missionDesign ? t('end.retryMission') : t('end.retry')}
             </button>
           ) : (
             <>
@@ -301,6 +311,12 @@ export function EndScreen() {
               </button>
               <p className="text-xs text-slate-400">{t('end.nextHint')}</p>
             </>
+          )}
+          {/* Partida con diseño: volver al hangar con el mismo diseño cargado. */}
+          {s.missionDesign && (
+            <button className="btn" onClick={() => useGame.getState().redesign()}>
+              {t('end.redesign')}
+            </button>
           )}
           <button className="btn" onClick={() => useGame.getState().toMenu()}>
             {t('common.menu')}

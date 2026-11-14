@@ -1,0 +1,56 @@
+{
+  "instruments": [
+    {
+      "id": "inst-camera", "name": { "es": "Cámara de alta resolución", "en": "High-resolution camera" }, "scienceKind": "geology",
+      "massKg": 60, "powerKw": 2, "costMUSD": 15, "devMonths": 6, "reliability": 0.99, "scienceValue": 20, "dataRateMbps": 5
+    },
+    {
+      "id": "inst-ir-spectrometer", "name": { "es": "Espectrómetro infrarrojo", "en": "Infrared spectrometer" }, "scienceKind": "geology",
+      "massKg": 25, "powerKw": 1.5, "costMUSD": 14, "devMonths": 8, "reliability": 0.99, "scienceValue": 22, "dataRateMbps": 1
+    },
+    {
+      "id": "inst-drill", "name": { "es": "Taladro de muestras", "en": "Sample drill" }, "scienceKind": "geology",
+      "massKg": 90, "powerKw": 4, "costMUSD": 30, "devMonths": 12, "reliability": 0.97, "scienceValue": 35, "dataRateMbps": 0.5
+    },
+    {
+      "id": "inst-altimeter", "name": { "es": "Altímetro láser", "en": "Laser altimeter" }, "scienceKind": "geology",
+      "massKg": 20, "powerKw": 0.8, "costMUSD": 7, "devMonths": 5, "reliability": 0.995, "scienceValue": 12, "dataRateMbps": 0.3
+    },
+    {
+      "id": "inst-neutron", "name": { "es": "Espectrómetro de neutrones", "en": "Neutron spectrometer" }, "scienceKind": "ice",
+      "massKg": 30, "powerKw": 1, "costMUSD": 12, "devMonths": 8, "reliability": 0.99, "scienceValue": 25, "dataRateMbps": 0.1
+    },
+    {
+      "id": "inst-radar", "name": { "es": "Radar de penetración", "en": "Ice-penetrating radar" }, "scienceKind": "ice",
+      "massKg": 120, "powerKw": 6, "costMUSD": 45, "devMonths": 14, "reliability": 0.98, "scienceValue": 40, "dataRateMbps": 10
+    },
+    {
+      "id": "inst-mass-spec", "name": { "es": "Espectrómetro de masas", "en": "Mass spectrometer" }, "scienceKind": "atmosphere",
+      "massKg": 40, "powerKw": 2, "costMUSD": 20, "devMonths": 10, "reliability": 0.98, "scienceValue": 30, "dataRateMbps": 1
+    },
+    {
+      "id": "inst-uv-spectrometer", "name": { "es": "Espectrógrafo ultravioleta", "en": "Ultraviolet spectrograph" }, "scienceKind": "atmosphere",
+      "massKg": 30, "powerKw": 1.5, "costMUSD": 18, "devMonths": 9, "reliability": 0.99, "scienceValue": 22, "dataRateMbps": 1
+    },
+    {
+      "id": "inst-magnetometer", "name": { "es": "Magnetómetro", "en": "Magnetometer" }, "scienceKind": "fields",
+      "massKg": 15, "powerKw": 0.5, "costMUSD": 6, "devMonths": 5, "reliability": 0.995, "scienceValue": 15, "dataRateMbps": 0.05
+    },
+    {
+      "id": "inst-plasma", "name": { "es": "Detector de plasma", "en": "Plasma instrument" }, "scienceKind": "fields",
+      "massKg": 25, "powerKw": 1, "costMUSD": 12, "devMonths": 8, "reliability": 0.99, "scienceValue": 20, "dataRateMbps": 0.5
+    },
+    {
+      "id": "inst-seismometer", "name": { "es": "Sismómetro", "en": "Seismometer" }, "scienceKind": "interior",
+      "massKg": 35, "powerKw": 0.5, "costMUSD": 18, "devMonths": 12, "reliability": 0.98, "scienceValue": 30, "dataRateMbps": 0.2
+    },
+    {
+      "id": "inst-sample-analyzer", "name": { "es": "Analizador de muestras orgánicas", "en": "Organic sample analyzer" }, "scienceKind": "life",
+      "massKg": 70, "powerKw": 3, "costMUSD": 38, "devMonths": 16, "reliability": 0.97, "scienceValue": 38, "dataRateMbps": 0.3
+    },
+    {
+      "id": "inst-life-lab", "name": { "es": "Laboratorio de biofirmas", "en": "Biosignature lab" }, "scienceKind": "life",
+      "massKg": 150, "powerKw": 5, "costMUSD": 80, "devMonths": 24, "reliability": 0.96, "scienceValue": 60, "dataRateMbps": 2
+    }
+  ]
+}

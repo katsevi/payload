@@ -1,0 +1,24 @@
+{
+  "launchers": [
+    {
+      "id": "launcher-condor", "name": { "es": "Cóndor", "en": "Condor" },
+      "costMUSD": 65, "reliability": 0.98, "waitMonths": 4,
+      "capacityKgByZone": { "zone-earth": 15000, "zone-mars": 9000 }
+    },
+    {
+      "id": "launcher-ariete", "name": { "es": "Ariete", "en": "Ram" },
+      "costMUSD": 110, "reliability": 0.99, "waitMonths": 8,
+      "capacityKgByZone": { "zone-earth": 19000, "zone-mars": 12500, "zone-belt": 9000 }
+    },
+    {
+      "id": "launcher-condor-heavy", "name": { "es": "Cóndor Pesado", "en": "Heavy Condor" },
+      "costMUSD": 150, "reliability": 0.96, "waitMonths": 10,
+      "capacityKgByZone": { "zone-earth": 26000, "zone-mars": 17000, "zone-belt": 15500, "zone-jupiter": 9000 }
+    },
+    {
+      "id": "launcher-colossus", "name": { "es": "Coloso", "en": "Colossus" },
+      "costMUSD": 900, "reliability": 0.95, "waitMonths": 18,
+      "capacityKgByZone": { "zone-earth": 40000, "zone-mars": 30000, "zone-belt": 24000, "zone-jupiter": 17000, "zone-saturn": 14000 }
+    }
+  ]
+}

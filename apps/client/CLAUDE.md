@@ -1,21 +1,21 @@
 # @payload/client — cliente web (React 19 + R3F + Rapier + Vite)
 
-Fases 1, 2 y 3 (economía) del juego nuevo: menú → partida en el interior de la nave (mapa estelar, saltos, averías) →
-aterrizaje en destinos con superficie (descenso, EVA con jetpack, recogida, vuelta, despegue) → fin de sector
-o de expedición. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Diseño: `docs/GDD.md`.
+Fases 1-3 y fase 4 (diseño de misión): menú → elegir misión → hangar (diseño y Go/No-Go) → partida en el interior de
+la nave (mapa del sistema solar, o mapa estelar en la partida libre; saltos, averías) → aterrizaje en destinos con
+superficie (descenso, EVA con jetpack, recogida, vuelta, despegue) → fin de sector o de expedición (→ «Rediseñar»). Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Diseño: `docs/GDD.md`.
 
 ## Estructura (`src/`)
 
 | Carpeta | Contenido |
 | --- | --- |
-| `app/` | `App.tsx`: menú o partida, qué escena (`sceneFor`) y qué paneles se pintan; atajos de desarrollo `?play=1&seed=N[&surface=…]` |
-| `game/` | `runStore.ts` (Zustand: crea la `Run`, `tick`, `act`, avisos, mejor marca; `getRun()` = estado vivo; `fx.shake`, `shakeForEvent`, `shipSpawn`, `stopSurfaceLoops`), `layout.ts` (PURO: casco, mamparos, los 9 puestos con la esclusa, `CARGO_BAY`, `nearestStation`, `zoneAt`, `runSecondsBetween`), `interaction.ts` (PURO: `interactionAt` con estimaciones del timón y coste de O₂ de la esclusa, `promptFor`, `holdAction`, `chargedAction`, `altAction`, `nextThrottle`, `sendInChunks`), `surfaceRules.ts` (PURO: posición de la nave en la superficie, `sceneFor`, `surfaceInteractionAt`/`surfacePromptFor`/`surfaceUseAction`/`surfaceAltAction` (herramientas), `toolFor`, `leftOutside`, `nearestReadyTool`, `shipBearing`/`bearingTo`, `brakeThresholdMps`, `stormLevel`, `STORM_WIND_MPS`, `fallDanger`/`predictedImpactMps`, `o2ReturnShort`, ritmo de respiración y pitido), `terrain.ts` (PURO: `createTerrain` → `heightAt`/`chasmAt`, `terrainGrid`), `motion.ts` (PURO: `stepMotion`/`settleMotion`, `SHIP_MOTION`, `surfaceMotion(g, flightLimitsOf(rules))`, `simulateFlight`, `jetpackNetUpMps2`), `noise.ts` (PURO: `hashOf`, `rng`, `mixSeed`, ruido 2D/3D), `dodge.ts` (PURO: esquiva de asteroides en el timón), `repairGames.ts` (PURO: extintor, pulsos y sellado de las averías), `debug.ts` (`reachSurface`, `travelToLandable`, `autoDescend`, `reachStation`, `travelToStation`, `mineForSale`), `effective.ts` (`effectiveShipOf`/`effectiveRulesOf`: nave y reglas de superficie con las mejoras, memorizadas), `shop.ts` (PURO: terminal de estación: `sellRows`, `supplyRows`, `upgradeRows`/`upgradeDeltas`, `FIELD_INFO`, acciones, `moveFocus`, `cargoFuelPct`, `installedUpgrades`) |
-| `scenes/` | `ShipScene` (`<Canvas>`, entorno de reflejos, `GameLoop`: tick + teclas E/Q/V/H + pausa al soltar el ratón; con la nave posada pinta `LandedView` en vez de `SpaceView`), `ShipInterior` (`Hull`), `ShipStations` (`Stations`: los puestos con sus colisiones), `ShipCargo` (`Airlock3D`, `CargoBay`), `ShipFx` (`ZoneLights`, `IncidentFx`, `Markers`), `ShipMinigames` (`DodgeHolo`: holograma de pilotaje sobre el timón; `FlameTarget`: foco del fuego al que se apunta), `SpaceView`, `SpaceBodies` (`Body`), `SurfaceScene` (`<Canvas>` propio: `DescentLoop` o `SurfaceLoop`), `SurfaceTools` (concentrador solar y taladro láser colocados, con sus estados), `SurfaceWorld` (terreno + colisión trimesh, rocas, vetas, terreno inestable, cielo, niebla, tormenta; `liveTerrain`), `ShipExterior` (la nave posada vista desde fuera, baliza, propulsores, colisiones), `MenuScene` |
-| `gfx/` | Gráficos procedurales (sin assets que descargar): `textures.ts`, `materials.ts` (`mats()`), `build.tsx` (`Builder`, `Parts`, `once`), `glsl.ts` (ruido y reloj `TIME`), `shipShaders.ts`, `fxShaders.ts` (`puffMaterial` exportado), `spaceShaders.ts`, `surfaceShaders.ts` (parche del suelo: grietas, borde, lava, explanada; cielo; tormenta; polvo; haces; llama de propulsor), `surfaceLook.ts` (paleta por `worldId` y aspecto de cada material de veta), `rocks.ts` (`rockGeometry`, `pebbleGeometry`, `rockMaterial`), `Glow.tsx`, `Sky.tsx` |
-| `ui/` | `Hud` (barras, viaje, alertas, avisos, acción disponible; exporta `Gauge`/`levelOf`), `SkillHud` (mira del extintor y barras de pulso/presión, sin React por frame), `SurfaceHud` (`DescentHud`, `SuitVitals` con teclas del jetpack, racha y herramientas, `ShipCompass`, `ToolCompass`, `FallAlert`, `O2Vignette`, `WorldBadge`), `ToolIcon`, `StarMap`, `PowerPanel`, `StationTerminal` (terminal de estación), `Credits` (`CreditsBadge`, `UpgradeIcon`, `UpgradeStrip`), `Screens`, `common` |
+| `app/` | `App.tsx`: pantalla (`menu`/`missions`/`design`/`game`), qué escena (`sceneFor`) y qué paneles se pintan; atajos de desarrollo `?play=1&seed=N[&surface=…][&mission=<id>]`, `?design=1[&mission=<id>]`; `devFixtures.ts` (solo desarrollo: diseños de referencia de los fixtures del motor) |
+| `game/` | `runStore.ts` (Zustand: crea la `Run`, `tick`, `act`, avisos, mejor marca; `getRun()` = estado vivo; `fx.shake`, `shakeForEvent`, `shipSpawn`, `stopSurfaceLoops`), `layout.ts` (PURO: casco, mamparos, los 9 puestos con la esclusa, `CARGO_BAY`, `nearestStation`, `zoneAt`, `runSecondsBetween`), `interaction.ts` (PURO: `interactionAt` con estimaciones del timón y coste de O₂ de la esclusa, `promptFor`, `holdAction`, `chargedAction`, `altAction`, `nextThrottle`, `sendInChunks`), `surfaceRules.ts` (PURO: posición de la nave en la superficie, `sceneFor`, `surfaceInteractionAt`/`surfacePromptFor`/`surfaceUseAction`/`surfaceAltAction` (herramientas), `toolFor`, `leftOutside`, `nearestReadyTool`, `shipBearing`/`bearingTo`, `brakeThresholdMps`, `stormLevel`, `STORM_WIND_MPS`, `fallDanger`/`predictedImpactMps`, `o2ReturnShort`, ritmo de respiración y pitido), `terrain.ts` (PURO: `createTerrain` → `heightAt`/`chasmAt`, `terrainGrid`), `motion.ts` (PURO: `stepMotion`/`settleMotion`, `SHIP_MOTION`, `surfaceMotion(g, flightLimitsOf(rules))`, `simulateFlight`, `jetpackNetUpMps2`), `noise.ts` (PURO: `hashOf`, `rng`, `mixSeed`, ruido 2D/3D), `dodge.ts` (PURO: esquiva de asteroides en el timón), `repairGames.ts` (PURO: extintor, pulsos y sellado de las averías), `debug.ts` (`reachSurface`, `travelToLandable`, `autoDescend`, `reachStation`, `travelToStation`, `mineForSale`), `effective.ts` (`baseShipOf` = `shipFromDesign(missionDesign)` con diseño o `getShip(shipId)` sin él; `effectiveShipOf`/`effectiveRulesOf`: nave y reglas de superficie con las mejoras, memorizadas; `maxPowerKwOf`: 100 % de la barra de energía a la distancia al Sol actual), `missionDesign.ts` (PURO, fase 4: `addPart`/`removePart` (estructura y propulsión se sustituyen), `PALETTE_GROUPS`/`paletteItems`, `partTokens` (la línea de cada pieza), `previewAdd` (qué se excedería), `meterFill`, `sortedIssues`, `canLaunch`, `destinationOptions`/`launcherOptions`, `startingDesign`, `saveDesign`/`loadDesign`/`sanitizeDesign`/`hasSavedDesign` (localStorage `payload.design.<misión>`), `cycleIndex`/`partKeyAction`), `hangarLayout.ts` (PURO: bloques de la nave montada), `solarScale.ts` (PURO: escala del mapa solar, ver abajo), `shop.ts` (PURO: terminal de estación: `sellRows`, `supplyRows`, `upgradeRows`/`upgradeDeltas`, `FIELD_INFO`, acciones, `moveFocus`, `cargoFuelPct`, `installedUpgrades`) |
+| `scenes/` | `ShipScene` (`<Canvas>`, entorno de reflejos, `GameLoop`: tick + teclas E/Q/V/H + pausa al soltar el ratón; con la nave posada pinta `LandedView` en vez de `SpaceView`), `ShipInterior` (`Hull`), `ShipStations` (`Stations`: los puestos con sus colisiones), `ShipCargo` (`Airlock3D`, `CargoBay`), `ShipFx` (`ZoneLights`, `IncidentFx`, `Markers`), `ShipMinigames` (`DodgeHolo`: holograma de pilotaje sobre el timón; `FlameTarget`: foco del fuego al que se apunta), `SpaceView`, `SpaceBodies` (`Body`), `SurfaceScene` (`<Canvas>` propio: `DescentLoop` o `SurfaceLoop`), `SurfaceTools` (concentrador solar y taladro láser colocados, con sus estados), `SurfaceWorld` (terreno + colisión trimesh, rocas, vetas, terreno inestable, cielo, niebla, tormenta; `liveTerrain`), `ShipExterior` (la nave posada vista desde fuera, baliza, propulsores, colisiones), `MenuScene` (también tras las tarjetas de misión), `HangarScene` (fase 4: nave montada con bloques y la pieza señalada en fantasma), `SolarMapScene` (fase 4: mapa 3D del sistema solar, con `lazy` desde `StarMap`) |
+| `gfx/` | Gráficos procedurales (sin assets que descargar): `textures.ts`, `materials.ts` (`mats()`), `build.tsx` (`Builder`, `Parts`, `once`), `glsl.ts` (ruido y reloj `TIME`), `shipShaders.ts`, `fxShaders.ts` (`puffMaterial` exportado), `spaceShaders.ts`, `surfaceShaders.ts` (parche del suelo: grietas, borde, lava, explanada; cielo; tormenta; polvo; haces; llama de propulsor), `surfaceLook.ts` (paleta por `worldId` y aspecto de cada material de veta), `bodyLook.ts` (aspecto de los cuerpos del mapa solar: deducido de tipo, tamaño, atmósfera y mundo, con tabla propia para los reconocibles), `rocks.ts` (`rockGeometry`, `pebbleGeometry`, `rockMaterial`), `Glow.tsx`, `Sky.tsx` |
+| `ui/` | `MissionScreens` (fase 4: `MissionsScreen` con las tarjetas y `DesignScreen`, el hangar), `names.ts` (`nodeName`: `catalog.<bodyId>` o el nombre del punto de paso; `distanceText`: años luz o unidades de ruta), `Hud` (barras, viaje, alertas, avisos, acción disponible; con diseño, distancia al Sol y paneles bajo la energía y misión → destino; exporta `Gauge`/`levelOf`), `SkillHud` (mira del extintor y barras de pulso/presión, sin React por frame), `SurfaceHud` (`DescentHud`, `SuitVitals` con teclas del jetpack, racha y herramientas, `ShipCompass`, `ToolCompass`, `FallAlert`, `O2Vignette`, `WorldBadge`), `ToolIcon`, `StarMap`, `PowerPanel`, `StationTerminal` (terminal de estación), `Credits` (`CreditsBadge`, `UpgradeIcon`, `UpgradeStrip`), `Screens`, `common` |
 | `player/` | `PlayerController` (controlador cinemático Rapier parametrizado por `MotionParams`, cámaras 1ª/3ª con rayo contra colisiones, sacudida), `input.ts`, `playerState.ts` (`playerState`, `motionEnv`, `resetPlayerState`) |
 | `audio/` | Web Audio procedural: `soundLogic.ts` y `musicLogic.ts` (puros), `audioEngine.ts`, `cues.ts` (`cue(id)`), `useAudioDirector.ts`, `SoundCaptions.tsx` |
-| `state/` | `ui.ts` (panel abierto, vista, aviso de acción, `descentView`, `hudView`), `settings.ts` (persistido), `minigame.ts` (minijuegos en curso, mutable) |
+| `state/` | `ui.ts` (panel abierto, vista, aviso de acción, `descentView`, `hudView`), `settings.ts` (persistido), `minigame.ts` (minijuegos en curso, mutable), `hangar.ts` (pieza señalada en la paleta) |
 | `models/` | GLB con `useGLTF`: `Models.tsx` (`FittedModel`, `ModelBoundary` con forma de respaldo) |
 | `i18n/`, `locales/` | i18next: namespace `ui` (`locales/{es,en}.json`) y `sim` (del motor) |
 | `data/` | `credits.ts` (espejo de `assets/CREDITS.md`) |
@@ -131,6 +131,42 @@ o de expedición. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Dise
   mapa «+N % por carga» si `estimateJump().cargoFuelMult` > 1, y en el final créditos ganados/gastados y mejoras.
   Sonidos `sale` (venta y contrato), `purchase`, `upgrade`, `noCredits`; los eventos salen como avisos normales.
 
+## Diseño de misión y sistema solar (fase 4, ADR 0016)
+
+- **Flujo (`runStore`):** `screen` = `menu` → `openMissions()` → `missions` → `openDesign(id)` (último diseño guardado de
+  esa misión o `startingDesign`) → `design` → `updateDraft(d)` (lo guarda con try/catch) → `launch()` =
+  `startRun(seed, draft)` → `game`. `runDesign` es el diseño de la partida (null = «Partida libre», que sigue en el
+  menú). Fin de partida: «Reintentar la misión» (mismo diseño, semilla nueva) y «Rediseñar» (`redesign()`: vuelve al
+  hangar con el diseño cargado); «Rediseñar» también en la pausa.
+- **Hangar (`DesignScreen`):** arriba destino (UA y sol relativo) y lanzador (coste y toneladas a la zona del destino, o
+  «No llega»); a la izquierda la paleta por grupos con una línea por pieza (lo que da en verde, lo que cuesta en gris) y
+  ⚠ si añadirla excedería algún presupuesto; a la derecha los seis medidores del motor (`computeDesignBudgets`:
+  ok/tight/over, marca blanca = límite, fantasma = cómo quedaría con la pieza señalada), ciencia, fiabilidad y la
+  revisión (`reviewDesign`, lo que bloquea primero); «Lanzar» solo con Go. El «¿por qué?» de cada medidor sale al pasar
+  el ratón o con **H** (opcional). Teclado: ↑↓ pieza, ←→ grupo, Intro/+ añade, Supr/− quita, Esc vuelve a las misiones.
+  Abajo las piezas montadas (clic = quitar una). Detrás, `HangarScene` con la nave montada (`hangarLayout`).
+- **Nada fijo:** ninguna cifra, id ni nombre del catálogo en la lógica del cliente; nombres `catalog.<id>` (ns `sim`) y
+  motivos `design.review.*`/`design.why.*` del motor. Los ids de `gfx/bodyLook.ts` y de `TERRAIN_STYLES`/`SURFACE_LOOKS`
+  son solo de aspecto y tienen respaldo.
+- **Nave base:** con `state.missionDesign` la base es `shipFromDesign(diseño)` (`baseShipOf`); la usan `effectiveShipOf`,
+  la terminal (`upgradeRows`, `upgradeDeltas`, `upgradeOverloads`) y las barras de energía; `overloadsAtCruise` usa
+  `cruisePowerMarginKw(nave, state.sunDistanceAu)`. Nunca `getShip(state.ship.shipId)` en una partida con diseño.
+- **Mapa del sistema solar (`SolarMapScene`):** sustituye al mapa estelar SOLO en partidas con diseño (la partida libre
+  sigue con el SVG). Sol con halo y una luz puntual (lienzo propio), órbitas, cinturón instanciado (rango sacado de las
+  zonas sin planetas), cuerpos con los planetas procedurales de `spaceShaders` (luz hacia el Sol), anillos, lunas junto
+  a su planeta, puntos de paso, enlaces del tramo, saltos posibles pulsando, destino de la misión en dorado (★), marcador
+  de la nave en tránsito (por frame) y etiquetas como sprites de lienzo (no `Html` de drei: dejaba errores de
+  desmontaje de raíces de React). OrbitControls; encuadre en la nave, los saltos, la llegada del tramo y el destino.
+  Panel lateral: el de siempre (estimación, régimen, saltar) más distancia al Sol, sol relativo, paneles aquí, potencia
+  allí (`shipPowerKw`) y aviso si a crucero no da (`cruisePowerMarginKw`); «Saltos posibles» como botones (teclado).
+- **Escala (`game/solarScale.ts`):** radio en escena = 10 × √UA (Tierra 10, Marte ~12, cinturón ~16, Saturno ~31) con el
+  ángulo del motor (`bodyPositionAu`); lunas y estaciones a `0,9 + 3·√ΔUA` de su planeta (nunca dentro del globo);
+  tamaños ∝ `radioKm^0,35` acotados; puntos de paso entre la salida y la llegada del tramo en espacio de escena (en
+  bucle si coinciden, p. ej. la vuelta por la zona terrestre). Lineal dejaba Marte encima de la Tierra; logarítmica
+  juntaba demasiado los gigantes.
+- **Unidades:** con diseño, las distancias del mapa son «u» (unidades de ruta, `map.units`; las cifras de `distanceLy`),
+  nunca «años luz»; la distancia al Sol, en UA. La barra de energía va contra `shipPowerKw` a la distancia actual.
+
 ## Superficie (fase 2)
 
 - **Qué escena se pinta:** `sceneFor(phase, crew[0].location, ui.descentView)`. Si la nave se pierde en el
@@ -221,6 +257,8 @@ o de expedición. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Dise
 
 - **Un puesto:** `layout.ts` (`STATIONS`) → `interaction.ts` → componente en `ShipStations.tsx` dentro de
   `Stations` (geometría con `Builder` + su colisionador) → textos `station.<id>` y `prompt.*` → test en `game.test.ts`.
+- **Un cuerpo del sistema solar:** nada obligatorio (aspecto deducido en `gfx/bodyLook.ts`); para uno reconocible, su
+  entrada en `LOOK_OVERRIDES`.
 - **Un tipo de destino:** su cuerpo en `SpaceBodies.tsx` (`Body`). El aspecto sale del id del nodo
   (`hashOf`), nunca de `Math.random`: el mismo destino se ve siempre igual.
 - **Un panel:** componente en `ui/` con `Modal`/`Panel`, valor nuevo en `Overlay` (`state/ui.ts`), render
@@ -264,6 +302,10 @@ la estación es el nodo de salida.
 1 luna de polvo, 2 mundo fracturado, 3 núcleo de hielo, 4 mundo pesado, 5 roca errante, 6 mundo de
 tormentas, 13 luna volcánica.
 
+`?design=1&mission=<id>` abre el hangar de esa misión (sin `mission`, la primera). `?play=1&seed=7&mission=<id>` zarpa con
+el diseño de referencia del fixture (`packages/shared/src/__tests__/fixtures/missions/<id>.json`, primer válido; sin
+fixture, el último guardado), p. ej. `?play=1&seed=7&mission=mission-mars-habitability`.
+
 `?play=1&seed=7&body=planet` fuerza el cuerpo que se ve por la proa (`station`, `planet`, `moon`,
 `asteroid`, `nebula`, `derelict`, `gate`) para revisar su aspecto sin viajar.
 
@@ -272,11 +314,16 @@ tormentas, 13 luna volcánica.
 ```bash
 pnpm --filter @payload/client dev        # http://localhost:5173  (?play=1&seed=7)
 pnpm --filter @payload/client typecheck
-pnpm --filter @payload/client test       # game.test.ts, surface.test.ts, minigames.test.ts, shop.test.ts (lógica) e i18n.test.ts
+pnpm --filter @payload/client test       # game, surface, minigames, shop, design (fase 4: hangar, guardado, escala solar, flujo) e i18n
 pnpm --filter @payload/client build
 ```
 
 ## Pendiente conocido
+
+Fase 4: hangar y mapa solar revisados en el panel del navegador (sin GPU dedicada ni FPS medidos); solo se vio el
+tramo 1 de cada misión (no un tramo con Júpiter o Saturno como nodos) ni pantallas pequeñas; el mapa solar es un
+segundo `<Canvas>` sobre el de la nave mientras está abierto (no pausa). Los mundos de los cuerpos reales
+(`mars-surface`, `ice-moon`, `titan-surface`, `enceladus-surface`) tienen relieve y paleta pero no se han visitado.
 
 Sin tests de la escena 3D (la superficie se revisó con Chrome sin cabeza y SwiftShader, no en una GPU real);
 mando y táctil no implementados; audio sin escuchar con el juego nuevo; sin FPS medidos en un portátil de

@@ -105,7 +105,9 @@
       "spares": "Spares: +{{amount}} · −{{credits}} credits"
     },
     "upgrade": "Installed: $t(catalog.{{upgrade}}) level {{level}} · −{{credits}} credits",
-    "sectorReward": "Sector contract paid: +{{credits}} credits"
+    "sectorReward": "Sector contract paid: +{{credits}} credits",
+    "arrivedBody": "Arrived at $t(catalog.{{body}})",
+    "jumpBody": "Course set for $t(catalog.{{body}}) · distance {{distanceLy}}"
   },
   "loss": {
     "hull": "The ship broke apart",
@@ -163,5 +165,106 @@
     "supplyFull": "Already at maximum",
     "notOffered": "This station does not offer that upgrade",
     "upgradeMaxed": "That upgrade is already maxed"
+  },
+  "design": {
+    "go": "Go: ready to launch",
+    "noGo": "No-Go: fix the blockers",
+    "resource": {
+      "mass": "Mass",
+      "power": "Power",
+      "cost": "Cost",
+      "schedule": "Schedule",
+      "slots": "Slots",
+      "fuel": "Fuel"
+    },
+    "unit": {
+      "kg": "kg",
+      "kW": "kW",
+      "MUSD": "M$",
+      "months": "months",
+      "slots": "slots",
+      "fuel": "fuel"
+    },
+    "status": {
+      "ok": "OK",
+      "tight": "Tight",
+      "over": "Over"
+    },
+    "science": {
+      "geology": "geology",
+      "ice": "ice",
+      "atmosphere": "atmosphere",
+      "fields": "fields and particles",
+      "interior": "interior",
+      "life": "life"
+    },
+    "moduleKind": {
+      "structure": "Structure",
+      "propulsion": "Propulsion",
+      "solar": "Solar panels",
+      "nuclear": "Nuclear power",
+      "battery": "Batteries",
+      "comms": "Communications",
+      "computer": "Computer",
+      "attitude": "Attitude control",
+      "thermal": "Thermal control",
+      "tank": "Tanks",
+      "shielding": "Protection",
+      "lifeSupport": "Life support",
+      "workshop": "Workshop"
+    },
+    "why": {
+      "mass": {
+        "launcher": "{{massKg}} kg; $t(catalog.{{launcher}}) carries {{capacityKg}} kg to $t(catalog.{{zone}})",
+        "structure": "{{massKg}} kg of the {{capacityKg}} kg the structure can hold",
+        "missing": "{{massKg}} kg; pick a structure and a launcher to see the limit",
+        "unreachable": "$t(catalog.{{launcher}}) cannot reach $t(catalog.{{zone}})"
+      },
+      "power": {
+        "noDestination": "{{demandKw}} kW needed; {{supplyKw}} kW at 1 AU (pick a destination)",
+        "worst": "{{demandKw}} kW needed; at $t(catalog.{{body}}) ({{au}} AU) there are {{supplyKw}} kW"
+      },
+      "cost": "{{costMUSD}} M$ (launcher {{launcherMUSD}}) of {{budgetMUSD}} M$",
+      "schedule": "{{devMonths}} months to build + {{waitMonths}} waiting; deadline {{deadlineMonths}}",
+      "slots": "{{used}} of {{slots}} structure slots",
+      "slotsNoStructure": "{{used}} slots used and no structure",
+      "fuel": "Leg $t(catalog.{{from}})→$t(catalog.{{to}}): {{fuel}} of {{capacity}} usable",
+      "fuelNoDestination": "Usable tank {{capacity}}; pick a destination to see the leg"
+    },
+    "review": {
+      "unknown-mission": "Unknown mission: {{id}}",
+      "no-destination": "Pick a destination",
+      "unknown-destination": "Unknown destination: {{id}}",
+      "destination-not-allowed": "$t(catalog.{{body}}) is not a destination for this mission",
+      "no-launcher": "Pick a launcher",
+      "unknown-launcher": "Unknown launcher: {{id}}",
+      "unknown-module": "Unknown module: {{id}}",
+      "unknown-instrument": "Unknown instrument: {{id}}",
+      "no-structure": "Without a structure there is nowhere to mount anything",
+      "multiple-structures": "{{count}} structures: only one fits",
+      "no-propulsion": "Without an engine the ship never leaves orbit",
+      "multiple-propulsion": "{{count}} propulsion systems: pick one",
+      "no-power": "No solar panels and no nuclear source: no power",
+      "no-comms": "Without an antenna there is no link with Earth",
+      "no-computer": "Without a computer nothing flies the ship",
+      "slots": "You use {{used}} slots and the structure has {{slots}}",
+      "launcher-cannot-reach": "$t(catalog.{{launcher}}) cannot reach $t(catalog.{{zone}})",
+      "mass-launcher": "{{massKg}} kg: $t(catalog.{{launcher}}) only carries {{capacityKg}} kg there",
+      "mass-structure": "{{massKg}} kg: the structure only holds {{capacityKg}} kg",
+      "power": "At $t(catalog.{{body}}) ({{au}} AU): {{supplyKw}} kW for {{demandKw}} kW needed",
+      "cost": "It costs {{costMUSD}} M$ and the budget is {{budgetMUSD}} M$",
+      "schedule": "It takes {{months}} months and the deadline is {{deadlineMonths}}",
+      "range": "The longest leg needs {{fuel}} fuel and there is only {{capacity}}",
+      "comms-range": "$t(catalog.{{body}}) is {{au}} AU out; the antenna reaches {{rangeAu}} AU",
+      "missing-science-kind": "Missing an instrument for $t(design.science.{{kind}})",
+      "science": "Science {{science}} of {{required}} required",
+      "tight": "$t(design.resource.{{resource}}) is tight: {{marginPct}} % margin",
+      "reliability": "Reliability {{pct}} %; the mission asks for {{required}} %",
+      "no-battery": "Without batteries every overload hurts the reactor more",
+      "thermal": "It makes {{demandKw}} kW of heat and sheds {{heatKw}} kW",
+      "radiation": "$t(catalog.{{zone}}) radiation calls for a hardened computer",
+      "no-shielding": "Without shields every impact goes straight to the hull",
+      "all-clear": "All clear: healthy margins"
+    }
   }
 }

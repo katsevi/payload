@@ -1,0 +1,191 @@
+{
+  "missionId": "mission-titan-chemistry",
+  "valid": [
+    {
+      "name": "quimica-con-fision-y-rtg",
+      "design": {
+        "missionId": "mission-titan-chemistry",
+        "destinationId": "titan",
+        "launcherId": "launcher-colossus",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "fission-reactor",
+          "rtg",
+          "rtg",
+          "comms-hga",
+          "computer-rad",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-mass-spec",
+          "inst-life-lab",
+          "inst-uv-spectrometer"
+        ]
+      }
+    },
+    {
+      "name": "ionica-con-dos-reactores",
+      "design": {
+        "missionId": "mission-titan-chemistry",
+        "destinationId": "enceladus",
+        "launcherId": "launcher-colossus",
+        "moduleIds": [
+          "frame-standard",
+          "engine-ion",
+          "fission-reactor",
+          "fission-reactor",
+          "comms-hga",
+          "computer-rad",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-mass-spec",
+          "inst-life-lab",
+          "inst-uv-spectrometer"
+        ]
+      }
+    }
+  ],
+  "failing": [
+    {
+      "name": "solo-rtg",
+      "cause": "power",
+      "design": {
+        "missionId": "mission-titan-chemistry",
+        "destinationId": "titan",
+        "launcherId": "launcher-colossus",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "rtg",
+          "rtg",
+          "rtg",
+          "comms-hga",
+          "computer-rad",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-mass-spec",
+          "inst-life-lab",
+          "inst-uv-spectrometer"
+        ]
+      }
+    },
+    {
+      "name": "sin-laboratorio",
+      "cause": "missing-science-kind",
+      "design": {
+        "missionId": "mission-titan-chemistry",
+        "destinationId": "titan",
+        "launcherId": "launcher-colossus",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "fission-reactor",
+          "rtg",
+          "rtg",
+          "comms-hga",
+          "computer-rad",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-mass-spec",
+          "inst-uv-spectrometer",
+          "inst-camera"
+        ]
+      }
+    },
+    {
+      "name": "condor-pesado-no-llega",
+      "cause": "launcher-cannot-reach",
+      "design": {
+        "missionId": "mission-titan-chemistry",
+        "destinationId": "titan",
+        "launcherId": "launcher-condor-heavy",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "fission-reactor",
+          "rtg",
+          "rtg",
+          "comms-hga",
+          "computer-rad",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-mass-spec",
+          "inst-life-lab",
+          "inst-uv-spectrometer"
+        ]
+      }
+    },
+    {
+      "name": "un-solo-tanque",
+      "cause": "range",
+      "design": {
+        "missionId": "mission-titan-chemistry",
+        "destinationId": "titan",
+        "launcherId": "launcher-colossus",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "fission-reactor",
+          "rtg",
+          "rtg",
+          "comms-hga",
+          "computer-rad",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-mass-spec",
+          "inst-life-lab",
+          "inst-uv-spectrometer"
+        ]
+      }
+    },
+    {
+      "name": "analizador-no-basta",
+      "cause": "science",
+      "design": {
+        "missionId": "mission-titan-chemistry",
+        "destinationId": "titan",
+        "launcherId": "launcher-colossus",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "fission-reactor",
+          "rtg",
+          "rtg",
+          "comms-hga",
+          "computer-rad",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-mass-spec",
+          "inst-uv-spectrometer",
+          "inst-sample-analyzer"
+        ]
+      }
+    }
+  ]
+}
