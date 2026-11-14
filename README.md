@@ -22,8 +22,10 @@ Vitest, pnpm + Turborepo. Interfaz en español (por defecto) e inglés.
 | 1 · Viaje y nave (en solitario) | **Implementada**: mapa estelar, saltos, interior caminable, sistemas, averías en tiempo real y permadeath. Pendiente de validación independiente y de prueba con jugadores. |
 | 2 · Exploración de superficie | **Implementada** (rama `feat/f2-superficie`): descenso, jetpack, oxígeno personal, recolección, tormentas y despegue. Pendiente de validación independiente final y de prueba con jugadores. |
 | 3 · Economía y progresión | **Implementada** (rama `feat/f3-economia-progresion`): créditos, terminal de estación (venta, suministros y 11 mejoras con contrapartida) y la carga pesa. Validada con observaciones; pendiente de prueba con jugadores. |
-| 4 · Cooperativo 1-4 | Pendiente: servidor autoritativo y roles (`apps/game-server` es un marcador). |
-| 5 · Pulido y lanzamiento | Pendiente (`apps/api` es un marcador). |
+| 4 · Diseño de misión y sistema solar | **Implementada y fusionada** (PR #6): hangar de diseño (módulos, instrumentos, lanzador), revisión Go/No-Go con motivo, sistema solar real con potencia 1/d² y mapa solar 3D. Validada con observaciones; pendiente de prueba con personas. |
+| 5 · Ciencia, datos y astronauta articulado | Pendiente: instrumentos que generan datos, bajada a la Tierra, puntuación por ciencia e informe con cadena de causas. |
+| 6 · Cooperativo 1-4 con roles | Pendiente: servidor autoritativo y roles (`apps/game-server` es un marcador). |
+| 7 · Pulido y lanzamiento | Pendiente (`apps/api` es un marcador). |
 
 Detalle, métricas y acciones pendientes: [`docs/STATUS.md`](docs/STATUS.md). Roadmap: [`docs/phases/`](docs/phases/README.md).
 
@@ -55,6 +57,8 @@ pnpm --filter @payload/client preview       # sirve el build de producción
 
 En desarrollo, `http://localhost:5173/?play=1&seed=7` entra directo a una partida con esa semilla;
 añade `&surface=1` para entrar directo a la superficie (`descent` o `landed` para otros momentos).
+`?design=1&mission=mission-lunar-ice` abre el hangar de diseño de una misión y `?play=1&seed=7&mission=<id>` zarpa con su diseño de referencia.
+Para diseñar tu primera misión paso a paso: [`docs/guias/primera-mision.md`](docs/guias/primera-mision.md).
 
 ## Cómo se juega
 
@@ -101,7 +105,7 @@ payload/
 │  └─ api/           # marcador: rankings y persistencia (fase 7)
 ├─ packages/
 │  └─ shared/        # motor del juego en TypeScript puro, con tests
-│     ├─ catalog/    # naves, averías, destinos, sectores, mundos, economía y mejoras (.json)
+│     ├─ catalog/    # naves, averías, destinos, sectores, mundos, economía, mejoras, misiones, módulos, instrumentos, lanzadores y sistema solar (.json)
 │     └─ locales/    # textos del motor (es/en)
 ├─ assets/           # modelos 3D (originales y optimizados) y CREDITS.md
 ├─ docs/             # plan, GDD, fases, ADR, arquitectura, estado, archivo
@@ -116,6 +120,7 @@ payload/
 | [`docs/GDD.md`](docs/GDD.md) | Diseño: nave, recursos, averías, sector, compromisos, roles |
 | [`docs/phases/`](docs/phases/README.md) | Roadmap y alcance de cada fase |
 | [`docs/STATUS.md`](docs/STATUS.md) | Estado actual, métricas y pendientes (traspaso entre sesiones) |
+| [`docs/guias/primera-mision.md`](docs/guias/primera-mision.md) | Guía: diseñar la primera misión paso a paso (hangar, medidores, Go/No-Go) |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Cómo encajan motor, cliente y servidor |
 | [`docs/adr/`](docs/adr/README.md) | Decisiones de arquitectura |
 | [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) | Ramas, commits, PR y trabajo con Claude |

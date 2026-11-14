@@ -7,7 +7,7 @@ Cada entrada se agrupa por paquete.
 
 ## Fase 4 · Diseño de misión y sistema solar
 
-Versión propuesta: **0.7.0** (rama `feat/f4-diseno-de-mision`, 2026-11-14). Decisiones: ADR 0015 (reto NASA y roadmap) y ADR 0016.
+Versión propuesta: **0.7.0** (rama `feat/f4-diseno-de-mision`, 2026-11-14; **fusionada en `main`, PR #6**). Decisiones: ADR 0015 (reto NASA y roadmap) y ADR 0016. Guía de juego: `docs/guias/primera-mision.md`. `pnpm validate` 11/11 con 430 tests (257 shared en 11 archivos + 173 client en 6); partida clásica idéntica bit a bit a la fase 3.
 
 ### Añadido
 
@@ -15,11 +15,18 @@ Versión propuesta: **0.7.0** (rama `feat/f4-diseno-de-mision`, 2026-11-14). Dec
 - Diseño de misión antes de zarpar (`design.ts`): `MissionDesign`, `computeDesignBudgets` (masa, potencia en el peor punto de la ruta, coste, plazo, ranuras, combustible), `reviewDesign` (Go/No-Go con motivo de una línea por problema), `shipFromDesign`, `emptyDesign` y esquema zod del diseño. `createRun({ seed, design })` es aditivo: sin diseño la partida es idéntica a la de `main`.
 - Sistema solar como mapa (`solar.ts`): `generateSolarSector`, ruta por zonas Tierra ↔ destino, potencia solar 1/d² (paneles frente a RTG), `bodyPositionAu` y `solarNodePositionsAu`.
 - Catálogos `misiones.json` (6 misiones), `modulos.json`, `instrumentos.json`, `lanzadores.json` y `sistema-solar.json` (25 cuerpos con datos de NASA). Mundos `mars-surface`, `ice-moon`, `titan-surface` y `enceladus-surface` con `weight: 0` (solo para el sistema solar).
-- Fixtures por misión con ≥ 2 diseños válidos y fallos por causas distintas; balance por misión.
+- Esquema del diseño: `missionDesignSchema`, `parseMissionDesign` y `normalizeDesign` (`createRun` lanza con un diseño mal formado; las funciones de diseño lo normalizan a vacío). `rules.maxShieldAbsorb` limita el blindaje.
+- La potencia del Go/No-Go se mide en el **peor punto de la ruta** (`routeWorstSunDistance`, `DesignTotals.worstAu/worstBodyId/solarKwAtWorst/powerAtWorstKw`, mensaje `design.why.power.worst`): Luna y asteroide Ryugu 1,19 UA, Marte Schiaparelli 1,524, cinturón Psique 2,92, Júpiter Galileo 5,203, Saturno Huygens 9,537.
+- Júpiter y Saturno no son aterrizables; los mundos `mars-surface`, `ice-moon`, `titan-surface` y `enceladus-surface` tienen `weight: 0` (solo sistema solar; el esquema admite 0 y exige que cada tipo aterrizable tenga algún mundo con peso > 0).
+- Fixtures por misión con ≥ 2 diseños válidos y fallos por causas distintas; balance por misión con ruta completa (2·(zonas−1) tramos) y % que llega al objetivo (`pnpm balance 100 3`): Luna 100/100 (ambos diseños), asteroide a Ryugu 100/100 y a Bennu 98/8, Marte 100/100, cinturón 91/100 y 74/97, Europa 8/87 y 5/40, Titán 1/53 y 0/37 (ruta completa / objetivo, en %).
 
 #### `@payload/client`
 - Menú → misiones → hangar de diseño (paleta por tipo, medidores, Go/No-Go, «Lanzar» solo con Go, guardado por misión) → partida → «Rediseñar». «Partida libre» conserva el modo clásico.
-- Mapa del sistema solar en 3D (escala 10·√UA) en partidas con diseño; HUD con distancia al Sol y potencia de los paneles; glosario opcional (G o «?»); paletas de los mundos nuevos.
+- Mapa del sistema solar en 3D (escala 10·√UA) en partidas con diseño; HUD con distancia al Sol y potencia de los paneles; glosario opcional de 14 términos (G o «?»); paletas de los mundos nuevos. «Rediseñar» y «Reintentar la misión» en el fin de partida.
+- Atajos de desarrollo `?design=1&mission=<id>` y `?play=1&seed=7&mission=<id>`.
+
+### Conocido (pendiente para la fase 5)
+- El objetivo de la misión (`missionTarget`) no termina ni puntúa la partida y la ruta se repite; `thermal`, `reliability` y `no-battery` solo avisan y el enlace (`comms-range`) no tiene efecto en vuelo. Europa y Titán casi no completan la vuelta y `ligera-a-bennu` llega al objetivo el 8 %. Detalle en `docs/phases/fase-4.md` § «Pendiente heredado».
 
 ### Cambiado
 - Roadmap: fase 4 diseño y sistema solar, 5 ciencia y astronauta, 6 cooperativo, 7 pulido (ADR 0015). La regla 6 admite explicaciones opcionales de una línea.

@@ -1,6 +1,6 @@
 # Arquitectura
 
-Documenta lo que **existe hoy** (fases 1 y 2 del juego nuevo) y lo que se **prevé** (fases 3-5). Decisiones de
+Documenta lo que **existe hoy** (fases 1 a 4 del juego nuevo) y lo que se **prevé** (fases 5-7). Decisiones de
 fondo: `docs/adr/`. Estado: `docs/STATUS.md`. Diseño del juego: `docs/GDD.md`.
 
 ## Vista general
@@ -34,8 +34,8 @@ Workspaces: `apps/*` y `packages/*` (`pnpm-workspace.yaml`). Turborepo orquesta 
 
 | Paquete | Estado | Dependencias principales |
 | --- | --- | --- |
-| `@payload/shared` | Fases 1-2 | `zod`. Dev: `vitest`, `tsx`, `@types/node`. Exporta `./src/index.ts` y `./catalog/*` |
-| `@payload/client` | Fases 1-2 | `@payload/shared`, `react`/`react-dom` 19, `three`, `@react-three/fiber` 9, `drei`, `rapier`, `zustand`, `i18next`, `react-i18next`, `lucide-react`. Dev: `vite`, `tailwindcss` 4, `vitest` |
+| `@payload/shared` | Fases 1-4 | `zod`. Dev: `vitest`, `tsx`, `@types/node`. Exporta `./src/index.ts` y `./catalog/*` |
+| `@payload/client` | Fases 1-4 | `@payload/shared`, `react`/`react-dom` 19, `three`, `@react-three/fiber` 9, `drei`, `rapier`, `zustand`, `i18next`, `react-i18next`, `lucide-react`. Dev: `vite`, `tailwindcss` 4, `vitest` |
 | `@payload/game-server` | Marcador (fase 6) | Ninguna; scripts `echo` |
 | `@payload/api` | Marcador (fase 7) | Ninguna; scripts `echo` |
 | raíz | | `turbo`, `typescript`, `prettier`, `@gltf-transform/cli` |
@@ -46,11 +46,28 @@ Three.js, DOM ni Node en `src/`; lo vigilan `tsconfig.json` sin tipos de Node y 
 ## `@payload/shared`: el motor
 
 - **Contrato:** `src/types.ts`. Solo cambios aditivos; romperlo exige un ADR.
-- **Catálogo:** `catalog/{naves,averias,destinos,sectores,mundos,economia,mejoras}.json` → `parseCatalog` (zod) → `catalog`.
+- **Catálogo:** `catalog/{naves,averias,destinos,sectores,mundos,economia,mejoras}.json` (fases 1-3) y, de la fase 4, `{misiones,modulos,instrumentos,lanzadores,sistema-solar}.json` → `parseCatalog` (zod) → `catalog`. Misiones (6), módulos (22), instrumentos (13), lanzadores (4) y sistema solar (25 cuerpos con fuente NASA + 7 estaciones ficticias).
 - **Módulos (`src/`):** `types` (contrato), `catalog` (esquema y búsquedas), `galaxy` (generador de
-  sectores), `surface` (mundos, superficie y física del descenso), `economy` (precios, oferta, mejoras y nave efectiva), `run` (la partida), `rng` (`createRng`, `deriveSeed`), `messages`/`locales` (i18n `sim`).
+  sectores), `surface` (mundos, superficie y física del descenso), `economy` (precios, oferta, mejoras y nave efectiva), `design` (diseño de misión: presupuestos, Go/No-Go y nave generada; fase 4), `solar` (sistema solar: zonas, ruta, potencia 1/d², posiciones y sector; fase 4), `run` (la partida), `rng` (`createRng`, `deriveSeed`), `messages`/`locales` (i18n `sim`).
 - **API:** `createRun`, `generateSector`, `isSectorSolvable`, `computeScore`, `fuelPerLy`,
-  `cruiseSpeedLyPerS`, `formatMessage` (lista completa en `packages/shared/CLAUDE.md`).
+  `cruiseSpeedLyPerS`, `formatMessage`; fase 4: `computeDesignBudgets`, `reviewDesign`, `shipFromDesign`, `emptyDesign`, `parseMissionDesign`, `generateSolarSector`, `routeWorstSunDistance`, `bodyPositionAu` (lista completa en `packages/shared/CLAUDE.md`).
+
+### Diseño de misión y sistema solar (fase 4, ADR 0016)
+
+```text
+MissionDesign { missionId, destinationId, launcherId, moduleIds[], instrumentIds[] }
+   │ computeDesignBudgets ──▶ masa · potencia · coste · calendario · ranuras · combustible (+ «¿por qué?» de una línea)
+   │ reviewDesign        ──▶ Go / No-Go: bloqueos y avisos como MessageRef (design.review.*)
+   │ shipFromDesign      ──▶ ShipDef de la partida (sobre el que actúan effectiveShip() y las mejoras)
+   ▼
+createRun({ seed, design })   ── sin diseño: la partida clásica, idéntica a la de la fase 3
+   └─ generateSolarSector: ruta por zonas Tierra ↔ destino (ida y vuelta), nodos = cuerpos reales,
+      `missionTarget` en el del destino; potencia solar 1/d² (paneles) frente a RTG/fisión (constantes)
+```
+
+- **`design.ts`:** la potencia del Go/No-Go se mide en el **peor punto de la ruta** (`routeWorstSunDistance`), no en el destino. Un diseño mal formado hace lanzar a `createRun` (`missionDesignSchema`); las funciones de diseño lo normalizan a vacío (`normalizeDesign`).
+- **`solar.ts`:** `generateSolarSector` (determinista), `solarPowerFactor`/`solarKw`/`shipPowerKw`, `bodyPositionAu` y `solarNodePositionsAu` (posiciones en UA para dibujar). Júpiter y Saturno no son aterrizables; los mundos `mars-surface`, `ice-moon`, `titan-surface` y `enceladus-surface` tienen `weight: 0` (solo sistema solar).
+- **Lo que aún no hace la partida (fase 5):** el objetivo no termina ni puntúa la misión, los avisos `thermal`/`reliability`/`no-battery` y el enlace no tienen efecto en vuelo y no hay generación ni bajada de datos. Ver `docs/phases/fase-4.md` § «Pendiente heredado».
 
 ### Modelo de la partida (`run.ts`)
 
@@ -99,7 +116,8 @@ createRun({ seed })  ──▶  Run { state, step(dt), apply(action), takeEvents
 ## `@payload/client`: flujo de datos
 
 ```text
-App.tsx ── pantalla ──▶ MenuScene | ShipScene | SurfaceScene (lazy; `sceneFor(fase, ubicación, descentView)`)
+App.tsx ── pantalla ──▶ MenuScene | HangarScene | ShipScene | SurfaceScene (lazy; `sceneFor(fase, ubicación, descentView)`)
+   menú ─▶ misiones ─▶ hangar de diseño ─▶ partida ─▶ «Rediseñar» (de vuelta al hangar) / «Reintentar la misión»
                                      │ cada frame
                                      ▼
    GameLoop (ShipScene) ── tick(dt) ──▶ game/runStore ── run.step / run.apply ──▶ @payload/shared
@@ -124,10 +142,11 @@ App.tsx ── pantalla ──▶ MenuScene | ShipScene | SurfaceScene (lazy; `s
    jetpack, de `game/motion.ts`; las reglas de la escena, de `game/surfaceRules.ts`. `SurfaceLoop` informa al
    motor (`set-position` a 10 Hz, `jetpack`, `fall-impact`, `deploy-tool`, `collect`, `retrieve-tool`) y nunca escribe en `run.state`. La
    nave posada (`ShipExterior`) y la bodega (`ShipCargo`) se ven desde fuera y desde dentro.
-4. **Estado de interfaz:** `state/ui.ts` (panel abierto, vista 1ª/3ª, aviso de acción) y
+4. **Diseño de misión (fase 4):** `ui/MissionScreens.tsx` (`MissionsScreen`: tarjetas de las 6 misiones; `DesignScreen`: el hangar) trabaja con `game/missionDesign.ts` (puro: añadir y quitar piezas, paleta en grupos, vista previa de lo que excedería, guardado `payload.design.<misión>`, teclado) y `scenes/HangarScene.tsx` (nave montada, con `game/hangarLayout.ts`). «Lanzar» solo con Go (`canLaunch`) y arranca `run.startRun(seed, design)`. En partida, `scenes/SolarMapScene.tsx` (mapa 3D, escala 10·√UA en `game/solarScale.ts`) sustituye al `StarMap` SVG, que queda solo en la partida libre. `game/glossary.ts` + `ui/Glossary.tsx`: glosario de 14 términos (G o «?»), nunca se abre solo. `game/effective.ts` (`baseShipOf`) toma la nave base del diseño.
+5. **Estado de interfaz:** `state/ui.ts` (panel abierto, vista 1ª/3ª, aviso de acción) y
    `state/settings.ts` (persistido). `pause`, `settings` y `credits` detienen el tiempo; el mapa y el
    panel de energía no.
-5. **Audio:** `audio/` procedural con Web Audio. Todo sonido pasa por `cue(id)`, que además deja un
+6. **Audio:** `audio/` procedural con Web Audio. Todo sonido pasa por `cue(id)`, que además deja un
    destello y un subtítulo; la música se mezcla según el peligro (`musicLogic.dangerLevel`).
 
 ### i18n
@@ -161,9 +180,11 @@ del cliente comprueba además que toda clave literal usada en el código existe.
 | | `locales` | Paridad es/en, params, longitud máxima y que toda `MessageRef` emitida existe y se resuelve |
 | | `balance` | Con tripulante simulado (`bot.ts`): se gana jugando bien, se pierde sin hacer nada, la dificultad sube; exploradores prudente y codicioso en superficie |
 | | `purity`, `rng` | Sin Node/DOM/React/relojes/azar global en `src/`; generador de semillas |
+| | `design`, `designRun`, `solar` | Presupuestos, Go/No-Go, nave generada, normalización; potencia 1/d², ruta, `missionTarget`, determinismo; fixtures por misión (`__tests__/fixtures/missions/`) y balance por misión |
 | `@payload/client` | `game` | Distribución de la nave, interacciones, almacén de la partida (salto completo, pausa, derrota), panel de energía, audio |
 | | `surface` | Terreno, movimiento con jetpack, reglas de superficie y qué escena se pinta |
 | | `minigames` | Esquiva, extintor, pulsos y sellado: resultado → `RunAction` |
+| | `design` | Hangar (añadir/quitar, vista previa, guardado), escala solar, glosario y flujo menú → misiones → hangar → partida → rediseñar |
 | | `i18n` | Paridad de claves, claves usadas en el código, claves dinámicas, longitud |
 
 No hay tests de renderizado 3D ni E2E (fase 7). La escena se comprueba a mano en el navegador.
@@ -172,7 +193,8 @@ No hay tests de renderizado 3D ni E2E (fase 7). La escena se comprueba a mano en
 
 - **Fase 2 (superficie):** existe (ver arriba). Pendiente de validación final y de prueba con jugadores.
 - **Fase 3 (economía):** existe (ADR 0014). Créditos en `RunState`, terminal de estación y mejoras como cambios numéricos sobre la nave y las reglas del traje (`effectiveShip`, `effectiveSurfaceRules`); precios fijos con multiplicador por sector, sin mercado dinámico. Pendiente de prueba con jugadores.
-- **Fases 4 y 5 (diseño de misión, ciencia y datos):** el diseño de misión entra como datos deterministas de `createRun` y genera la nave; ver `docs/phases/fase-4.md`, `fase-5.md` y ADR 0015.
+- **Fase 4 (diseño de misión y sistema solar):** existe (ADR 0015 y 0016); fusionada en el PR #6. El diseño entra como dato determinista de `createRun` y genera la nave. Pendiente de prueba con personas; lo heredado está en `docs/phases/fase-4.md`.
+- **Fase 5 (ciencia, datos y astronauta articulado):** instrumentos que generan datos, bajada en ventanas de contacto, puntuación e informe con cadena de causas. Parte de los campos que ya existen en el catálogo (`scienceValue`, `dataRateMbps`, `commsRangeAu`, `storageGb`, `missionTarget`); ver `docs/phases/fase-5.md`.
 - **Fase 6 (cooperativo):** `apps/game-server` corre `createRun` y aplica las `RunAction` de cada
   cliente; el cliente gana una capa de sesión local/sala. Base: ADR 0009 y 0010.
 - **Fase 7:** `apps/api`, rankings recalculados por el servidor, despliegue.

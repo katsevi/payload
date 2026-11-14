@@ -20,13 +20,13 @@ archivo, el `CLAUDE.md` del paquete que vas a tocar y `docs/STATUS.md` (estado a
 | 1 · Viaje y nave (en solitario) | Mapa estelar, saltos, combustible, interior caminable 1ª/3ª persona, sistemas, averías en tiempo real, permadeath | Implementada · pendiente de validación independiente y de prueba con jugadores (ver `docs/phases/fase-1.md`) |
 | 2 · Exploración de superficie | Descenso y aterrizaje, jetpack, oxígeno personal, recolección | Implementada (rama `feat/f2-superficie`) · pendiente de validación independiente final y de prueba con jugadores (ver `docs/phases/fase-2.md`) |
 | 3 · Economía y progresión | Créditos, venta en estaciones, suministros y 11 mejoras de nave y equipo | Implementada (rama `feat/f3-economia-progresion`) · validada con observaciones · hito pendiente de prueba con jugadores (ver `docs/phases/fase-3.md`) |
-| 4 · Diseño de misión y sistema solar | Diseño antes de zarpar (objetivo, instrumentos, módulos, lanzador; presupuesto, masa, potencia, plazo; Go/No-Go) y sistema solar real como mapa | En curso (rama `feat/f4-diseno-de-mision`; ver `docs/phases/fase-4.md`) |
+| 4 · Diseño de misión y sistema solar | Diseño antes de zarpar (objetivo, instrumentos, módulos, lanzador; presupuesto, masa, potencia, plazo; Go/No-Go) y sistema solar real como mapa | Hecha · fusionada (PR #6) · validada con observaciones · hito pendiente de prueba con personas (ver `docs/phases/fase-4.md`) |
 | 5 · Ciencia, datos y astronauta articulado | Instrumentos que generan datos, bajada a la Tierra en ventanas de contacto, puntuación por ciencia, informe post-misión, misión guiada de CubeSat | Pendiente (ver `docs/phases/fase-5.md`) |
 | 6 · Cooperativo 1-4 con roles | Servidor autoritativo, roles por disciplina (dirección, ingeniería, ciencia, operaciones), Go/No-Go con voto | Pendiente (`apps/game-server` es un marcador) |
 | 7 · Pulido y lanzamiento | Rankings, mando/táctil, E2E, despliegue | Pendiente (`apps/api` es un marcador) |
 
 Plan: `docs/plan/plan-tripulacion-de-exploracion.md`. Reto NASA y roadmap: `docs/adr/0015-reto-nasa-y-roadmap.md`. Diseño: `docs/GDD.md`. Más documentación:
-`docs/STATUS.md` (estado y pendientes), `docs/ARCHITECTURE.md`, `docs/phases/`, `docs/CONTRIBUTING.md` y `CHANGELOG.md`.
+`docs/STATUS.md` (estado y pendientes), `docs/ARCHITECTURE.md`, `docs/phases/`, `docs/guias/primera-mision.md` (cómo probar el diseño de misión), `docs/CONTRIBUTING.md` y `CHANGELOG.md`.
 
 ## Mapa del monorepo
 
@@ -38,7 +38,7 @@ payload/
 │  └─ api/           # marcador: rankings y persistencia (fase 7)
 ├─ packages/
 │  └─ shared/        # motor del juego: tipos, generador de sectores, partida (TS puro, con tests)
-│     ├─ catalog/    # naves, averias, destinos, sectores, mundos, economia, mejoras (.json)
+│     ├─ catalog/    # naves, averias, destinos, sectores, mundos, economia, mejoras, misiones, modulos, instrumentos, lanzadores, sistema-solar (.json)
 │     └─ locales/    # textos del motor (namespace i18n `sim`) en es/en
 ├─ assets/
 │  ├─ models/source/ # modelos .glb ORIGINALES (nunca se modifican)
@@ -53,6 +53,7 @@ payload/
 ```bash
 pnpm install          # Node >= 22 (ver .nvmrc), pnpm 11
 pnpm dev              # cliente en http://localhost:5173  (?play=1&seed=7 entra directo a la partida; &surface=1 a la superficie)
+                      # ?design=1&mission=<id> abre el hangar de esa misión; ?play=1&seed=7&mission=<id> zarpa con su diseño de referencia
 pnpm test             # tests de todos los paquetes (Vitest)
 pnpm typecheck        # tsc --noEmit en todos los paquetes
 pnpm build            # build de producción
