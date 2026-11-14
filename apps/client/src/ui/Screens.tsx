@@ -5,6 +5,8 @@ import type { Locale } from '@payload/shared';
 import { CREDITS } from '../data/credits';
 import { useGame } from '../game/runStore';
 import { currentLocale, setLocale, tr } from '../i18n';
+import { sendLobby } from '../net/coopSession';
+import { mePlayer, useCoop } from '../net/coopStore';
 import { useSettings } from '../state/settings';
 import { useUi } from '../state/ui';
 import { Modal, Panel, fmt } from './common';
@@ -41,6 +43,9 @@ export function MenuScreen() {
         <button className="btn btn-primary !py-3" onClick={() => useGame.getState().startRun()}>
           {t('menu.play')}
         </button>
+        <button className="btn" onClick={() => setOverlay('coop')}>
+          {t('menu.coopPlay')}
+        </button>
         <button className="btn" onClick={() => setOverlay('help')}>
           {t('help.title')}
         </button>
@@ -54,7 +59,6 @@ export function MenuScreen() {
       <div className="max-w-md text-center text-sm text-slate-300">
         <p>{t('menu.goal')}</p>
         {best.score > 0 && <p className="num mt-2 text-xs text-accent">{t('menu.best', { sectors: best.sectors, score: fmt(best.score, 0) })}</p>}
-        <p className="num mt-2 text-[11px] uppercase tracking-widest text-slate-500">{t('menu.coop')}</p>
       </div>
     </div>
   );
@@ -172,7 +176,7 @@ export function CreditsScreen() {
   );
 }
 
-const HELP_KEYS = ['move', 'run', 'look', 'interact', 'click', 'repair', 'alt', 'jump', 'down', 'view', 'pause'] as const;
+const HELP_KEYS = ['move', 'run', 'look', 'interact', 'click', 'repair', 'alt', 'jump', 'down', 'view', 'ping', 'pause'] as const;
 const HELP_TIPS: { id: 'fire' | 'leak' | 'short' | 'impact' | 'power' | 'landing' | 'o2' | 'terrain' | 'storm' | 'tools'; icon: ReactNode }[] = [
   { id: 'fire', icon: <Flame size={16} className="text-bad" /> },
   { id: 'leak', icon: <Wind size={16} className="text-bad" /> },
@@ -254,6 +258,9 @@ export function EndScreen() {
   const { t } = useTranslation();
   const s = useGame((g) => g.hud);
   const newBest = useGame((g) => g.newBest);
+  // Cooperativo: la partida la reinicia el anfitrión (vuelve toda la sala al lobby).
+  const inRoom = useCoop((c) => c.lobby !== null);
+  const isHost = useCoop((c) => mePlayer(c)?.host === true);
   if (!s || (s.phase !== 'lost' && s.phase !== 'won')) return null;
   const lost = s.phase === 'lost';
   const stats: [string, string][] = [
@@ -290,7 +297,15 @@ export function EndScreen() {
           <dd className="num mt-2 border-t border-line pt-2 text-right text-lg font-bold text-accent">{fmt(s.score, 0)}</dd>
         </dl>
         <div className="mt-5 flex flex-col gap-2">
-          {lost ? (
+          {lost && inRoom ? (
+            isHost ? (
+              <button className="btn btn-primary !py-3" onClick={() => sendLobby({ type: 'restart' })} autoFocus>
+                {t('coop.backToLobby')}
+              </button>
+            ) : (
+              <p className="num text-xs text-slate-400">{t('coop.waitingHost')}</p>
+            )
+          ) : lost ? (
             <button className="btn btn-primary !py-3" onClick={() => useGame.getState().startRun()} autoFocus>
               {t('end.retry')}
             </button>

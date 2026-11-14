@@ -12,6 +12,7 @@ import { HelmPointer } from './HelmPointer';
 import { SkillHud } from './SkillHud';
 import { ToolIcon } from './ToolIcon';
 import { DescentHud, FallAlert, ToolCompass, O2Vignette, ShipCompass, SuitVitals, WorldBadge } from './SurfaceHud';
+import { myCrew } from '../game/me';
 
 const TONE_TEXT: Record<EventTone, string> = { info: 'text-slate-200 border-line', ok: 'text-ok border-ok/60', warn: 'text-warn border-warn/60', bad: 'text-bad border-bad/70' };
 const INCIDENT_ICON: Record<IncidentKind, ReactNode> = { fire: <Flame size={14} />, short: <Zap size={14} />, leak: <Wind size={14} /> };
@@ -213,7 +214,7 @@ export function Hud() {
   const locked = usePointerLocked();
   const descentView = useUi((u) => u.descentView);
   if (!s) return null;
-  const me = s.crew[0];
+  const me = myCrew(s);
   const eva = me?.location === 'eva';
   const landing = s.phase === 'landing';
   const playing = (s.phase === 'docked' || s.phase === 'transit' || s.phase === 'surface') && !(descentView && !eva);

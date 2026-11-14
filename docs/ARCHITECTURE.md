@@ -36,7 +36,7 @@ Workspaces: `apps/*` y `packages/*` (`pnpm-workspace.yaml`). Turborepo orquesta 
 | --- | --- | --- |
 | `@payload/shared` | Fases 1-2 | `zod`. Dev: `vitest`, `tsx`, `@types/node`. Exporta `./src/index.ts` y `./catalog/*` |
 | `@payload/client` | Fases 1-2 | `@payload/shared`, `react`/`react-dom` 19, `three`, `@react-three/fiber` 9, `drei`, `rapier`, `zustand`, `i18next`, `react-i18next`, `lucide-react`. Dev: `vite`, `tailwindcss` 4, `vitest` |
-| `@payload/game-server` | Marcador (fase 4) | Ninguna; scripts `echo` |
+| `@payload/game-server` | Fase 4 (en curso) | `@payload/shared`, `@colyseus/core` 0.18, `@colyseus/ws-transport`. Dev: `@colyseus/sdk` (tests), `esbuild`, `tsx`, `vitest` |
 | `@payload/api` | Marcador (fase 5) | Ninguna; scripts `echo` |
 | raíz | | `turbo`, `typescript`, `prettier`, `@gltf-transform/cli` |
 
@@ -172,6 +172,8 @@ No hay tests de renderizado 3D ni E2E (fase 5). La escena se comprueba a mano en
 
 - **Fase 2 (superficie):** existe (ver arriba). Pendiente de validación final y de prueba con jugadores.
 - **Fase 3 (economía):** existe (ADR 0014). Créditos en `RunState`, terminal de estación y mejoras como cambios numéricos sobre la nave y las reglas del traje (`effectiveShip`, `effectiveSurfaceRules`); precios fijos con multiplicador por sector, sin mercado dinámico. Pendiente de prueba con jugadores.
-- **Fase 4 (cooperativo):** `apps/game-server` corre `createRun` y aplica las `RunAction` de cada
-  cliente; el cliente gana una capa de sesión local/sala. Base: ADR 0009 y 0010.
+- **Fase 4 (cooperativo):** en curso. `apps/game-server` corre `createRun` y aplica las `RunAction` de cada
+  cliente; difunde el `RunState` entero a 10 Hz y el cliente lo refleja en una `Run` local hidratada
+  (`run.hydrate`), así la interfaz es la misma en solitario y en sala (`apps/client/src/net`). Contrato en
+  `docs/MULTIPLAYER.md`; decisiones en ADR 0015 (y 0009, 0010).
 - **Fase 5:** `apps/api`, rankings recalculados por el servidor, despliegue.

@@ -23,7 +23,9 @@ Diseño que implementa: `docs/GDD.md`. Contrato: `src/types.ts` (reescrito en el
 | `generateSector` | `(seed, index, cat?, shipId?) => SectorMap` | Determinista; reintenta hasta dar un sector completable |
 | `isSectorSolvable` | `(sector, ship, marginPct = 15) => boolean` | Ruta hacia delante a régimen económico con repostajes |
 | `ecoFuelCost`, `nodeDistanceLy`, `getNode` | | Utilidades del mapa |
-| `createRun` | `({ seed, shipId?, catalog?, crewSize? }) => Run` | La partida. Ver abajo (`crewSize` 1-4, por defecto 1) |
+| `createRun` | `({ seed, shipId?, catalog?, crewSize?, roles? }) => Run` | La partida. Ver abajo (`crewSize` 1-4, por defecto 1; `roles` por orden, fase 4) |
+| `getRoles`, `getRole`, `crewPerks`, `crewCarryCapacityKg`, `crewJetpackDrainPctPerS` | `(cat)` · `(roleId, cat)` · `(member, cat)` · `(rules, member, cat)` | Fase 4 (ADR 0015): roles y sus ventajas pasivas |
+| `COOP_LIMITS`, `COOP_ROOM`, `NET`, `parse*`, `sanitizePlayerName`, `makeRoomCode`, `normalizeRoomCode` | | Fase 4: contrato de red (`net.ts`; ver `docs/MULTIPLAYER.md`) |
 | `computeScore` | `(stats) => number` | 1000·sector + 50·salto + 20·avería + 30·esquiva + años luz + puntos de materiales guardados a bordo (vender no cambia la puntuación; créditos y mejoras no puntúan) |
 | `getEconomy`, `getUpgrades`, `getUpgrade`, `hasShop` | `(cat)` · `(cat)` · `(id, cat)` · `(nodeKindDef)` | Fase 3 (ADR 0014). `hasShop`: `shop` o el obsoleto `service` |
 | `effectiveShip`, `effectiveSurfaceRules` | `(base, upgrades, cat) => ShipDef` · `(baseRules, upgrades, cat) => SurfaceRules` | Nave y reglas de traje/jetpack/caídas con las mejoras (puras) |
@@ -41,7 +43,7 @@ Diseño que implementa: `docs/GDD.md`. Contrato: `src/types.ts` (reescrito en el
 | `formatMessage`, `lookupSimKey`, `flattenKeys` | | Texto final sin i18next (tests, scripts, servidor) |
 
 Constantes del contrato: `SYSTEM_IDS`, `THROTTLE_IDS`, `INCIDENT_KINDS`, `HAZARD_KINDS`, `NODE_KINDS`, `SUPPLY_IDS`,
-`UPGRADE_TARGETS`, `UPGRADE_FIELDS`.
+`UPGRADE_TARGETS`, `UPGRADE_FIELDS`, `ROLE_IDS`, `PING_KINDS`.
 
 ## `Run` (la partida)
 
@@ -58,6 +60,7 @@ run.estimateTakeOff()                   // en superficie: despegue con lo cargad
 run.stationQuote()                      // atracada en estación: venta, suministros, emergencia y mejoras ofrecidas (si no, null)
 run.effectiveShip()                     // nave con mejoras (objeto vivo, solo lectura)
 run.effectiveSurfaceRules()             // reglas de traje/jetpack/caídas con mejoras (objeto vivo, solo lectura)
+run.hydrate(state)                      // fase 4: sustituye el estado por el recibido del servidor (espejo; no lo avances después)
 ```
 
 - **Acciones (`RunAction`):** `jump`, `set-throttle`, `toggle-system`, `work-incident` y `repair-system`
@@ -141,6 +144,25 @@ run.effectiveSurfaceRules()             // reglas de traje/jetpack/caídas con m
 - **Oferta:** `stationOffer` elige `offer.size` mejoras por estación con un flujo propio (semilla + sector + índice
   del nodo): determinista y distinta entre partidas. El sector se genera con la nave base.
 - **Hielo y mena** se siguen procesando al guardarse si caben; lo que no cabe va a la bodega y se vende barato.
+
+## Cooperativo (fase 4, ADR 0015; cifras en `catalog/roles.json`; red en `docs/MULTIPLAYER.md`)
+
+- **Roles** (`ROLE_IDS`: `pilot`, `engineer`, `manager`, `explorer`): `createRun({ crewSize, roles })` pone
+  `crew[i].role`. Solo dan ventajas pasivas (`RolePerks`) y solo a quien las tiene: `repairSpeedMult`
+  (ingeniero: `work-incident` y `repair-system`), `evadeFuelMult` y `evadeDamageMult` (piloto: `evade`),
+  `carryCapacityMult` y `jetpackDrainMult` (explorador). El gestor de recursos no tiene ninguna por ahora.
+  Nombre en `catalog.<id>`. `Catalog.roles` es opcional en el JSON (`parseCatalog` pone el de por defecto).
+- **Quién actúa:** `work-incident`, `repair-system` y `evade` aceptan `crewId?`. Sin él (solitario) no hay
+  ventaja; con él, cuenta el rol de ese tripulante si está vivo y a bordo. El servidor siempre lo pone.
+  Con la ventaja del piloto, una esquiva fallida entra con menos daño y cuenta como roce (sin fuga).
+- **Sin roles nada cambia:** el solitario y el bot de balance no los usan.
+- **`hydrate(state)`:** copia un `RunState` recibido por red dentro de la partida (conserva las referencias
+  internas y recalcula la nave y las reglas efectivas). No restaura los flujos de azar ni los contadores: una
+  partida hidratada sirve para leer y consultar, no para avanzarla. El cliente la crea con la misma semilla,
+  tripulación y roles que el servidor.
+- **`net.ts`:** tipos de mensaje, límites (`COOP_LIMITS`) y validación de lo que llega de la red. Puro, como
+  el resto de `src/`. `makeRoomCode(random)` recibe la fuente de azar (la pone el servidor).
+- Tests: `src/__tests__/coop.test.ts`.
 
 ## Superficie (fase 2; cifras en `catalog/mundos.json`)
 

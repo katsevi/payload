@@ -23,7 +23,7 @@
     "language": "Idioma",
     "best": "Mejor expedición: {{sectors}} sectores · {{score}} puntos",
     "goal": "Lleva la nave hasta el portal de salto y aterriza a recoger lo que puedas. Si el casco o el oxígeno llegan a cero, se acabó.",
-    "coop": "Cooperativo 1-4 en una fase posterior"
+    "coopPlay": "Cooperativo"
   },
   "settings": {
     "title": "Ajustes",
@@ -265,7 +265,8 @@
     "jump": "Saltar · mantén en el aire: jetpack (cayendo, frena) · en el descenso: frenar",
     "down": "Jetpack hacia abajo (bajar antes)",
     "click": "Averías: apuntar el extintor, pulsar a tiempo o sellar (clic o Espacio)",
-    "repair": "Repuesto: mantén y suelta en la marca, dos veces"
+    "repair": "Repuesto: mantén y suelta en la marca, dos veces",
+    "ping": "Señalar a la tripulación (cooperativo)"
   },
   "keys": {
     "move": "WASD",
@@ -279,7 +280,8 @@
     "jump": "Espacio",
     "down": "C",
     "repair": "R",
-    "click": "Clic"
+    "click": "Clic",
+    "ping": "G"
   },
   "sound": {
     "fixed": "[reparado]",
@@ -421,5 +423,44 @@
     "giveHull": "+{{n}} casco",
     "giveSpares": "+{{n}} repuestos",
     "overload": "sobrecarga con todo encendido"
+  },
+  "coop": {
+    "title": "Tripulación cooperativa",
+    "name": "Tu nombre",
+    "create": "Crear sala",
+    "code": "Código",
+    "join": "Entrar",
+    "connecting": "Conectando…",
+    "back": "Volver",
+    "codeLabel": "Código de la sala",
+    "you": "tú",
+    "host": "Anfitrión",
+    "noRole": "Sin rol",
+    "ready": "Listo",
+    "notReady": "Esperando",
+    "role": "Rol",
+    "start": "Empezar expedición",
+    "waitingReady": "Faltan jugadores por estar listos",
+    "setReady": "Estoy listo",
+    "unready": "Aún no",
+    "leave": "Salir de la sala",
+    "backToLobby": "Volver a la sala",
+    "waitingHost": "El anfitrión decide si se vuelve a intentar",
+    "reconnecting": "Reconectando…",
+    "disconnected": "Desconectado",
+    "outside": "fuera · O₂ {{o2}} %",
+    "roleHint": {
+      "pilot": "Esquiva gastando menos",
+      "engineer": "Repara más rápido",
+      "manager": "Energía, ruta y compras",
+      "explorer": "Más mochila y jetpack"
+    },
+    "error": {
+      "room-full": "La sala está llena",
+      "in-progress": "Esa partida ya ha empezado",
+      "not-found": "No existe ninguna sala con ese código",
+      "unreachable": "No se pudo conectar con el servidor",
+      "lost": "Se perdió la conexión con la sala"
+    }
   }
 }

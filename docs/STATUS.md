@@ -1,6 +1,6 @@
 # Estado del proyecto — traspaso entre sesiones
 
-Última actualización: **2026-11-13** · Rama actual: `feat/f3-economia-progresion` (cambios sin commitear) · Versión publicada: 0.4.0 · Propuesta: 0.6.0 (sin publicar; la 0.5.0 propuesta es la fase 2; ver `CHANGELOG.md`)
+Última actualización: **2026-11-13** · Rama actual: `feat/f4-cooperativo` (fase 4 en curso, subida al remoto, sin PR) · Versión publicada: 0.4.0 · Propuesta: 0.7.0 (sin publicar; 0.5.0 es la fase 2 y 0.6.0 la fase 3; ver `CHANGELOG.md`)
 
 > Léelo antes de empezar y actualízalo al terminar una tarea relevante. Las casillas de
 > `docs/phases/fase-*.md` las marca quien valida la fase, no quien implementa: aquí solo se resume.
@@ -12,7 +12,8 @@ decisión en ADR 0011). El juego se rehízo el 2026-11-09.
 
 - La **fase 1 está fusionada en `main`** (PR #3), y la fase 2 con las herramientas de minería y los minijuegos
   (ADR 0013) entró por el PR #4 (`feat/f2-herramientas-e-interacciones`). La **fase 3 (economía y progresión)**
-  está **implementada pero sin commitear** en **`feat/f3-economia-progresion`** (ADR 0014).
+  está **fusionada en `main`** (PR #5, ADR 0014). La **fase 4 (cooperativo)** está **en curso**
+  en **`feat/f4-cooperativo`** (subida al remoto, sin PR) (ADR 0015, contrato en `docs/MULTIPLAYER.md`).
 - No existe ninguna etiqueta local `v0.3.0-simulador` (`git tag` está vacío): la versión anterior (0.3.0) está en
   el historial, en el commit `76ae5ab` (ADR 0011). Su documentación está en `docs/archivo/v0.3-simulador/`.
 - **Fase 2 (exploración de superficie): implementada.** Pendiente de validación independiente final y de prueba
@@ -22,7 +23,10 @@ decisión en ADR 0011). El juego se rehízo el 2026-11-09.
   Créditos, terminal de estación de pago (venta, suministros, 11 mejoras con contrapartida), ayuda de emergencia
   gratuita (sustituye al servicio gratuito) y la masa a bordo encarece cada salto. `pnpm validate` 11/11, **300 tests**
   (181 + 119). Nadie ha jugado 20 minutos para comprobar el hito ni ha visto el terminal con GPU real. Decisiones: ADR 0014.
-- **Siguiente: fase 4 (cooperativo 1-4).** Toda la economía entra como `RunAction` y es determinista (ver «Próximos pasos»).
+- **Fase 4 (cooperativo 1-4): en curso.** Hay servidor autoritativo (`apps/game-server`, Colyseus 0.18), roles con
+  ventajas pasivas, sala privada con código, capa de sesión en el cliente, avatares y pings. `pnpm validate` 11/11,
+  **341 tests** (197 + 18 + 126). Probado en un solo equipo con dos pestañas de Chrome contra el servidor real;
+  **nadie lo ha jugado en red local con varios equipos** ni ha pasado la validación independiente. Ver «Fase 4 — qué se hizo».
 
 ## Estado por fase
 
@@ -30,8 +34,8 @@ decisión en ADR 0011). El juego se rehízo el 2026-11-09.
 | --- | --- |
 | 1 · Viaje y nave (en solitario) | **Implementada y fusionada en `main`** (PR #3). `pnpm validate` en verde y recorrido manual en Chrome. **Falta:** validación independiente (agente `validator`) y el hito con jugadores. |
 | 2 · Exploración de superficie | **Implementada** (commit `d8ce24d` en `feat/f2-superficie`; mejoras sin commitear en `feat/f2-herramientas-e-interacciones`). `pnpm validate` en verde y una pasada del `validator` sin bloqueantes. **Falta:** validación independiente final, la segunda revisión de diseño y el hito con jugadores. |
-| 3 · Economía y progresión | **Implementada · validada con observaciones** (rama `feat/f3-economia-progresion`, sin commitear). `pnpm validate` en verde (300 tests) y validación independiente «cumple con observaciones» (sin exploits de dinero ni soft-locks). **Falta:** el hito con jugadores (20 min: vender, >= 2 mejoras, la nave se siente otra), ver el terminal y los créditos en un navegador con GPU real y escuchar los cues. |
-| 4 · Cooperativo 1-4 | No iniciada. `apps/game-server` es un marcador. |
+| 3 · Economía y progresión | **Implementada · validada con observaciones** (fusionada en `main`, PR #5). `pnpm validate` en verde (300 tests) y validación independiente «cumple con observaciones» (sin exploits de dinero ni soft-locks). **Falta:** el hito con jugadores (20 min: vender, >= 2 mejoras, la nave se siente otra), ver el terminal y los créditos en un navegador con GPU real y escuchar los cues. |
+| 4 · Cooperativo 1-4 | **En curso** (rama `feat/f4-cooperativo`, sin PR). Servidor, roles, sala, sesión del cliente, avatares y pings implementados; `pnpm validate` en verde. **Falta:** validación independiente, el hito con cuatro equipos en red local y lo listado en «Fase 4 — pendiente». |
 | 5 · Pulido y lanzamiento | No iniciada. `apps/api` es un marcador. |
 
 ### Fase 1 — qué se hizo
@@ -149,7 +153,7 @@ verdad, sin pico»). No pertenece a ninguna fase del plan. Decisiones: ADR 0013.
   (`ok`, `fetch`, `leave`, `short`). Un haz por filón; el HUD muestra el avance del filón («2/3») y la escena marca la veta que lo completa.
 - Teclas: E usar/abrir/colocar/recoger; Q alternativa; clic o Espacio la habilidad; R reparar con repuesto.
 
-### Fase 3 — qué se hizo (2026-11-13, rama `feat/f3-economia-progresion`, sin commitear)
+### Fase 3 — qué se hizo (2026-11-13, fusionada en `main` por el PR #5)
 
 La carga de la bodega pasa a ser progreso: en una estación se vende, se compra y se mejora la nave. Decisiones y
 reglas completas en ADR 0014, `packages/shared/CLAUDE.md` y `apps/client/CLAUDE.md`. Contrato aditivo.
@@ -185,6 +189,68 @@ reglas completas en ADR 0014, `packages/shared/CLAUDE.md` y `apps/client/CLAUDE.
 
 **Validación independiente:** «cumple con observaciones». Corregido después: tests de las dos mejoras nuevas, bot que las
 compra, aviso de sobrecarga, rechazo duplicado, cierre del overlay y tope en `isStranded`.
+
+### Fase 4 — qué se hizo (2026-11-13, rama `feat/f4-cooperativo`)
+
+Hasta cuatro personas juegan la misma partida: el servidor corre el motor y los clientes lo reflejan. Decisiones en
+ADR 0015; contrato de red en `docs/MULTIPLAYER.md`. Contrato del motor aditivo.
+
+**Motor (`packages/shared`):**
+- **Roles** en datos (`catalog/roles.json`, `roles.ts`): piloto (esquiva a mitad de combustible, roces −25 %), ingeniero
+  (repara ×1,3), explorador (mochila ×1,25, jetpack −20 %) y gestor de recursos (sin ventaja por ahora).
+  `createRun({ crewSize, roles })`, `CrewMember.role`, y `crewId?` en `work-incident`, `repair-system` y `evade`.
+  Sin roles (solitario, bot de balance) nada cambia: las cifras de balance son las de la fase 3.
+- **`Run.hydrate(state)`**: copia un estado recibido por red en una partida local (espejo del cliente).
+- **`net.ts`**: mensajes, límites (`COOP_LIMITS`) y validación de lo que llega de la red; código de sala de 4 caracteres.
+
+**Servidor (`apps/game-server`, antes un marcador):**
+- `roomModel.ts` (puro): lobby (rol único y opcional, listo, anfitrión), una `Run` con un tripulante por jugador, el
+  servidor impone el `crewId` de quien actúa, presupuesto de trabajo mantenido (no más que el tiempo real), caídas y
+  salidas, vuelta al lobby tras perder, poses y pings.
+- `CrewRoom.ts` (Colyseus 0.18): sala privada `crew`, código = `roomId`, tick de 10 Hz que difunde el estado entero
+  (≈ 3 kB; el sector solo cuando cambia), reconexión con 60 s de gracia, bloqueo al empezar.
+- Tests: paridad sala-motor (mismo estado y eventos), antiabuso y, con servidor y cuatro clientes SDK reales,
+  sincronía, rechazos, poses, pings y reconexión.
+
+**Cliente (`apps/client`):**
+- `net/coopSession.ts` y `net/coopStore.ts`; `runStore` en modo espejo (`enterRemote`, `remoteState`, `remoteEvents`):
+  `act` valida en local con mi tripulante y envía; la posición y el trabajo mantenido salen agrupados cada 66 ms.
+- `game/me.ts` (`myCrew`): todo lo «mío» deja de ser `crew[0]`. `effectiveRulesOf` incluye la ventaja de mi rol.
+- `ui/CoopScreen.tsx`: Menú → Cooperativo (nombre, crear sala, entrar con código), lobby y `CrewBar` en partida.
+  Fin de partida en sala: el anfitrión devuelve a todos al lobby.
+- `scenes/CrewAvatars.tsx`: compañeros (astronauta simple con el color del rol) y pings (tecla G) en la nave y fuera.
+- `pnpm dev:server` y `pnpm dev:lan` en la raíz.
+
+**Comprobado a mano (Chrome, un equipo, servidor real):** crear sala, entrar con código desde otra pestaña, rol
+ocupado rechazado, empezar, saltar y apagar un sistema a través del servidor, barra de tripulación y avatar del
+compañero visibles, sin errores en consola.
+
+### Fase 4 — pendiente
+
+- **Hito sin probar:** cuatro equipos en red local completando un sector. Solo se ha visto con dos pestañas en un equipo.
+- **Validación independiente** (agente `validator`) y marcar las casillas de `docs/phases/fase-4.md`.
+- **La superficie en sala no se ha jugado:** descenso con varios, dos tripulantes fuera a la vez, avatares en la
+  superficie y despegue con todos a bordo solo están cubiertos por los tests del motor, no vistos en pantalla.
+- **Minijuegos con latencia** (esquiva, averías): funcionan por diseño (el cliente informa el resultado), sin probar en red.
+- **Avatares provisionales:** sin animación ni nombre flotante; el aspecto se vio en una sola captura. Todos aparecen
+  en el mismo punto de la nave y no hay colisión entre jugadores.
+- **Pings:** solo «mirad aquí» (G) tiene tecla; `danger` y `help` existen en el contrato pero no en la interfaz. Sin sonido.
+- **Tripulante muerto:** quien muere fuera se queda mirando la escena sin poder hacer nada (no hay modo espectador).
+- **Quien se va con su tripulante fuera** bloquea el despegue hasta que se le acaba el oxígeno.
+- **Recargar la página pierde el sitio** (el SDK solo reconecta con la pestaña abierta); no se guarda el token.
+- **El chunk inicial del cliente creció** de 0,53 a 0,59 MB; revisar si el SDK queda fuera del arranque.
+
+## Métricas verificadas (2026-11-13, fase 4)
+
+| Métrica | Valor |
+| --- | --- |
+| `pnpm validate` | Verde: 11/11 tareas. Total **341 tests** |
+| Tests `@payload/shared` | **197** en 9 archivos (`coop` nuevo) |
+| Tests `@payload/game-server` | **18** en 2 archivos (`roomModel`, `network`) |
+| Tests `@payload/client` | **126** en 6 archivos (`coop` nuevo) |
+| Mensaje `state` | ≈ 2,4 kB atracada y ≈ 3,5 kB en tránsito (sin el sector, ≈ 1,8 kB), 10 por segundo |
+| Balance | Sin cambios respecto a la fase 3 (sin roles el motor es el mismo) |
+| Sin verificar | Red local con varios equipos, latencia real, superficie en sala, FPS con avatares |
 
 ## Métricas verificadas (2026-11-13, fase 3)
 
@@ -245,6 +311,9 @@ recalificado**.
 
 Ningún agente puede hacerlas.
 
+F4-a. **Hito de la fase 4:** cuatro personas en cuatro equipos de la misma red (`pnpm dev:server` y `pnpm dev:lan` en uno; los demás abren `http://<ip>:5173`) completan un sector. ¿Se desincroniza algo? ¿se nota el retardo al reparar o esquivar?
+F4-b. **Jugar la superficie en sala** con al menos dos personas fuera a la vez y mirar los avatares en la nave y fuera.
+F4-c. **Decidir** la ventaja del gestor de recursos, quién puede gastar créditos y qué pasa con el tripulante de quien se va.
 F3-a. **Hito de la fase 3:** jugar 20 minutos (`pnpm dev`, `?play=1&seed=7&station=1`): ¿se vende, se compran >= 2 mejoras y la nave se siente otra? ¿dos partidas seguidas acaban con mejoras distintas? ¿los precios dan duda real?
 F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de créditos, pantalla de fin de partida) en un navegador con GPU real, y **escuchar** los cues `sale`, `purchase`, `upgrade` y `noCredits` (nadie los ha oído).
 0. **Jugar la superficie** (`pnpm dev`, `?play=1&seed=7&surface=1`; semillas por mundo en `apps/client/CLAUDE.md`):
@@ -256,7 +325,7 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
 4. **Recalificar la última corrección de la revisión de diseño** (8/10 tras tres pasadas; los tres flecos finales no se han vuelto a evaluar) si se quiere una nota definitiva.
 5. **Hito de la fase 1:** prueba con >= 3 personas que no conozcan el juego (ver `docs/phases/fase-1.md`).
 6. **Validación independiente final de la fase 2** (agente `validator` o una persona) y marcar las casillas de `docs/phases/fase-2.md`.
-7. **Decidir el commit** de `feat/f3-economia-progresion` (cambios sin commitear) y el PR de la fase 3.
+7. **Abrir el PR** de `feat/f4-cooperativo` cuando se decida (la rama está subida). (La fase 3 ya entró por el PR #5.)
 8. **Probar con ratón capturado** (pointer lock) en una sesión real.
 9. **Mirar el rediseño gráfico y opinar** (`?play=1&seed=7&body=<tipo>`): brillo, color y legibilidad, otras semillas.
 10. **ERIZON** (CC-BY-NC-ND): decidir si se sustituye antes de cualquier uso comercial.
@@ -274,6 +343,12 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
   - **La oferta no se renueva** (fija por estación).
   - **Con todas las mejoras, la demanda con todo encendido supera el reactor** (aceptado por diseño, con aviso de sobrecarga en el terminal).
   - **`isSectorSolvable` asume repostaje completo en estación** (hoy 75 % gratis y el resto de pago): un sector «completable» puede no serlo para quien llegue sin créditos ni carga y con mucha masa. Vigilar varadas en la prueba con personas.
+- **Cooperativo (fase 4), a decidir con jugadores:**
+  - **El gestor de recursos no tiene ventaja pasiva** (el plan solo define las de piloto, ingeniero y explorador).
+  - **Cualquiera puede gastar los créditos** de la tripulación; la propuesta de que lidere el gestor no está en el juego.
+  - **Jugar sin rol es válido** y una persona sola en sala con rol va algo mejor que en solitario (tiene una ventaja).
+  - **La dificultad no escala** con el número de jugadores (descartado en `fase-4.md`): cuatro personas lo tendrán más fácil.
+  - **No hay pausa en sala** y los que se caen no detienen la partida mientras quede alguien conectado.
 - **Sin tutorial.** Solo ayuda con H y carteles. Decidir tras la prueba con jugadores.
 - **El mapa solo se abre en la mesa del puente** (hay que ir andando). Es deliberado, pero puede resultar pesado.
 - **Los sistemas apagados por el jugador no se encienden solos** tras una sobrecarga: decidir si es buena fricción.
@@ -317,13 +392,13 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
 - **Mando y táctil** no implementados. Sin CI ni linter.
 - **`fx` y `playerState`** son objetos mutables de módulo (leídos por frame sin pasar por React).
 
-## Próximos pasos (hacia la fase 4)
+## Próximos pasos (fase 4 en curso)
 
 1. Cerrar la fase 2: segunda revisión de diseño, validación independiente final, prueba con jugadores y medida de FPS;
    ajustar `catalog/mundos.json` con `pnpm balance` (ver `.claude/skills/add-catalog-item`).
 2. La prueba con jugadores de la fase 1.
-3. Cerrar la fase 3: commit y PR de `feat/f3-economia-progresion`, prueba de 20 minutos con personas y ajuste de precios y mejoras (`economia.json`, `mejoras.json`) con `pnpm balance`.
-4. Escribir `docs/MULTIPLAYER.md` nuevo antes de tocar `apps/game-server` (fase 4); el antitrampas de `set-position` y la autoridad dividida (ADR 0012) son su punto de partida.
+3. Cerrar la fase 3: prueba de 20 minutos con personas y ajuste de precios y mejoras (`economia.json`, `mejoras.json`) con `pnpm balance`.
+4. Fase 4: probar en red local, pasar el `validator` y resolver «Fase 4 — pendiente» (espectador, reanudación tras recargar, pings de peligro y ayuda, avatares). Contrato: `docs/MULTIPLAYER.md`.
 5. **Lo que el cooperativo debe saber de la economía** (para `docs/MULTIPLAYER.md` y `apps/game-server`):
    - Todo el comercio entra como `RunAction` (`sell`, `buy-supply`, `buy-upgrade`, `service`) y es determinista: la oferta sale de semilla + sector + nodo, sin azar propio del servidor. El motor valida estación, créditos y oferta, así que el servidor solo reenvía acciones.
    - `run.stationQuote()` es la fuente única de precios y oferta; `effectiveShip()` y `effectiveSurfaceRules()`, de la nave y las reglas con mejoras. El cliente no calcula cifras y el servidor debe usar las mismas.

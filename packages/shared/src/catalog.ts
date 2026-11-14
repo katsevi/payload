@@ -9,9 +9,10 @@ import nodeKindsJson from '../catalog/destinos.json';
 import sectorJson from '../catalog/sectores.json';
 import surfaceJson from '../catalog/mundos.json';
 import economyJson from '../catalog/economia.json';
+import rolesJson from '../catalog/roles.json';
 import upgradesJson from '../catalog/mejoras.json';
 import {
-  NODE_KINDS, SUPPLY_IDS, THROTTLE_IDS, UPGRADE_FIELDS, UPGRADE_TARGETS,
+  NODE_KINDS, ROLE_IDS, SUPPLY_IDS, THROTTLE_IDS, UPGRADE_FIELDS, UPGRADE_TARGETS,
   type Catalog, type MaterialDef, type NodeKind, type NodeKindDef, type ShipDef, type SurfaceCatalog, type ThrottleDef, type ThrottleId, type WorldDef,
 } from './types';
 
@@ -227,6 +228,18 @@ const upgradeSchema = z.strictObject({
   levels: z.array(z.strictObject({ price: positive, massKg: nonNeg, effects: z.array(upgradeEffectSchema).min(1) })).min(1),
 });
 
+const roleSchema = z.strictObject({
+  id: z.enum(ROLE_IDS),
+  name: localized,
+  perks: z.strictObject({
+    evadeFuelMult: nonNeg.optional(),
+    evadeDamageMult: nonNeg.optional(),
+    repairSpeedMult: positive.optional(),
+    carryCapacityMult: positive.optional(),
+    jetpackDrainMult: nonNeg.optional(),
+  }),
+});
+
 const catalogSchema = z
   .strictObject({
     ships: z.array(shipSchema).min(1),
@@ -236,6 +249,7 @@ const catalogSchema = z
     surface: surfaceSchema.optional(),
     economy: economySchema.optional(),
     upgrades: z.array(upgradeSchema).optional(),
+    roles: z.array(roleSchema).optional(),
   })
   .superRefine((cat, ctx) => {
     const shipIds = new Set<string>();
@@ -249,13 +263,16 @@ const catalogSchema = z
     const station = cat.nodeKinds.find((n) => n.id === 'station');
     if (station && !station.shop && !station.service) ctx.addIssue({ code: 'custom', message: 'el tipo "station" debe declarar `shop`' });
     if (!cat.nodeKinds.some((n) => n.weight > 0)) ctx.addIssue({ code: 'custom', message: 'ningún tipo de destino tiene peso > 0' });
+    for (const r of ROLE_IDS) {
+      if ((cat.roles ?? []).filter((x) => x.id === r).length > 1) ctx.addIssue({ code: 'custom', message: `rol repetido: ${r}` });
+    }
     const surface = cat.surface;
     if (!surface) return;
     const ids = new Set<string>([...shipIds, ...NODE_KINDS]);
     const materialIds = new Set<string>();
     const toolIds = new Set(surface.tools.map((t) => t.id));
     for (const mat of surface.materials) if (!toolIds.has(mat.tool)) ctx.addIssue({ code: 'custom', message: `el material "${mat.id}" usa una herramienta desconocida: ${mat.tool}` });
-    for (const entry of [...surface.tools, ...surface.materials, ...surface.worlds, ...(cat.upgrades ?? [])]) {
+    for (const entry of [...surface.tools, ...surface.materials, ...surface.worlds, ...(cat.upgrades ?? []), ...(cat.roles ?? [])]) {
       if (ids.has(entry.id)) ctx.addIssue({ code: 'custom', message: `id repetido en el catálogo: ${entry.id}` });
       ids.add(entry.id);
     }
@@ -285,6 +302,7 @@ export function parseCatalog(raw: unknown): Catalog {
         ...(!('surface' in raw) ? { surface: surfaceJson } : {}),
         ...(!('economy' in raw) ? { economy: economyJson.economy } : {}),
         ...(!('upgrades' in raw) ? { upgrades: upgradesJson.upgrades } : {}),
+        ...(!('roles' in raw) ? { roles: rolesJson.roles } : {}),
       }
     : raw;
   const r = catalogSchema.safeParse(input);
@@ -304,6 +322,7 @@ export const catalog: Catalog = parseCatalog({
   surface: surfaceJson,
   economy: economyJson.economy,
   upgrades: upgradesJson.upgrades,
+  roles: rolesJson.roles,
 });
 
 export function getShip(shipId: string | undefined, cat: Catalog = catalog): ShipDef {

@@ -39,9 +39,10 @@ Qué se gana, qué se pierde y qué obliga a hacer después.
 | [0006](0006-pipeline-de-assets.md) | Pipeline de assets y registro de licencias | Aceptada |
 | [0007](0007-fase-1-en-solitario.md) | Fase 1 en solitario antes que el multijugador | Sustituida por 0011 |
 | [0008](0008-eventos-y-dificultad-fase-2.md) | Eventos por dificultad, penalización de agotamientos y fase de Kepler | Sustituida por 0011 |
-| [0009](0009-servidor-autoritativo-colyseus.md) | Servidor autoritativo con Colyseus que corre el mismo motor | Aceptada · en suspenso hasta la fase 4 |
-| [0010](0010-presencia-y-escalado.md) | Presencia y escalado del servidor de juego: un proceso, sin Redis (por ahora) | Aceptada · en suspenso hasta la fase 4 |
+| [0009](0009-servidor-autoritativo-colyseus.md) | Servidor autoritativo con Colyseus que corre el mismo motor | Aceptada · detalle de implementación sustituido por 0015 |
+| [0010](0010-presencia-y-escalado.md) | Presencia y escalado del servidor de juego: un proceso, sin Redis (por ahora) | Aceptada |
 | [0011](0011-reinicio-tripulacion-de-exploracion.md) | Reinicio del concepto: de simulador de diseño a tripulación de exploración | Aceptada |
 | [0012](0012-superficie-autoridad-dividida.md) | Superficie: autoridad dividida, oxígeno como único recurso que no vuelve y recompensa sin economía | Aceptada |
 | [0013](0013-minijuegos-y-herramientas.md) | Minijuegos en el cliente y minería con herramientas desplegables | Aceptada |
 | [0014](0014-economia-y-mejoras.md) | Economía y mejoras: créditos, terminal de estación de pago y nave efectiva | Aceptada |
+| [0015](0015-cooperativo-estado-por-mensajes-y-espejo.md) | Cooperativo: estado entero por mensajes, espejo hidratado en el cliente y roles como ventajas pasivas | Aceptada |

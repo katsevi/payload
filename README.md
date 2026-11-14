@@ -22,7 +22,7 @@ Vitest, pnpm + Turborepo. Interfaz en español (por defecto) e inglés.
 | 1 · Viaje y nave (en solitario) | **Implementada**: mapa estelar, saltos, interior caminable, sistemas, averías en tiempo real y permadeath. Pendiente de validación independiente y de prueba con jugadores. |
 | 2 · Exploración de superficie | **Implementada** (rama `feat/f2-superficie`): descenso, jetpack, oxígeno personal, recolección, tormentas y despegue. Pendiente de validación independiente final y de prueba con jugadores. |
 | 3 · Economía y progresión | **Implementada** (rama `feat/f3-economia-progresion`): créditos, terminal de estación (venta, suministros y 11 mejoras con contrapartida) y la carga pesa. Validada con observaciones; pendiente de prueba con jugadores. |
-| 4 · Cooperativo 1-4 | Pendiente: servidor autoritativo y roles (`apps/game-server` es un marcador). |
+| 4 · Cooperativo 1-4 | **En curso** (rama `feat/f4-cooperativo`): servidor autoritativo, sala privada con código, roles con ventajas pasivas, avatares y pings. Falta validarla y probarla con cuatro equipos en red local. Contrato: [`docs/MULTIPLAYER.md`](docs/MULTIPLAYER.md). |
 | 5 · Pulido y lanzamiento | Pendiente (`apps/api` es un marcador). |
 
 Detalle, métricas y acciones pendientes: [`docs/STATUS.md`](docs/STATUS.md). Roadmap: [`docs/phases/`](docs/phases/README.md).
@@ -97,7 +97,7 @@ Diseño completo: [`docs/GDD.md`](docs/GDD.md).
 payload/
 ├─ apps/
 │  ├─ client/        # React 19 + R3F + Rapier + Vite: escenas, interfaz, audio, i18n
-│  ├─ game-server/   # marcador: servidor del cooperativo (fase 4)
+│  ├─ game-server/   # servidor autoritativo del cooperativo (Colyseus; corre el motor de shared)
 │  └─ api/           # marcador: rankings y persistencia (fase 5)
 ├─ packages/
 │  └─ shared/        # motor del juego en TypeScript puro, con tests

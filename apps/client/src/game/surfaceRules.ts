@@ -6,6 +6,7 @@
 import { catalog as defaultCatalog, getSurfaceCatalog, lodeProgress, referenceBrake, type Catalog, type Deposit, type LodeProgress, type PlacedTool, type RunAction, type RunPhase, type RunState, type StormStatus, type WorldDef } from '@payload/shared';
 import { effectiveRulesOf } from './effective';
 import type { Prompt, PromptBadge } from '../state/ui';
+import { myCrew } from './me';
 
 // ─── Dónde está la nave ──────────────────────────────────────────────────────────────────────────
 
@@ -85,8 +86,8 @@ export function leftOutside(state: RunState): { toolsOut: number; readyOut: numb
  * herramienta colocada tiene prioridad sobre una veta libre a la misma distancia.
  */
 export function surfaceInteractionAt(state: RunState, x: number, z: number, cat: Catalog = defaultCatalog): SurfaceInteraction | null {
-  const m = state.crew.find((c) => c.alive);
-  if (state.phase !== 'surface' || !state.surface || !m || m.location !== 'eva') return null;
+  const m = myCrew(state);
+  if (state.phase !== 'surface' || !state.surface || !m || !m.alive || m.location !== 'eva') return null;
   const surface = getSurfaceCatalog(cat);
   // Traje EFECTIVO: alcance y mochila con las mejoras compradas.
   const suit = effectiveRulesOf(state, cat).suit;

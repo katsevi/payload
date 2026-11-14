@@ -5,6 +5,37 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+## Fase 4 · Cooperativo 1-4 (en curso)
+
+Versión propuesta: **0.7.0** (rama `feat/f4-cooperativo`, 2026-11-13). Decisiones: ADR 0015. Contrato de red: `docs/MULTIPLAYER.md`.
+
+### Añadido
+
+#### `@payload/shared`
+- Roles de tripulación en datos (`catalog/roles.json`, `roles.ts`): `ROLE_IDS`, `RoleDef`, `RolePerks`, `Catalog.roles`, `CrewMember.role`, `RunOptions.roles`; `crewId` opcional en `work-incident`, `repair-system` y `evade` para aplicar la ventaja de quien actúa. Sin roles el motor se comporta igual.
+- `Run.hydrate(state)`: espejo de una partida recibida por red.
+- `net.ts`: contrato de red del cooperativo (mensajes, `COOP_LIMITS`, validación, código de sala).
+- Tests `coop.test.ts`; total 197 en 9 archivos.
+
+#### `@payload/game-server`
+- Deja de ser un marcador: servidor autoritativo con Colyseus 0.18. `RoomModel` (lógica pura de sala) y `CrewRoom` (adaptador): sala privada con código de 4 caracteres, lobby con roles, partida compartida a 10 Hz, reconexión con 60 s de gracia, antiabuso del trabajo mantenido, poses y pings.
+- Tests de paridad sala-motor y de red con clientes reales; 18 en 2 archivos.
+
+#### `@payload/client`
+- Cooperativo desde el menú: crear sala o entrar con código, lobby con roles y listo, barra de tripulación en partida, avatares de los compañeros y ping con G.
+- `net/coopSession.ts`, `net/coopStore.ts`, `game/me.ts` (`myCrew`) y `runStore` en modo espejo.
+- Tests `coop.test.ts`; total 126 en 6 archivos.
+
+#### Raíz
+- Scripts `pnpm dev:server` y `pnpm dev:lan`.
+
+### Cambiado
+- El cliente ya no asume un único tripulante (`crew[0]`): lee el suyo con `myCrew`.
+- El menú sustituye el aviso «cooperativo en una fase posterior» por el botón Cooperativo.
+
+### Pendiente
+- Prueba en red local con cuatro equipos, validación independiente y la lista de «Fase 4 — pendiente» de `docs/STATUS.md`.
+
 ## Fase 3 · Economía y progresión
 
 Versión propuesta: **0.6.0** (rama `feat/f3-economia-progresion`, 2026-11-13, sin commitear). Decisiones: ADR 0014.

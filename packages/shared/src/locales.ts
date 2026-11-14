@@ -13,7 +13,7 @@ import type { Locale } from './types';
 function catalogNames(locale: Locale): Record<string, string> {
   const names: Record<string, string> = {};
   const surface = catalog.surface;
-  for (const entry of [...catalog.ships, ...catalog.nodeKinds, ...(surface?.worlds ?? []), ...(surface?.materials ?? []), ...(surface?.tools ?? []), ...(catalog.upgrades ?? [])]) names[entry.id] = entry.name[locale];
+  for (const entry of [...catalog.ships, ...catalog.nodeKinds, ...(surface?.worlds ?? []), ...(surface?.materials ?? []), ...(surface?.tools ?? []), ...(catalog.upgrades ?? []), ...(catalog.roles ?? [])]) names[entry.id] = entry.name[locale];
   return names;
 }
 

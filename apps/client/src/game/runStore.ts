@@ -4,9 +4,12 @@
  *
  * - `getRun()` da el estado VIVO para leerlo por frame sin re-render (escena 3D).
  * - `useGame().hud` es una copia que React recibe a ~10 Hz o cuando hay eventos.
+ * - En cooperativo (fase 4) la `Run` local es un ESPEJO de la del servidor: no avanza sola; se hidrata con
+ *   cada estado recibido (`remoteState`) y las acciones se validan aquí y se envían (`enterRemote`).
  */
 import { create } from 'zustand';
 import { createRun, type ActionResult, type EventTone, type MessageRef, type Run, type RunAction, type RunEvent, type RunState } from '@payload/shared';
+import { getLocalCrewId, setLocalCrewId } from './me';
 import { audio } from '../audio/audioEngine';
 import { cue } from '../audio/cues';
 import { sfxForRunEvent } from '../audio/soundLogic';
@@ -71,6 +74,26 @@ export function shakeForEvent(e: Pick<RunEvent, 'type' | 'subtype' | 'message'>)
 
 let run: Run | null = null;
 let hudClockS = 0;
+
+/** Enlace con la sala en cooperativo (null = solitario). Lo pone la sesión de red (`net/coopSession`). */
+export interface RemoteLink {
+  /** Mi tripulante en la partida de la sala. */
+  crewId: number;
+  /** Envía una acción ya validada aquí contra el último estado del servidor. */
+  send: (action: RunAction) => void;
+  /** Abandona la sala (al volver al menú). */
+  leave: () => void;
+}
+let remote: (RemoteLink & { last: RunState }) | null = null;
+
+export const isRemote = (): boolean => remote !== null;
+
+/** Eventos de OTRO tripulante que son solo suyos (su traje, su esclusa, su mochila): ni suenan ni avisan aquí. */
+const PERSONAL_EVENTS: ReadonlySet<RunEvent['type']> = new Set(['suit-o2', 'suit-damaged', 'airlock', 'material-collected', 'tool-placed']);
+const isOthersPersonal = (e: RunEvent): boolean => {
+  const mine = getLocalCrewId();
+  return mine !== null && e.crewId !== undefined && e.crewId !== mine && PERSONAL_EVENTS.has(e.type);
+};
 let toastSeq = 0;
 
 export const getRun = (): Run | null => run;
@@ -110,6 +133,16 @@ interface GameState {
   newBest: boolean;
   startRun: (seed?: number) => void;
   toMenu: () => void;
+  /** Cooperativo: empieza a reflejar la partida de la sala con su primer estado. */
+  enterRemote: (state: RunState, link: RemoteLink) => void;
+  /** Cooperativo: estado nuevo del servidor. */
+  remoteState: (state: RunState) => void;
+  /** Cooperativo: eventos del motor del servidor (sonidos, avisos, sacudidas). */
+  remoteEvents: (events: RunEvent[]) => void;
+  /** Cooperativo: el servidor rechazó una acción que aquí parecía válida. */
+  remoteReject: (reason: MessageRef) => void;
+  /** Cooperativo: deja de reflejar (la sala volvió al lobby o se perdió la conexión). */
+  exitRemote: () => void;
   /** Avanza la partida `dt` segundos reales (lo llama la escena cada frame). */
   tick: (dt: number) => void;
   /** Acción del jugador. Con `quiet`, un rechazo no genera aviso (acciones mantenidas por frame). */
@@ -126,9 +159,15 @@ export const useGame = create<GameState>((set, get) => {
   /** Reparte los eventos pendientes del motor y refresca la copia de la interfaz. */
   const flush = (force: boolean): void => {
     if (!run) return;
-    const events = run.takeEvents();
+    dispatch(run.takeEvents(), force);
+  };
+
+  /** Reparte eventos del motor (locales o del servidor) y, si hay algo nuevo, refresca la copia de la interfaz. */
+  const dispatch = (events: RunEvent[], force: boolean): void => {
+    if (!run) return;
     let toasts = get().toasts;
     for (const e of events) {
+      if (isOthersPersonal(e)) continue;
       const sfx = sfxForRunEvent(e);
       if (sfx) cue(sfx);
       if (e.type === 'arrived' || e.type === 'lost') audio.stopLoop('roar', 1.2);
@@ -147,7 +186,8 @@ export const useGame = create<GameState>((set, get) => {
       }
     }
     if (!force && events.length === 0) return;
-    const state = run.snapshot();
+    // En sala, el último estado del servidor ya es una copia propia: no hace falta clonarlo otra vez.
+    const state = remote ? remote.last : run.snapshot();
     const patch: Partial<GameState> = { hud: state, toasts };
     const ended = events.some((e) => e.type === 'lost' || e.type === 'sector-cleared');
     if (ended) {
@@ -169,6 +209,7 @@ export const useGame = create<GameState>((set, get) => {
     best: loadBest(),
     newBest: false,
     startRun: (seed = randomSeed()) => {
+      if (remote) return; // en sala, la partida la empieza el servidor
       audio.stopLoop('roar', 0.2);
       stopSurfaceLoops(0.2);
       shipSpawn.at = null;
@@ -181,6 +222,10 @@ export const useGame = create<GameState>((set, get) => {
       set({ screen: 'game', runId: get().runId + 1, hud: run.snapshot(), toasts: [], newBest: false });
     },
     toMenu: () => {
+      const link = remote;
+      remote = null;
+      setLocalCrewId(null);
+      link?.leave();
       audio.stopLoop('roar', 0.4);
       stopSurfaceLoops(0.4);
       fx.shake = 0;
@@ -190,8 +235,54 @@ export const useGame = create<GameState>((set, get) => {
       useUi.getState().setPrompt(null);
       set({ screen: 'menu', hud: null, toasts: [] });
     },
+    enterRemote: (state, link) => {
+      audio.stopLoop('roar', 0.2);
+      stopSurfaceLoops(0.2);
+      shipSpawn.at = null;
+      useUi.getState().setDescentView(state.phase === 'landing');
+      useUi.getState().setPrompt(null);
+      useUi.getState().setOverlay(null);
+      // Misma semilla, tripulación y roles que el servidor: las consultas (rutas, precios, oferta) dan lo mismo.
+      run = createRun({ seed: state.seed, crewSize: state.crew.length, roles: state.crew.map((c) => c.role ?? null) });
+      run.hydrate(state);
+      remote = { ...link, last: state };
+      setLocalCrewId(link.crewId);
+      hudClockS = 0;
+      fx.shake = 0;
+      set({ screen: 'game', runId: get().runId + 1, hud: state, toasts: [], newBest: false });
+    },
+    remoteState: (state) => {
+      if (!run || !remote) return;
+      remote.last = state;
+      run.hydrate(state);
+      set({ hud: state });
+    },
+    remoteEvents: (events) => {
+      if (!run || !remote) return;
+      dispatch(events, false);
+    },
+    remoteReject: (reason) => {
+      if (!remote) return;
+      set({ toasts: pushToast('warn', reason) });
+      if (reason.key === 'reject.noCredits') cue('noCredits');
+    },
+    exitRemote: () => {
+      if (!remote) return;
+      remote = null;
+      setLocalCrewId(null);
+      audio.stopLoop('roar', 0.4);
+      stopSurfaceLoops(0.4);
+      fx.shake = 0;
+      run = null;
+      useUi.getState().setDescentView(false);
+      useUi.getState().setOverlay(null);
+      useUi.getState().setPrompt(null);
+      set({ screen: 'menu', hud: null, toasts: [] });
+    },
     tick: (dt) => {
       if (!run) return;
+      // En sala el tiempo lo lleva el servidor (y no hay pausa): aquí no se avanza nada.
+      if (remote) return;
       const overlay = useUi.getState().overlay;
       if (overlay === 'pause' || overlay === 'settings' || overlay === 'credits') return;
       run.step(Math.min(dt, 0.25));
@@ -202,6 +293,19 @@ export const useGame = create<GameState>((set, get) => {
     },
     act: (action, quiet = false) => {
       if (!run) return { ok: false, reason: { key: 'reject.runOver' } };
+      if (remote) {
+        // Se valida en el espejo con mi tripulante (como hará el servidor) y se deshace: el estado solo cambia
+        // cuando lo dice el servidor. Así la respuesta es inmediata y nada parpadea.
+        const result = run.apply({ ...action, crewId: remote.crewId } as RunAction);
+        run.takeEvents();
+        run.hydrate(remote.last);
+        if (result.ok) remote.send(action);
+        else if (!quiet) {
+          set({ toasts: pushToast('warn', result.reason) });
+          if (result.reason.key === 'reject.noCredits') cue('noCredits');
+        }
+        return result;
+      }
       const result = run.apply(action);
       if (!result.ok && !quiet) {
         set({ toasts: pushToast('warn', result.reason) });

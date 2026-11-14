@@ -20,7 +20,7 @@ archivo, el `CLAUDE.md` del paquete que vas a tocar y `docs/STATUS.md` (estado a
 | 1 · Viaje y nave (en solitario) | Mapa estelar, saltos, combustible, interior caminable 1ª/3ª persona, sistemas, averías en tiempo real, permadeath | Implementada · pendiente de validación independiente y de prueba con jugadores (ver `docs/phases/fase-1.md`) |
 | 2 · Exploración de superficie | Descenso y aterrizaje, jetpack, oxígeno personal, recolección | Implementada (rama `feat/f2-superficie`) · pendiente de validación independiente final y de prueba con jugadores (ver `docs/phases/fase-2.md`) |
 | 3 · Economía y progresión | Créditos, venta en estaciones, suministros y 11 mejoras de nave y equipo | Implementada (rama `feat/f3-economia-progresion`) · validada con observaciones · hito pendiente de prueba con jugadores (ver `docs/phases/fase-3.md`) |
-| 4 · Cooperativo 1-4 | Servidor autoritativo, roles (piloto, ingeniero, gestor de recursos, explorador) | Pendiente (`apps/game-server` es un marcador) |
+| 4 · Cooperativo 1-4 | Servidor autoritativo, roles (piloto, ingeniero, gestor de recursos, explorador) | En curso (rama `feat/f4-cooperativo`): servidor, roles, sala con código, avatares y pings implementados · sin validación independiente ni prueba en red local (ver `docs/phases/fase-4.md` y `docs/MULTIPLAYER.md`) |
 | 5 · Pulido y lanzamiento | Rankings, mando/táctil, E2E, despliegue | Pendiente (`apps/api` es un marcador) |
 
 Plan: `docs/plan/plan-tripulacion-de-exploracion.md`. Diseño: `docs/GDD.md`. Más documentación:
@@ -32,7 +32,7 @@ Plan: `docs/plan/plan-tripulacion-de-exploracion.md`. Diseño: `docs/GDD.md`. M�
 payload/
 ├─ apps/
 │  ├─ client/        # React 19 + R3F v9 + Drei + Rapier + Vite (escenas, interfaz, audio, i18n)
-│  ├─ game-server/   # marcador: servidor del cooperativo (fase 4)
+│  ├─ game-server/   # servidor autoritativo del cooperativo (Colyseus; corre el motor de shared)
 │  └─ api/           # marcador: rankings y persistencia (fase 5)
 ├─ packages/
 │  └─ shared/        # motor del juego: tipos, generador de sectores, partida (TS puro, con tests)
@@ -51,6 +51,8 @@ payload/
 ```bash
 pnpm install          # Node >= 22 (ver .nvmrc), pnpm 11
 pnpm dev              # cliente en http://localhost:5173  (?play=1&seed=7 entra directo a la partida; &surface=1 a la superficie)
+pnpm dev:server       # servidor del cooperativo en ws://localhost:2567 (contrato: docs/MULTIPLAYER.md)
+pnpm dev:lan          # cliente abierto a la red local (para jugar desde otros equipos)
 pnpm test             # tests de todos los paquetes (Vitest)
 pnpm typecheck        # tsc --noEmit en todos los paquetes
 pnpm build            # build de producción

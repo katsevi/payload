@@ -4,12 +4,15 @@ import { useAudioDirector } from '../audio/useAudioDirector';
 import { reachStation, reachSurface } from '../game/debug';
 import { getRun, useGame } from '../game/runStore';
 import { sceneFor } from '../game/surfaceRules';
+import { useCoop } from '../net/coopStore';
 import { useUi } from '../state/ui';
+import { CoopScreen, CrewBar } from '../ui/CoopScreen';
 import { Hud } from '../ui/Hud';
 import { PowerPanel } from '../ui/PowerPanel';
 import { CreditsScreen, EndScreen, HelpOverlay, MenuScreen, PauseScreen, SettingsPanel } from '../ui/Screens';
 import { StarMap } from '../ui/StarMap';
 import { StationTerminal } from '../ui/StationTerminal';
+import { myCrew } from '../game/me';
 
 // Escenas 3D con carga diferida: three/rapier no bloquean el primer pintado.
 const ShipScene = lazy(() => import('../scenes/ShipScene').then((m) => ({ default: m.ShipScene })));
@@ -50,8 +53,10 @@ export function App() {
   const runId = useGame((s) => s.runId);
   const phase = useGame((s) => s.hud?.phase);
   const overlay = useUi((s) => s.overlay);
-  const crewAt = useGame((s) => s.hud?.crew[0]?.location);
+  const crewAt = useGame((s) => myCrew(s.hud)?.location);
   const descentView = useUi((s) => s.descentView);
+  // Cooperativo: la sala se pinta sobre el menú mientras se está en ella (o hay un error que enseñar).
+  const coopOpen = useCoop((s) => s.lobby !== null || s.error !== null);
   const ended = phase === 'lost' || phase === 'won';
   const scene = sceneFor(phase, crewAt, descentView);
   const surfaceMode = crewAt === 'eva' ? 'eva' : 'descent';
@@ -93,6 +98,8 @@ export function App() {
       </Suspense>
 
       {screen === 'menu' && <MenuScreen />}
+      {screen === 'menu' && (overlay === 'coop' || coopOpen) && <CoopScreen />}
+      {screen === 'game' && <CrewBar />}
       {screen === 'game' && <Hud />}
       {screen === 'game' && ended && <EndScreen />}
 

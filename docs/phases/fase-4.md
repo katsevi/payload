@@ -1,10 +1,30 @@
 # Fase 4 · Cooperativo 1-4 con roles
 
 Plan § 3: *dinámica cooperativa y roles de la tripulación*. Diseño previsto: `docs/GDD.md` § 8 y § 11.
-No iniciada: `apps/game-server` es un marcador. La fase 3 (economía) está implementada, así que el cooperativo hereda créditos, mejoras y terminal de estación.
+**En curso** (rama `feat/f4-cooperativo`, 2026-11-13): servidor, roles, sala con código, capa de sesión del cliente, avatares y pings están implementados; contrato en `docs/MULTIPLAYER.md` y decisiones en ADR 0015. Las casillas las marca quien valide la fase. Falta la validación independiente y el hito con cuatro equipos; lo pendiente está en `docs/STATUS.md`. La fase 3 (economía) está implementada, así que el cooperativo hereda créditos, mejoras y terminal de estación.
 
 **Hito:** cuatro personas en cuatro equipos distintos (red local, no solo `localhost`) completan un
 sector comunicándose, sin desincronizaciones.
+
+## Estado de implementación (2026-11-13)
+
+Resumen de quien implementa; las casillas de «Alcance previsto» las marca quien valide.
+
+| Punto del alcance | Estado |
+| --- | --- |
+| Sala autoritativa de hasta 4 que ejecuta `createRun` y aplica las `RunAction` | Implementado (`RoomModel` + `CrewRoom`) |
+| Estado sincronizado: `RunState` + posición y orientación de cada tripulante | Implementado (estado entero a 10 Hz + poses) |
+| Test de paridad sala-motor | Implementado (`roomModel.test.ts`) |
+| Reconexión con token y tolerancia temporal | Implementado con la pestaña abierta (60 s); **falta** reanudar tras recargar la página |
+| Varios tripulantes en el estado e interacción simultánea | Implementado (el motor ya lo admitía; el servidor impone quién actúa) |
+| Roles asimétricos con ventajas pasivas, sin bloqueos | Implementado para piloto, ingeniero y explorador; el gestor de recursos **no tiene ventaja** (decisión abierta) |
+| Capa de sesión local/sala y avatares en la nave y en la superficie | Implementado; avatares provisionales y **sin ver en la superficie** |
+| Entrada con código de sala privada y selección de rol | Implementado |
+| Pings visuales y sonoros en el espacio 3D | **Parcial:** solo «mirad aquí» (G), visual; faltan peligro y ayuda en la interfaz y el sonido |
+
+**Falta para cerrar la fase:** el hito (cuatro equipos en red local), la validación independiente, jugar la
+superficie en sala, modo espectador para quien muere, qué hacer con el tripulante de quien se va y completar
+los pings. Detalle en `docs/STATUS.md` («Fase 4 — pendiente»).
 
 ## Punto de partida
 

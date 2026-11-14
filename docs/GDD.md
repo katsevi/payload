@@ -4,7 +4,7 @@ Diseño del juego vigente desde el 2026-11-09. Plan de partida: `docs/plan/plan-
 Por qué se rehízo el juego: `docs/adr/0011-reinicio-tripulacion-de-exploracion.md`. El GDD del simulador
 anterior está en `docs/archivo/v0.3-simulador/GDD.md`.
 
-Leyenda: **[F1]** existe desde la fase 1 · **[F2]** existe desde la fase 2 (superficie) · **[F3] [F4] [F5]** diseño previsto para esa fase.
+Leyenda: **[F1]** existe desde la fase 1 · **[F2]** existe desde la fase 2 (superficie) · **[F3]** existe desde la fase 3 (economía) · **[F4]** en curso (cooperativo; ver `docs/MULTIPLAYER.md`) · **[F5]** diseño previsto.
 
 ## 1. Concepto
 
@@ -226,7 +226,9 @@ Desde un destino atracado que sea planeta, luna o campo de asteroides, el piloto
   carga y las mejoras pesan: cada salto gasta más combustible. El servicio gratuito de la fase 1 se reduce a una ayuda
   de emergencia, una vez por estación. Los créditos no puntúan. Sin mercado dinámico, sin cambio visual de la nave y
   sin progreso entre partidas.
-- **[F4] Cooperativo 1-4.** Servidor autoritativo que corre el mismo motor (ADR 0009), roles, voz o
+- **[F4] Cooperativo 1-4 (en curso; ADR 0015, `docs/MULTIPLAYER.md`).** Existe: sala privada con código, un tripulante por
+  jugador, roles como ventajas pasivas (piloto, ingeniero, explorador; el gestor aún sin ventaja), avatares y ping. Sin voz
+  integrada ni dificultad escalada (descartado en `docs/phases/fase-4.md`). Diseño original: servidor autoritativo que corre el mismo motor (ADR 0009), roles, voz o
   pings, y dificultad escalada con el número de jugadores.
 - **[F5] Pulido.** Rankings, mando y táctil, despliegue, pruebas E2E.
 

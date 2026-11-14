@@ -21,10 +21,11 @@ import {
   sellUnitPrice, stationOffer, upgradePrice, upgradesMassKg,
 } from './economy';
 import { generateSector, getNode, nodeDistanceLy } from './galaxy';
+import { crewCarryCapacityKg, crewJetpackDrainPctPerS, crewPerks } from './roles';
 import { createRng, deriveSeed, type Rng } from './rng';
 import { descentStep, generateSurface, getNodeWorld, landingSeed, lodeBonusApplies, simulateDescent, streakMultiplier, suitRefill, takeOffFuel } from './surface';
 import {
-  HAZARD_KINDS, INCIDENT_KINDS, SUPPLY_IDS, SYSTEM_IDS, THROTTLE_IDS,
+  HAZARD_KINDS, INCIDENT_KINDS, ROLE_IDS, SUPPLY_IDS, SYSTEM_IDS, THROTTLE_IDS,
   type ActionResult, type Catalog, type CrewMember, type EventTone, type HazardKind, type Incident, type IncidentKind, type JumpEstimate,
   type LandingEstimate, type MessageRef, type PlannedHazard, type PoweredSystemId, type Run, type RunAction, type RunEvent, type RunEventType,
   type RunOptions, type RunState, type RunStats, type ShipDef, type ShipState, type SurfaceState, type SystemId, type SystemState,
@@ -160,7 +161,10 @@ export function createRun(options: RunOptions): Run {
     warnings: [],
     transit: null,
     landedIds: [],
-    crew: Array.from({ length: crewSize }, (_, i) => newCrewMember(i + 1)),
+    crew: Array.from({ length: crewSize }, (_, i) => {
+      const role = options.roles?.[i];
+      return role && ROLE_IDS.includes(role) ? { ...newCrewMember(i + 1), role } : newCrewMember(i + 1);
+    }),
     surface: null,
     stats: {
       timeS: 0, jumps: 0, distanceLy: 0, sectorsCleared: 0, incidentsFixed: 0, impactsTaken: 0, impactsEvaded: 0, kitsUsed: 0,
@@ -684,7 +688,8 @@ export function createRun(options: RunOptions): Run {
   function pickUp(m: CrewMember, t: PlacedTool): number {
     const mat = getMaterial(t.materialId, cat);
     const deposit = state.surface!.deposits.find((d) => d.id === t.depositId)!;
-    const room = Math.floor((srules.suit.carryCapacityKg - m.carriedKg + 1e-9) / mat.massKg);
+    const capacityKg = crewCarryCapacityKg(srules, m, cat);
+    const room = Math.floor((capacityKg - m.carriedKg + 1e-9) / mat.massKg);
     const n = Math.max(0, Math.min(t.ready, room));
     // Filón completo: la última veta vale más si este tripulante agotó las demás en esta salida.
     const lodeMult = lodeBonusApplies(state.surface!.deposits, deposit, m) ? (srules.lodes?.completeMult ?? 1) : 1;
@@ -706,7 +711,7 @@ export function createRun(options: RunOptions): Run {
     // Veta de filón agotada por este tripulante (cuenta para completar el filón en esta salida).
     if (deposit.lodeId !== undefined && deposit.units <= 0 && t.ready <= 0 && !m.lodeVeinsDone.includes(deposit.id)) m.lodeVeinsDone.push(deposit.id);
     if (n > 0) {
-      emit('material-collected', 'ok', 'event.pickedUp', { units: n, material: mat.id, kg: Math.round(m.carriedKg), capacity: srules.suit.carryCapacityKg }, lodeMult > 1 ? { crewId: m.id, subtype: 'lode' } : { crewId: m.id });
+      emit('material-collected', 'ok', 'event.pickedUp', { units: n, material: mat.id, kg: Math.round(m.carriedKg), capacity: Math.round(capacityKg) }, lodeMult > 1 ? { crewId: m.id, subtype: 'lode' } : { crewId: m.id });
     }
     return n;
   }
@@ -930,6 +935,13 @@ export function createRun(options: RunOptions): Run {
     if (fuelGain > 0 || sparesGain > 0) emit('cargo-stored', 'ok', 'event.cargoProcessed', { fuel: Math.round(fuelGain), spares: sparesGain }, { crewId: m.id, subtype: 'processed' });
   }
 
+  /** Fase 4: ritmo de trabajo de quien repara (ventaja del ingeniero si actúa él, vivo y a bordo). */
+  function workMult(crewId: number | undefined): number {
+    if (crewId === undefined) return 1;
+    const m = state.crew.find((c) => c.id === crewId && c.alive && c.location === 'ship');
+    return crewPerks(m, cat).repairSpeedMult ?? 1;
+  }
+
   function findMember(crewId: number | undefined): CrewMember | null {
     const m = crewId === undefined ? state.crew.find((c) => c.alive) : state.crew.find((c) => c.id === crewId);
     return m && m.alive ? m : null;
@@ -1057,7 +1069,7 @@ export function createRun(options: RunOptions): Run {
         if (m.location !== 'eva') return reject('reject.notOutside');
         if (m.jetpackPct <= 0) return reject('reject.jetpackEmpty');
         const seconds = clamp(Number(action.seconds) || 0, 0, MAX_WORK_SECONDS);
-        m.jetpackPct = Math.max(0, m.jetpackPct - seconds * srules.jetpack.drainPctPerS);
+        m.jetpackPct = Math.max(0, m.jetpackPct - seconds * crewJetpackDrainPctPerS(srules, m, cat));
         return OK;
       }
       case 'fall-impact': {
@@ -1271,7 +1283,7 @@ export function createRun(options: RunOptions): Run {
         const inc = state.incidents.find((i) => i.id === action.incidentId);
         if (!inc) return reject('reject.noIncident');
         if (!crewAboard()) return reject('reject.crewOutside');
-        const seconds = clamp(Number(action.seconds) || 0, 0, MAX_WORK_SECONDS);
+        const seconds = clamp(Number(action.seconds) || 0, 0, MAX_WORK_SECONDS) * workMult(action.crewId);
         inc.progress += seconds / rules.incidents[inc.kind].repairS;
         if (inc.progress >= 1) {
           state.incidents.splice(state.incidents.indexOf(inc), 1);
@@ -1286,7 +1298,7 @@ export function createRun(options: RunOptions): Run {
         if (s.healthPct >= 100) return reject('reject.noDamage');
         if (shipState.spares < 1) return reject('reject.noSpares');
         if (!crewAboard()) return reject('reject.crewOutside');
-        const seconds = clamp(Number(action.seconds) || 0, 0, MAX_WORK_SECONDS);
+        const seconds = clamp(Number(action.seconds) || 0, 0, MAX_WORK_SECONDS) * workMult(action.crewId);
         s.repairProgress += seconds / rules.repair.kitRepairS;
         if (s.repairProgress >= 1) {
           s.repairProgress = 0;
@@ -1305,11 +1317,15 @@ export function createRun(options: RunOptions): Run {
         const hazard = warning && transit.hazards.find((h) => h.id === warning.hazardId);
         if (!hazard) return reject('reject.noWarning');
         if (!sys.engines.online) return reject('reject.enginesDown');
-        if (shipState.fuel < ship.evadeFuel) return reject('reject.notEnoughFuel');
-        shipState.fuel -= ship.evadeFuel;
+        // Fase 4: la ventaja del piloto solo cuenta si la maniobra la hace él (y está vivo y a bordo).
+        const pilot = action.crewId === undefined ? null : state.crew.find((c) => c.id === action.crewId && c.alive && c.location === 'ship');
+        const perks = crewPerks(pilot, cat);
+        const evadeFuel = ship.evadeFuel * (perks.evadeFuelMult ?? 1);
+        if (shipState.fuel < evadeFuel) return reject('reject.notEnoughFuel');
+        shipState.fuel -= evadeFuel;
         hazard.evaded = true;
         // Esquiva por habilidad: el cliente informa los roces del minijuego; el motor cobra.
-        if (action.grazes !== undefined && rules.impact.evade) hazard.evadeDamageFrac = evadeDamageFraction(rules, Number(action.grazes) || 0);
+        if (action.grazes !== undefined && rules.impact.evade) hazard.evadeDamageFrac = evadeDamageFraction(rules, Number(action.grazes) || 0) * (perks.evadeDamageMult ?? 1);
         return OK;
       }
       case 'service': {
@@ -1381,6 +1397,20 @@ export function createRun(options: RunOptions): Run {
     },
     snapshot() {
       return JSON.parse(JSON.stringify(state)) as RunState;
+    },
+    hydrate(next) {
+      const copy = JSON.parse(JSON.stringify(next)) as RunState;
+      // El motor guarda referencias a `state.ship`, sus sistemas y `state.upgrades`: se rellenan en el sitio.
+      const { ship: nextShip, upgrades: nextUpgrades, ...rest } = copy;
+      const { systems: nextSystems, ...shipRest } = nextShip;
+      Object.assign(state, rest);
+      Object.assign(shipState, shipRest);
+      for (const idSys of SYSTEM_IDS) Object.assign(sys[idSys], nextSystems[idSys]);
+      for (const k of Object.keys(upgrades)) delete upgrades[k];
+      Object.assign(upgrades, nextUpgrades);
+      ship = effectiveShip(baseShip, upgrades, cat);
+      srules = effectiveSurfaceRules(surfaceCat.rules, upgrades, cat);
+      pending = [];
     },
   };
 }

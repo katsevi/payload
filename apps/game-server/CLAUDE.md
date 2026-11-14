@@ -1,34 +1,46 @@
-# @payload/game-server — marcador de la fase 4
+# @payload/game-server — servidor del cooperativo (fase 4)
 
-**Hoy no tiene código** (los scripts `typecheck`/`test`/`build` solo hacen `echo`). El servidor Colyseus
-de la versión 0.3.0 se retiró con el reinicio del juego (ADR 0011): sincronizaba el diseño por turnos de
-un satélite, no una nave en tiempo real. No lo rellenes hasta que toque la fase 4 (`docs/phases/fase-4.md`).
+Servidor autoritativo para 1-4 jugadores que corre **el mismo motor** que el cliente (`@payload/shared`).
+Colyseus 0.18 sobre WebSocket, un solo proceso. Contrato de red: `docs/MULTIPLAYER.md`. Decisiones:
+ADR 0015 (y 0009, 0010, 0012). Lee antes el `CLAUDE.md` raíz y el de `packages/shared`.
 
-## Qué irá aquí
+## Estructura (`src/`)
 
-Servidor autoritativo para 1-4 jugadores que corre **el mismo motor** que el cliente:
+| Archivo | Contenido |
+| --- | --- |
+| `roomModel.ts` | **Toda la lógica**, pura: sin Colyseus ni reloj (el tiempo entra como `nowS` y `dt`). Lobby, roles, la `Run`, quién actúa, presupuesto de trabajo, caídas, poses y pings |
+| `CrewRoom.ts` | Adaptador de Colyseus: mensajes, entrada, caída, reconexión, salida y el tick de 10 Hz. Código de sala = `roomId` |
+| `server.ts` | `createGameServer({ port })`: único sitio que construye el `Server` de Colyseus |
+| `index.ts` | Arranque del proceso (`PORT`, `HOST`, `PAYLOAD_ALLOW_SEED`) |
+| `__tests__/roomModel.test.ts` | Lobby, paridad con el motor, antiabuso, caídas, vuelta al lobby |
+| `__tests__/network.test.ts` | Servidor real en un puerto libre y clientes `@colyseus/sdk` reales |
 
-- Una sala crea `createRun({ seed })`, llama a `run.step(dt)` con su reloj y aplica con `run.apply` las
-  `RunAction` que envía cada cliente. Los clientes no simulan por su cuenta: reflejan el estado.
-- Estado sincronizado: `RunState` más la posición y el puesto de cada tripulante.
-- Roles (piloto, ingeniero, gestor de recursos, explorador) y agrupación con menos de 4 jugadores.
+## Reglas
 
-## Decisiones que siguen vigentes
-
-- ADR 0009: servidor autoritativo con Colyseus. ADR 0010: un proceso, sin Redis, hasta que haya varias instancias.
-- Test obligatorio de paridad: la sala produce el mismo `RunState` que el motor con las mismas acciones
-  en los mismos instantes.
-- No se duplican tipos ni fórmulas: todo se importa de `@payload/shared`. Cambios en `types.ts`: solo aditivos o ADR.
+- **La lógica va en `RoomModel`, no en `CrewRoom`.** Si algo se puede probar sin red, se prueba sin red.
+- **No se duplican tipos ni fórmulas:** todo sale de `@payload/shared`. Los mensajes y su validación
+  están en `packages/shared/src/net.ts`; si añades un mensaje, añádelo allí y en `docs/MULTIPLAYER.md`.
+- **Paridad obligatoria:** la sala produce el mismo `RunState` y los mismos eventos que el motor con las
+  mismas acciones en los mismos pasos. Un cambio que la rompa no entra.
+- **Lo que llega de la red no es de fiar:** se valida la forma (`parse*`) y el motor valida el fondo.
+  Ninguna entrada puede tirar la sala.
+- **El servidor pone el `crewId`** de quien envía. No confíes en el que venga en la acción.
 - Mensajes al jugador como `MessageRef`; sin texto en el código.
+- Aquí sí se puede usar `Math.random()` y el reloj (semilla de la partida, código de sala), pero nunca
+  dentro de lo que decide el resultado de la partida: eso es del motor.
 
-## Referencia de la versión anterior
-
-Sirve para reconexión con gracia, límites anti-abuso, esquema incremental y pruebas con clientes reales:
+## Comandos
 
 ```bash
-git show v0.3.0-simulador:apps/game-server/src/MissionRoom.ts
-git show v0.3.0-simulador:apps/game-server/src/roomModel.ts
+pnpm dev:server                              # desde la raíz: tsx watch, ws://localhost:2567
+pnpm --filter @payload/game-server test
+pnpm --filter @payload/game-server typecheck
+pnpm --filter @payload/game-server build     # bundle ESM en dist/index.js (esbuild)
+pnpm --filter @payload/game-server start     # node dist/index.js
 ```
 
-Contrato antiguo: `docs/archivo/v0.3-simulador/MULTIPLAYER.md`. Antes de implementar, escribe el contrato
-nuevo en `docs/MULTIPLAYER.md`.
+## Pendiente conocido
+
+- Un jugador que se va con su tripulante fuera de la nave bloquea el despegue hasta que se le acaba el oxígeno.
+- No hay reanudación tras recargar la página (el SDK reconecta solo si la pestaña sigue abierta).
+- Sin Redis ni varias instancias (ADR 0010). Sin despliegue ni TLS (fase 5).
