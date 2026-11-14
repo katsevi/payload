@@ -12,3 +12,6 @@ test-results/
 # ajustes locales de Claude Code (personales, no se versionan)
 .claude/settings.local.json
 CLAUDE.local.md
+
+# Caché de pnpm del build de AWS Amplify
+.pnpm-store/

@@ -1,0 +1,26 @@
+# Build de producción del cliente en AWS Amplify Hosting.
+# Guía: docs/despliegue-aws.md. Solo publica apps/client (sitio estático);
+# el servidor del cooperativo (fase 6) irá aparte.
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # Node de .nvmrc y pnpm del campo packageManager de package.json.
+        - nvm install "$(cat .nvmrc)"
+        - nvm use "$(cat .nvmrc)"
+        - corepack enable
+        - corepack prepare --activate
+        - pnpm config set store-dir .pnpm-store
+        - pnpm install --frozen-lockfile
+    build:
+      commands:
+        # tsc --noEmit + vite build; @payload/shared se importa desde src, no necesita build propio.
+        - pnpm --filter @payload/client build
+  artifacts:
+    baseDirectory: apps/client/dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - .pnpm-store/**/*

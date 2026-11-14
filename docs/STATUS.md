@@ -365,11 +365,13 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
 - **Mecha Aurora G9:** aplazado (ADR 0012). Decidir en fases posteriores si vuelve como vehículo o se retira del GDD.
 - **Mascota:** no hay. Si vuelve, Rise sigue necesitando autorización de NASA.
 
-## Despliegue (propuesta, sin hacer)
+## Despliegue (preparado, falta conectar AWS)
 
-Nada está desplegado. Propuesta para cuando toque:
+El repo ya trae la configuración de **AWS Amplify Hosting** (`amplify.yml`, `customHttp.yml`) y la guía
+**`docs/despliegue-aws.md`**. El build de producción se probó en local (`vite preview`: menú, misiones y hangar sin
+errores de consola; `dist` ≈ 17 MB con los modelos). **Falta la acción humana:** conectar el repo en la consola de
+Amplify (cuenta de AWS y autorización de GitHub) y crear una alarma de presupuesto. Nada está publicado todavía.
 
-- **Cliente:** sitio estático en AWS Amplify Hosting (o S3 + CloudFront). Build: `pnpm --filter @payload/client build` con Node 22 (salida en `apps/client/dist`). Caché larga (inmutable) para `.glb` y los JS/CSS con hash; caché corta o `no-cache` para `index.html`.
 - **Servidor de la fase 6:** necesitará WebSockets: Lightsail/EC2 o ECS Fargate detrás de un ALB con stickiness (la sala vive en memoria de un proceso).
 - **Licencia:** `programme_erizon.glb` es CC-BY-NC-ND y impide el uso comercial; hay que sustituirlo antes de un despliegue comercial (acción humana 10).
 

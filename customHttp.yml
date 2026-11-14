@@ -1,0 +1,23 @@
+# Cabeceras HTTP de AWS Amplify Hosting (guía: docs/despliegue-aws.md).
+customHeaders:
+  # JS y CSS de Vite llevan hash en el nombre: se pueden cachear para siempre.
+  - pattern: 'assets/**'
+    headers:
+      - key: Cache-Control
+        value: 'public, max-age=31536000, immutable'
+  # Los .glb NO llevan hash: una semana, para que un modelo cambiado llegue a los jugadores.
+  - pattern: 'models/**'
+    headers:
+      - key: Cache-Control
+        value: 'public, max-age=604800'
+  # index.html apunta a los archivos con hash: siempre se revalida.
+  - pattern: 'index.html'
+    headers:
+      - key: Cache-Control
+        value: 'no-cache'
+  - pattern: '**/*'
+    headers:
+      - key: X-Content-Type-Options
+        value: 'nosniff'
+      - key: Referrer-Policy
+        value: 'strict-origin-when-cross-origin'

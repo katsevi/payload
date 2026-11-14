@@ -5,6 +5,9 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+### Despliegue
+- Configuración de AWS Amplify Hosting: `amplify.yml` (Node de `.nvmrc`, pnpm por corepack, build del cliente) y `customHttp.yml` (caché por tipo de archivo y cabeceras de seguridad). Guía en `docs/despliegue-aws.md`.
+
 ## Fase 4 · Diseño de misión y sistema solar
 
 Versión propuesta: **0.7.0** (rama `feat/f4-diseno-de-mision`, 2026-11-14; **fusionada en `main`, PR #6**). Decisiones: ADR 0015 (reto NASA y roadmap) y ADR 0016. Guía de juego: `docs/guias/primera-mision.md`. `pnpm validate` 11/11 con 430 tests (257 shared en 11 archivos + 173 client en 6); partida clásica idéntica bit a bit a la fase 3.
