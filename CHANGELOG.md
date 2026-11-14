@@ -5,7 +5,13 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
-## Fase 5 · Ciencia, datos y ventanas de contacto (primera entrega)
+### Despliegue en producción
+- Servidor del cooperativo publicado en EC2 (Caddy, `wss://18-215-99-217.sslip.io`) y conectado al cliente de Amplify. Script `pnpm --filter @payload/game-server bundle:standalone` (paquete autocontenido) y guía para actualizarlo sin acceso al repo.
+
+### Despliegue del servidor de juego
+- `apps/game-server/deploy/`: servicio systemd (`payload-game.service`), `Caddyfile` (HTTPS automático y proxy de WebSocket) y `update.sh`. `docs/despliegue-aws.md` explica cómo publicar el servidor en AWS Lightsail y conectar el cliente de Amplify con `VITE_GAME_SERVER_URL`; explica también el timeout del cooperativo cuando falta.
+
+## Fase 5 · Ciencia, datos y astronauta articulado (entregas 1-3)
 
 Rama `feat/f5-ciencia-y-datos` (2026-11-14). Decisiones: ADR 0018 (propuesta).
 
@@ -30,6 +36,9 @@ Rama `feat/f5-ciencia-y-datos` (2026-11-14). Decisiones: ADR 0018 (propuesta).
 
 ### Despliegue
 - Configuración de AWS Amplify Hosting: `amplify.yml` (Node de `.nvmrc`, pnpm por corepack, build del cliente) y `customHttp.yml` (caché por tipo de archivo y cabeceras de seguridad). Guía en `docs/despliegue-aws.md`.
+
+### Documentación
+- Planeación de la fase 8 · Cordura de la tripulación (sin código): diseño detallado `docs/diseno/cordura-tripulacion.md`, fuentes NASA `docs/diseno/cordura-fuentes-nasa.md`, ficha `docs/phases/fase-8.md` y ADR 0019 (propuesta). Índices actualizados: README de fases, índice de ADR, STATUS, GDD y CLAUDE.md.
 
 ## Fase 6 · Cooperativo 1-4 (Harry Hernández, integrado en el PR #9)
 

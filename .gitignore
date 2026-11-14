@@ -15,3 +15,6 @@ CLAUDE.local.md
 
 # Caché de pnpm del build de AWS Amplify
 .pnpm-store/
+
+# Paquete autocontenido del servidor de juego (apps/game-server)
+dist-standalone/

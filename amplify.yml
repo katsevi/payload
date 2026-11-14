@@ -1,6 +1,7 @@
 # Build de producción del cliente en AWS Amplify Hosting.
-# Guía: docs/despliegue-aws.md. Solo publica apps/client (sitio estático);
-# el servidor del cooperativo (fase 6) irá aparte.
+# Guía: docs/despliegue-aws.md. Solo publica apps/client (sitio estático).
+# El servidor del cooperativo va en Lightsail; su dirección entra en el build con la
+# variable de entorno VITE_GAME_SERVER_URL (wss://...), definida en la consola de Amplify.
 version: 1
 frontend:
   phases:
