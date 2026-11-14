@@ -107,7 +107,16 @@
     "upgrade": "Installed: $t(catalog.{{upgrade}}) level {{level}} · −{{credits}} credits",
     "sectorReward": "Sector contract paid: +{{credits}} credits",
     "arrivedBody": "Arrived at $t(catalog.{{body}})",
-    "jumpBody": "Course set for $t(catalog.{{body}}) · distance {{distanceLy}}"
+    "jumpBody": "Course set for $t(catalog.{{body}}) · distance {{distanceLy}}",
+    "observationDone": "Observation of $t(catalog.{{body}}) complete",
+    "observationDoneSurface": "Surface observation of $t(catalog.{{body}}) complete",
+    "storageFull": "Storage full: new data is being lost",
+    "contactStart": "Contact with Earth: downlinking {{mb}} MB",
+    "objectiveMet": "Objective met: {{science}} science on Earth",
+    "missionSuccess": "Mission accomplished: {{science}}/{{required}} science delivered",
+    "missionPartial": "Mission over without the objective: {{science}}/{{required}} science",
+    "overheat": "Overheating: {{demandKw}} kW but the radiators only shed {{heatKw}} kW",
+    "batteryEmpty": "Battery drained: overload now damages the reactor"
   },
   "loss": {
     "hull": "The ship broke apart",
@@ -164,7 +173,8 @@
     "nothingToSell": "No cargo to sell",
     "supplyFull": "Already at maximum",
     "notOffered": "This station does not offer that upgrade",
-    "upgradeMaxed": "That upgrade is already maxed"
+    "upgradeMaxed": "That upgrade is already maxed",
+    "missionOver": "The mission is over"
   },
   "design": {
     "go": "Go: ready to launch",
@@ -264,7 +274,45 @@
       "thermal": "It makes {{demandKw}} kW of heat and sheds {{heatKw}} kW",
       "radiation": "$t(catalog.{{zone}}) radiation calls for a hardened computer",
       "no-shielding": "Without shields every impact goes straight to the hull",
-      "all-clear": "All clear: healthy margins"
+      "all-clear": "All clear: healthy margins",
+      "guided-ship": "Guided mission: the ship and launcher are already chosen",
+      "guided-instrument": "Guided mission: $t(catalog.{{instrument}}) does not fit this CubeSat"
+    }
+  },
+  "report": {
+    "outcome": {
+      "success": "Mission accomplished: {{science}} of {{required}} science",
+      "partial": "Mission incomplete: {{science}} of {{required}} science",
+      "lost": "Ship lost: {{science}} of {{required}} science reached Earth",
+      "in-progress": "Mission in progress: {{science}} of {{required}} science"
+    },
+    "target": {
+      "ok": "Reached $t(catalog.{{body}})",
+      "bad": "Never reached $t(catalog.{{body}})"
+    },
+    "power": {
+      "ok": "The instruments had power",
+      "bad": "Instruments idle {{seconds}} s without navigation"
+    },
+    "storage": {
+      "ok": "No data was lost",
+      "bad": "Storage full: {{mb}} MB lost ({{science}} science)"
+    },
+    "link": {
+      "ok": "Link with Earth: {{mb}} MB delivered",
+      "outOfRange": "Out of antenna range for {{seconds}} s",
+      "aboard": "{{science}} science was lost with the ship, never downlinked"
+    },
+    "science": {
+      "ok": "Science delivered: {{science}} of {{required}}",
+      "bad": "Not enough science: {{science}} of {{required}}"
+    },
+    "survival": {
+      "ok": "The ship made it home",
+      "hull": "The hull gave way",
+      "oxygen": "The ship ran out of oxygen",
+      "stranded": "The ship was stranded",
+      "crew": "The whole crew died"
     }
   }
 }

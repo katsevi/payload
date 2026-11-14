@@ -176,7 +176,8 @@ export function playRun(seed: number, options: BotOptions): BotResult {
     checkTarget();
     if (s.phase === 'lost') break;
     if (s.phase === 'won') {
-      if (s.stats.sectorsCleared >= sectors) break;
+      // Fase 5: la misión termina al volver a la Tierra tras el destino (no hay más tramos).
+      if (s.stats.sectorsCleared >= sectors || s.science?.over) break;
       run.apply({ type: 'next-sector' });
     }
     walkLeftS = Math.max(0, walkLeftS - FIXED_STEP_S);
@@ -228,7 +229,8 @@ export function playRun(seed: number, options: BotOptions): BotResult {
         shop(run, skill === 'crew' && options.economyPolicy !== false ? (explore ? EXPLORER_UPGRADES : CREW_UPGRADES) : []);
       }
       planLeftS -= FIXED_STEP_S;
-      const busy = skill === 'crew' && s.incidents.length > 0;
+      // Fase 5: espera atracado a que los instrumentos terminen de observar el cuerpo (la tripulación atenta).
+      const busy = skill === 'crew' && (s.incidents.length > 0 || !!s.science?.observing);
       if (planLeftS <= 0 && !busy) {
         const to = chooseJump(run);
         if (to) {

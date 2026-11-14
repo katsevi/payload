@@ -1,0 +1,135 @@
+{
+  "missionId": "mission-cubesat-guided",
+  "valid": [
+    {
+      "name": "magnetometro-y-dosimetro",
+      "design": {
+        "missionId": "mission-cubesat-guided",
+        "destinationId": "luna",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "thermal-radiator"
+        ],
+        "instrumentIds": [
+          "inst-cubesat-magnetometer",
+          "inst-cubesat-dosimeter"
+        ]
+      }
+    },
+    {
+      "name": "campos-y-camara",
+      "design": {
+        "missionId": "mission-cubesat-guided",
+        "destinationId": "luna",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "thermal-radiator"
+        ],
+        "instrumentIds": [
+          "inst-cubesat-magnetometer",
+          "inst-cubesat-dosimeter",
+          "inst-cubesat-camera"
+        ]
+      }
+    }
+  ],
+  "failing": [
+    {
+      "name": "cambia-la-nave",
+      "cause": "guided-ship",
+      "design": {
+        "missionId": "mission-cubesat-guided",
+        "destinationId": "luna",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module"
+        ],
+        "instrumentIds": [
+          "inst-cubesat-magnetometer",
+          "inst-cubesat-dosimeter"
+        ]
+      }
+    },
+    {
+      "name": "radar-de-la-nave-grande",
+      "cause": "guided-instrument",
+      "design": {
+        "missionId": "mission-cubesat-guided",
+        "destinationId": "luna",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "thermal-radiator"
+        ],
+        "instrumentIds": [
+          "inst-cubesat-magnetometer",
+          "inst-cubesat-dosimeter",
+          "inst-radar"
+        ]
+      }
+    },
+    {
+      "name": "solo-camara",
+      "cause": "missing-science-kind",
+      "design": {
+        "missionId": "mission-cubesat-guided",
+        "destinationId": "luna",
+        "launcherId": "launcher-condor",
+        "moduleIds": [
+          "frame-standard",
+          "engine-chemical",
+          "solar-array-hi",
+          "solar-array",
+          "comms-lga",
+          "computer-flight",
+          "battery-pack",
+          "shield-generator",
+          "fuel-tank-module",
+          "fuel-tank-module",
+          "thermal-radiator"
+        ],
+        "instrumentIds": [
+          "inst-cubesat-camera"
+        ]
+      }
+    }
+  ]
+}

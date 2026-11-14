@@ -48,6 +48,5 @@ Qué se gana, qué se pierde y qué obliga a hacer después.
 | [0015](0015-reto-nasa-y-roadmap.md) | Reto NASA Space Apps 2026 y nuevo roadmap: diseñar la misión y luego operarla | Aceptada |
 | [0016](0016-diseno-de-mision-y-sistema-solar.md) | Diseño de misión antes de zarpar y sistema solar como mapa | Aceptada |
 | [0017](0017-cooperativo-estado-por-mensajes-y-espejo.md) | Cooperativo: estado entero por mensajes, espejo hidratado en el cliente y roles como ventajas pasivas | Aceptada |
+| [0018](0018-ciencia-datos-y-ventanas-de-contacto.md) | Ciencia, datos y ventanas de contacto: objetivo, fin de misión al volver, puntuación e informe | Propuesta |
 | [0019](0019-cordura-de-la-tripulacion.md) | Cordura de la tripulación: desgaste por tiempo con debuffs y contramedidas atadas a recursos | Propuesta |
-
-El 0018 queda reservado para la fase 5 (ver `docs/phases/fase-5.md`).

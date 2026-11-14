@@ -112,7 +112,22 @@
     "upgrades": "Installed upgrades",
     "sunAu": "{{au}} AU",
     "solar": "Panels {{kw}} kW",
-    "mission": "{{mission}} → {{dest}}"
+    "mission": "{{mission}} → {{dest}}",
+    "data": "Data on board",
+    "dataMb": "{{mb}}/{{cap}} MB",
+    "science": "Science delivered to Earth",
+    "linkTitle": "Link with Earth",
+    "link": {
+      "down": "↓ {{rate}} MB/s",
+      "noRange": "Out of range",
+      "blocked": "Window, no link",
+      "next": "Window in {{seconds}} s"
+    },
+    "observingTitle": "The instruments are observing",
+    "observing": "Observing {{body}}",
+    "battery": "Battery",
+    "overheatTitle": "Demand exceeds what the radiators shed: the reactor wears",
+    "overheat": "Heat {{demandKw}}/{{heatKw}} kW"
   },
   "prompt": {
     "hold": "Hold",
@@ -253,7 +268,11 @@
     "upgrades": "Upgrades bought",
     "redesign": "Redesign",
     "retryMission": "Retry the mission",
-    "mission": "Mission"
+    "mission": "Mission",
+    "missionSuccessTitle": "Mission accomplished!",
+    "missionPartialTitle": "Mission incomplete",
+    "reportTitle": "Mission report",
+    "rootCause": "cause"
   },
   "pause": {
     "title": "Paused",
@@ -455,7 +474,8 @@
       "3": "Hard"
     },
     "pick": "Design",
-    "saved": "Saved design"
+    "saved": "Saved design",
+    "guided": "Guided"
   },
   "design": {
     "title": "Hangar · {{mission}}",
@@ -518,7 +538,10 @@
     "mounted": "Mounted",
     "noGoTitle": "No-Go",
     "goTitle": "Go",
-    "musd": "{{value}} M$"
+    "musd": "{{value}} M$",
+    "difficulty": "Difficulty",
+    "difficultyHint": "Changes budget, deadline and required science; in flight, failures, hazards and contact windows",
+    "guidedSteps": "Guided mission steps"
   },
   "glossary": {
     "title": "Glossary",

@@ -11,6 +11,29 @@ Cada entrada se agrupa por paquete.
 ### Despliegue del servidor de juego
 - `apps/game-server/deploy/`: servicio systemd (`payload-game.service`), `Caddyfile` (HTTPS automático y proxy de WebSocket) y `update.sh`. `docs/despliegue-aws.md` explica cómo publicar el servidor en AWS Lightsail y conectar el cliente de Amplify con `VITE_GAME_SERVER_URL`; explica también el timeout del cooperativo cuando falta.
 
+## Fase 5 · Ciencia, datos y astronauta articulado (entregas 1-3)
+
+Rama `feat/f5-ciencia-y-datos` (2026-11-14). Decisiones: ADR 0018 (propuesta).
+
+### Añadido
+
+#### `@payload/shared`
+- `science.ts`: observación (atracada junto a un cuerpo o posada en él, con navegación en línea; tope de segundos por cuerpo), almacenamiento con tope (lo que no cabe se pierde), ventanas de contacto deterministas por semilla, tasa de bajada según antenas y distancia (sin enlace en tierra), `missionReport` (resultado y hasta 6 eslabones). Catálogo `catalog/ciencia.json`.
+- Partida con diseño: `state.science`; la misión termina al volver a la zona de la Tierra tras visitar el destino (`phase` `won`, `science.over`, `reject.missionOver`); al volver se entrega lo de a bordo; perder la nave pierde lo no bajado. `computeScore` suma `stats.sciencePoints` (ciencia entregada × 20 y bonus de éxito 1500). Sin diseño nada cambia.
+- Eventos `observation-done`, `storage-full`, `contact-start`, `objective-met`, `mission-complete` (success/partial). Textos `report.*` en es/en.
+- Bot: espera atracado a que acaben de observar; termina al cerrar la misión. `pnpm balance` muestra misiones cumplidas, parciales y ciencia media. Tests `science.test.ts` (15) y umbral de balance de la fase 5; total 292.
+
+- Segunda entrega (ADR 0018 § 6, `catalog/misiones.json` → `rules.operations`): la fiabilidad del diseño multiplica el desgaste (`1 + 1,5·(1 − fiabilidad)`); con la demanda por encima de los radiadores el reactor se desgasta despacio (0,001 %/s por kW, tope 0,1) y se avisa (`overheat`); la batería cubre el déficit de una sobrecarga sin daño hasta agotarse (`battery-empty`) y se recarga con el excedente. `designOperations(design)`. Tests `operations.test.ts` (8); total 300.
+
+- Tercera entrega (ADR 0018 § 7-9): niveles de dificultad (`rules.difficulties`, `MissionDesign.difficultyId`, `getDifficulty`, `missionAtDifficulty`) que escalan presupuesto, plazo, ciencia mínima, desgaste, peligros y ventanas; misión guiada «Tu primer CubeSat» (`MissionDef.guided`, cuatro instrumentos `cubesat`, `guidedStartDesign`, `guidedProgress`, bloqueos `guided-ship`/`guided-instrument`) con su fixture. Tests `difficulty.test.ts` (11); total 315.
+
+#### `@payload/client`
+- Hangar: selector de dificultad; en la misión guiada, nave fija, paleta solo con sus instrumentos CubeSat y pasos que se marcan solos; etiqueta «Guiada» en su tarjeta.
+- Astronauta articulado procedural (`models/ArticulatedAstronaut.tsx`, pose pura en `game/astronautPose.ts`) con dos niveles de detalle: el jugador en 3ª persona (alto) y los compañeros del cooperativo (bajo). El GLB del tripulante ya no se carga. Tests `astronaut.test.ts`; total 187.
+- HUD con diseño: batería (kWh) y aviso de calor (demanda/disipación) bajo la energía; alarma con `overheat` y `battery-empty`.
+- HUD con diseño: datos a bordo/capacidad, ciencia entregada/pedida, enlace (bajando, próxima ventana, sin alcance) y qué se observa.
+- Pantalla final: «¡Misión cumplida!» / «Misión incompleta» e informe con la causa raíz resaltada; al terminar la misión, «Reintentar la misión» en vez de saltar de sector. Sonidos de los eventos nuevos. Total 180 tests.
+
 ### Despliegue
 - Configuración de AWS Amplify Hosting: `amplify.yml` (Node de `.nvmrc`, pnpm por corepack, build del cliente) y `customHttp.yml` (caché por tipo de archivo y cabeceras de seguridad). Guía en `docs/despliegue-aws.md`.
 

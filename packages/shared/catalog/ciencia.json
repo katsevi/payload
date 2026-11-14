@@ -1,0 +1,20 @@
+{
+  "science": {
+    "observeMbPerMbps": 1,
+    "minObserveMbPerS": 0.1,
+    "storageMbPerGb": 16,
+    "downlinkMbPerMbps": 4,
+    "observeMaxS": 45,
+    "otherObserveMaxS": 15,
+    "targetMult": 1,
+    "surfaceMult": 1.5,
+    "otherBodyMult": 0.2,
+    "contactPeriodS": 90,
+    "contactWindowS": 35,
+    "rateRefAu": 1,
+    "rateFalloffExp": 1,
+    "homeDeliversAll": true,
+    "scorePerScience": 20,
+    "successBonus": 1500
+  }
+}

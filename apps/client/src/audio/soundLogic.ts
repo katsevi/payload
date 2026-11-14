@@ -168,7 +168,17 @@ export function sfxForRunEvent(event: Pick<RunEvent, 'type' | 'incidentKind' | '
     case 'low-hull':
       return 'alarm';
     case 'sector-cleared':
+    case 'objective-met':
+    case 'mission-complete':
       return 'success';
+    // Fase 5: ciencia y datos.
+    case 'observation-done':
+    case 'contact-start':
+      return 'ok';
+    case 'storage-full':
+    case 'overheat':
+    case 'battery-empty':
+      return 'alarm';
     default:
       return null;
   }

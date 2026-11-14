@@ -8,6 +8,7 @@ import {
 } from '../index';
 import { playRun } from './bot';
 import { referenceDesign } from './missionFixtures';
+import { operationsScript, scienceScript } from './scienceHelpers';
 
 describe('locales del motor (namespace sim)', () => {
   it('es y en tienen exactamente las mismas claves', () => {
@@ -60,6 +61,8 @@ describe('locales del motor (namespace sim)', () => {
     refs.push(...toolScript());
     refs.push(...evadeScript());
     refs.push(...economyScript());
+    refs.push(...scienceScript());
+    refs.push(...operationsScript());
     // Fase 4: partidas con misión diseñada sobre el sistema solar (cuerpos reales en los mensajes).
     for (const missionId of ['mission-mars-habitability', 'mission-europa-ocean']) {
       for (let seed = 1; seed <= 6; seed++) {
@@ -117,6 +120,8 @@ describe('locales del motor (namespace sim)', () => {
       // Fase 3: terminal de estación.
       'reject.notAtStation', 'reject.noCredits', 'reject.nothingToSell', 'reject.supplyFull', 'reject.notOffered', 'reject.upgradeMaxed',
       'reject.noService', 'reject.serviceUsed', 'reject.serviceNotNeeded',
+      // Fase 5: misión terminada.
+      'reject.missionOver',
     ]) expect(keys.has(key), key).toBe(true);
     for (const key of ['reject.noRoute', 'reject.notInTransit', 'reject.notAtGate', 'reject.reactorAlwaysOn', 'reject.noIncident', 'reject.noDamage', 'reject.invalid', 'reject.enginesOff', 'reject.inTransit', 'reject.noWarning']) {
       expect(keys.has(key), key).toBe(true);

@@ -3,7 +3,11 @@
 Decisión: `docs/adr/0015-reto-nasa-y-roadmap.md`. Cierra el ciclo que pide el reto: la misión **produce ciencia**, los
 datos tienen que **llegar a la Tierra** y el jugador entiende **por qué** salió bien o mal.
 
-No iniciada. Depende de la fase 4 (fusionada, PR #6): diseño con instrumentos, nave generada y sistema solar. Lo que la fase 4 dejó abierto está en `fase-4.md` § «Pendiente heredado».
+En curso (rama `feat/f5-ciencia-y-datos`). Las decisiones de abajo están resueltas en el **ADR 0018** (propuesta). Primera
+entrega hecha: datos y almacenamiento, ventanas de contacto, fin de misión al volver a la Tierra, puntuación por ciencia
+entregada e informe con cadena de causas (motor + HUD + pantalla final). Segunda entrega hecha: fiabilidad, calor y batería con
+efecto en vuelo (decisión 6). Tercera entrega hecha: dificultad, misión guiada de CubeSat y astronauta articulado
+(decisiones 7-9). Queda: validación independiente, FPS en GPU real y el hito con una persona. Las casillas las marca quien valida.
 
 **Hito:** una persona juega una misión completa (diseño, operación, entrega de datos) y, al terminar, el informe le
 muestra la cadena de causas del resultado (p. ej. poca potencia, antena en reserva, datos sin bajar) que puede

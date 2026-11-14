@@ -7,13 +7,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  AlertTriangle, ArrowLeft, BatteryCharging, Box, CalendarClock, CircleCheck, CircleX, Coins, Cpu, Fuel, LayoutGrid, Microscope, Minus, Plus, RadioTower, Rocket,
+  AlertTriangle, ArrowLeft, BatteryCharging, Box, CalendarClock, Circle, CircleCheck, CircleX, Coins, Cpu, Fuel, LayoutGrid, Microscope, Minus, Plus, RadioTower, Rocket,
   Shield, Star, Sun, Thermometer, Weight, Wrench, Zap,
 } from 'lucide-react';
-import { getMission, getMissions, type DesignResource, type DesignResourceId, type DesignReview, type MissionDef, type MissionDesign } from '@payload/shared';
+import { getDifficulties, getDifficulty, getMission, getMissions, guidedProgress, missionAtDifficulty, type DesignResource, type DesignResourceId, type DesignReview, type MissionDef, type MissionDesign } from '@payload/shared';
 import {
-  activeGroups, addPart, canLaunch, countPart, cycleIndex, destinationOptions, evaluate, groupOfModuleKind, hasSavedDesign, launcherOptions, meterFill, paletteItems,
-  partFamily, partKeyAction, partTokens, previewAdd, removePart, setDestination, setLauncher, sortedIssues, type PaletteGroup, type PartRef, type PartToken,
+  activeGroups, addPart, canLaunch, isGuided, countPart, cycleIndex, destinationOptions, evaluate, groupOfModuleKind, hasSavedDesign, launcherOptions, meterFill, paletteItems,
+  partFamily, partKeyAction, partTokens, previewAdd, removePart, setDestination, setDifficulty, setLauncher, sortedIssues, type PaletteGroup, type PartRef, type PartToken,
 } from '../game/missionDesign';
 import { getRun, useGame } from '../game/runStore';
 import i18n, { lt, tr } from '../i18n';
@@ -78,6 +78,7 @@ function MissionCard({ mission }: { mission: MissionDef }) {
       <span className="flex items-start justify-between gap-2">
         <span className="text-base font-bold text-slate-100">{lt(mission.name)}</span>
         <Difficulty level={mission.difficulty} />
+        {mission.guided && <span className="num rounded border border-accent/60 px-1.5 text-[10px] uppercase tracking-wider text-accent">{t('missions.guided')}</span>}
       </span>
       <span className="text-xs text-slate-400">{lt(mission.description)}</span>
       <span className="num text-xs text-accent">{t('missions.destinations', { bodies })}</span>
@@ -191,7 +192,8 @@ function ReviewPanel({ review, onLaunch }: { review: DesignReview; onLaunch: () 
 function Pickers({ design, mission, update }: { design: MissionDesign; mission: MissionDef; update: (d: MissionDesign) => void }) {
   const { t } = useTranslation();
   const dests = destinationOptions(mission);
-  const launchers = launcherOptions(design);
+  // Fase 5: en la misión guiada el lanzador es fijo (solo se enseña el suyo).
+  const launchers = launcherOptions(design).filter((l) => !mission.guided || l.launcherId === mission.guided.launcherId);
   const pill = (on: boolean) => `num rounded border px-2 py-1 text-left text-xs ${on ? 'border-accent bg-accent/15 text-accent' : 'border-line bg-black/40 text-slate-200 hover:border-accent/60'}`;
   return (
     <div className="flex flex-col gap-2">
@@ -203,6 +205,18 @@ function Pickers({ design, mission, update }: { design: MissionDesign; mission: 
             <span className="text-slate-400">{t('design.destOption', { au: fmt(d.au, 2), pct: d.solarPct })}</span>
           </button>
         ))}
+      </div>
+      {/* Fase 5: nivel de dificultad (presupuesto, plazo, ciencia pedida y, en vuelo, averías, peligros y ventanas). */}
+      <div role="radiogroup" aria-label={t('design.difficulty')} className="flex flex-wrap items-center gap-1.5">
+        <span className="num w-20 text-[11px] uppercase tracking-widest text-slate-400">{t('design.difficulty')}</span>
+        {getDifficulties().map((d) => {
+          const on = getDifficulty(design.difficultyId).id === d.id;
+          return (
+            <button key={d.id} role="radio" aria-checked={on} className={pill(on)} title={t('design.difficultyHint')} onClick={() => update(setDifficulty(design, d.id))}>
+              <span className="font-bold">{t(`catalog.${d.id}`, { ns: 'sim' })}</span>
+            </button>
+          );
+        })}
       </div>
       <div role="radiogroup" aria-label={t('design.launcher')} className="flex flex-wrap items-center gap-1.5">
         <span className="num w-20 text-[11px] uppercase tracking-widest text-slate-400">{t('design.launcher')}</span>
@@ -229,9 +243,9 @@ function Pickers({ design, mission, update }: { design: MissionDesign; mission: 
 
 function Palette({ design, update, budgetsNow }: { design: MissionDesign; update: (d: MissionDesign) => void; budgetsNow: DesignReview['budgets'] }) {
   const { t } = useTranslation();
-  const groups = useMemo(() => activeGroups(), []);
+  const groups = useMemo(() => activeGroups(undefined, design.missionId), [design.missionId]);
   const [group, setGroup] = useState<PaletteGroup>(groups[0] ?? 'structure');
-  const items = useMemo(() => paletteItems(group), [group]);
+  const items = useMemo(() => paletteItems(group, undefined, design.missionId), [group, design.missionId]);
   const breaks = useMemo(() => items.map((p) => previewAdd(design, p, undefined, budgetsNow).breaks), [items, design, budgetsNow]);
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   // Foco inicial en la primera pieza de la paleta: el hangar se juega también solo con teclado.
@@ -342,11 +356,29 @@ function Palette({ design, update, budgetsNow }: { design: MissionDesign; update
   );
 }
 
+/** Fase 5: pasos de la misión guiada, una línea cada uno, que se marcan solos (el siguiente pendiente, resaltado). */
+function GuidedSteps({ steps }: { steps: ReturnType<typeof guidedProgress> }) {
+  const { t } = useTranslation();
+  const next = steps.findIndex((s) => !s.done);
+  return (
+    <ol className="console-panel flex flex-col gap-1 p-2 text-xs" aria-label={t('design.guidedSteps')}>
+      {steps.map((s, i) => (
+        <li key={s.check} className={`flex items-center gap-1.5 ${s.done ? 'text-ok' : i === next ? 'font-bold text-accent' : 'text-slate-400'}`}>
+          {s.done ? <CircleCheck size={13} aria-hidden="true" /> : <Circle size={13} aria-hidden="true" />}
+          <span>{lt(s.text)}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 /** Piezas montadas: un chip por pieza (×N); clic = quitar una. */
 function Mounted({ design, update }: { design: MissionDesign; update: (d: MissionDesign) => void }) {
   const { t } = useTranslation();
+  // Fase 5: en la misión guiada la nave es fija; solo se ve (y se quita) la carga.
+  const guided = isGuided(design.missionId);
   const chips: { part: PartRef; n: number }[] = [];
-  for (const [kind, list] of [['module', design.moduleIds], ['instrument', design.instrumentIds]] as const) {
+  for (const [kind, list] of [['module', guided ? [] : design.moduleIds], ['instrument', design.instrumentIds]] as const) {
     for (const id of list) {
       const at = chips.find((c) => c.part.kind === kind && c.part.id === id);
       if (at) at.n++;
@@ -367,7 +399,7 @@ function Mounted({ design, update }: { design: MissionDesign; update: (d: Missio
           </button>
         );
       })}
-      <button className="btn ml-auto !px-2 !py-0.5 text-[11px]" onClick={() => update({ ...design, moduleIds: [], instrumentIds: [] })}>
+      <button className="btn ml-auto !px-2 !py-0.5 text-[11px]" onClick={() => update({ ...design, moduleIds: guided ? design.moduleIds : [], instrumentIds: [] })}>
         {t('design.clear')}
       </button>
     </div>
@@ -397,10 +429,12 @@ export function DesignScreen() {
   if (!design || !review) return null;
   let mission: MissionDef;
   try {
-    mission = getMission(design.missionId);
+    // Fase 5: con las cifras de su nivel de dificultad (presupuesto, plazo y ciencia pedida).
+    mission = missionAtDifficulty(getMission(design.missionId), getDifficulty(design.difficultyId));
   } catch {
     return null;
   }
+  const steps = guidedProgress(design);
   const update = (d: MissionDesign) => useGame.getState().updateDraft(d);
   const totals = review.budgets.totals;
   const sciOk = totals.scienceValue >= mission.requirements.minScience;
@@ -429,6 +463,7 @@ export function DesignScreen() {
         {/* Centro: la nave montada (la escena 3D está detrás) y las piezas montadas. */}
         <div className="pointer-events-none flex min-h-48 flex-1 flex-col justify-between gap-2">
           <div className="pointer-events-auto flex flex-col items-start gap-2">
+            {steps.length > 0 && <GuidedSteps steps={steps} />}
             <GlossaryButton open={glossary} onToggle={() => setGlossary((g) => !g)} />
             {glossary && <GlossaryPanel onClose={() => setGlossary(false)} />}
           </div>

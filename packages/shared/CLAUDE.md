@@ -32,6 +32,7 @@ Diseño que implementa: `docs/GDD.md`. Contrato: `src/types.ts` (reescrito en el
 | `getSolarSystem`, `findBody`/`getBody`, `getZone`, `bodySunDistanceAu` | | Cuerpos y zonas del catálogo |
 | `solarPowerFactor`, `solarKw`, `shipPowerKw` | `(au)` · `(ship, au = 1)` · `(ship, au = 1)` | 1/d²; paneles a esa distancia; nuclear + paneles |
 | `bodyPositionAu`, `solarNodePositionsAu` | `(body, cat?, days = 0) => {x, y}` · `(sector, cat?, days = 0) => Record<nodeId, {x, y}>` | Posiciones en UA para dibujar el mapa (órbitas circulares) |
+| `getScienceRules`, `scienceProfile`, `contactWindow`, `downlinkMbPerS`, `sciencePoints`, `missionReport` | `(cat?)` · `(design, cat?)` · `(seed, timeS, rules)` · `(profile, au, rules)` · `(sci, rules)` · `(state) => MissionReport \| null` | Fase 5 (ADR 0018): ciencia, ventanas de contacto e informe; puras |
 | `getRoles`, `getRole`, `crewPerks`, `crewCarryCapacityKg`, `crewJetpackDrainPctPerS` | `(cat)` · `(roleId, cat)` · `(member, cat)` · `(rules, member, cat)` | Fase 6 (ADR 0017): roles y sus ventajas pasivas |
 | `COOP_LIMITS`, `COOP_ROOM`, `NET`, `parse*`, `sanitizePlayerName`, `makeRoomCode`, `normalizeRoomCode` | | Fase 6: contrato de red (`net.ts`; ver `docs/MULTIPLAYER.md`) |
 | `computeScore` | `(stats) => number` | 1000·sector + 50·salto + 20·avería + 30·esquiva + años luz + puntos de materiales guardados a bordo (vender no cambia la puntuación; créditos y mejoras no puntúan) |
@@ -202,6 +203,42 @@ Cifras en `catalog/misiones.json` (`rules` + `missions`), `modulos.json`, `instr
 - **Fixtures por misión:** `src/__tests__/fixtures/missions/<missionId>.json` (`valid` >= 2 con Go y distintos,
   `failing` >= 2 con `cause` = un `blocker` y causas distintas). `design.test.ts` falla si una misión no tiene. El primer
   válido es el diseño de referencia (`referenceDesign`) con el que juega el bot.
+
+## Ciencia, datos y ventanas de contacto (fase 5, ADR 0018; cifras en `catalog/ciencia.json`)
+
+- **Solo con diseño:** `state.science` (`ScienceState`) y `stats.scienceDelivered`/`sciencePoints`; sin diseño no existen.
+- **Observar:** atracada en un nodo con `bodyId` que no sea estación ni portal, o en `surface` sobre él, con `nav` en
+  línea. Tope por cuerpo `observeMaxS` (destino; órbita y superficie por separado: clave `<bodyId>:surface`) u
+  `otherObserveMaxS`. Ciencia/s = Σ `scienceValue` × tipo / `observeMaxS` × lugar (`targetMult`, `surfaceMult`,
+  `otherBodyMult`); datos/s = Σ máx(`minObserveMbPerS`, Mbps × `observeMbPerMbps`). Sin navegación suma `blockedS`.
+- **Almacenar:** capacidad = GB de las computadoras × `storageMbPerGb`; un búfer (ciencia por MB = media). Lo que no
+  cabe va a `lostMb`/`lostScience`; `storage-full` una vez hasta liberar el 10 %.
+- **Bajar:** `contactWindow` (periodo y ventana del catálogo, desfase `deriveSeed(seed, CONTACT_SALT)`, sin consumir
+  azar); enlace = ventana + alguna antena con `commsRangeAu` >= distancia al Sol + navegación + no estar en
+  `landing`/`surface`. Tasa = Σ Mbps de esas antenas × `downlinkMbPerMbps` × (`rateRefAu` / máx(ref, |d − 1|))^exp.
+  `outOfRangeS` cuenta el tiempo con datos y sin alcance. `contact-start` al abrirse con datos a bordo.
+- **Fin:** `arrive` marca `targetVisited` en el nodo `missionTarget`; al llegar al portal de un tramo con
+  `zoneToId` = primera zona y `targetVisited`, `finishMission` entrega lo de a bordo (`homeDeliversAll`), cierra
+  (`over`) y emite `mission-complete` success/partial; `next-sector` da `reject.missionOver`. `objective-met` al
+  entregar `requiredScience`. Al perder, `lostWithShipScience` = lo de a bordo.
+- **Puntos:** `sciencePoints` = entregado × `scorePerScience` + `successBonus` si terminó con el objetivo.
+- **Informe:** `missionReport(state)`: `outcome`, `headline`, 6 `links` (`target`, `power`, `storage`, `link`,
+  `science`, `survival`) con `report.*`, `rootCause` = primer `ok: false`.
+- Tests: `science.test.ts` (guiones en `scienceHelpers.ts`, que también usa el barrido de `locales.test.ts`).
+- **Dificultad** (§ 7): `rules.difficulties` + `defaultDifficultyId` en `misiones.json`; `getDifficulty(id)` nunca lanza
+  (desconocido → por defecto → primero → neutro). `missionAtDifficulty` escala presupuesto, plazo y ciencia mínima
+  (redondeados) y lo usan `analyze` (Go/No-Go) y `scienceProfile` (objetivo). En la partida: desgaste × `wearMult`,
+  peligros × `hazardMult` (`planHazards` y `estimateJump`), ventana de contacto × `contactWindowMult` (≤ periodo).
+- **Misión guiada** (§ 8): `MissionDef.guided` (módulos, lanzador, instrumentos permitidos, pasos). `guidedStartDesign`,
+  `guidedProgress` (pasos con `done`). `reviewDesign` bloquea `guided-ship` (otros módulos o lanzador) y
+  `guided-instrument`. Instrumentos `cubesat: true` solo para ella (la paleta del cliente los oculta en las demás).
+- **Fiabilidad, calor y batería** (ADR 0018 § 6; cifras en `misiones.json` → `rules.operations`, opcional; solo con
+  diseño): `designOperations(design)` = fiabilidad (0-1), `heatRejectKw`, `batteryKwh`. Desgaste (tránsito y tierra) ×
+  `1 + reliabilityWearK·(1 − fiabilidad)`. `refresh()` deriva `ship.overheated` (demanda > `heatRejectKw`, aviso
+  `overheat` en el flanco); en cada paso el reactor pierde mín(`heatDamageMaxPctPerS`, `heatDamagePctPerSPerKw` × exceso).
+  Sobrecarga con `ship.batteryKwh` > 0: gasta déficit × dt × `batteryKwhPerKwS` y no daña el reactor (al llegar a 0,
+  `battery-empty`); sin sobrecarga recarga excedente × dt × `batteryKwhPerKwS` × `batteryRechargeEff` hasta
+  `batteryMaxKwh`. Tests: `operations.test.ts`.
 
 ## Cooperativo (fase 6, ADR 0017; cifras en `catalog/roles.json`; red en `docs/MULTIPLAYER.md`)
 

@@ -10,9 +10,53 @@
     "offKindScienceMult": 0.5,
     "rangeLegFactor": 0.6,
     "rangeReservePct": 15,
-    "maxShieldAbsorb": 0.95
+    "maxShieldAbsorb": 0.95,
+    "operations": {
+      "reliabilityWearK": 1.5,
+      "heatDamagePctPerSPerKw": 0.001,
+      "heatDamageMaxPctPerS": 0.1,
+      "batteryKwhPerKwS": 0.07,
+      "batteryRechargeEff": 0.5
+    },
+    "defaultDifficultyId": "difficulty-normal",
+    "difficulties": [
+      {
+        "id": "difficulty-easy", "name": { "es": "Fácil", "en": "Easy" },
+        "budgetMult": 1.25, "deadlineMult": 1.25, "minScienceMult": 0.8, "wearMult": 0.7, "hazardMult": 0.7, "contactWindowMult": 1.3
+      },
+      {
+        "id": "difficulty-normal", "name": { "es": "Normal", "en": "Normal" },
+        "budgetMult": 1, "deadlineMult": 1, "minScienceMult": 1, "wearMult": 1, "hazardMult": 1, "contactWindowMult": 1
+      },
+      {
+        "id": "difficulty-hard", "name": { "es": "Difícil", "en": "Hard" },
+        "budgetMult": 0.85, "deadlineMult": 0.85, "minScienceMult": 1.2, "wearMult": 1.3, "hazardMult": 1.3, "contactWindowMult": 0.75
+      }
+    ]
   },
   "missions": [
+    {
+      "id": "mission-cubesat-guided",
+      "name": { "es": "Tu primer CubeSat", "en": "Your first CubeSat" },
+      "description": { "es": "Misión guiada: elige la carga de un CubeSat, llévalo a la Luna y baja sus datos.", "en": "Guided mission: pick a CubeSat's payload, fly it to the Moon and downlink its data." },
+      "scienceKind": "fields", "destinations": ["luna"],
+      "requirements": { "minScience": 18, "requiredKinds": ["fields"], "minReliabilityPct": 75 },
+      "budgetMUSD": 450, "deadlineMonths": 30, "difficulty": 1,
+      "guided": {
+        "moduleIds": [
+          "frame-standard", "engine-chemical", "solar-array-hi", "solar-array", "comms-lga", "computer-flight", "battery-pack",
+          "shield-generator", "fuel-tank-module", "fuel-tank-module", "thermal-radiator"
+        ],
+        "launcherId": "launcher-condor",
+        "instrumentIds": ["inst-cubesat-magnetometer", "inst-cubesat-dosimeter", "inst-cubesat-camera", "inst-cubesat-neutron"],
+        "steps": [
+          { "check": "instrument", "text": { "es": "Elige un instrumento para el CubeSat", "en": "Pick an instrument for the CubeSat" } },
+          { "check": "required-kinds", "text": { "es": "La misión pide medir campos: lleva uno de campos", "en": "The mission measures fields: carry a fields instrument" } },
+          { "check": "science", "text": { "es": "Suma la ciencia mínima (mira el medidor de ciencia)", "en": "Reach the minimum science (watch the science meter)" } },
+          { "check": "go", "text": { "es": "Con Go, lanza: observa la Luna y baja los datos", "en": "With Go, launch: observe the Moon and downlink the data" } }
+        ]
+      }
+    },
     {
       "id": "mission-lunar-ice",
       "name": { "es": "Hielo en los polos lunares", "en": "Ice at the lunar poles" },

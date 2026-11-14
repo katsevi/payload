@@ -17,7 +17,7 @@ import { bodySunDistanceAu, findBody, getSolarSystem, legUnits, routeWorstSunDis
 import {
   DESIGN_RESOURCE_IDS, MODULE_KINDS,
   type Catalog, type DesignBudgets, type DesignIssue, type DesignResource, type DesignResourceId, type DesignReview, type DesignRules, type DesignTotals,
-  type InstrumentDef, type LauncherDef, type MessageRef, type MissionDef, type MissionDesign, type ModuleDef, type ModuleKind, type ShipDef,
+  type DifficultyDef, type GuidedStepCheck, type InstrumentDef, type LocalizedText, type LauncherDef, type MessageRef, type MissionDef, type MissionDesign, type ModuleDef, type ModuleKind, type ShipDef,
   type SolarBodyDef, type SolarZoneDef,
 } from './types';
 
@@ -68,6 +68,34 @@ export function getLauncher(launcherId: string, cat: Catalog = defaultCatalog): 
   return m;
 }
 
+/** Nivel neutro (todo × 1): el que se usa si el catálogo no define niveles. */
+const NEUTRAL_DIFFICULTY: DifficultyDef = {
+  id: 'difficulty-normal', name: { es: 'Normal', en: 'Normal' },
+  budgetMult: 1, deadlineMult: 1, minScienceMult: 1, wearMult: 1, hazardMult: 1, contactWindowMult: 1,
+};
+
+/** Fase 5 (ADR 0018 § 7): niveles de dificultad del catálogo (en orden). */
+export function getDifficulties(cat: Catalog = defaultCatalog): DifficultyDef[] {
+  return cat.design?.difficulties ?? [];
+}
+
+/** Nivel del diseño: el suyo, si no el de por defecto, si no el primero; sin niveles, el neutro. Nunca lanza. */
+export function getDifficulty(difficultyId: string | undefined, cat: Catalog = defaultCatalog): DifficultyDef {
+  const all = getDifficulties(cat);
+  return all.find((d) => d.id === difficultyId) ?? all.find((d) => d.id === cat.design?.defaultDifficultyId) ?? all[0] ?? NEUTRAL_DIFFICULTY;
+}
+
+/** La misión con las cifras del nivel de dificultad (presupuesto, plazo y ciencia mínima, redondeados). */
+export function missionAtDifficulty(mission: MissionDef, difficulty: DifficultyDef): MissionDef {
+  if (difficulty.budgetMult === 1 && difficulty.deadlineMult === 1 && difficulty.minScienceMult === 1) return mission;
+  return {
+    ...mission,
+    budgetMUSD: Math.round(mission.budgetMUSD * difficulty.budgetMult),
+    deadlineMonths: Math.round(mission.deadlineMonths * difficulty.deadlineMult),
+    requirements: { ...mission.requirements, minScience: Math.round(mission.requirements.minScience * difficulty.minScienceMult) },
+  };
+}
+
 /** Diseño vacío para una misión (el punto de partida de la pantalla de diseño). */
 export function emptyDesign(missionId: string): MissionDesign {
   return { missionId, destinationId: null, moduleIds: [], instrumentIds: [], launcherId: null };
@@ -81,6 +109,7 @@ export const missionDesignSchema = z.strictObject({
   moduleIds: z.array(idString),
   instrumentIds: z.array(idString),
   launcherId: idString.nullable(),
+  difficultyId: idString.optional(),
 });
 
 /** Valida un diseño en bruto. Lanza un error legible si no tiene la forma de `MissionDesign`. */
@@ -101,7 +130,10 @@ export function normalizeDesign(raw: unknown): MissionDesign {
   const o = raw !== null && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const str = (v: unknown): string | null => (typeof v === 'string' && v.length > 0 ? v : null);
   const list = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.length > 0) : []);
-  return { missionId: str(o.missionId) ?? '', destinationId: str(o.destinationId), moduleIds: list(o.moduleIds), instrumentIds: list(o.instrumentIds), launcherId: str(o.launcherId) };
+  const out: MissionDesign = { missionId: str(o.missionId) ?? '', destinationId: str(o.destinationId), moduleIds: list(o.moduleIds), instrumentIds: list(o.instrumentIds), launcherId: str(o.launcherId) };
+  const difficultyId = str(o.difficultyId);
+  if (difficultyId) out.difficultyId = difficultyId;
+  return out;
 }
 
 // ─── Análisis (uso interno) ─────────────────────────────────────────────────
@@ -136,7 +168,9 @@ interface Analysis {
 function analyze(rawDesign: MissionDesign, cat: Catalog): Analysis {
   const design = normalizeDesign(rawDesign);
   const rules = getDesignRules(cat);
-  const mission = getMissions(cat).find((m) => m.id === design.missionId);
+  // Fase 5: la misión con las cifras de su nivel de dificultad (presupuesto, plazo, ciencia mínima).
+  const baseMission = getMissions(cat).find((m) => m.id === design.missionId);
+  const mission = baseMission && missionAtDifficulty(baseMission, getDifficulty(design.difficultyId, cat));
   const destination = design.destinationId ? findBody(design.destinationId, cat) : undefined;
   const sys = getSolarSystem(cat);
   const zone = destination?.zoneId ? sys.zones.find((z) => z.id === destination.zoneId) : undefined;
@@ -471,6 +505,15 @@ export function reviewDesign(rawDesign: MissionDesign, cat: Catalog = defaultCat
     blocker('comms-range', { au: round(t.worstAu, 2), rangeAu: a.commsRangeAu, body: t.worstBodyId });
   }
 
+  // ── Misión guiada (fase 5): la nave, el lanzador y el destino son fijos; la carga, de su lista.
+  const g = m?.guided;
+  if (g) {
+    const same = (a: string[], b: string[]) => a.length === b.length && [...a].sort().every((x, i) => x === [...b].sort()[i]);
+    if (!same(design.moduleIds, g.moduleIds) || design.launcherId !== g.launcherId) blocker('guided-ship');
+    const extra = design.instrumentIds.find((x) => !g.instrumentIds.includes(x));
+    if (extra) blocker('guided-instrument', { instrument: extra });
+  }
+
   // ── Requisitos científicos
   if (m) {
     for (const kind of m.requirements.requiredKinds) {
@@ -494,4 +537,40 @@ export function reviewDesign(rawDesign: MissionDesign, cat: Catalog = defaultCat
   const go = !issues.some((i) => i.severity === 'blocker');
   if (go && issues.length === 0) issues.push({ severity: 'info', code: 'all-clear', message: { key: 'design.review.all-clear' } });
   return { go, issues, budgets };
+}
+
+/**
+ * Fase 5 (ADR 0018 § 6): lo que el diseño aporta a la operación en vuelo: fiabilidad total (0-1, con el lanzador),
+ * calor que disipan los radiadores y la estructura (kW) y capacidad de las baterías (kWh).
+ */
+export function designOperations(design: MissionDesign, cat: Catalog = defaultCatalog): { reliability: number; heatRejectKw: number; batteryKwh: number } {
+  const totals = computeDesignBudgets(design, cat).totals;
+  const batteryKwh = design.moduleIds.reduce((s, id) => s + (getModules(cat).find((m) => m.id === id)?.batteryKwh ?? 0), 0);
+  return { reliability: totals.reliabilityPct / 100, heatRejectKw: totals.heatRejectKw, batteryKwh };
+}
+
+/**
+ * Fase 5 (ADR 0018 § 8): diseño de partida de una misión guiada (nave, lanzador y destino fijos, sin carga) o `null` si la
+ * misión no es guiada.
+ */
+export function guidedStartDesign(missionId: string, cat: Catalog = defaultCatalog): MissionDesign | null {
+  const m = getMissions(cat).find((x) => x.id === missionId);
+  if (!m?.guided) return null;
+  return { missionId, destinationId: m.destinations[0] ?? null, moduleIds: [...m.guided.moduleIds], instrumentIds: [], launcherId: m.guided.launcherId };
+}
+
+/** Pasos de la misión guiada con si ya se cumplen (se marcan solos según el diseño). `[]` si no es guiada. */
+export function guidedProgress(design: MissionDesign, cat: Catalog = defaultCatalog): { check: GuidedStepCheck; done: boolean; text: LocalizedText }[] {
+  const base = getMissions(cat).find((x) => x.id === design.missionId);
+  if (!base?.guided) return [];
+  const mission = missionAtDifficulty(base, getDifficulty(design.difficultyId, cat));
+  const review = reviewDesign(design, cat);
+  const kinds = new Set(design.instrumentIds.map((id) => getInstruments(cat).find((i) => i.id === id)?.scienceKind));
+  const done: Record<GuidedStepCheck, boolean> = {
+    instrument: design.instrumentIds.length > 0,
+    'required-kinds': mission.requirements.requiredKinds.every((k) => kinds.has(k)),
+    science: review.budgets.totals.scienceValue + 1e-9 >= mission.requirements.minScience,
+    go: review.go,
+  };
+  return base.guided.steps.map((s) => ({ check: s.check, done: done[s.check], text: s.text }));
 }

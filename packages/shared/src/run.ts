@@ -20,11 +20,12 @@ import {
   affordableUnits, cargoFuelMult, cargoMassKg, cruisePowerMarginKw, effectiveShip, effectiveSurfaceRules, getEconomy, getUpgrades, hasShop, priceOf, sectorPriceMults,
   sellUnitPrice, stationOffer, upgradePrice, upgradesMassKg,
 } from './economy';
-import { parseMissionDesign, shipFromDesign } from './design';
+import { designOperations, getDifficulty, parseMissionDesign, shipFromDesign } from './design';
 import { generateSector, getNode, nodeDistanceLy } from './galaxy';
 import { crewCarryCapacityKg, crewJetpackDrainPctPerS, crewPerks } from './roles';
 import { createRng, deriveSeed, type Rng } from './rng';
-import { generateSolarSector, solarKw } from './solar';
+import { finishMission, getScienceRules, loseWithShip, newScienceState, sciencePoints, scienceProfile, stepScience, type ScienceEvent } from './science';
+import { generateSolarSector, getSolarSystem, solarKw } from './solar';
 import { descentStep, generateSurface, getNodeWorld, landingSeed, lodeBonusApplies, simulateDescent, streakMultiplier, suitRefill, takeOffFuel } from './surface';
 import {
   HAZARD_KINDS, INCIDENT_KINDS, ROLE_IDS, SUPPLY_IDS, SYSTEM_IDS, THROTTLE_IDS,
@@ -92,7 +93,8 @@ export function evadeDifficulty(rules: HazardRules, sectorIndex: number, hullDam
 /** Puntuación de la partida: llegar lejos es lo que más cuenta; los materiales guardados a bordo suman su valor. */
 export function computeScore(stats: RunStats): number {
   return Math.round(
-    stats.sectorsCleared * 1000 + stats.jumps * 50 + stats.incidentsFixed * 20 + stats.impactsEvaded * 30 + stats.distanceLy + (stats.materialsValue ?? 0),
+    stats.sectorsCleared * 1000 + stats.jumps * 50 + stats.incidentsFixed * 20 + stats.impactsEvaded * 30 + stats.distanceLy + (stats.materialsValue ?? 0) +
+      (stats.sciencePoints ?? 0),
   );
 }
 
@@ -183,10 +185,33 @@ export function createRun(options: RunOptions): Run {
     credits: economy.startCredits,
     upgrades,
   };
+  // Fase 5 (ADR 0018): ciencia, datos y ventanas de contacto, solo con diseño.
+  // Fase 5 (ADR 0018 § 7): nivel de dificultad del diseño (desgaste, peligros y ventanas de contacto).
+  const difficulty = design ? getDifficulty(design.difficultyId, cat) : null;
+  const baseSciRules = design ? getScienceRules(cat) : null;
+  const sciRules = baseSciRules && difficulty
+    ? { ...baseSciRules, contactWindowS: Math.min(baseSciRules.contactPeriodS, baseSciRules.contactWindowS * difficulty.contactWindowMult) }
+    : null;
+  const hazardDifficulty = difficulty?.hazardMult ?? 1;
+  const sciProfile = design ? scienceProfile(design, cat) : null;
+  const homeZoneId = design ? getSolarSystem(cat).zones[0]?.id : undefined;
+  // Fase 5 (ADR 0018 § 6): fiabilidad → más desgaste; calor por encima de los radiadores; batería que cubre la sobrecarga.
+  const ops = design ? cat.design?.operations : undefined;
+  const opsDesign = design && ops ? designOperations(design, cat) : null;
+  const wearMult = (ops && opsDesign ? 1 + ops.reliabilityWearK * (1 - clamp(opsDesign.reliability, 0, 1)) : 1) * (difficulty?.wearMult ?? 1);
+  if (design && ops && opsDesign) {
+    shipState.batteryKwh = opsDesign.batteryKwh;
+    shipState.batteryMaxKwh = opsDesign.batteryKwh;
+    shipState.heatRejectKw = opsDesign.heatRejectKw;
+    shipState.overheated = false;
+  }
   if (design) {
     state.missionDesign = design;
     state.sunDistanceAu = firstSector.nodes.find((n) => n.id === firstSector.startId)?.sunDistanceAu ?? 1;
     shipState.solarSupplyKw = 0;
+    state.science = newScienceState(sciProfile!);
+    state.stats.scienceDelivered = 0;
+    state.stats.sciencePoints = 0;
   }
 
   let accumulatorS = 0;
@@ -196,6 +221,7 @@ export function createRun(options: RunOptions): Run {
   let toolSeq = 0;
   let pending: RunEvent[] = [];
   let wasOverloaded = false;
+  let wasOverheated = false;
   let wasBlackout = false;
   const alerted = { oxygen: false, fuel: false, hull: false };
 
@@ -254,6 +280,14 @@ export function createRun(options: RunOptions): Run {
 
     if (shipState.overloaded && !wasOverloaded) emit('overload', 'warn', 'event.overload', undefined, { systemId: 'reactor' });
     wasOverloaded = shipState.overloaded;
+    // Fase 5: calor. La demanda se convierte en calor; si pasa de lo que disipan los radiadores, el reactor sufre.
+    if (shipState.heatRejectKw !== undefined) {
+      shipState.overheated = demand > shipState.heatRejectKw + 1e-9;
+      if (shipState.overheated && !wasOverheated) {
+        emit('overheat', 'warn', 'event.overheat', { demandKw: Math.round(demand), heatKw: Math.round(shipState.heatRejectKw) }, { systemId: 'reactor' });
+      }
+      wasOverheated = shipState.overheated;
+    }
     const blackout = supply <= 0;
     if (blackout && !wasBlackout) emit('blackout', 'bad', 'event.blackout', undefined, { systemId: 'reactor' });
     wasBlackout = blackout;
@@ -307,7 +341,36 @@ export function createRun(options: RunOptions): Run {
     state.transit = null;
     state.warnings = [];
     shipState.speedLyPerS = 0;
+    if (state.science) loseWithShip(state.science);
     emit('lost', 'bad', `loss.${reason}`);
+  }
+
+  // ── Ciencia (fase 5) ────────────────────────────────────────────────────────────────────────
+  function emitScience(events: ScienceEvent[]): void {
+    for (const e of events) emit(e.type, e.tone, e.key, e.params, e.subtype ? { subtype: e.subtype } : undefined);
+    const sci = state.science;
+    if (sci && sciRules) {
+      state.stats.scienceDelivered = Math.round(sci.deliveredScience * 10) / 10;
+      state.stats.sciencePoints = sciencePoints(sci, sciRules);
+    }
+  }
+
+  /** Cuerpo observable ahora: atracada junto a un cuerpo real (no estación) o posada en él. */
+  function observableBodyId(): string | null {
+    if (state.phase !== 'docked' && state.phase !== 'surface') return null;
+    const node = getNode(state.sector, state.locationId);
+    if (!node?.bodyId || node.kind === 'station' || node.kind === 'gate') return null;
+    return node.bodyId;
+  }
+
+  function stepScienceNow(dt: number): void {
+    const sci = state.science;
+    if (!sci || !sciRules || !sciProfile) return;
+    const onGround = state.phase === 'landing' || state.phase === 'surface';
+    emitScience(stepScience(sci, sciProfile, sciRules, {
+      seed, timeS: state.stats.timeS, bodyId: observableBodyId(), onSurface: state.phase === 'surface', noLink: onGround,
+      navOnline: sys.nav.online, sunDistanceAu: sunDistanceAu(),
+    }, dt));
   }
 
   // ── Viaje ───────────────────────────────────────────────────────────────────────────────────
@@ -319,7 +382,7 @@ export function createRun(options: RunOptions): Run {
     const span = Math.max(0, distanceLy - safe - 0.5);
     const out: PlannedHazard[] = [];
     for (const kind of HAZARD_KINDS) {
-      const count = poisson(rng, perLy[kind] * state.sector.hazardMult * span);
+      const count = poisson(rng, perLy[kind] * state.sector.hazardMult * hazardDifficulty * span);
       for (let i = 0; i < count; i++) {
         out.push({
           id: ++hazardSeq,
@@ -502,6 +565,7 @@ export function createRun(options: RunOptions): Run {
     state.phase = 'docked';
     state.stats.jumps++;
     if (firstVisit) state.visitedIds.push(node.id);
+    if (state.science && node.missionTarget) state.science.targetVisited = true;
     const arrivedMsg = nodeMessage('event.arrived', node);
     emit('arrived', 'info', arrivedMsg.key, arrivedMsg.params);
     if (firstVisit && node.cache) {
@@ -521,6 +585,9 @@ export function createRun(options: RunOptions): Run {
         earn(reward);
         emit('reward', 'ok', 'event.sectorReward', { credits: reward });
       }
+      // Fase 5: de vuelta en la Tierra tras visitar el destino, la misión termina.
+      const sci = state.science;
+      if (sci && sciRules && sci.targetVisited && state.sector.zoneToId === homeZoneId) emitScience(finishMission(sci, sciRules));
     }
   }
 
@@ -570,7 +637,22 @@ export function createRun(options: RunOptions): Run {
     shipState.oxygenPct = clamp(shipState.oxygenPct + (regen - o2Drain) * dt, 0, 100);
 
     // Sobrecarga: el reactor se daña mientras se le pida más de lo que da
-    if (shipState.overloaded) damageSystem('reactor', ship.overloadReactorDamagePctPerS * dt);
+    // Fase 5: con batería cargada, el déficit sale de ella y el reactor no se daña; con excedente, se recarga.
+    const battery = shipState.batteryKwh;
+    if (shipState.overloaded) {
+      if (ops && battery !== undefined && battery > 0) {
+        const next = Math.max(0, battery - (shipState.powerDemandKw - shipState.powerSupplyKw) * dt * ops.batteryKwhPerKwS);
+        shipState.batteryKwh = next;
+        if (next <= 0) emit('battery-empty', 'warn', 'event.batteryEmpty', undefined, { systemId: 'reactor' });
+      } else damageSystem('reactor', ship.overloadReactorDamagePctPerS * dt);
+    } else if (ops && battery !== undefined && shipState.powerSupplyKw > 0) {
+      const surplus = Math.max(0, shipState.powerSupplyKw - shipState.powerDemandKw);
+      shipState.batteryKwh = Math.min(shipState.batteryMaxKwh ?? 0, battery + surplus * dt * ops.batteryKwhPerKwS * ops.batteryRechargeEff);
+    }
+    if (ops && shipState.overheated && shipState.heatRejectKw !== undefined) {
+      const excessKw = shipState.powerDemandKw - shipState.heatRejectKw;
+      damageSystem('reactor', Math.min(ops.heatDamageMaxPctPerS, ops.heatDamagePctPerSPerKw * excessKw) * dt);
+    }
 
     // Tránsito
     const transit = state.transit;
@@ -579,7 +661,7 @@ export function createRun(options: RunOptions): Run {
       const wearRoll = wearRng.next();
       const kindRoll = wearRng.next();
       const sysRoll = wearRng.next();
-      if (wearRoll < rules.wear.chancePerS * getThrottle(ship, shipState.throttle).wearMult * dt) {
+      if (wearRoll < rules.wear.chancePerS * getThrottle(ship, shipState.throttle).wearMult * wearMult * dt) {
         spawnIncident(pickWearKind(kindRoll), SYSTEM_IDS[Math.floor(sysRoll * SYSTEM_IDS.length)]!);
       }
 
@@ -601,7 +683,7 @@ export function createRun(options: RunOptions): Run {
       const wearRoll = wearRng.next();
       const kindRoll = wearRng.next();
       const sysRoll = wearRng.next();
-      if (wearRoll < rules.wear.chancePerS * world.shipWearMult * dt) spawnIncident(pickWearKind(kindRoll), SYSTEM_IDS[Math.floor(sysRoll * SYSTEM_IDS.length)]!);
+      if (wearRoll < rules.wear.chancePerS * world.shipWearMult * wearMult * dt) spawnIncident(pickWearKind(kindRoll), SYSTEM_IDS[Math.floor(sysRoll * SYSTEM_IDS.length)]!);
       if (state.phase === 'landing') stepDescent(surface, dt);
       else {
         stepSurface(surface, dt);
@@ -611,6 +693,7 @@ export function createRun(options: RunOptions): Run {
 
     refresh();
     refreshWarnings();
+    if (state.phase !== 'won') stepScienceNow(dt);
 
     // Avisos de nivel bajo (una vez hasta que se recupere)
     const levels = [
@@ -1255,7 +1338,7 @@ export function createRun(options: RunOptions): Run {
     const expectedHazards = {} as JumpEstimate['expectedHazards'];
     let risk = 0;
     for (const k of HAZARD_KINDS) {
-      expectedHazards[k] = perLy[k] * state.sector.hazardMult * span;
+      expectedHazards[k] = perLy[k] * state.sector.hazardMult * hazardDifficulty * span;
       risk += expectedHazards[k] * RISK_WEIGHT[k];
     }
     return { toId, distanceLy, cargoKg, cargoFuelMult: mult, byThrottle, expectedHazards, riskLevel: RISK_THRESHOLDS.filter((t) => risk >= t).length };
@@ -1265,6 +1348,7 @@ export function createRun(options: RunOptions): Run {
     if (state.phase === 'lost') return reject('reject.runOver');
     if (action.type === 'next-sector') {
       if (state.phase !== 'won') return reject('reject.notAtGate');
+      if (state.science?.over) return reject('reject.missionOver');
       const sector = makeSector(state.sector.index + 1);
       state.sector = sector;
       state.locationId = sector.startId;

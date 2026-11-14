@@ -112,7 +112,22 @@
     "upgrades": "Mejoras instaladas",
     "sunAu": "{{au}} UA",
     "solar": "Paneles {{kw}} kW",
-    "mission": "{{mission}} → {{dest}}"
+    "mission": "{{mission}} → {{dest}}",
+    "data": "Datos a bordo",
+    "dataMb": "{{mb}}/{{cap}} MB",
+    "science": "Ciencia entregada en la Tierra",
+    "linkTitle": "Enlace con la Tierra",
+    "link": {
+      "down": "↓ {{rate}} MB/s",
+      "noRange": "Sin alcance",
+      "blocked": "Ventana sin enlace",
+      "next": "Ventana en {{seconds}} s"
+    },
+    "observingTitle": "Los instrumentos están observando",
+    "observing": "Observando {{body}}",
+    "battery": "Batería",
+    "overheatTitle": "La demanda supera lo que disipan los radiadores: el reactor se desgasta",
+    "overheat": "Calor {{demandKw}}/{{heatKw}} kW"
   },
   "prompt": {
     "hold": "Mantén",
@@ -253,7 +268,11 @@
     "upgrades": "Mejoras compradas",
     "redesign": "Rediseñar",
     "retryMission": "Reintentar la misión",
-    "mission": "Misión"
+    "mission": "Misión",
+    "missionSuccessTitle": "¡Misión cumplida!",
+    "missionPartialTitle": "Misión incompleta",
+    "reportTitle": "Informe de la misión",
+    "rootCause": "causa"
   },
   "pause": {
     "title": "Pausa",
@@ -455,7 +474,8 @@
       "3": "Difícil"
     },
     "pick": "Diseñar",
-    "saved": "Diseño guardado"
+    "saved": "Diseño guardado",
+    "guided": "Guiada"
   },
   "design": {
     "title": "Hangar · {{mission}}",
@@ -518,7 +538,10 @@
     "mounted": "Montado",
     "noGoTitle": "No-Go",
     "goTitle": "Go",
-    "musd": "{{value}} M$"
+    "musd": "{{value}} M$",
+    "difficulty": "Dificultad",
+    "difficultyHint": "Cambia presupuesto, plazo y ciencia pedida; en vuelo, averías, peligros y ventanas de contacto",
+    "guidedSteps": "Pasos de la misión guiada"
   },
   "glossary": {
     "title": "Glosario",

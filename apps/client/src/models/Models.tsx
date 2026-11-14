@@ -19,7 +19,8 @@ export class ModelBoundary extends Component<{ fallback: ReactNode; children: Re
 
 /** Precarga diferida de los modelos ligeros (sin lanzar si faltan los archivos). */
 export function preloadModels(): void {
-  for (const url of [MODEL_URLS.astronaut, MODEL_URLS.galaxy]) {
+  // Fase 5: el tripulante ya es el astronauta articulado procedural; el GLB solo se carga si se monta `AstronautModel`.
+  for (const url of [MODEL_URLS.galaxy]) {
     try {
       useGLTF.preload(url);
     } catch {
@@ -61,6 +62,7 @@ function FittedModel({ url, size, height, origin = 'center' }: FitProps) {
 
 type GroupProps = { position?: [number, number, number]; rotation?: [number, number, number] };
 
+/** GLB del tripulante (sin esqueleto). Sin uso desde la fase 5: lo sustituye `ArticulatedAstronaut`. */
 export function AstronautModel({ height = 1.8, ...g }: { height?: number } & GroupProps) {
   return (
     <group {...g}>

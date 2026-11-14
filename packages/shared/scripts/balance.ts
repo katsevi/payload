@@ -60,6 +60,10 @@ function play(options: BotOptions) {
   let emergencies = 0;
   let overloads = 0;
   let targets = 0;
+  // Fase 5: misiones cumplidas, terminadas sin el objetivo y ciencia entregada.
+  let missionsOk = 0;
+  let missionsPartial = 0;
+  let science = 0;
   const upgradeCount: Record<string, number> = {};
   const sets = new Set<string>();
   const surf: SurfaceStats = { evas: 0, returned: 0, evaS: 0, evaSAll: 0, evaValue: 0, landings: 0, hard: 0, stored: 0, value: 0, crewDeaths: 0, score: 0, landed: 0, landValue: 0, takeOffs: 0, o2AtTakeOff: 0, surfaceS: 0, landIncidents: 0, idleS: 0 };
@@ -67,6 +71,11 @@ function play(options: BotOptions) {
   for (let seed = 1; seed <= runs; seed++) {
     const { state, evas, landings, events, targetReached } = playRun(seed, { sectors, ...options });
     if (targetReached) targets++;
+    if (state.science?.over) {
+      if (state.science.objectiveMet) missionsOk++;
+      else missionsPartial++;
+    }
+    science += state.science?.deliveredScience ?? 0;
     for (const l of landings) {
       surf.landed++;
       surf.landValue += l.value;
@@ -92,8 +101,8 @@ function play(options: BotOptions) {
         surf.evaS += e.durationS;
       }
     }
-    reasons[state.lossReason ?? (state.stats.sectorsCleared >= goal ? 'survived' : 'timeout')] =
-      (reasons[state.lossReason ?? (state.stats.sectorsCleared >= goal ? 'survived' : 'timeout')] ?? 0) + 1;
+    const outcome = state.lossReason ?? (state.stats.sectorsCleared >= goal || state.science?.over ? 'survived' : 'timeout');
+    reasons[outcome] = (reasons[outcome] ?? 0) + 1;
     for (let i = 0; i <= Math.min(goal, state.stats.sectorsCleared); i++) cleared[i]!++;
     time += state.stats.timeS;
     hull += state.ship.hull;
@@ -111,7 +120,7 @@ function play(options: BotOptions) {
     overloads += events.filter((e) => e.type === 'overload').length;
   }
   const eco = { earned, spent, upgradesBought, credits, emergencies, upgradeCount, distinctSets: sets.size };
-  return { reasons, cleared, time, hull, fuel, incidents, impacts, grazed, surf, eco, overloads, targets, ms: performance.now() - started };
+  return { reasons, cleared, time, hull, fuel, incidents, impacts, grazed, surf, eco, overloads, targets, missionsOk, missionsPartial, science, ms: performance.now() - started };
 }
 
 for (const [skill, walkS, explore, shipSkill] of profiles) {
@@ -154,11 +163,11 @@ function landingLine(s: SurfaceStats): string {
 // prudente, sobre el mapa del sistema solar.
 // Cada misión juega su ruta completa de ida y vuelta: 2·(zonas − 1) tramos (al menos 2). Se juegan los dos primeros
 // diseños válidos y hasta dos No-Go que fallan en vuelo (potencia, combustible, enlace), para ver CÓMO se pierde.
-// «objetivo» = % de partidas que atracan alguna vez en el nodo destino (`missionTarget`); aún no cambia la victoria
-// (eso es de la fase 5).
+// «destino» = % de partidas que atracan alguna vez en el nodo destino (`missionTarget`). Fase 5 (ADR 0018): «cumplida» =
+// vuelve a la Tierra con la ciencia pedida entregada; «parcial» = vuelve sin ella; «ciencia» = media entregada / pedida.
 const OPERATIONAL_CAUSES = ['power', 'range', 'comms-range'];
 console.log(`\n== fase 4 · diseños por misión (${runs} partidas, ruta completa de ida y vuelta) ==`);
-console.log('misión · diseño | Go | perfil | tramos | superan T1..Tn | objetivo | pérdidas | casco | sobrecargas/partida | puntuación');
+console.log('misión · diseño | Go | perfil | tramos | superan T1..Tn | destino | cumplida | parcial | ciencia | pérdidas | casco | sobrecargas/partida | puntuación');
 for (const mission of getMissions()) {
   const fixture = loadMissionFixture(mission.id);
   const legs = Math.max(2, 2 * (routeZones(mission.destinations[0] ?? null).length - 1));
@@ -173,7 +182,8 @@ for (const mission of getMissions()) {
       const lost = Object.entries(r.reasons).filter(([k]) => k !== 'survived').map(([k, n]) => `${k} ${n}`).join(', ') || '-';
       console.log(
         `${mission.id} · ${entry.name} | ${entry.go ? 'Go' : `No-Go (${entry.cause})`} | ${label} | ${legs} | ` +
-          `${r.cleared.slice(1).map((n) => `${Math.round((n / runs) * 100)}`).join(' · ')} % | ${pct(r.targets, runs)} % | ${lost} | ` +
+          `${r.cleared.slice(1).map((n) => `${Math.round((n / runs) * 100)}`).join(' · ')} % | ${pct(r.targets, runs)} % | ` +
+          `${pct(r.missionsOk, runs)} % | ${pct(r.missionsPartial, runs)} % | ${Math.round(r.science / runs)}/${mission.requirements.minScience} | ${lost} | ` +
           `${Math.round(r.hull / runs)} | ${(r.overloads / runs).toFixed(1)} | ${Math.round(r.surf.score / runs)}`,
       );
     }

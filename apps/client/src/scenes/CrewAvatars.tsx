@@ -2,11 +2,13 @@
  * Cooperativo (fase 6): los compañeros y sus pings en la escena. Las poses llegan del servidor a 10 Hz
  * (`coopLive.poses`) y aquí se interpolan; no hay física ni colisión entre jugadores.
  */
-import { useMemo, useRef } from 'react';
+import { createRef, useMemo, useRef, type MutableRefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group, Sprite } from 'three';
 import { COOP_LIMITS, type PoseArea, type RoleId } from '@payload/shared';
 import { Glow } from '../gfx/Glow';
+import { advanceGait, astronautPose } from '../game/astronautPose';
+import { applyAstronautPose, ArticulatedAstronaut, newAstronautRig, type AstronautRig } from '../models/ArticulatedAstronaut';
 import { getLocalCrewId } from '../game/me';
 import { getRun } from '../game/runStore';
 import { coopLive } from '../net/coopStore';
@@ -18,32 +20,12 @@ const PING_COLORS = { look: '#38e1c0', danger: '#ff4d5e', help: '#ffb347' } as c
 /** Fracción del camino hacia la pose recibida que se recorre por segundo (suaviza los 10 Hz). */
 const FOLLOW_PER_S = 12;
 
-function Astronaut({ color }: { color: string }) {
+/** Fase 5: el astronauta articulado en detalle bajo; mira a +Z, así que se gira para que su frente sea −Z (yaw 0). */
+function Astronaut({ color, rig }: { color: string; rig: MutableRefObject<AstronautRig> }) {
   return (
-    <>
-      <mesh position={[0, 0.75, 0]}>
-        <capsuleGeometry args={[0.26, 0.75, 4, 10]} />
-        <meshStandardMaterial color="#cfd6e0" roughness={0.7} metalness={0.1} />
-      </mesh>
-      <mesh position={[0, 1.55, 0]}>
-        <sphereGeometry args={[0.24, 14, 10]} />
-        <meshStandardMaterial color="#e8edf3" roughness={0.4} metalness={0.2} />
-      </mesh>
-      {/* Visera: mira hacia −Z local (el frente del jugador con yaw 0). */}
-      <mesh position={[0, 1.57, -0.15]}>
-        <sphereGeometry args={[0.17, 12, 8]} />
-        <meshStandardMaterial color="#10161f" roughness={0.15} metalness={0.8} />
-      </mesh>
-      {/* Mochila y banda con el color del rol. */}
-      <mesh position={[0, 0.95, 0.27]}>
-        <boxGeometry args={[0.36, 0.5, 0.2]} />
-        <meshStandardMaterial color={color} roughness={0.6} emissive={color} emissiveIntensity={0.35} />
-      </mesh>
-      <mesh position={[0, 1.28, 0]}>
-        <torusGeometry args={[0.25, 0.035, 6, 16]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.8} toneMapped={false} />
-      </mesh>
-    </>
+    <group rotation={[0, Math.PI, 0]}>
+      <ArticulatedAstronaut lod="low" accent={color} rig={rig} />
+    </group>
   );
 }
 
@@ -52,6 +34,13 @@ export function CrewAvatars({ area }: { area: PoseArea }) {
   const groups = useRef<(Group | null)[]>([]);
   const pings = useRef<(Sprite | null)[]>([]);
   const seen = useRef<boolean[]>([]);
+  // Fase 5: una articulación y una zancada por hueco (la pose sale de cuánto se mueve el avatar interpolado).
+  const rigs = useMemo(() => Array.from({ length: SLOTS }, () => {
+    const r = createRef<AstronautRig>() as MutableRefObject<AstronautRig>;
+    r.current = newAstronautRig();
+    return r;
+  }), []);
+  const gaits = useRef<number[]>(Array.from({ length: SLOTS }, () => 0));
   // El rol no cambia durante la partida: se lee una vez al montar la escena.
   const colors = useMemo(() => {
     const crew = getRun()?.state.crew ?? [];
@@ -84,9 +73,20 @@ export function CrewAvatars({ area }: { area: PoseArea }) {
         seen.current[i] = true;
         continue;
       }
+      const ox = g.position.x;
+      const oy = g.position.y;
+      const oz = g.position.z;
       g.position.x += (pose.x - g.position.x) * k;
       g.position.y += (pose.y - g.position.y) * k;
       g.position.z += (pose.z - g.position.z) * k;
+      if (delta > 0) {
+        const speed = Math.min(12, Math.hypot(g.position.x - ox, g.position.z - oz) / delta);
+        const vy = (g.position.y - oy) / delta;
+        // Sin saber si pisa suelo: en la nave siempre; fuera, si apenas sube o baja.
+        const grounded = area === 'ship' || Math.abs(vy) < 0.6;
+        gaits.current[i] = advanceGait(gaits.current[i] ?? 0, grounded ? speed : 0, delta);
+        applyAstronautPose(rigs[i]!.current, astronautPose({ gait: gaits.current[i]!, speedMps: grounded ? speed : 0, grounded, thrusting: !grounded && vy > 0, verticalMps: vy, timeS: performance.now() / 1000 }));
+      }
       // Giro por el camino corto.
       const d = Math.atan2(Math.sin(pose.yaw - g.rotation.y), Math.cos(pose.yaw - g.rotation.y));
       g.rotation.y += d * k;
@@ -115,7 +115,7 @@ export function CrewAvatars({ area }: { area: PoseArea }) {
     <>
       {colors.map((color, i) => (
         <group key={i} ref={(g) => void (groups.current[i] = g)} visible={false}>
-          <Astronaut color={color} />
+          <Astronaut color={color} rig={rigs[i]!} />
         </group>
       ))}
       {Array.from({ length: PING_SLOTS }, (_, i) => (
