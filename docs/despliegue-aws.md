@@ -5,10 +5,36 @@ Payload tiene dos piezas que se publican por separado:
 | Pieza | Qué es | Dónde va |
 | --- | --- | --- |
 | **Cliente** (`apps/client`) | Sitio estático: Vite genera `apps/client/dist` (HTML, JS y los `.glb` de `assets/web`) | **AWS Amplify Hosting**: construye desde GitHub y publica cada push a `main`, con HTTPS y CDN |
-| **Servidor de juego** (`apps/game-server`) | Colyseus por WebSocket, siempre encendido. Solo lo usa el **cooperativo** | **Una instancia de AWS Lightsail** con Caddy delante para el HTTPS (ver [Servidor del cooperativo](#servidor-del-cooperativo-lightsail)) |
+| **Servidor de juego** (`apps/game-server`) | Colyseus por WebSocket, siempre encendido. Solo lo usa el **cooperativo** | **Una instancia EC2** (o Lightsail) con Caddy delante para el HTTPS (ver [En producción](#en-producción-2026-11-14) y [Servidor del cooperativo](#servidor-del-cooperativo-lightsail)) |
 
 Sin el servidor, el solitario funciona igual, pero «Cooperativo» da **timeout**: el cliente busca el servidor en
 `wss://<la página>:2567` y Amplify no tiene nada en ese puerto.
+
+## En producción (2026-11-14)
+
+| Pieza | Dónde | Detalle |
+| --- | --- | --- |
+| Cliente | Amplify, app `d24izpi0hbzbl0`, rama `main` | `https://main.d24izpi0hbzbl0.amplifyapp.com/`. Variable `VITE_GAME_SERVER_URL = wss://18-215-99-217.sslip.io` |
+| Servidor | EC2 `payload-game` (`i-0e2779061e022f434`, us-east-1, Ubuntu 26.04, t3.micro, 12 GB) | Elastic IP `18.215.99.217`; security group `payload-game-sg` (22, 80, 443); dominio gratuito `18-215-99-217.sslip.io` (sslip.io convierte la IP en nombre) con certificado de Caddy |
+| Proceso | `/opt/payload-game/index.mjs` (paquete autocontenido) | Servicio systemd `payload-game` (`PORT=2567`, `HOST=127.0.0.1`, Node 24 de nvm); Caddy en `/etc/caddy/Caddyfile` |
+| Paquete | S3 privado `payload-game-deploy-396510133284` | Se usó porque la organización tiene **desactivadas las deploy keys** y la instancia no puede clonar el repo privado |
+
+Comprobado: crear sala y entrar con el código desde la página publicada (dos jugadores en el lobby).
+
+### Actualizar el servidor sin acceso al repo
+
+1. En local: `pnpm --filter @payload/game-server bundle:standalone` → `apps/game-server/dist-standalone/payload-game-server.mjs` (imprime su sha256).
+2. Consola de S3 → bucket `payload-game-deploy-396510133284` → **Upload** el archivo (reemplaza al anterior).
+3. En el objeto: **Object actions → Share with a presigned URL** (10 min). Se copia al portapapeles.
+4. EC2 → `payload-game` → **Connect → EC2 Instance Connect** y:
+   ```bash
+   curl -fsSL -o ~/payload-game-server.mjs "<URL prefirmada>" && sha256sum ~/payload-game-server.mjs
+   sudo cp ~/payload-game-server.mjs /opt/payload-game/index.mjs && sudo systemctl restart payload-game
+   systemctl is-active payload-game
+   ```
+   Reiniciar cierra las salas abiertas. Si se activan las deploy keys, se puede pasar a `deploy/update.sh` (git pull).
+
+Coste aproximado: t3.micro + Elastic IP + S3, pocos USD al mes. La Elastic IP cobra aunque la instancia esté apagada.
 
 ## Archivos del repo
 
