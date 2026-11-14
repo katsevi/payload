@@ -6,13 +6,13 @@ El equipo evaluó Payload frente al reto «Space Mission Design Game» (NASA Spa
 misión y explicar por qué sale bien o mal). Decisión: conservar el juego y reordenar el roadmap para que la partida de
 supervivencia sea la *operación* de la misión diseñada (ADR `docs/adr/0015-reto-nasa-y-roadmap.md`).
 
-- **Fase 4 · Diseño de misión y sistema solar: implementada · validada con observaciones** (rama `feat/f4-diseno-de-mision`, PR abierto; ADR 0016). `pnpm validate` 11/11 con **430 tests** (257 shared + 173 client). Diseño de misión antes de zarpar (6 misiones, módulos, instrumentos, lanzadores, Go/No-Go con motivo), sistema solar con 25 cuerpos reales y potencia 1/d², hangar y mapa solar 3D, glosario opcional. Partida clásica idéntica a `main`. **Pendiente para la fase 5:** el objetivo de la misión (`missionTarget`) aún no termina ni puntúa la partida (definir la condición de éxito), los avisos `thermal`, `reliability` y `no-battery` no tienen efecto en la partida, la misión guiada de CubeSat necesita otra escala de módulos. **Sin verificar por personas:** diseñar una misión en < 10 min, FPS con el mapa solar abierto (dos `<Canvas>`), tramos con Júpiter/Saturno y los mundos nuevos en superficie.
-- **Fase 5 · Ciencia, datos y astronauta articulado:** `docs/phases/fase-5.md`.
+- **Fase 4 · Diseño de misión y sistema solar: implementada · validada con observaciones · fusionada en `main`** (PR #6, commit `750255a`; ADR 0016). `pnpm validate` 11/11 con **430 tests** (257 shared + 173 client). Diseño de misión antes de zarpar (6 misiones, módulos, instrumentos, lanzadores, Go/No-Go con motivo), sistema solar con 25 cuerpos reales y potencia 1/d², hangar y mapa solar 3D, glosario opcional. Partida clásica idéntica a la fase 3. **Pendiente para la fase 5:** ver «Fase 4 — qué se hizo» y `docs/phases/fase-4.md` § «Pendiente heredado» (el objetivo no termina la partida, avisos sin efecto, Europa/Titán sin vuelta, CubeSat). **Sin verificar por personas:** diseñar una misión en < 10 min, FPS con el mapa solar, tramos con Júpiter/Saturno y los mundos nuevos en superficie.
+- **Fase 5 · Ciencia, datos y astronauta articulado:** `docs/phases/fase-5.md` (lista las decisiones que hay que tomar antes de empezar).
 - **Fase 6 · Cooperativo 1-4 con roles** (antigua fase 4) y **fase 7 · Pulido y lanzamiento** (antigua fase 5): `fase-6.md`, `fase-7.md`.
 - **Regla 6 revisada:** se permiten explicaciones opcionales de una línea (ayuda con tecla, glosario, motivo del Go/No-Go, informe final); nunca lectura obligatoria.
 - Los ADR 0009 y 0010 (servidor) siguen aceptados y en suspenso hasta la fase 6. En las notas antiguas de este archivo, el cooperativo que aparece como «fase 4» es ahora la fase 6.
 
-Última actualización: **2026-11-14** · Rama actual: `feat/f4-diseno-de-mision` · Propuesta: 0.7.0 (fase 4; ver `CHANGELOG.md`)
+Última actualización: **2026-11-14** · rama `main` (fase 4 fusionada, PR #6) · Propuesta: 0.7.0 (fase 4; ver `CHANGELOG.md`). Guía para probar el juego: [`docs/guias/primera-mision.md`](guias/primera-mision.md)
 
 > Léelo antes de empezar y actualízalo al terminar una tarea relevante. Las casillas de
 > `docs/phases/fase-*.md` las marca quien valida la fase, no quien implementa: aquí solo se resume.
@@ -34,7 +34,7 @@ decisión en ADR 0011). El juego se rehízo el 2026-11-09.
   Créditos, terminal de estación de pago (venta, suministros, 11 mejoras con contrapartida), ayuda de emergencia
   gratuita (sustituye al servicio gratuito) y la masa a bordo encarece cada salto. `pnpm validate` 11/11, **300 tests**
   (181 + 119). Nadie ha jugado 20 minutos para comprobar el hito ni ha visto el terminal con GPU real. Decisiones: ADR 0014.
-- **Siguiente: fase 4 (diseño de misión y sistema solar), en curso; el cooperativo es ahora la fase 6.** Toda la economía entra como `RunAction` y es determinista (ver «Próximos pasos»).
+- **Fase 4 (diseño de misión y sistema solar) fusionada (PR #6); siguiente: fase 5 (ciencia y datos); el cooperativo es ahora la fase 6.** Toda la economía entra como `RunAction` y es determinista (ver «Próximos pasos»).
 
 ## Estado por fase
 
@@ -43,7 +43,7 @@ decisión en ADR 0011). El juego se rehízo el 2026-11-09.
 | 1 · Viaje y nave (en solitario) | **Implementada y fusionada en `main`** (PR #3). `pnpm validate` en verde y recorrido manual en Chrome. **Falta:** validación independiente (agente `validator`) y el hito con jugadores. |
 | 2 · Exploración de superficie | **Implementada** (commit `d8ce24d` en `feat/f2-superficie`; mejoras sin commitear en `feat/f2-herramientas-e-interacciones`). `pnpm validate` en verde y una pasada del `validator` sin bloqueantes. **Falta:** validación independiente final, la segunda revisión de diseño y el hito con jugadores. |
 | 3 · Economía y progresión | **Implementada · validada con observaciones** (rama `feat/f3-economia-progresion`, sin commitear). `pnpm validate` en verde (300 tests) y validación independiente «cumple con observaciones» (sin exploits de dinero ni soft-locks). **Falta:** el hito con jugadores (20 min: vender, >= 2 mejoras, la nave se siente otra), ver el terminal y los créditos en un navegador con GPU real y escuchar los cues. |
-| 4 · Diseño de misión y sistema solar | **En curso** (rama `feat/f4-diseno-de-mision`, desde `main` con la fase 3 fusionada). Ficha: `docs/phases/fase-4.md`; decisión: ADR 0015. |
+| 4 · Diseño de misión y sistema solar | **Implementada · validada con observaciones · fusionada** (PR #6). `pnpm validate` en verde (430 tests). **Falta:** el hito con personas (diseñar una misión en < 10 min), FPS con el mapa solar y las decisiones heredadas para la fase 5. Ficha: `docs/phases/fase-4.md`; decisiones: ADR 0015 y 0016. |
 | 5 · Ciencia, datos y astronauta articulado | No iniciada. Depende de la fase 4. |
 | 6 · Cooperativo 1-4 con roles | No iniciada (antigua fase 4). `apps/game-server` es un marcador. |
 | 7 · Pulido y lanzamiento | No iniciada (antigua fase 5). `apps/api` es un marcador. |
@@ -200,6 +200,54 @@ reglas completas en ADR 0014, `packages/shared/CLAUDE.md` y `apps/client/CLAUDE.
 **Validación independiente:** «cumple con observaciones». Corregido después: tests de las dos mejoras nuevas, bot que las
 compra, aviso de sobrecarga, rechazo duplicado, cierre del overlay y tope en `isStranded`.
 
+### Fase 4 — qué se hizo (2026-11-14, rama `feat/f4-diseno-de-mision`, fusionada en el PR #6)
+
+Antes de zarpar se **diseña la misión** (destino, lanzador, módulos e instrumentos) y la partida de supervivencia pasa a ser su operación en un sistema solar real. Decisiones: ADR 0015 y 0016; guía de juego: `docs/guias/primera-mision.md`. Contrato aditivo; sin diseño, `createRun` da la partida clásica.
+
+**Motor (`packages/shared`):**
+- `design.ts`: `MissionDesign`, `emptyDesign`, `missionDesignSchema`/`parseMissionDesign`/`normalizeDesign` (`createRun` lanza con un diseño mal formado; las funciones de diseño lo normalizan a vacío), `computeDesignBudgets` (masa, potencia, coste, calendario, ranuras y combustible con «¿por qué?» de una línea), `reviewDesign` (Go/No-Go con bloqueos y avisos) y `shipFromDesign` (la nave de la partida). La potencia se mide en el **peor punto de la ruta** (`routeWorstSunDistance`: Luna/asteroide Ryugu 1,19 UA, Marte Schiaparelli 1,524, cinturón Psique 2,92, Júpiter Galileo 5,203, Saturno Huygens 9,537; `DesignTotals.worstAu/worstBodyId/solarKwAtWorst/powerAtWorstKw`, mensaje `design.why.power.worst`). `rules.maxShieldAbsorb` limita el blindaje.
+- `solar.ts`: `generateSolarSector` (ruta por zonas, ida y vuelta, `missionTarget` en el destino), potencia solar 1/d² (`solarPowerFactor`, `solarKw`, `shipPowerKw`), `bodyPositionAu`, `solarNodePositionsAu`.
+- Catálogos: `misiones.json` (6), `modulos.json` (22), `instrumentos.json` (13), `lanzadores.json` (4: Cóndor, Ariete, Cóndor Pesado, Coloso) y `sistema-solar.json` (25 cuerpos con fuente NASA + 7 estaciones ficticias). Mundos `mars-surface`, `ice-moon`, `titan-surface` y `enceladus-surface` con `weight: 0` (solo sistema solar; el esquema admite 0 y exige que cada tipo aterrizable tenga algún mundo con peso > 0). Júpiter y Saturno no son aterrizables.
+- Fixtures por misión (`src/__tests__/fixtures/missions/`) con >= 2 diseños válidos y fallos por causas distintas.
+
+**Cliente (`apps/client`):**
+- Menú («Diseñar una misión» / «Partida libre») → misiones → **hangar de diseño** (`ui/MissionScreens.tsx`, `scenes/HangarScene.tsx`, `game/missionDesign.ts`, `game/hangarLayout.ts`): paleta en grupos, medidores vivos con vista previa, Go/No-Go, «Lanzar» solo con Go, guardado `payload.design.<misión>`, H «¿por qué?», G glosario de 14 términos (`ui/Glossary.tsx`, `game/glossary.ts`) → partida → «Rediseñar» / «Reintentar la misión» en el fin de partida.
+- **Mapa solar 3D** (`scenes/SolarMapScene.tsx`, `game/solarScale.ts`: escala 10·√UA); el `StarMap` SVG queda solo en la partida libre. HUD con UA y potencia de los paneles; unidades «u» en lugar de años luz. `baseShipOf` (la nave base sale del diseño), `isLandableNode`, caché LRU de etiquetas (`game/lru.ts`).
+- Atajos: `?design=1&mission=<id>` (hangar) y `?play=1&seed=7&mission=<id>` (partida con el diseño de referencia de los fixtures y, si no hay, el último guardado; solo desarrollo).
+
+**Validación independiente:** «cumple con observaciones» (lo abierto está en `docs/phases/fase-4.md` § «Pendiente heredado»).
+
+## Métricas verificadas (2026-11-14, fase 4)
+
+| Métrica | Valor |
+| --- | --- |
+| `pnpm validate` | Verde: 11/11 tareas (typecheck + test + build). Total **430 tests** |
+| Tests `@payload/shared` | **257** en 11 archivos |
+| Tests `@payload/client` | **173** en 6 archivos |
+| Partida clásica | Idéntica bit a bit a la fase 3 (validador: 28 partidas, mismo hash); perfiles de `pnpm balance` iguales a la línea base de la fase 3 |
+| Sin verificar | Diseñar una misión en < 10 min con personas, FPS con el mapa solar (dos `<Canvas>`), tramos con Júpiter y Saturno, mundos nuevos en superficie |
+
+### Balance por misión (`pnpm balance 100 3`, tripulación 3,5 s)
+
+Ruta completa = 2·(zonas−1) tramos. Columnas: % que acaba la ruta / % que llega al objetivo.
+
+| Misión | Diseño | Ruta / objetivo |
+| --- | --- | --- |
+| Luna | `alas-solares-y-radar` | 100 / 100 |
+| Luna | `ionica-estandar` | 100 / 100 |
+| Asteroide | `taladro-camara-e-infrarrojo-a-ryugu` | 100 / 100 |
+| Asteroide | `ligera-a-bennu` | 98 / 8 |
+| Marte | `tres-alas-solares` | 100 / 100 |
+| Marte | `hibrida-rtg` | 100 / 100 |
+| Cinturón | `fision-doble-rtg-blindada` | 91 / 100 |
+| Cinturón | `fision-rtg-justa-de-potencia` | 74 / 97 |
+| Europa | `coloso-nuclear-completa` | 8 / 87 |
+| Europa | `ligera-sin-escudos-a-ganimedes` | 5 / 40 |
+| Titán | `quimica-con-fision-y-rtg` | 1 / 53 |
+| Titán | `ionica-con-dos-reactores` | 0 / 37 |
+
+Problemas que enseña la tabla: `ligera-a-bennu` casi nunca llega a Bennu; en Europa y Titán casi todas las partidas se pierden en la **vuelta** (varada o casco). Los No-Go representativos se pierden en vuelo (paneles en Júpiter: 90 pérdidas por casco; solo RTG en Titán: 100; sin combustible de vuelta en Marte: 100 % varadas). El No-Go `antena-corta` del cinturón juega igual que un Go porque el enlace aún no tiene efecto (fase 5).
+
 ## Métricas verificadas (2026-11-13, fase 3)
 
 | Métrica | Valor |
@@ -259,6 +307,9 @@ recalificado**.
 
 Ningún agente puede hacerlas.
 
+F4-a. **Hito de la fase 4:** que una persona nueva diseñe una misión en < 10 min (`pnpm dev`, «Diseñar una misión»; guía en `docs/guias/primera-mision.md`; atajo `?design=1&mission=mission-lunar-ice`): ¿entiende por qué sale No-Go con la línea de H? ¿lo que diseñó es lo que juega?
+F4-b. **Medir FPS** del mapa solar abierto en GPU real (dos `<Canvas>`), jugar un tramo con Júpiter y Saturno y entrar en superficie en Marte, hielo, Titán y Encélado (mundos nuevos).
+F4-c. **Decidir las cuestiones heredadas** de la fase 4 antes de empezar la 5 (ver `docs/phases/fase-5.md` § «Decisiones que debe tomar la fase 5»).
 F3-a. **Hito de la fase 3:** jugar 20 minutos (`pnpm dev`, `?play=1&seed=7&station=1`): ¿se vende, se compran >= 2 mejoras y la nave se siente otra? ¿dos partidas seguidas acaban con mejoras distintas? ¿los precios dan duda real?
 F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de créditos, pantalla de fin de partida) en un navegador con GPU real, y **escuchar** los cues `sale`, `purchase`, `upgrade` y `noCredits` (nadie los ha oído).
 0. **Jugar la superficie** (`pnpm dev`, `?play=1&seed=7&surface=1`; semillas por mundo en `apps/client/CLAUDE.md`):
@@ -277,6 +328,8 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
 11. **Crear `.claude/settings.json` compartido** (contenido propuesto en `docs/CONTRIBUTING.md`).
 
 ## Decisiones de diseño abiertas
+
+- **Fase 4 (a decidir en la fase 5):** condición de éxito de la misión (`missionTarget` aún no termina ni puntúa; la ruta se repite); efecto de `thermal`, `reliability`, `no-battery`, `comms-range` y del fallo de lanzamiento (hoy solo avisan o no hacen nada); Europa y Titán casi no completan la vuelta y `ligera-a-bennu` llega al objetivo el 8 %; gravedades escaladas a la jugabilidad (Encélado 0,5 frente a 0,11, Ceres 0,6 frente a 0,28, Ío 2,4 frente a 1,8, cuerpos pequeños 0,4); los paneles escalan con la salud del reactor; dos `<Canvas>` con el mapa abierto; misión guiada de CubeSat con otra escala de módulos.
 
 - **Sector de ida.** Hoy se avanza hasta un portal y se pasa a otro sector; el plan habla de «regresar a estaciones seguras». Con la economía ya existente hay que decidir si hace falta una base a la que volver (el contrato de 65 créditos se cobra al superar el sector, sin volver).
 - **Economía (fase 3), a decidir con jugadores:**
@@ -312,6 +365,14 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
 - **Mecha Aurora G9:** aplazado (ADR 0012). Decidir en fases posteriores si vuelve como vehículo o se retira del GDD.
 - **Mascota:** no hay. Si vuelve, Rise sigue necesitando autorización de NASA.
 
+## Despliegue (propuesta, sin hacer)
+
+Nada está desplegado. Propuesta para cuando toque:
+
+- **Cliente:** sitio estático en AWS Amplify Hosting (o S3 + CloudFront). Build: `pnpm --filter @payload/client build` con Node 22 (salida en `apps/client/dist`). Caché larga (inmutable) para `.glb` y los JS/CSS con hash; caché corta o `no-cache` para `index.html`.
+- **Servidor de la fase 6:** necesitará WebSockets: Lightsail/EC2 o ECS Fargate detrás de un ALB con stickiness (la sala vive en memoria de un proceso).
+- **Licencia:** `programme_erizon.glb` es CC-BY-NC-ND y impide el uso comercial; hay que sustituirlo antes de un despliegue comercial (acción humana 10).
+
 ## Deuda técnica conocida
 
 - **La escena 3D no tiene tests** (ni E2E): se validó a mano. Lo que sí está cubierto es la lógica pura (`layout`, `interaction`, `runStore`, `terrain`, `motion`, `surfaceRules`).
@@ -331,12 +392,16 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
 - **Mando y táctil** no implementados. Sin CI ni linter.
 - **`fx` y `playerState`** son objetos mutables de módulo (leídos por frame sin pasar por React).
 
-## Próximos pasos (hacia el cooperativo, fase 6)
+## Próximos pasos
+
+0. **Fase 5 (ciencia, datos y astronauta articulado):** empezar por `docs/phases/fase-5.md` § «Decisiones que debe tomar la fase 5» y un ADR 0017; el punto de partida (campos de datos de instrumentos, antenas y computadoras, `missionTarget`) está en esa ficha y en ADR 0016 § 4. Antes, el hito de la fase 4 con personas (F4-a) y la medida de FPS (F4-b).
+
+### Hacia el cooperativo (fase 6)
 
 1. Cerrar la fase 2: segunda revisión de diseño, validación independiente final, prueba con jugadores y medida de FPS;
    ajustar `catalog/mundos.json` con `pnpm balance` (ver `.claude/skills/add-catalog-item`).
 2. La prueba con jugadores de la fase 1.
-3. Cerrar la fase 3: commit y PR de `feat/f3-economia-progresion`, prueba de 20 minutos con personas y ajuste de precios y mejoras (`economia.json`, `mejoras.json`) con `pnpm balance`.
+3. Cerrar la fase 3 (fusionada en `main`): prueba de 20 minutos con personas y ajuste de precios y mejoras (`economia.json`, `mejoras.json`) con `pnpm balance`.
 4. Escribir `docs/MULTIPLAYER.md` nuevo antes de tocar `apps/game-server` (fase 6); el antitrampas de `set-position` y la autoridad dividida (ADR 0012) son su punto de partida.
 5. **Lo que el cooperativo debe saber de la economía** (para `docs/MULTIPLAYER.md` y `apps/game-server`):
    - Todo el comercio entra como `RunAction` (`sell`, `buy-supply`, `buy-upgrade`, `service`) y es determinista: la oferta sale de semilla + sector + nodo, sin azar propio del servidor. El motor valida estación, créditos y oferta, así que el servidor solo reenvía acciones.
