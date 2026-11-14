@@ -121,6 +121,7 @@ payload/
 | [`docs/phases/`](docs/phases/README.md) | Roadmap y alcance de cada fase |
 | [`docs/STATUS.md`](docs/STATUS.md) | Estado actual, métricas y pendientes (traspaso entre sesiones) |
 | [`docs/guias/primera-mision.md`](docs/guias/primera-mision.md) | Guía: diseñar la primera misión paso a paso (hangar, medidores, Go/No-Go) |
+| [`docs/despliegue-aws.md`](docs/despliegue-aws.md) | Publicar el juego en AWS Amplify Hosting |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Cómo encajan motor, cliente y servidor |
 | [`docs/adr/`](docs/adr/README.md) | Decisiones de arquitectura |
 | [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) | Ramas, commits, PR y trabajo con Claude |

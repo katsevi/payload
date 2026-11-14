@@ -26,7 +26,7 @@ archivo, el `CLAUDE.md` del paquete que vas a tocar y `docs/STATUS.md` (estado a
 | 7 · Pulido y lanzamiento | Rankings, mando/táctil, E2E, despliegue | Pendiente (`apps/api` es un marcador) |
 
 Plan: `docs/plan/plan-tripulacion-de-exploracion.md`. Reto NASA y roadmap: `docs/adr/0015-reto-nasa-y-roadmap.md`. Diseño: `docs/GDD.md`. Más documentación:
-`docs/STATUS.md` (estado y pendientes), `docs/ARCHITECTURE.md`, `docs/phases/`, `docs/guias/primera-mision.md` (cómo probar el diseño de misión), `docs/CONTRIBUTING.md` y `CHANGELOG.md`.
+`docs/STATUS.md` (estado y pendientes), `docs/despliegue-aws.md` (publicar en AWS Amplify), `docs/ARCHITECTURE.md`, `docs/phases/`, `docs/guias/primera-mision.md` (cómo probar el diseño de misión), `docs/CONTRIBUTING.md` y `CHANGELOG.md`.
 
 ## Mapa del monorepo
 
