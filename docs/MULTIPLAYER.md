@@ -25,11 +25,14 @@ El contrato del simulador anterior está en `docs/archivo/v0.3-simulador/MULTIPL
   cuando los demás conectados están listos. Una persona sola puede empezar.
 - Al empezar, la sala se bloquea: nadie entra a una partida en curso (`in-progress`). Los jugadores, por
   orden de entrada, reciben `crewId` 1..n.
-- **Partida perdida:** el anfitrión envía `restart` y la sala vuelve al lobby (se desbloquea).
-- **Partida libre siempre:** la sala crea `createRun({ seed, crewSize, roles })`, sin diseño de misión (fase 4).
-  Elegir y votar el diseño en sala es parte pendiente de la fase 6. El cliente ya está preparado: si un `state`
-  trae `missionDesign`, crea su espejo con ese mismo diseño (`createRun({ …, design })`) antes de hidratarlo, porque
-  la nave base y el mapa del sistema solar salen del diseño y no del estado.
+- **Misión o partida libre (ADR 0020):** el anfitrión elige la misión (`set-mission`) o deja la partida libre. Con
+  misión, todos editan el diseño compartido (`edit-design`, ediciones discretas que valida `applyDesignEdit`) y votan
+  Go/No-Go (`vote`). Cada cambio del diseño borra los votos. El anfitrión zarpa cuando la revisión del motor da Go y
+  vota Go la **mayoría estricta** de los conectados (empate = No-Go); sin misión, cuando los demás están listos. La
+  sala crea `createRun({ seed, crewSize, roles, design })`; el cliente crea su espejo con ese mismo diseño antes de
+  hidratarlo (la nave base y el mapa del sistema solar salen del diseño, no del estado).
+- **Fin:** tras perder o terminar la misión (`science.over`), el anfitrión envía `restart` y la sala vuelve al lobby
+  con el mismo diseño (sin votos).
 - Errores de entrada (`ServerError`): `room-full`, `in-progress`.
 - Opción de creación solo para desarrollo y tests (`PAYLOAD_ALLOW_SEED=1` o `NODE_ENV=test`): `seed`.
 
@@ -41,7 +44,7 @@ No se usa el estado sincronizado de Colyseus (esquema): todo va por mensajes. No
 
 | Mensaje | Carga | Notas |
 | --- | --- | --- |
-| `lobby` | `LobbyAction`: `set-role {role}`, `set-ready {ready}`, `start`, `restart` | `start` y `restart` solo del anfitrión |
+| `lobby` | `LobbyAction`: `set-role {role}`, `set-ready {ready}`, `start`, `restart`, `set-mission {missionId \| null}`, `edit-design {edit: DesignEdit}`, `vote {go: true \| false \| null}` | `start`, `restart` y `set-mission` solo del anfitrión; editar y votar, cualquiera, en el lobby |
 | `action` | `{ seq, action: RunAction }` | El servidor pone el `crewId` de quien envía |
 | `pose` | `CrewPose { x, y, z, yaw, area: 'ship' \| 'surface' }` | Efímera, ≤ 10 Hz; no entra en el motor |
 | `ping` | `{ kind: 'look' \| 'danger' \| 'help', x, y, z, area }` | Como mucho uno cada 0,4 s |
@@ -50,7 +53,7 @@ No se usa el estado sincronizado de Colyseus (esquema): todo va por mensajes. No
 
 | Mensaje | Carga | Cuándo |
 | --- | --- | --- |
-| `lobby` | `LobbyView { code, phase, runId, players[] }` | Al entrar, al reconectar y cada vez que cambia |
+| `lobby` | `LobbyView { code, phase, runId, players[] (con `vote`), design, designRev }` | Al entrar, al reconectar y cada vez que cambia (también al editar o votar) |
 | `state` | `{ tick, state, sector? }` | Tras cada paso fijo (10 Hz). `state` es el `RunState` sin `sector`; `sector` solo viaja cuando cambia, al empezar y al reconectar |
 | `events` | `RunEvent[]` | Los eventos del motor de ese avance (sonidos, avisos) |
 | `result` | `{ seq, reason: MessageRef }` | Solo rechazos, y solo a quien envió la acción |
@@ -118,6 +121,7 @@ Menú → Cooperativo → crear sala → compartir el código.
 ## Tests
 
 - `packages/shared/src/__tests__/coop.test.ts`: roles, `hydrate` (también con diseño de misión) y validación de mensajes.
+- `packages/shared/src/__tests__/sharedDesign.test.ts`: ediciones del diseño, ediciones entre dos diseños, voto.
 - `apps/game-server/src/__tests__/roomModel.test.ts`: lobby, **paridad con el motor**, antiabuso, caídas.
 - `apps/game-server/src/__tests__/network.test.ts`: servidor real y cuatro clientes SDK (sincronía, reconexión).
 - `apps/client/src/__tests__/coop.test.ts`: sesión del cliente contra una sala en memoria.

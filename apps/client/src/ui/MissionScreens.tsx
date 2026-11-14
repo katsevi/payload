@@ -16,6 +16,7 @@ import {
   partFamily, partKeyAction, partTokens, previewAdd, removePart, setDestination, setDifficulty, setLauncher, sortedIssues, type PaletteGroup, type PartRef, type PartToken,
 } from '../game/missionDesign';
 import { getRun, useGame } from '../game/runStore';
+import { SharedVote } from './CoopScreen';
 import i18n, { lt, tr } from '../i18n';
 import { useHangar } from '../state/hangar';
 import { useUi } from '../state/ui';
@@ -168,6 +169,8 @@ function Meter({ r, ghost, why }: { r: DesignResource; ghost?: DesignResource; w
 function ReviewPanel({ review, onLaunch }: { review: DesignReview; onLaunch: () => void }) {
   const { t } = useTranslation();
   const go = canLaunch(review);
+  // Fase 6: en el hangar compartido de una sala no se lanza: se vota (y zarpa el anfitrión).
+  const shared = useGame((g) => g.sharedDesign);
   return (
     <div className="console-panel flex flex-col gap-2 p-3">
       <div className="flex items-center justify-between gap-2">
@@ -182,9 +185,13 @@ function ReviewPanel({ review, onLaunch }: { review: DesignReview; onLaunch: () 
           </li>
         ))}
       </ul>
-      <button className="btn btn-primary flex items-center justify-center gap-2 !py-3 text-base" disabled={!go} onClick={onLaunch}>
-        <Rocket size={17} /> {go ? t('design.launch') : t('design.launchBlocked')}
-      </button>
+      {shared ? (
+        <SharedVote />
+      ) : (
+        <button className="btn btn-primary flex items-center justify-center gap-2 !py-3 text-base" disabled={!go} onClick={onLaunch}>
+          <Rocket size={17} /> {go ? t('design.launch') : t('design.launchBlocked')}
+        </button>
+      )}
     </div>
   );
 }
@@ -414,6 +421,8 @@ export function DesignScreen() {
   const hover = useHangar((h) => h.hover);
   const review = useMemo(() => (design ? evaluate(design) : null), [design]);
   const preview = useMemo(() => (design && hover && review ? previewAdd(design, hover, undefined, review.budgets).budgets : null), [design, hover, review]);
+  // Fase 6: hangar compartido de una sala («volver» lleva a la sala).
+  const shared = useGame((g) => g.sharedDesign);
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -445,7 +454,7 @@ export function DesignScreen() {
       <header className="console-panel flex flex-col gap-2 p-2 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-start gap-2">
           <button className="btn flex shrink-0 items-center gap-1" onClick={() => useGame.getState().openMissions()}>
-            <ArrowLeft size={15} /> {t('design.back')}
+            <ArrowLeft size={15} /> {shared ? t('design.backToRoom') : t('design.back')}
           </button>
           <div className="min-w-0">
             <h1 className="num truncate text-base uppercase tracking-widest text-accent">{t('design.title', { mission: lt(mission.name) })}</h1>

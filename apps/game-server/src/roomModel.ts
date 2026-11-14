@@ -10,9 +10,10 @@
  *   (o fuera, hasta que se le acabe el oxígeno). Sin nadie conectado, el tiempo no avanza.
  */
 import {
+  applyDesignEdit, missionStartDesign, reviewDesign, voteTally,
   COOP_LIMITS, createRun, FIXED_STEP_S, MAX_WORK_SECONDS, parseActionMessage, parseLobbyAction, parsePing, parsePose, ROLE_IDS, sanitizePlayerName,
   type ActionResult, type Catalog, type CoopPlayer, type CrewPose, type JoinErrorCode, type LobbyView, type PingBroadcast, type PosesMessage, type ResultMessage,
-  type RoleId, type RoomPhase, type Run, type RunAction, type RunEvent, type StateMessage,
+  type MissionDesign, type RoleId, type RoomPhase, type Run, type RunAction, type RunEvent, type StateMessage,
 } from '@payload/shared';
 
 /** Acciones cuyo `seconds` es trabajo mantenido: no pueden sumar más que el tiempo real transcurrido. */
@@ -37,6 +38,8 @@ interface Player {
   workBudgetS: number;
   workAtS: number;
   lastPingS: number;
+  /** Fase 6 (ADR 0020): voto Go/No-Go sobre el diseño actual (null = sin votar). */
+  vote: boolean | null;
 }
 
 export interface RoomModelOptions {
@@ -64,6 +67,9 @@ export class RoomModel {
   private tickCount = 0;
   private accumulatorS = 0;
   private sectorSent = '';
+  /** Fase 6 (ADR 0020): diseño compartido (null = partida libre) y su número de revisión. */
+  private design: MissionDesign | null = null;
+  private designRev = 0;
 
   constructor(options: RoomModelOptions) {
     this.code = options.code;
@@ -91,7 +97,9 @@ export class RoomModel {
       runId: this.runId,
       players: this.players
         .filter((p) => !p.gone)
-        .map((p): CoopPlayer => ({ id: p.id, name: p.name, role: p.role, ready: p.ready, connected: p.connected, host: p.id === this.hostId, crewId: p.crewId })),
+        .map((p): CoopPlayer => ({ id: p.id, name: p.name, role: p.role, ready: p.ready, connected: p.connected, host: p.id === this.hostId, crewId: p.crewId, vote: p.vote })),
+      design: this.design,
+      designRev: this.designRev,
     };
   }
 
@@ -110,7 +118,7 @@ export class RoomModel {
     if (this.phaseValue !== 'lobby') return { ok: false, code: 'in-progress' };
     if (this.players.length >= COOP_LIMITS.maxPlayers) return { ok: false, code: 'room-full' };
     const name = sanitizePlayerName(rawName, `#${this.players.length + 1}`);
-    this.players.push({ id, name, role: null, ready: false, connected: true, gone: false, crewId: null, pose: null, workBudgetS: 0, workAtS: 0, lastPingS: -Infinity });
+    this.players.push({ id, name, role: null, ready: false, connected: true, gone: false, crewId: null, pose: null, workBudgetS: 0, workAtS: 0, lastPingS: -Infinity, vote: null });
     this.pickHost();
     return { ok: true };
   }
@@ -174,17 +182,60 @@ export class RoomModel {
         p.ready = action.ready;
         return true;
       case 'start': {
-        if (this.phaseValue !== 'lobby' || id !== this.hostId) return false;
-        if (this.players.some((x) => x !== p && x.connected && !x.ready)) return false;
+        if (this.phaseValue !== 'lobby' || id !== this.hostId || !this.canStart(p)) return false;
         this.start();
         return true;
       }
       case 'restart': {
-        if (this.phaseValue !== 'playing' || id !== this.hostId || this.runValue?.state.phase !== 'lost') return false;
+        // Fase 5-6: también al terminar la misión (de vuelta en la Tierra) se vuelve al lobby.
+        const state = this.runValue?.state;
+        const over = state?.phase === 'lost' || state?.science?.over === true;
+        if (this.phaseValue !== 'playing' || id !== this.hostId || !over) return false;
         this.toLobby();
         return true;
       }
+      case 'set-mission': {
+        if (this.phaseValue !== 'lobby' || id !== this.hostId) return false;
+        if (action.missionId === null) {
+          if (this.design === null) return false;
+          this.setDesign(null);
+          return true;
+        }
+        const start = missionStartDesign(action.missionId, this.catalog);
+        if (!start || this.design?.missionId === action.missionId) return false;
+        this.setDesign(start);
+        return true;
+      }
+      case 'edit-design': {
+        if (this.phaseValue !== 'lobby' || !this.design) return false;
+        const next = applyDesignEdit(this.design, action.edit, this.catalog);
+        if (!next) return false;
+        this.setDesign(next);
+        return true;
+      }
+      case 'vote':
+        if (this.phaseValue !== 'lobby' || !this.design || p.vote === action.go) return false;
+        p.vote = action.go;
+        return true;
     }
+  }
+
+  /** Diseño nuevo: sube la revisión y los votos de antes dejan de valer. */
+  private setDesign(design: MissionDesign | null): void {
+    this.design = design;
+    this.designRev++;
+    for (const x of this.players) x.vote = null;
+  }
+
+  /**
+   * ¿Puede empezar? Partida libre: todos los demás conectados, listos. Con diseño (ADR 0020): la revisión del motor da
+   * Go y vota Go la mayoría estricta de los conectados (el empate es No-Go).
+   */
+  canStart(host: { id: string } | undefined = this.hostId ? this.find(this.hostId) : undefined): boolean {
+    if (!host) return false;
+    if (!this.design) return !this.players.some((x) => x.id !== host.id && !x.gone && x.connected && !x.ready);
+    if (!reviewDesign(this.design, this.catalog).go) return false;
+    return voteTally(this.players.filter((x) => !x.gone && x.connected).map((x) => x.vote)).passed;
   }
 
   private start(): void {
@@ -197,7 +248,12 @@ export class RoomModel {
       p.workAtS = -Infinity;
     });
     const roles = this.players.map((p) => (p.role && ROLE_IDS.includes(p.role) ? p.role : null));
-    this.runValue = createRun({ seed: this.nextSeed(), crewSize: this.players.length, roles, ...(this.catalog ? { catalog: this.catalog } : {}) });
+    this.runValue = createRun({
+      seed: this.nextSeed(), crewSize: this.players.length, roles,
+      ...(this.catalog ? { catalog: this.catalog } : {}),
+      // Fase 6 (ADR 0020): con diseño, la partida es la misión diseñada sobre el sistema solar.
+      ...(this.design ? { design: this.design } : {}),
+    });
     this.runId++;
     this.tickCount = 0;
     this.accumulatorS = 0;
@@ -211,6 +267,7 @@ export class RoomModel {
       p.crewId = null;
       p.ready = false;
       p.pose = null;
+      p.vote = null;
     }
     this.runValue = null;
     this.phaseValue = 'lobby';

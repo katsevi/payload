@@ -206,9 +206,13 @@ desde el servidor. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Dis
   la partida; `ROLE_COLORS`). Fin de partida en sala: el anfitrión devuelve a todos al lobby.
 - **Escena:** `scenes/CrewAvatars.tsx` pinta a los compañeros de la misma zona (`ship` o `surface`) interpolando
   las poses, y los pings como halos. Sin colisión entre jugadores.
-- **Con diseño de misión:** la sala arranca siempre una partida libre. Si un estado recibido trae `missionDesign`,
-  `enterRemote` crea el espejo con ese diseño (si no, `hydrate` recalcularía la nave sobre la nave clásica). En sala
-  no se ofrece «Rediseñar» (saldría de la sala).
+- **Diseño compartido (ADR 0020):** en el lobby, `MissionRow` (el anfitrión elige misión con `set-mission`; los demás la
+  ven), «Abrir el hangar» (`useGame.openSharedDesign`) y `SharedVote` (voto, recuento, motivo de una línea y «Empezar»
+  del anfitrión; `sharedLaunchCheck` repite la regla del servidor). Con `sharedDesign`, `updateDraft` no guarda: calcula
+  `designEditsBetween` y las envía (`setSharedDesignSink`, lo registra `coopSession`); `onLobby` llama a
+  `syncSharedDesign` (el hangar pinta el diseño del servidor); «volver» (`openMissions`) lleva a la sala y el botón dice
+  «Sala»; en el hangar, «Lanzar» es `SharedVote`. Si un estado trae `missionDesign`, `enterRemote` crea el espejo con ese
+  diseño. En sala no se ofrece «Rediseñar».
 - **Menú:** «Diseñar una misión», «Partida libre» y «Cooperativo» (abre `CoopScreen`).
 - Probar: `pnpm dev:server` + `pnpm dev`, dos pestañas, Menú → Cooperativo. Test: `__tests__/coop.test.ts`.
 

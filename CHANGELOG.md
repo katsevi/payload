@@ -5,6 +5,18 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+## Fase 6 · Diseño compartido y voto Go/No-Go en sala
+
+Rama `feat/f6-diseno-cooperativo` (2026-11-14, desde la fase 5). Decisiones: ADR 0020 (propuesta).
+
+### Añadido
+- `@payload/shared`: `sharedDesign.ts` (`DesignEdit`, `applyDesignEdit`, `designEditsBetween`, `missionStartDesign`, `parseDesignEdit`, `voteTally`); `LobbyAction` `set-mission`, `edit-design` y `vote`; `LobbyView.design`/`designRev`; `CoopPlayer.vote`. Tests `sharedDesign.test.ts`.
+- `@payload/game-server`: la sala guarda el diseño y los votos, solo zarpa con Go del motor y mayoría estricta de Go (empate = No-Go), crea la partida con el diseño y vuelve al lobby también al terminar la misión. Tests de lobby, voto y paridad con diseño.
+- `@payload/client`: en el lobby, misión (la elige el anfitrión), estado del diseño, «Abrir el hangar» y voto; el hangar en modo compartido envía ediciones, refleja las de los demás y sustituye «Lanzar» por el voto. Tests de sesión con diseño compartido.
+
+### Corregido
+- `design.test.ts` «300 evaluaciones en menos de un segundo» medía también la lectura de los fixtures del disco (fallaba con carga); ahora solo mide la revisión.
+
 ### Despliegue en producción
 - Servidor del cooperativo publicado en EC2 (Caddy, `wss://18-215-99-217.sslip.io`) y conectado al cliente de Amplify. Script `pnpm --filter @payload/game-server bundle:standalone` (paquete autocontenido) y guía para actualizarlo sin acceso al repo.
 
