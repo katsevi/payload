@@ -11,8 +11,9 @@ supervivencia sea la *operación* de la misión diseñada (ADR `docs/adr/0015-re
 - **Fase 6 · Cooperativo 1-4 con roles** (antigua fase 4; ficha `fase-6.md`) y **fase 7 · Pulido y lanzamiento** (antigua fase 5; `fase-7.md`).
 - **Regla 6 revisada:** se permiten explicaciones opcionales de una línea (ayuda con tecla, glosario, motivo del Go/No-Go, informe final); nunca lectura obligatoria.
 - **Fase 6 · Cooperativo 1-4: base implementada por Harry Hernández e integrada antes de la fase 5** (commit `6272af2` de la rama `feat/f4-cooperativo`, escrita cuando era la fase 4; integrada desde `feat/f6-integrar-cooperativo` el 2026-11-14 en el **PR #9**). Su ADR se renumeró de 0015 a **0017**. Ver «Fase 6 — qué se hizo» y «Fase 6 — pendiente». Los ADR 0009 y 0010 siguen aceptados; el 0017 sustituye el detalle de implementación del 0009. En las notas antiguas de este archivo, el cooperativo que aparece como «fase 4» es ahora la fase 6.
+- **Fase 8 · Cordura de la tripulación: planeación documentada (2026-11-14), nada implementado.** Ficha `docs/phases/fase-8.md`, diseño detallado `docs/diseno/cordura-tripulacion.md`, fuentes NASA `docs/diseno/cordura-fuentes-nasa.md` y ADR 0019 (propuesta).
 
-Última actualización: **2026-11-14** · rama `feat/f6-integrar-cooperativo` (main con la fase 4 fusionada, PR #6, + el cooperativo de Harry integrado en el **PR #9**, abierto) · Propuesta: 0.7.0 (fase 4; ver `CHANGELOG.md`). Guía para probar el juego: [`docs/guias/primera-mision.md`](guias/primera-mision.md)
+Última actualización: **2026-11-14** (además: planeación de la fase 8 documentada) · rama `feat/f6-integrar-cooperativo` (main con la fase 4 fusionada, PR #6, + el cooperativo de Harry integrado en el **PR #9**, abierto) · Propuesta: 0.7.0 (fase 4; ver `CHANGELOG.md`). Guía para probar el juego: [`docs/guias/primera-mision.md`](guias/primera-mision.md)
 
 > Léelo antes de empezar y actualízalo al terminar una tarea relevante. Las casillas de
 > `docs/phases/fase-*.md` las marca quien valida la fase, no quien implementa: aquí solo se resume.
@@ -55,6 +56,7 @@ decisión en ADR 0011). El juego se rehízo el 2026-11-09.
 | 5 · Ciencia, datos y astronauta articulado | No iniciada. Depende de la fase 4. |
 | 6 · Cooperativo 1-4 con roles | **Base implementada (Harry Hernández) · integrada en esta rama antes de la fase 5** (antigua fase 4). Servidor, roles, sala, sesión del cliente, avatares y pings; `pnpm validate` en verde. **Falta:** validación independiente, el hito con cuatro equipos en red local, diseño compartido y voto, y lo listado en «Fase 6 — pendiente». Ficha: `docs/phases/fase-6.md`; decisiones: ADR 0017. |
 | 7 · Pulido y lanzamiento | No iniciada (antigua fase 5). `apps/api` es un marcador. |
+| 8 · Cordura de la tripulación | No iniciada · planeación documentada (2026-11-14). Depende de la fase 6; gancho previsto para las ventanas de contacto de la fase 5. Ficha: `docs/phases/fase-8.md`; diseño: `docs/diseno/cordura-tripulacion.md`; decisión: ADR 0019 (propuesta). |
 
 ### Fase 1 — qué se hizo
 
@@ -441,6 +443,11 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
   - **Jugar sin rol es válido** y una persona sola en sala con rol va algo mejor que en solitario (tiene una ventaja).
   - **La dificultad no escala** con el número de jugadores (descartado en `fase-6.md`): cuatro personas lo tendrán más fácil.
   - **No hay pausa en sala** y los que se caen no detienen la partida mientras quede alguien conectado.
+- **Cordura (fase 8), a decidir antes de implementar** (detalle en `docs/diseno/cordura-tripulacion.md` § 15):
+  - Nombre visible: «Cordura» o «Ánimo»/«Tensión» (se recomienda «Ánimo» en la interfaz).
+  - Si entra el evento ficticio del «tercer trimestre» (sin respaldo NASA; por defecto desactivado).
+  - Integración con las ventanas de contacto de la fase 5: ¿la llamada a la Tierra compite con la bajada de datos?
+  - Cohesión solo en el motor (recomendado) o también por cercanía con poses desde el servidor.
 - **Sin tutorial.** Solo ayuda con H y carteles. Decidir tras la prueba con jugadores.
 - **El mapa solo se abre en la mesa del puente** (hay que ir andando). Es deliberado, pero puede resultar pesado.
 - **Los sistemas apagados por el jugador no se encienden solos** tras una sobrecarga: decidir si es buena fricción.
@@ -497,6 +504,7 @@ Amplify (cuenta de AWS y autorización de GitHub) y crear una alarma de presupue
 ## Próximos pasos
 
 0. **Fase 5 (ciencia, datos y astronauta articulado):** empezar por `docs/phases/fase-5.md` § «Decisiones que debe tomar la fase 5» y un ADR 0018 (el 0017 es el del cooperativo); el punto de partida (campos de datos de instrumentos, antenas y computadoras, `missionTarget`) está en esa ficha y en ADR 0016 § 4. Antes, el hito de la fase 4 con personas (F4-a) y la medida de FPS (F4-b).
+   - **Fase 8 (cordura), más adelante:** revisar y aceptar el ADR 0019 resolviendo las decisiones abiertas de `docs/phases/fase-8.md`; empezar cuando la fase 6 esté validada. Orden de agentes en `docs/diseno/cordura-tripulacion.md` § 14.
 
 ### Cooperativo (fase 6, base integrada en el PR #9)
 
