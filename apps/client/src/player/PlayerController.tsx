@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { CapsuleCollider, RigidBody, useRapier, type RapierRigidBody } from '@react-three/rapier';
 import { MathUtils, Vector3, type Group, type PerspectiveCamera, type Sprite } from 'three';
-import { AstronautModel } from '../models/Models';
+import { applyAstronautPose, ArticulatedAstronaut, newAstronautRig } from '../models/ArticulatedAstronaut';
+import { advanceGait, astronautPose } from '../game/astronautPose';
 import { newMotionState, settleMotion, SHIP_MOTION, stepMotion, type MotionInput, type MotionParams } from '../game/motion';
 import { fx as viewFx, getRun } from '../game/runStore';
 import { Glow } from '../gfx/Glow';
@@ -58,6 +59,10 @@ export function PlayerController({ start, startYaw = 0, bounds, motion = SHIP_MO
   const input = useRef<MotionInput>({ dirX: 0, dirZ: 0, run: false, jump: false, down: false, canThrust: false, windX: 0, windZ: 0, heightM: 0 });
   const blend = useRef(useUi.getState().view === 'third' ? 1 : 0); // 0 = 1ª persona, 1 = 3ª persona
   const avatarYaw = useRef(Math.PI); // mirando a -Z (yaw inicial)
+  // Fase 5: astronauta articulado (pose por frame, sin React) y lo que necesita para la zancada.
+  const rig = useRef(newAstronautRig());
+  const gait = useRef(0);
+  const lastFeet = useRef(new Vector3(Number.NaN, 0, 0));
   const camPos = useRef(new Vector3());
   const camInit = useRef(false);
   const t = useRef(0);
@@ -276,9 +281,15 @@ export function PlayerController({ start, startYaw = 0, bounds, motion = SHIP_MO
         const diff = MathUtils.euclideanModulo(heading - avatarYaw.current + Math.PI, Math.PI * 2) - Math.PI;
         avatarYaw.current += diff * Math.min(1, dt * 10);
       }
-      const stride = moving && s.grounded;
-      av.rotation.set(stride ? 0.1 : 0, avatarYaw.current, stride ? Math.sin(t.current * 9) * 0.06 : 0);
-      av.position.y += stride ? Math.abs(Math.sin(t.current * 9)) * 0.04 : 0;
+      av.rotation.set(0, avatarYaw.current, 0);
+      // Velocidad real de los pies (incluye viento y empujes): la zancada y la pose salen de ella.
+      const last = lastFeet.current;
+      const speed = Number.isNaN(last.x) || dt <= 0 ? 0 : Math.hypot(feet.x - last.x, feet.z - last.z) / dt;
+      const vy = Number.isNaN(last.x) || dt <= 0 ? 0 : (feet.y - last.y) / dt;
+      last.copy(feet);
+      const walk = s.grounded ? Math.min(speed, 12) : 0;
+      gait.current = advanceGait(gait.current, walk, dt);
+      applyAstronautPose(rig.current, astronautPose({ gait: gait.current, speedMps: walk, grounded: s.grounded, thrusting: s.thrusting, verticalMps: vy, timeS: t.current }));
     }
     if (jetGlow.current) {
       const on = s.thrusting ? 0.55 + Math.sin(t.current * 47) * 0.15 : 0;
@@ -299,7 +310,7 @@ export function PlayerController({ start, startYaw = 0, bounds, motion = SHIP_MO
         <CapsuleCollider args={[0.5, 0.35]} />
       </RigidBody>
       <group ref={avatar} visible={false}>
-        <AstronautModel height={1.8} />
+        <ArticulatedAstronaut lod="high" rig={rig} />
         {motion !== SHIP_MOTION && <Glow ref={jetGlow} color="#7fd8ff" size={1.3} opacity={0} position={[0, 0.7, -0.35]} />}
       </group>
     </>

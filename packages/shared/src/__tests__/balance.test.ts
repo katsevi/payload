@@ -219,7 +219,9 @@ describe('balance con misión diseñada (hito de la fase 4)', () => {
     const design = referenceDesign(missionId);
     let cleared = 0;
     for (let seed = 1; seed <= DESIGN_SEEDS; seed++) {
-      if (playRun(seed, { ...options, design }).state.stats.sectorsCleared >= (options.sectors ?? 1)) cleared++;
+      // Fase 5: volver a la Tierra con la misión terminada cuenta como llegar (la ruta ya no sigue).
+      const { state } = playRun(seed, { ...options, design });
+      if (state.stats.sectorsCleared >= (options.sectors ?? 1) || state.science?.over) cleared++;
     }
     return (cleared / DESIGN_SEEDS) * 100;
   };
@@ -242,5 +244,21 @@ describe('balance con misión diseñada (hito de la fase 4)', () => {
     expect(easy).toBeGreaterThanOrEqual(80);
     expect(hard).toBeLessThanOrEqual(easy - 10);
     expect(hard).toBeGreaterThanOrEqual(25);
+  }, 120_000);
+
+  it('fase 5: con el diseño de referencia, las misiones fáciles se cumplen y sin atender nada no', () => {
+    const DESIGN_SEEDS_5 = 20;
+    const rate = (missionId: string, options: BotOptions) => {
+      let ok = 0;
+      for (let seed = 1; seed <= DESIGN_SEEDS_5; seed++) {
+        const sci = playRun(seed, { ...options, design: referenceDesign(missionId), sectors: 2 }).state.science;
+        if (sci?.over && sci.objectiveMet) ok++;
+      }
+      return (ok / DESIGN_SEEDS_5) * 100;
+    };
+    for (const m of getMissions().filter((x) => x.difficulty === 1)) {
+      expect(rate(m.id, { skill: 'crew', walkS: 7 }), m.id).toBeGreaterThanOrEqual(80);
+      expect(rate(m.id, { skill: 'idle' }), m.id).toBeLessThanOrEqual(40);
+    }
   }, 120_000);
 });

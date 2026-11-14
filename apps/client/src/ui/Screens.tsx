@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { ArrowDownToLine, CloudLightning, Drill, Flame, Mountain, Navigation, Wind, Zap } from 'lucide-react';
+import { ArrowDownToLine, CircleCheck, CircleX, CloudLightning, Drill, Flame, Mountain, Navigation, Wind, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { Locale } from '@payload/shared';
+import { missionReport, type Locale, type MissionReport } from '@payload/shared';
 import { CREDITS } from '../data/credits';
 import { useGame } from '../game/runStore';
 import { currentLocale, setLocale, tr } from '../i18n';
@@ -263,6 +263,28 @@ function formatTime(seconds: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
+/**
+ * Informe post-misión (fase 5): resultado y como mucho seis eslabones de una línea, en orden causal. El primero que
+ * falló (causa raíz) va resaltado. Es opcional: no tapa los botones.
+ */
+function MissionReportView({ report }: { report: MissionReport }) {
+  const { t } = useTranslation();
+  return (
+    <section className="mt-3 rounded-sm border border-line bg-black/30 p-2 text-left" aria-label={t('end.reportTitle')}>
+      <p className={`num text-xs font-bold ${report.outcome === 'success' ? 'text-ok' : report.outcome === 'lost' ? 'text-bad' : 'text-warn'}`}>{tr(report.headline)}</p>
+      <ol className="mt-1 flex flex-col gap-0.5 text-xs">
+        {report.links.map((l) => (
+          <li key={l.id} className={`flex items-center gap-1.5 ${l.ok ? 'text-slate-300' : l.id === report.rootCause ? 'font-bold text-bad' : 'text-warn'}`}>
+            {l.ok ? <CircleCheck size={12} className="shrink-0 text-ok" aria-hidden="true" /> : <CircleX size={12} className="shrink-0" aria-hidden="true" />}
+            <span>{tr(l.message)}</span>
+            {l.id === report.rootCause && <span className="num ml-auto text-[10px] uppercase">{t('end.rootCause')}</span>}
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 /** Fin de sector (se sigue con la misma nave) o fin de la expedición (permadeath: se empieza de cero). */
 export function EndScreen() {
   const { t } = useTranslation();
@@ -273,6 +295,9 @@ export function EndScreen() {
   const isHost = useCoop((c) => mePlayer(c)?.host === true);
   if (!s || (s.phase !== 'lost' && s.phase !== 'won')) return null;
   const lost = s.phase === 'lost';
+  // Fase 5: con diseño, el informe de la misión (resultado y cadena de causas); la misión termina al volver a casa.
+  const report = missionReport(s);
+  const missionOver = !!s.science?.over;
   const stats: [string, string][] = [
     [t('end.sectors'), String(s.stats.sectorsCleared)],
     [t('end.jumps'), String(s.stats.jumps)],
@@ -293,8 +318,11 @@ export function EndScreen() {
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/65 p-4" role="dialog" aria-modal="true">
       <Panel className="w-full max-w-md text-center">
-        <h2 className={`num text-2xl font-bold uppercase tracking-widest ${lost ? 'text-bad' : 'text-accent'}`}>{lost ? t('end.lostTitle') : t('end.wonTitle', { sector: s.sector.index })}</h2>
+        <h2 className={`num text-2xl font-bold uppercase tracking-widest ${lost ? 'text-bad' : missionOver && !s.science?.objectiveMet ? 'text-warn' : 'text-accent'}`}>
+          {lost ? t('end.lostTitle') : missionOver ? (s.science?.objectiveMet ? t('end.missionSuccessTitle') : t('end.missionPartialTitle')) : t('end.wonTitle', { sector: s.sector.index })}
+        </h2>
         {lost && s.lossReason && <p className="mt-2 text-slate-200">{tr({ key: `loss.${s.lossReason}` })}</p>}
+        {report && (lost || missionOver) && <MissionReportView report={report} />}
         {newBest && <p className="num mt-2 animate-pulse text-sm text-warn">{t('end.newBest')}</p>}
         <dl className="mx-auto mt-4 grid max-w-xs grid-cols-2 gap-x-4 gap-y-1 text-left text-sm">
           {stats.map(([label, value]) => (
@@ -319,6 +347,20 @@ export function EndScreen() {
             <button className="btn btn-primary !py-3" onClick={() => useGame.getState().startRun(undefined, s.missionDesign ?? null)} autoFocus>
               {s.missionDesign ? t('end.retryMission') : t('end.retry')}
             </button>
+          ) : missionOver ? (
+            inRoom ? (
+              isHost ? (
+                <button className="btn btn-primary !py-3" onClick={() => sendLobby({ type: 'restart' })} autoFocus>
+                  {t('coop.backToLobby')}
+                </button>
+              ) : (
+                <p className="num text-xs text-slate-400">{t('coop.waitingHost')}</p>
+              )
+            ) : (
+              <button className="btn btn-primary !py-3" onClick={() => useGame.getState().startRun(undefined, s.missionDesign ?? null)} autoFocus>
+                {t('end.retryMission')}
+              </button>
+            )
           ) : (
             <>
               <button className="btn btn-primary !py-3" onClick={() => useGame.getState().act({ type: 'next-sector' })} autoFocus>

@@ -51,6 +51,22 @@
     {
       "id": "inst-life-lab", "name": { "es": "Laboratorio de biofirmas", "en": "Biosignature lab" }, "scienceKind": "life",
       "massKg": 150, "powerKw": 5, "costMUSD": 80, "devMonths": 24, "reliability": 0.96, "scienceValue": 60, "dataRateMbps": 2
+    },
+    {
+      "id": "inst-cubesat-magnetometer", "name": { "es": "Magnetómetro CubeSat (0,5U)", "en": "CubeSat magnetometer (0.5U)" }, "scienceKind": "fields",
+      "massKg": 0.5, "powerKw": 0.01, "costMUSD": 0.2, "devMonths": 2, "reliability": 0.98, "scienceValue": 10, "dataRateMbps": 0.05, "cubesat": true
+    },
+    {
+      "id": "inst-cubesat-dosimeter", "name": { "es": "Dosímetro de radiación CubeSat (1U)", "en": "CubeSat radiation dosimeter (1U)" }, "scienceKind": "fields",
+      "massKg": 0.8, "powerKw": 0.01, "costMUSD": 0.25, "devMonths": 2, "reliability": 0.98, "scienceValue": 8, "dataRateMbps": 0.05, "cubesat": true
+    },
+    {
+      "id": "inst-cubesat-camera", "name": { "es": "Cámara CubeSat (1U)", "en": "CubeSat camera (1U)" }, "scienceKind": "geology",
+      "massKg": 1.5, "powerKw": 0.02, "costMUSD": 0.3, "devMonths": 2, "reliability": 0.97, "scienceValue": 8, "dataRateMbps": 0.5, "cubesat": true
+    },
+    {
+      "id": "inst-cubesat-neutron", "name": { "es": "Detector de neutrones CubeSat (2U)", "en": "CubeSat neutron detector (2U)" }, "scienceKind": "ice",
+      "massKg": 2.5, "powerKw": 0.03, "costMUSD": 0.8, "devMonths": 4, "reliability": 0.96, "scienceValue": 12, "dataRateMbps": 0.1, "cubesat": true
     }
   ]
 }

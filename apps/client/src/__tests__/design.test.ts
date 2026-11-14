@@ -17,7 +17,7 @@ import { baseShipOf, effectiveShipOf, maxPowerKwOf, sameDesign } from '../game/e
 import { hangarLayout } from '../game/hangarLayout';
 import {
   activeGroups, addPart, ALL_MODULE_GROUPS, canLaunch, countPart, cycleIndex, DESIGN_KEY_PREFIX, destinationOptions, hasSavedDesign, launcherOptions, loadDesign,
-  meterFill, PALETTE_GROUPS, paletteItems, partKeyAction, partTokens, previewAdd, removePart, sanitizeDesign, saveDesign, setDestination, setLauncher, sortedIssues,
+  meterFill, PALETTE_GROUPS, paletteItems, partKeyAction, partTokens, previewAdd, removePart, sanitizeDesign, saveDesign, setDestination, setDifficulty, setLauncher, sortedIssues,
   startingDesign, type KeyValueStore,
 } from '../game/missionDesign';
 import { getRun, useGame } from '../game/runStore';
@@ -154,8 +154,24 @@ describe('hangar: piezas y paleta (lógica pura)', () => {
     const all = activeGroups(catalog).flatMap((g) => paletteItems(g, catalog));
     const ids = all.map((p) => `${p.kind}:${p.id}`);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(ids.sort()).toEqual([...getModules(catalog).map((m) => `module:${m.id}`), ...getInstruments(catalog).map((i) => `instrument:${i.id}`)].sort());
+    // Fase 5: los instrumentos a escala de CubeSat solo salen en la misión guiada.
+    expect(ids.sort()).toEqual([...getModules(catalog).map((m) => `module:${m.id}`), ...getInstruments(catalog).filter((i) => !i.cubesat).map((i) => `instrument:${i.id}`)].sort());
     for (const k of MODULE_KINDS) expect(PALETTE_GROUPS).toContain(ALL_MODULE_GROUPS[k]);
+  });
+
+  it('fase 5: la misión guiada solo enseña sus instrumentos y su nave es fija', () => {
+    const guided = missions.find((m) => m.guided)!;
+    expect(activeGroups(catalog, guided.id)).toEqual(['instruments']);
+    expect(paletteItems('instruments', catalog, guided.id).map((p) => p.id)).toEqual(guided.guided!.instrumentIds);
+    expect(paletteItems('structure', catalog, guided.id)).toEqual([]);
+    const start = startingDesign(guided.id);
+    expect(start.moduleIds).toEqual(guided.guided!.moduleIds);
+    expect(start.launcherId).toBe(guided.guided!.launcherId);
+    // Un guardado tocado vuelve a la nave fija y descarta la carga que no es suya.
+    const tampered = { ...start, moduleIds: ['frame-micro'], launcherId: null, instrumentIds: ['inst-radar', guided.guided!.instrumentIds[0]!] };
+    const clean = sanitizeDesign(tampered, guided.id)!;
+    expect(clean.moduleIds).toEqual(guided.guided!.moduleIds);
+    expect(clean.instrumentIds).toEqual([guided.guided!.instrumentIds[0]]);
   });
 
   it('cada pieza tiene una línea con lo que aporta o cuesta, con claves en ambos idiomas', () => {
@@ -254,7 +270,7 @@ describe('guardado del último diseño por misión', () => {
   });
 
   it('limpia piezas, destinos y lanzadores que ya no existen; sin guardado o roto, diseño nuevo', () => {
-    const m = missions[0]!;
+    const m = missions.find((x) => !x.guided)!;
     const store = memoryStore();
     store.setItem(DESIGN_KEY_PREFIX + m.id, JSON.stringify({ missionId: m.id, destinationId: 'no-such-body', moduleIds: ['no-such', getModules()[0]!.id], instrumentIds: [42], launcherId: 'nope' }));
     const d = loadDesign(m.id, catalog, store);
@@ -518,5 +534,15 @@ describe('limpieza del mapa solar (lógica pura)', () => {
       // Hacia el origen en el plano: el producto con la posición es negativo.
       expect(d.x * at.x + d.z * at.z, b.id).toBeLessThan(0);
     }
+  });
+});
+
+describe('dificultad del diseño (fase 5)', () => {
+  it('se guarda con el diseño si existe en el catálogo; si no, se quita', () => {
+    const base = startingDesign('mission-lunar-ice');
+    const hard = setDifficulty(base, 'difficulty-hard');
+    expect(hard.difficultyId).toBe('difficulty-hard');
+    expect(sanitizeDesign(hard, 'mission-lunar-ice')?.difficultyId).toBe('difficulty-hard');
+    expect(sanitizeDesign({ ...base, difficultyId: 'inventada' }, 'mission-lunar-ice')?.difficultyId).toBeUndefined();
   });
 });

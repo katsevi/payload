@@ -169,6 +169,26 @@ desde el servidor. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Dis
   juntaba demasiado los gigantes.
 - **Unidades:** con diseño, las distancias del mapa son «u» (unidades de ruta, `map.units`; las cifras de `distanceLy`),
   nunca «años luz»; la distancia al Sol, en UA. La barra de energía va contra `shipPowerKw` a la distancia actual.
+## Ciencia y datos (fase 5, ADR 0018)
+
+- **HUD (`Hud.tsx`, `ScienceGauges`):** con `state.science`, bajo la energía: datos a bordo/capacidad, ciencia entregada/
+  pedida, línea de enlace (`hud.link.*`: bajando, ventana en N s, sin alcance, ventana sin enlace) y «Observando X».
+- **Final (`Screens.tsx`):** `missionReport(state)` del motor (`MissionReportView`): titular y eslabones con la causa raíz
+  resaltada. Con `science.over` el botón principal es «Reintentar la misión» (no hay sector siguiente).
+- **Batería y calor** (`Vitals`): con `ship.batteryMaxKwh` > 0, barra de batería en kWh; con `ship.overheated`, línea roja
+  «Calor demanda/disipación kW». `overheat` y `battery-empty` suenan como `alarm`.
+- Sonidos: `mission-complete`/`objective-met` → `success`, `storage-full` → `alarm`, `observation-done`/`contact-start` → `ok`.
+- **Dificultad y misión guiada (hangar):** fila «Dificultad» en `Pickers` (`setDifficulty`); con `mission.guided` la paleta
+  solo trae sus instrumentos (`paletteItems(g, cat, missionId)`, `activeGroups(cat, missionId)`), el lanzador es el fijo,
+  `Mounted` no enseña ni quita módulos, `startingDesign`/`sanitizeDesign` fuerzan la nave fija y `GuidedSteps` pinta
+  `guidedProgress`. La misión del hangar se muestra con `missionAtDifficulty` (ciencia pedida del nivel).
+- **Astronauta articulado:** `models/ArticulatedAstronaut.tsx` (`ArticulatedAstronaut lod="high|low"`, `rig` con las
+  articulaciones, `applyAstronautPose`) y `game/astronautPose.ts` (PURO: `astronautPose`, `advanceGait`; convención de
+  signos en el archivo; test `astronaut.test.ts`). `PlayerController` lo posa con la velocidad real de los pies;
+  `CrewAvatars` (detalle bajo, girado π: su frente es −Z) con la de la pose interpolada. Materiales del traje compartidos
+  (`once`); uno de acento por color de rol. El GLB del tripulante ya no se precarga (`AstronautModel` queda sin uso).
+- Visto en Chrome: hangar guiado, HUD de ciencia/batería, astronauta andando e informe al perder. Sin FPS medidos.
+
 ## Cooperativo (fase 6, ADR 0017; contrato en `docs/MULTIPLAYER.md`)
 
 - **`net/coopSession.ts`**: conecta con el servidor (`createRoom`, `joinRoom(código)`, `leaveRoom`, `sendLobby`),

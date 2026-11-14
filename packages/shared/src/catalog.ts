@@ -16,6 +16,7 @@ import modulesJson from '../catalog/modulos.json';
 import instrumentsJson from '../catalog/instrumentos.json';
 import launchersJson from '../catalog/lanzadores.json';
 import solarJson from '../catalog/sistema-solar.json';
+import scienceJson from '../catalog/ciencia.json';
 import {
   MODULE_KINDS, NODE_KINDS, ROLE_IDS, SCIENCE_KINDS, SUPPLY_IDS, THROTTLE_IDS, UPGRADE_FIELDS, UPGRADE_TARGETS,
   type Catalog, type MaterialDef, type NodeKind, type NodeKindDef, type ShipDef, type SurfaceCatalog, type ThrottleDef, type ThrottleId, type WorldDef,
@@ -279,6 +280,7 @@ const instrumentSchema = z.strictObject({
   scienceValue: nonNeg,
   dataRateMbps: nonNeg,
   slotsUsed: nonNeg.int().optional(),
+  cubesat: z.boolean().optional(),
 });
 
 const launcherSchema = z.strictObject({
@@ -304,6 +306,14 @@ const missionSchema = z.strictObject({
   budgetMUSD: positive,
   deadlineMonths: positive,
   difficulty: positive.int().max(3),
+  guided: z
+    .strictObject({
+      moduleIds: z.array(id).min(1),
+      launcherId: id,
+      instrumentIds: z.array(id).min(1),
+      steps: z.array(z.strictObject({ check: z.enum(['instrument', 'required-kinds', 'science', 'go']), text: localized })).max(6),
+    })
+    .optional(),
 });
 
 const designRulesSchema = z
@@ -319,6 +329,24 @@ const designRulesSchema = z
     rangeLegFactor: positive,
     rangeReservePct: pct,
     maxShieldAbsorb: probability,
+    difficulties: z
+      .array(
+        z.strictObject({
+          id, name: localized, budgetMult: positive, deadlineMult: positive, minScienceMult: positive,
+          wearMult: nonNeg, hazardMult: nonNeg, contactWindowMult: positive,
+        }),
+      )
+      .optional(),
+    defaultDifficultyId: id.optional(),
+    operations: z
+      .strictObject({
+        reliabilityWearK: nonNeg,
+        heatDamagePctPerSPerKw: nonNeg,
+        heatDamageMaxPctPerS: nonNeg,
+        batteryKwhPerKwS: positive,
+        batteryRechargeEff: probability,
+      })
+      .optional(),
   })
   .superRefine((r, ctx) => {
     for (const f of r.zeroedFields) if (!UPGRADE_FIELDS.ship.includes(f)) ctx.addIssue({ code: 'custom', message: `zeroedFields: "${f}" no es un campo de nave (UPGRADE_FIELDS.ship)` });
@@ -359,6 +387,29 @@ const solarSystemSchema = z.strictObject({
   bodies: z.array(bodySchema).min(1),
 });
 
+// ─── Fase 5: ciencia, datos y ventanas de contacto (ADR 0018) ──────────────
+
+const scienceSchema = z
+  .strictObject({
+    observeMbPerMbps: positive,
+    minObserveMbPerS: nonNeg,
+    storageMbPerGb: positive,
+    downlinkMbPerMbps: positive,
+    observeMaxS: positive,
+    otherObserveMaxS: nonNeg,
+    targetMult: nonNeg,
+    surfaceMult: nonNeg,
+    otherBodyMult: nonNeg,
+    contactPeriodS: positive,
+    contactWindowS: positive,
+    rateRefAu: positive,
+    rateFalloffExp: nonNeg,
+    homeDeliversAll: z.boolean(),
+    scorePerScience: nonNeg,
+    successBonus: nonNeg,
+  })
+  .refine((r) => r.contactWindowS <= r.contactPeriodS, { message: 'contactWindowS debe ser <= contactPeriodS' });
+
 // ─── Fase 6: roles de tripulación (ADR 0017) ───────────────────────────────
 
 const roleSchema = z.strictObject({
@@ -389,6 +440,7 @@ const catalogSchema = z
     launchers: z.array(launcherSchema).optional(),
     solarSystem: solarSystemSchema.optional(),
     roles: z.array(roleSchema).optional(),
+    science: scienceSchema.optional(),
   })
   .superRefine((cat, ctx) => {
     const shipIds = new Set<string>();
@@ -468,6 +520,13 @@ const catalogSchema = z
         const b = bodies.get(d);
         if (!b || !b.nodeKind) issue(`la misión "${m.id}" tiene un destino que no está en el mapa: ${d}`);
       }
+      // Fase 5: misión guiada con piezas que existen.
+      const g = m.guided;
+      if (g) {
+        for (const x of g.moduleIds) if (!(cat.modules ?? []).some((mod) => mod.id === x)) issue(`la misión guiada "${m.id}" usa un módulo desconocido: ${x}`);
+        for (const x of g.instrumentIds) if (!(cat.instruments ?? []).some((i) => i.id === x)) issue(`la misión guiada "${m.id}" usa un instrumento desconocido: ${x}`);
+        if (!(cat.launchers ?? []).some((l) => l.id === g.launcherId)) issue(`la misión guiada "${m.id}" usa un lanzador desconocido: ${g.launcherId}`);
+      }
     }
   });
 
@@ -490,6 +549,7 @@ export function parseCatalog(raw: unknown): Catalog {
         ...(!('launchers' in raw) ? { launchers: launchersJson.launchers } : {}),
         ...(!('solarSystem' in raw) ? { solarSystem: solarJson } : {}),
         ...(!('roles' in raw) ? { roles: rolesJson.roles } : {}),
+        ...(!('science' in raw) ? { science: scienceJson.science } : {}),
       }
     : raw;
   const r = catalogSchema.safeParse(input);
@@ -516,6 +576,7 @@ export const catalog: Catalog = parseCatalog({
   launchers: launchersJson.launchers,
   solarSystem: solarJson,
   roles: rolesJson.roles,
+  science: scienceJson.science,
 });
 
 export function getShip(shipId: string | undefined, cat: Catalog = catalog): ShipDef {

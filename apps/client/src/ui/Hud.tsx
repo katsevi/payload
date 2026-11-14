@@ -1,4 +1,4 @@
-import { AlertTriangle, Flame, Fuel, Heart, Navigation, Shield, Sun, Wind, Wrench, Zap } from 'lucide-react';
+import { AlertTriangle, BatteryMedium, FlaskConical, Flame, Fuel, HardDrive, Heart, Navigation, SatelliteDish, Shield, Sun, Telescope, Thermometer, Wind, Wrench, Zap } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { findBody, getMissions, getNode, type EventTone, type IncidentKind, type RunState } from '@payload/shared';
@@ -75,6 +75,23 @@ function Vitals({ s }: { s: RunState }) {
           <span className="text-warn">{t('hud.solar', { kw: fmt(s.ship.solarSupplyKw ?? 0, 0) })}</span>
         </div>
       )}
+      {/* Fase 5: batería (cubre la sobrecarga mientras dura) y calor por encima de los radiadores. */}
+      {(s.ship.batteryMaxKwh ?? 0) > 0 && (
+        <Gauge
+          icon={<BatteryMedium size={16} />}
+          label={t('hud.battery')}
+          pct={((s.ship.batteryKwh ?? 0) / s.ship.batteryMaxKwh!) * 100}
+          text={`${fmt(s.ship.batteryKwh ?? 0, 0)} kWh`}
+          level={levelOf(((s.ship.batteryKwh ?? 0) / s.ship.batteryMaxKwh!) * 100, 35, 10)}
+        />
+      )}
+      {s.ship.overheated && (
+        <div className="num flex animate-pulse items-center gap-2 pl-6 text-[11px] text-bad" title={t('hud.overheatTitle')}>
+          <Thermometer size={13} aria-hidden="true" />
+          <span>{t('hud.overheat', { demandKw: fmt(s.ship.powerDemandKw, 0), heatKw: fmt(s.ship.heatRejectKw ?? 0, 0) })}</span>
+        </div>
+      )}
+      {s.science && <ScienceGauges s={s} />}
       <div className="flex items-center justify-between gap-2 text-xs text-slate-200">
         <span className="flex items-center gap-2" title={t('hud.spares')}>
           <Wrench size={16} />
@@ -86,6 +103,52 @@ function Vitals({ s }: { s: RunState }) {
       </div>
       <UpgradeStrip upgrades={s.upgrades} />
     </div>
+  );
+}
+
+/**
+ * Fase 5 (ADR 0018): datos a bordo, ciencia entregada y enlace con la Tierra, de un vistazo. Solo con diseño.
+ * Lo de a bordo no está a salvo hasta bajarlo: por eso la barra de datos y la de ciencia van juntas.
+ */
+function ScienceGauges({ s }: { s: RunState }) {
+  const { t } = useTranslation();
+  const sci = s.science!;
+  const storedPct = sci.capacityMb > 0 ? (sci.storedMb / sci.capacityMb) * 100 : 100;
+  const sciencePct = sci.requiredScience > 0 ? (sci.deliveredScience / sci.requiredScience) * 100 : 100;
+  const link = sci.contact
+    ? { cls: 'text-ok', text: t('hud.link.down', { rate: fmt(sci.downlinkMbPerS, 1) }) }
+    : !sci.inRange
+      ? { cls: 'text-bad', text: t('hud.link.noRange') }
+      : sci.inWindow
+        ? { cls: 'text-warn', text: t('hud.link.blocked') }
+        : { cls: 'text-slate-300', text: t('hud.link.next', { seconds: Math.ceil(sci.windowChangeInS) }) };
+  return (
+    <>
+      <Gauge
+        icon={<HardDrive size={16} />}
+        label={t('hud.data')}
+        pct={storedPct}
+        text={t('hud.dataMb', { mb: fmt(sci.storedMb, 0), cap: fmt(sci.capacityMb, 0) })}
+        level={storedPct >= 99.5 ? 'bad' : storedPct >= 80 ? 'warn' : 'ok'}
+      />
+      <Gauge
+        icon={<FlaskConical size={16} />}
+        label={t('hud.science')}
+        pct={Math.min(100, sciencePct)}
+        text={`${fmt(sci.deliveredScience, 0)}/${sci.requiredScience}`}
+        level={sci.objectiveMet ? 'ok' : 'warn'}
+      />
+      <div className="num flex items-center gap-2 pl-6 text-[11px]" title={t('hud.linkTitle')}>
+        <SatelliteDish size={13} className={link.cls} aria-hidden="true" />
+        <span className={`${link.cls} ${sci.contact ? 'animate-pulse' : ''}`}>{link.text}</span>
+        {sci.observing && (
+          <span className="flex items-center gap-1 text-accent" title={t('hud.observingTitle')}>
+            <Telescope size={13} aria-hidden="true" />
+            {t('hud.observing', { body: t(`catalog.${sci.observing}`, { ns: 'sim' }) })}
+          </span>
+        )}
+      </div>
+    </>
   );
 }
 

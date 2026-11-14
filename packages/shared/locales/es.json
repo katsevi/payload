@@ -107,7 +107,16 @@
     "upgrade": "Instalado: $t(catalog.{{upgrade}}) nivel {{level}} · −{{credits}} créditos",
     "sectorReward": "Contrato del sector cobrado: +{{credits}} créditos",
     "arrivedBody": "Llegada a $t(catalog.{{body}})",
-    "jumpBody": "Rumbo a $t(catalog.{{body}}) · distancia {{distanceLy}}"
+    "jumpBody": "Rumbo a $t(catalog.{{body}}) · distancia {{distanceLy}}",
+    "observationDone": "Observación de $t(catalog.{{body}}) completa",
+    "observationDoneSurface": "Observación desde la superficie de $t(catalog.{{body}}) completa",
+    "storageFull": "Almacenamiento lleno: los datos nuevos se pierden",
+    "contactStart": "Contacto con la Tierra: bajando {{mb}} MB",
+    "objectiveMet": "Objetivo cumplido: {{science}} de ciencia en la Tierra",
+    "missionSuccess": "Misión cumplida: {{science}}/{{required}} de ciencia entregada",
+    "missionPartial": "Misión terminada sin el objetivo: {{science}}/{{required}} de ciencia",
+    "overheat": "Sobrecalentamiento: {{demandKw}} kW y los radiadores solo disipan {{heatKw}} kW",
+    "batteryEmpty": "Batería agotada: la sobrecarga ya daña el reactor"
   },
   "loss": {
     "hull": "La nave se ha desintegrado",
@@ -164,7 +173,8 @@
     "nothingToSell": "No hay carga que vender",
     "supplyFull": "Ya está al máximo",
     "notOffered": "Esta estación no ofrece esa mejora",
-    "upgradeMaxed": "Esa mejora ya está al máximo"
+    "upgradeMaxed": "Esa mejora ya está al máximo",
+    "missionOver": "La misión ha terminado"
   },
   "design": {
     "go": "Go: lista para lanzar",
@@ -264,7 +274,45 @@
       "thermal": "Genera {{demandKw}} kW de calor y disipa {{heatKw}} kW",
       "radiation": "La radiación de $t(catalog.{{zone}}) pide una computadora endurecida",
       "no-shielding": "Sin escudos, cada impacto va directo al casco",
-      "all-clear": "Todo en orden: márgenes sanos"
+      "all-clear": "Todo en orden: márgenes sanos",
+      "guided-ship": "Misión guiada: la nave y el lanzador ya están elegidos",
+      "guided-instrument": "Misión guiada: $t(catalog.{{instrument}}) no va en este CubeSat"
+    }
+  },
+  "report": {
+    "outcome": {
+      "success": "Misión cumplida: {{science}} de {{required}} de ciencia",
+      "partial": "Misión incompleta: {{science}} de {{required}} de ciencia",
+      "lost": "Nave perdida: {{science}} de {{required}} de ciencia llegó a la Tierra",
+      "in-progress": "Misión en curso: {{science}} de {{required}} de ciencia"
+    },
+    "target": {
+      "ok": "Se llegó a $t(catalog.{{body}})",
+      "bad": "No se llegó a $t(catalog.{{body}})"
+    },
+    "power": {
+      "ok": "Los instrumentos tuvieron energía",
+      "bad": "Instrumentos parados {{seconds}} s sin navegación"
+    },
+    "storage": {
+      "ok": "No se perdió ningún dato",
+      "bad": "Almacenamiento lleno: {{mb}} MB perdidos ({{science}} de ciencia)"
+    },
+    "link": {
+      "ok": "Enlace con la Tierra: {{mb}} MB entregados",
+      "outOfRange": "Fuera del alcance de la antena {{seconds}} s",
+      "aboard": "Se perdió con la nave {{science}} de ciencia sin bajar"
+    },
+    "science": {
+      "ok": "Ciencia entregada: {{science}} de {{required}}",
+      "bad": "Faltó ciencia: {{science}} de {{required}}"
+    },
+    "survival": {
+      "ok": "La nave volvió a casa",
+      "hull": "El casco cedió",
+      "oxygen": "La nave se quedó sin oxígeno",
+      "stranded": "La nave quedó varada",
+      "crew": "Murió toda la tripulación"
     }
   }
 }

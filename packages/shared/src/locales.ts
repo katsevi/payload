@@ -18,7 +18,7 @@ function catalogNames(locale: Locale): Record<string, string> {
   const solar = catalog.solarSystem;
   for (const entry of [
     ...(catalog.missions ?? []), ...(catalog.modules ?? []), ...(catalog.instruments ?? []), ...(catalog.launchers ?? []),
-    ...(solar?.zones ?? []), ...(solar?.bodies ?? []),
+    ...(solar?.zones ?? []), ...(solar?.bodies ?? []), ...(catalog.design?.difficulties ?? []),
   ]) names[entry.id] = entry.name[locale];
   return names;
 }

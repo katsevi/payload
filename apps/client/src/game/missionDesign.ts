@@ -6,7 +6,7 @@
  */
 import {
   bodySunDistanceAu, catalog as defaultCatalog, computeDesignBudgets, emptyDesign, findBody, getInstruments, getLaunchers, getMission, getMissions,
-  getModules, reviewDesign, solarPowerFactor, MODULE_KINDS,
+  getDifficulties, getModules, guidedStartDesign, reviewDesign, solarPowerFactor, MODULE_KINDS,
   type Catalog, type DesignBudgets, type DesignResource, type DesignResourceId, type DesignReview, type InstrumentDef, type MissionDef, type MissionDesign,
   type ModuleDef, type ModuleKind,
 } from '@payload/shared';
@@ -85,17 +85,27 @@ export function groupOfModuleKind(kind: ModuleKind): PaletteGroup {
   return (PALETTE_GROUPS as readonly string[]).includes(kind) ? (kind as PaletteGroup) : 'extra';
 }
 
-/** Piezas de un grupo, en el orden del catálogo. */
-export function paletteItems(group: PaletteGroup, cat: Catalog = defaultCatalog): PartRef[] {
-  if (group === 'instruments') return getInstruments(cat).map((i) => ({ kind: 'instrument', id: i.id }));
+/**
+ * Piezas de un grupo, en el orden del catálogo. Fase 5: con una misión guiada (`missionId`) solo sus instrumentos (la
+ * nave es fija); en las demás, los instrumentos a escala de CubeSat no salen.
+ */
+export function paletteItems(group: PaletteGroup, cat: Catalog = defaultCatalog, missionId?: string): PartRef[] {
+  const guided = missionId ? getMissions(cat).find((m) => m.id === missionId)?.guided : undefined;
+  if (guided) return group === 'instruments' ? guided.instrumentIds.map((id) => ({ kind: 'instrument', id })) : [];
+  if (group === 'instruments') return getInstruments(cat).filter((i) => !i.cubesat).map((i) => ({ kind: 'instrument', id: i.id }));
   return getModules(cat)
     .filter((m) => groupOfModuleKind(m.kind) === group)
     .map((m) => ({ kind: 'module', id: m.id }));
 }
 
 /** Grupos con alguna pieza en el catálogo (los vacíos no se enseñan). */
-export function activeGroups(cat: Catalog = defaultCatalog): PaletteGroup[] {
-  return PALETTE_GROUPS.filter((g) => paletteItems(g, cat).length > 0);
+export function activeGroups(cat: Catalog = defaultCatalog, missionId?: string): PaletteGroup[] {
+  return PALETTE_GROUPS.filter((g) => paletteItems(g, cat, missionId).length > 0);
+}
+
+/** Fase 5: la misión es guiada (nave, lanzador y destino fijos). */
+export function isGuided(missionId: string, cat: Catalog = defaultCatalog): boolean {
+  return !!getMissions(cat).find((m) => m.id === missionId)?.guided;
 }
 
 /** Todas las familias del contrato tienen grupo (para el test de que no se pierde ninguna pieza). */
@@ -255,6 +265,8 @@ export function launcherOptions(design: MissionDesign, cat: Catalog = defaultCat
 
 /** Diseño nuevo de una misión: con un solo destino posible ya viene elegido. */
 export function startingDesign(missionId: string, cat: Catalog = defaultCatalog): MissionDesign {
+  const guided = guidedStartDesign(missionId, cat);
+  if (guided) return guided;
   const d = emptyDesign(missionId);
   const mission = getMissions(cat).find((m) => m.id === missionId);
   if (mission && mission.destinations.length === 1) d.destinationId = mission.destinations[0] ?? null;
@@ -302,7 +314,22 @@ export function sanitizeDesign(raw: unknown, missionId: string, cat: Catalog = d
     moduleIds: ids(r.moduleIds, (id) => !!findModule(id, cat)),
     instrumentIds: ids(r.instrumentIds, (id) => !!findInstrument(id, cat)),
     launcherId: launcher,
+    // Fase 5: el nivel guardado, si sigue existiendo en el catálogo.
+    ...(typeof r.difficultyId === 'string' && getDifficulties(cat).some((d) => d.id === r.difficultyId) ? { difficultyId: r.difficultyId } : {}),
+    // Fase 5: en la misión guiada, la nave y el lanzador son siempre los fijos y la carga, de su lista.
+    ...(mission.guided
+      ? {
+          moduleIds: [...mission.guided.moduleIds],
+          launcherId: mission.guided.launcherId,
+          instrumentIds: ids(r.instrumentIds, (id) => mission.guided!.instrumentIds.includes(id)),
+        }
+      : {}),
   };
+}
+
+/** Fase 5: cambia el nivel de dificultad del diseño. */
+export function setDifficulty(design: MissionDesign, difficultyId: string): MissionDesign {
+  return { ...design, difficultyId };
 }
 
 export function saveDesign(design: MissionDesign, store: KeyValueStore | null = defaultStore()): boolean {

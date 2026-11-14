@@ -220,6 +220,8 @@ export interface Catalog {
   solarSystem?: SolarSystemDef;
   /** Fase 6: roles de tripulación y sus ventajas pasivas (`catalog/roles.json`). Siempre presente tras validar. */
   roles?: RoleDef[];
+  /** Fase 5 (ADR 0018): datos, ventanas de contacto y puntuación de la ciencia (`catalog/ciencia.json`). Siempre presente tras validar. */
+  science?: ScienceRules;
 }
 
 // ─── Roles de tripulación (fase 6, ADR 0017) ─────────────────────────────────
@@ -642,6 +644,15 @@ export interface ShipState {
   cargoKg?: number;
   /** Fase 4, derivado: parte de `powerSupplyKw` que dan los paneles solares a la distancia actual (solo con diseño). */
   solarSupplyKw?: number;
+  /**
+   * Fase 5 (solo con diseño): carga y capacidad de la batería (kWh). Mientras tiene carga cubre el déficit de una
+   * sobrecarga y el reactor no se daña; se recarga con el excedente.
+   */
+  batteryKwh?: number;
+  batteryMaxKwh?: number;
+  /** Fase 5 (solo con diseño): calor que disipan los radiadores (kW) y si la demanda lo supera ahora (el reactor se desgasta). */
+  heatRejectKw?: number;
+  overheated?: boolean;
 }
 
 /** Tripulante. En solitario hay uno; la fase 6 tendrá hasta cuatro. */
@@ -822,6 +833,9 @@ export interface RunStats {
   unitsSold?: number;
   /** Fase 3: niveles de mejora comprados. */
   upgradesBought?: number;
+  /** Fase 5 (solo con diseño): ciencia entregada en la Tierra y los puntos que da (incluido el bonus de éxito). */
+  scienceDelivered?: number;
+  sciencePoints?: number;
 }
 
 export interface RunState {
@@ -851,6 +865,8 @@ export interface RunState {
   missionDesign?: MissionDesign;
   /** Fase 4, derivado (solo con diseño): distancia actual de la nave al Sol (UA); en tránsito, interpolada. */
   sunDistanceAu?: number;
+  /** Fase 5 (ADR 0018, solo con diseño): datos científicos, enlace con la Tierra y estado de la misión. */
+  science?: ScienceState;
 }
 
 export type RunEventType =
@@ -899,6 +915,14 @@ export type RunEventType =
   | 'purchase'
   | 'upgrade'
   | 'reward'
+  // Fase 5: ciencia y datos
+  | 'observation-done'
+  | 'storage-full'
+  | 'contact-start'
+  | 'objective-met'
+  | 'mission-complete'
+  | 'overheat'
+  | 'battery-empty'
   | 'lost';
 
 export type EventTone = 'info' | 'ok' | 'warn' | 'bad';
@@ -917,7 +941,9 @@ export type RunEventSubtype =
   // `material-collected` lode: piezas de la última veta de un filón completado (llevan el bonus)
   | 'lode'
   // `purchase` fuel/hull/spares (fase 3)
-  | 'fuel' | 'hull' | 'spares';
+  | 'fuel' | 'hull' | 'spares'
+  // `mission-complete` success/partial (fase 5)
+  | 'success' | 'partial';
 
 export interface RunEvent {
   id: number;
@@ -1133,6 +1159,8 @@ export interface InstrumentDef {
   /** Fase 5: datos que genera (Mbps mientras observa). */
   dataRateMbps: number;
   slotsUsed?: number;
+  /** Fase 5 (ADR 0018 § 8): instrumento a escala de CubeSat (solo para la misión guiada; no sale en la paleta normal). */
+  cubesat?: boolean;
 }
 
 /** Lanzador (nombres ficticios, cifras inspiradas en lanzadores reales). */
@@ -1171,6 +1199,21 @@ export interface MissionDef {
   deadlineMonths: number;
   /** 1 fácil · 2 media · 3 difícil. */
   difficulty: number;
+  /** Fase 5 (ADR 0018 § 8): misión guiada (nave, lanzador y destino fijos; solo se elige la carga). */
+  guided?: GuidedMissionDef;
+}
+
+/** Comprobación automática de un paso de la misión guiada. */
+export type GuidedStepCheck = 'instrument' | 'required-kinds' | 'science' | 'go';
+
+/** Misión guiada: lo fijo y los pasos opcionales (una línea cada uno) que se marcan solos. */
+export interface GuidedMissionDef {
+  /** Módulos de la nave (fijos; el orden no importa). */
+  moduleIds: string[];
+  launcherId: string;
+  /** Instrumentos que se pueden elegir (los de escala CubeSat). */
+  instrumentIds: string[];
+  steps: { check: GuidedStepCheck; text: LocalizedText }[];
 }
 
 /** Reglas del diseño (`catalog/misiones.json`, `rules`). */
@@ -1196,6 +1239,43 @@ export interface DesignRules {
   rangeReservePct: number;
   /** Tope de la absorción de los escudos de la nave diseñada (0-1). */
   maxShieldAbsorb: number;
+  /** Fase 5 (ADR 0018 § 6): fiabilidad, calor y batería en vuelo. Opcional (sin él, no tienen efecto). */
+  operations?: DesignOperationsRules;
+  /** Fase 5 (ADR 0018 § 7): niveles de dificultad (el diseño elige uno con `difficultyId`). */
+  difficulties?: DifficultyDef[];
+  /** Nivel que se usa si el diseño no dice ninguno (o uno desconocido). */
+  defaultDifficultyId?: string;
+}
+
+/**
+ * Nivel de dificultad (fase 5): multiplica cifras de la misión y de la partida. Todo 1 = la misión tal cual. Nombre en
+ * `catalog.<id>`.
+ */
+export interface DifficultyDef {
+  id: string;
+  name: LocalizedText;
+  /** Presupuesto, plazo y ciencia mínima de la misión (diseño y objetivo). */
+  budgetMult: number;
+  deadlineMult: number;
+  minScienceMult: number;
+  /** En la partida: desgaste, peligros por tramo y duración de las ventanas de contacto. */
+  wearMult: number;
+  hazardMult: number;
+  contactWindowMult: number;
+}
+
+/** Cómo afectan en vuelo la fiabilidad, el calor y la batería de la nave diseñada (fase 5). */
+export interface DesignOperationsRules {
+  /** Desgaste × (1 + k·(1 − fiabilidad)): una nave menos fiable tiene más averías. */
+  reliabilityWearK: number;
+  /** Con la demanda por encima de lo que disipan los radiadores, el reactor pierde esto por kW de exceso y segundo (%). */
+  heatDamagePctPerSPerKw: number;
+  /** Tope del daño por calor (%/s). */
+  heatDamageMaxPctPerS: number;
+  /** kWh de batería que gasta cada kW de déficit en un segundo de juego (escala de tiempo). */
+  batteryKwhPerKwS: number;
+  /** Fracción del excedente que vuelve a la batería. */
+  batteryRechargeEff: number;
 }
 
 export type SolarBodyType = 'star' | 'planet' | 'dwarf' | 'moon' | 'asteroid' | 'station';
@@ -1276,6 +1356,8 @@ export interface MissionDesign {
   moduleIds: string[];
   instrumentIds: string[];
   launcherId: string | null;
+  /** Fase 5: nivel de dificultad (`DesignRules.difficulties`); ausente = el de por defecto. */
+  difficultyId?: string;
 }
 
 export const DESIGN_RESOURCE_IDS = ['mass', 'power', 'cost', 'schedule', 'slots', 'fuel'] as const;
@@ -1354,4 +1436,103 @@ export interface DesignReview {
   go: boolean;
   issues: DesignIssue[];
   budgets: DesignBudgets;
+}
+
+// ─── Ciencia, datos y ventanas de contacto (fase 5, ADR 0018) ────────────────
+
+/** Reglas de la ciencia en la partida (`catalog/ciencia.json`). Unidades de datos «de juego» (MB). */
+export interface ScienceRules {
+  /** MB generados por segundo por cada Mbps de un instrumento observando. */
+  observeMbPerMbps: number;
+  /** Datos mínimos por segundo de un instrumento (los de tasa casi nula también ocupan algo). */
+  minObserveMbPerS: number;
+  /** MB de almacenamiento por cada GB de las computadoras. */
+  storageMbPerGb: number;
+  /** MB bajados por segundo por cada Mbps de las antenas (a distancia de referencia). */
+  downlinkMbPerMbps: number;
+  /** Segundos de observación que da de sí el destino, en órbita y posada por separado (después no genera más). */
+  observeMaxS: number;
+  /** Lo mismo para los demás cuerpos (menos: rinden poco y llenan el almacenamiento). */
+  otherObserveMaxS: number;
+  /** Multiplicador de la ciencia según el lugar: el destino en órbita, posada en el destino y otros cuerpos. */
+  targetMult: number;
+  surfaceMult: number;
+  otherBodyMult: number;
+  /** Ventanas de contacto: periodo y duración (s). El desfase sale de la semilla. */
+  contactPeriodS: number;
+  contactWindowS: number;
+  /** Distancia a la Tierra (UA) hasta la que la tasa es plena; más allá baja como (ref / d)^exp. */
+  rateRefAu: number;
+  rateFalloffExp: number;
+  /** Al volver a la Tierra, lo que queda a bordo se entrega. */
+  homeDeliversAll: boolean;
+  /** Puntos por punto de ciencia entregado y bonus por terminar la misión con éxito. */
+  scorePerScience: number;
+  successBonus: number;
+}
+
+/** Estado de la ciencia de una partida con diseño. */
+export interface ScienceState {
+  /** Ciencia que pide la misión (`requirements.minScience`). */
+  requiredScience: number;
+  /** Datos a bordo (MB) y la ciencia que llevan. */
+  storedMb: number;
+  storedScience: number;
+  /** Capacidad del almacenamiento (MB). */
+  capacityMb: number;
+  /** Entregado en la Tierra. */
+  deliveredMb: number;
+  deliveredScience: number;
+  /** Perdido por almacenamiento lleno. */
+  lostMb: number;
+  lostScience: number;
+  /** Perdido con la nave (lo que quedaba a bordo al perder la partida). */
+  lostWithShipScience: number;
+  /** Segundos observados por cuerpo (`bodyId`), hasta `observeMaxS`. */
+  observedS: Record<string, number>;
+  /** Cuerpo que se está observando ahora (null = ninguno). */
+  observing: string | null;
+  /** Generación actual (MB/s y ciencia/s); 0 si no observa. */
+  observeMbPerS: number;
+  /** Hay enlace con la Tierra ahora mismo y su tasa (MB/s). */
+  contact: boolean;
+  downlinkMbPerS: number;
+  /** Dentro de la ventana de contacto (aunque falte alcance o navegación). */
+  inWindow: boolean;
+  /** Segundos hasta el próximo cambio de ventana (apertura o cierre). */
+  windowChangeInS: number;
+  /** Alguna antena alcanza a la distancia actual. */
+  inRange: boolean;
+  /** El destino de la misión ya se visitó. */
+  targetVisited: boolean;
+  /** Se entregó al menos `requiredScience`. */
+  objectiveMet: boolean;
+  /** La misión terminó al volver a la Tierra (`phase` = `won` y `next-sector` rechazado). */
+  over: boolean;
+  /** Ya se avisó de almacenamiento lleno (se rearma al liberar `storageRearmFrac` de la capacidad). */
+  fullWarned: boolean;
+  /** Contadores para el informe (segundos). */
+  blockedS: number;
+  outOfRangeS: number;
+  fullS: number;
+}
+
+export type MissionOutcome = 'success' | 'partial' | 'lost' | 'in-progress';
+export type ReportLinkId = 'target' | 'power' | 'storage' | 'link' | 'science' | 'survival';
+
+/** Un eslabón de la cadena de causas: ok o mal, con su motivo en una línea. */
+export interface ReportLink {
+  id: ReportLinkId;
+  ok: boolean;
+  message: MessageRef;
+}
+
+/** Informe post-misión (`missionReport`). `rootCause` = primer eslabón que falló (null si ninguno). */
+export interface MissionReport {
+  outcome: MissionOutcome;
+  headline: MessageRef;
+  links: ReportLink[];
+  rootCause: ReportLinkId | null;
+  deliveredScience: number;
+  requiredScience: number;
 }

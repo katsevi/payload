@@ -12,10 +12,50 @@ supervivencia sea la *operación* de la misión diseñada (ADR `docs/adr/0015-re
 - **Regla 6 revisada:** se permiten explicaciones opcionales de una línea (ayuda con tecla, glosario, motivo del Go/No-Go, informe final); nunca lectura obligatoria.
 - **Fase 6 · Cooperativo 1-4: base implementada por Harry Hernández e integrada antes de la fase 5** (commit `6272af2` de la rama `feat/f4-cooperativo`, escrita cuando era la fase 4; integrada desde `feat/f6-integrar-cooperativo` el 2026-11-14 en el **PR #9**). Su ADR se renumeró de 0015 a **0017**. Ver «Fase 6 — qué se hizo» y «Fase 6 — pendiente». Los ADR 0009 y 0010 siguen aceptados; el 0017 sustituye el detalle de implementación del 0009. En las notas antiguas de este archivo, el cooperativo que aparece como «fase 4» es ahora la fase 6.
 
-Última actualización: **2026-11-14** · rama `feat/f6-integrar-cooperativo` (main con la fase 4 fusionada, PR #6, + el cooperativo de Harry integrado en el **PR #9**, abierto) · Propuesta: 0.7.0 (fase 4; ver `CHANGELOG.md`). Guía para probar el juego: [`docs/guias/primera-mision.md`](guias/primera-mision.md)
+Última actualización: **2026-11-14** · rama `feat/f5-ciencia-y-datos` (desde `main` con la fase 4 y el cooperativo, PR #9, fusionados) · Propuesta: 0.7.0 (fase 4; ver `CHANGELOG.md`). Guía para probar el juego: [`docs/guias/primera-mision.md`](guias/primera-mision.md)
 
 > Léelo antes de empezar y actualízalo al terminar una tarea relevante. Las casillas de
 > `docs/phases/fase-*.md` las marca quien valida la fase, no quien implementa: aquí solo se resume.
+
+## Fase 5 — primera entrega (2026-11-14, rama `feat/f5-ciencia-y-datos`)
+
+Decisiones en el ADR 0018 (propuesta: revisarla en equipo). Qué hay:
+
+- **Motor (`science.ts`, `catalog/ciencia.json`):** atracada junto a un cuerpo real (no estación) o posada en él, con
+  navegación en línea, los instrumentos generan datos (MB de juego) y ciencia hasta un tope de segundos por cuerpo (45 s
+  el destino, en órbita y en superficie por separado; 15 s los demás). Observar entero el destino en órbita da la ciencia
+  del diseño; posada, ×1,5 más. Almacenamiento = GB de las computadoras × 16; lleno, lo nuevo se pierde. Ventanas de
+  contacto de 35 s cada 90 s (desfase por semilla); bajada = antenas con alcance × 4 × (1 UA / distancia a la Tierra);
+  en tierra no hay enlace. La misión termina al volver a la zona de la Tierra tras visitar el destino (lo de a bordo se
+  entrega); si la nave se pierde, se pierde lo no bajado. Puntúa solo lo entregado (×20) y +1500 si se cumple el objetivo.
+- **Informe (`missionReport`):** resultado y 6 eslabones (destino, energía de los instrumentos, almacenamiento, enlace,
+  ciencia, supervivencia), con la causa raíz = primer eslabón que falla.
+- **Cliente:** HUD (datos, ciencia, enlace, «Observando X») y pantalla final con el informe; sonidos de los eventos.
+- **Balance (`pnpm balance 40 3`):** misiones fáciles cumplidas 90-100 % (tripulación atenta), Marte 95-100 %, cinturón
+  30-95 % según diseño y ritmo, Europa 3-18 % y Titán ~0 %: las lejanas siguen pesando por la vuelta (heredado de la
+  fase 4). Quien aterriza en el destino entrega 2-3 veces más ciencia. `ligera-a-bennu` nunca llega a Bennu (ya en la
+  fase 4: decisión 10 de la ficha). El bot espera a observar; no busca ventanas de contacto a propósito.
+- **Sin verificar:** nada de la fase 5 se ha visto en el navegador ni jugado con personas; el cooperativo arranca sin
+  diseño, así que en sala no hay ciencia todavía.
+- **Segunda entrega (fiabilidad, calor y batería, `rules.operations` de `misiones.json`):** desgaste × `1 + 1,5·(1 −
+  fiabilidad)`; demanda por encima de los radiadores → el reactor pierde 0,001 %/s por kW (tope 0,1) y aviso
+  `overheat`; la batería cubre la sobrecarga sin daño hasta agotarse (`battery-empty`) y se recarga con el excedente. HUD:
+  barra de batería y aviso de calor. **Ajuste:** con 0,03 %/s por kW (primer intento) las misiones largas con aviso
+  `thermal` se hundían (Titán llegaba al destino 4/30, Ganimedes 4/30); el calor era la causa (la fiabilidad y la
+  batería apenas movían nada). Con 0,001: Europa 17/30 y cinturón 27/30 (como sin efectos); Titán 11/30 (antes 19/30).
+- **Test frágil:** `design.test.ts` «300 evaluaciones en menos de un segundo» falló una vez con `pnpm validate` (1,1 s)
+  por la carga en paralelo; solo pasa. Si se repite, subir el umbral.
+- **Tercera entrega (ADR 0018 § 7-9):** dificultad fácil/normal/difícil en el hangar (presupuesto, plazo, ciencia pedida;
+  en vuelo desgaste, peligros y ventanas); el diseño lunar de referencia es No-Go en difícil por ciencia (65 < 72).
+  Misión guiada «Tu primer CubeSat» (nave fija, carga entre 4 instrumentos CubeSat, 4 pasos que se marcan solos).
+  Astronauta articulado procedural con dos niveles de detalle (jugador y compañeros); el GLB del tripulante ya no se
+  carga porque no tiene esqueleto.
+- **Visto en el navegador (Chrome, 2026-11-14):** hangar de la misión guiada (pasos, Go), partida con el HUD de batería,
+  datos, ciencia y enlace, el astronauta en 3ª persona en reposo y andando, y el informe final al perder la nave (causa
+  «No se llegó a Luna»). Sin errores en consola. **No visto:** una misión completa jugada hasta el final con éxito, el
+  calor en pantalla, los compañeros articulados en sala, FPS en GPU real.
+- **Siguiente:** validación independiente (`validator`), medir FPS y el hito con una persona (una misión completa y el
+  informe). Pendiente de decidir: si la dificultad debe elegirse también en la tarjeta de la misión.
 
 ## Lo más importante
 
@@ -52,7 +92,7 @@ decisión en ADR 0011). El juego se rehízo el 2026-11-09.
 | 2 · Exploración de superficie | **Implementada** (commit `d8ce24d` en `feat/f2-superficie`; mejoras sin commitear en `feat/f2-herramientas-e-interacciones`). `pnpm validate` en verde y una pasada del `validator` sin bloqueantes. **Falta:** validación independiente final, la segunda revisión de diseño y el hito con jugadores. |
 | 3 · Economía y progresión | **Implementada · validada con observaciones** (rama `feat/f3-economia-progresion`, sin commitear). `pnpm validate` en verde (300 tests) y validación independiente «cumple con observaciones» (sin exploits de dinero ni soft-locks). **Falta:** el hito con jugadores (20 min: vender, >= 2 mejoras, la nave se siente otra), ver el terminal y los créditos en un navegador con GPU real y escuchar los cues. |
 | 4 · Diseño de misión y sistema solar | **Implementada · validada con observaciones · fusionada** (PR #6). `pnpm validate` en verde (430 tests). **Falta:** el hito con personas (diseñar una misión en < 10 min), FPS con el mapa solar y las decisiones heredadas para la fase 5. Ficha: `docs/phases/fase-4.md`; decisiones: ADR 0015 y 0016. |
-| 5 · Ciencia, datos y astronauta articulado | No iniciada. Depende de la fase 4. |
+| 5 · Ciencia, datos y astronauta articulado | **En curso** (rama `feat/f5-ciencia-y-datos`, ADR 0018 propuesta). Entregas 1-3 hechas: datos, contacto, fin de misión, puntuación, informe; fiabilidad, calor y batería; dificultad, misión guiada de CubeSat y astronauta articulado. `pnpm validate` en verde (315 + 187 tests). **Falta:** validación independiente, FPS en GPU real y prueba con personas. |
 | 6 · Cooperativo 1-4 con roles | **Base implementada (Harry Hernández) · integrada en esta rama antes de la fase 5** (antigua fase 4). Servidor, roles, sala, sesión del cliente, avatares y pings; `pnpm validate` en verde. **Falta:** validación independiente, el hito con cuatro equipos en red local, diseño compartido y voto, y lo listado en «Fase 6 — pendiente». Ficha: `docs/phases/fase-6.md`; decisiones: ADR 0017. |
 | 7 · Pulido y lanzamiento | No iniciada (antigua fase 5). `apps/api` es un marcador. |
 

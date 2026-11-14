@@ -237,6 +237,13 @@ describe('audio', () => {
     expect(sfxForRunEvent({ type: 'incident-fixed', incidentKind: 'leak' })).toBe('fixed');
     expect(sfxForRunEvent({ type: 'sector-cleared' })).toBe('success');
     expect(sfxForRunEvent({ type: 'new-sector' })).toBeNull();
+    // Fase 5: ciencia y datos.
+    expect(sfxForRunEvent({ type: 'mission-complete' })).toBe('success');
+    expect(sfxForRunEvent({ type: 'objective-met' })).toBe('success');
+    expect(sfxForRunEvent({ type: 'storage-full' })).toBe('alarm');
+    expect(sfxForRunEvent({ type: 'contact-start' })).toBe('ok');
+    expect(sfxForRunEvent({ type: 'overheat' })).toBe('alarm');
+    expect(sfxForRunEvent({ type: 'battery-empty' })).toBe('alarm');
   });
 
   it('la música sube de tensión con el peligro y resuelve al superar el sector', () => {
