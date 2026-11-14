@@ -9,6 +9,8 @@
   },
   "scripts": {
     "dev": "turbo run dev --filter=@payload/client",
+    "dev:server": "pnpm --filter @payload/game-server dev",
+    "dev:lan": "pnpm --filter @payload/client dev:lan",
     "build": "turbo run build",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",

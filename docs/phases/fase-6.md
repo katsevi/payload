@@ -1,10 +1,32 @@
 # Fase 6 · Cooperativo 1-4 con roles
 
 Antes fase 4 (renumerada por `docs/adr/0015-reto-nasa-y-roadmap.md`). Plan § 3: *dinámica cooperativa y roles de la tripulación*. Diseño previsto: `docs/GDD.md` § 8 y § 11.
-No iniciada: `apps/game-server` es un marcador. **Prerrequisitos:** fase 4 (diseño de misión) y fase 5 (ciencia, datos y astronauta con dos niveles de detalle). La fase 3 aporta créditos, mejoras y terminal de estación.
+**Implementada la base (Harry Hernández) e integrada antes de la fase 5** (rama original `feat/f4-cooperativo`, commit `6272af2`, 2026-11-13, cuando el cooperativo era la fase 4; integrada en `feat/f6-integrar-cooperativo` el 2026-11-14): servidor, roles, sala con código, capa de sesión del cliente, avatares y pings están implementados; contrato en `docs/MULTIPLAYER.md` y decisiones en `docs/adr/0017-cooperativo-estado-por-mensajes-y-espejo.md`. Las casillas las marca quien valide la fase. Falta la validación independiente y el hito con cuatro equipos; lo pendiente está en `docs/STATUS.md` («Fase 6 — pendiente»). **Prerrequisitos de lo que falta:** fase 4 (diseño de misión, fusionada) y fase 5 (ciencia, datos y astronauta con dos niveles de detalle). La fase 3 aporta créditos, mejoras y terminal de estación.
 
 **Hito:** cuatro personas en cuatro equipos distintos (red local, no solo `localhost`) diseñan una misión entre todas,
 deciden juntas el Go/No-Go y completan un sector comunicándose, sin desincronizaciones.
+
+## Estado de implementación (2026-11-14)
+
+Resumen de quien implementa; las casillas de «Alcance previsto» las marca quien valide.
+
+| Punto del alcance | Estado |
+| --- | --- |
+| Sala autoritativa de hasta 4 que ejecuta `createRun` y aplica las `RunAction` | Implementado (`RoomModel` + `CrewRoom`) |
+| Estado sincronizado: `RunState` + posición y orientación de cada tripulante | Implementado (estado entero a 10 Hz + poses) |
+| Test de paridad sala-motor | Implementado (`roomModel.test.ts`) |
+| Reconexión con token y tolerancia temporal | Implementado con la pestaña abierta (60 s); **falta** reanudar tras recargar la página |
+| Varios tripulantes en el estado e interacción simultánea | Implementado (el motor ya lo admitía; el servidor impone quién actúa) |
+| Roles asimétricos con ventajas pasivas, sin bloqueos | Implementado para piloto, ingeniero y explorador; el gestor de recursos **no tiene ventaja** (decisión abierta) |
+| Capa de sesión local/sala y avatares en la nave y en la superficie | Implementado; avatares provisionales y **sin ver en la superficie** |
+| Entrada con código de sala privada y selección de rol | Implementado |
+| Pings visuales y sonoros en el espacio 3D | **Parcial:** solo «mirad aquí» (G), visual; faltan peligro y ayuda en la interfaz y el sonido |
+| Roles por disciplina (dirección, ingeniería, ciencia, operaciones) | Pendiente (alcance añadido con el ADR 0015 del reto NASA) |
+| Diseño compartido y Go/No-Go con voto | Pendiente. Hoy la sala arranca siempre una **partida libre** (clásica, sin diseño). El motor y el espejo del cliente ya admiten una partida con diseño (`createRun({ design })` + `hydrate`, test en `packages/shared/src/__tests__/coop.test.ts`), pero ni el lobby ni el servidor permiten elegir misión |
+
+**Falta para cerrar la fase:** el hito (cuatro equipos en red local), la validación independiente, jugar la
+superficie en sala, modo espectador para quien muere, qué hacer con el tripulante de quien se va, completar
+los pings, y el diseño compartido con voto (que la sala arranque con un diseño). Detalle en `docs/STATUS.md`.
 
 ## Punto de partida
 

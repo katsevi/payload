@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:lan": "vite --host",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
@@ -25,6 +26,8 @@
     "zustand": "^5.1.0"
   },
   "devDependencies": {
+    "@colyseus/sdk": "0.18.9",
+    "@payload/game-server": "workspace:*",
     "@tailwindcss/vite": "^4.3.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

@@ -5,9 +5,10 @@ fondo: `docs/adr/`. Estado: `docs/STATUS.md`. Diseño del juego: `docs/GDD.md`.
 
 ## Vista general
 
-Hoy todo corre en el navegador: el cliente importa el motor de `@payload/shared` y simula la partida en
-local. En la fase 6, un servidor autoritativo correrá **el mismo motor** y los clientes solo le enviarán
-acciones (ADR 0009). La fase 7 añade una API con persistencia.
+En solitario todo corre en el navegador: el cliente importa el motor de `@payload/shared` y simula la partida
+en local. En cooperativo (fase 6, base integrada) un servidor autoritativo corre **el mismo motor** y los
+clientes solo le envían acciones y reflejan su estado (ADR 0009 y 0017, `docs/MULTIPLAYER.md`). La fase 7
+añade una API con persistencia.
 
 ```mermaid
 flowchart LR
@@ -25,7 +26,7 @@ flowchart LR
     style SIM1 fill:#e3eefb,stroke:#2f7bd8,stroke-width:2px
 ```
 
-Existe hoy: `UI`, `ESC`, `AUD` y `SIM1`. `GS` y `API` son marcadores.
+Existe hoy: `UI`, `ESC`, `AUD`, `SIM1` y `GS` (base del cooperativo). `API` es un marcador.
 
 ## Paquetes y dependencias
 
@@ -36,17 +37,17 @@ Workspaces: `apps/*` y `packages/*` (`pnpm-workspace.yaml`). Turborepo orquesta 
 | --- | --- | --- |
 | `@payload/shared` | Fases 1-4 | `zod`. Dev: `vitest`, `tsx`, `@types/node`. Exporta `./src/index.ts` y `./catalog/*` |
 | `@payload/client` | Fases 1-4 | `@payload/shared`, `react`/`react-dom` 19, `three`, `@react-three/fiber` 9, `drei`, `rapier`, `zustand`, `i18next`, `react-i18next`, `lucide-react`. Dev: `vite`, `tailwindcss` 4, `vitest` |
-| `@payload/game-server` | Marcador (fase 6) | Ninguna; scripts `echo` |
+| `@payload/game-server` | Fase 6 (base de Harry, integrada) | `@payload/shared`, `@colyseus/core` 0.18, `@colyseus/ws-transport`. Dev: `@colyseus/sdk` (tests), `esbuild`, `tsx`, `vitest` |
 | `@payload/api` | Marcador (fase 7) | Ninguna; scripts `echo` |
 | raíz | | `turbo`, `typescript`, `prettier`, `@gltf-transform/cli` |
 
-Dependencias entre paquetes: `client -> shared`. `shared` no depende de nadie (TS puro, sin React,
+Dependencias entre paquetes: `client -> shared` y `game-server -> shared` (el cliente usa `@colyseus/sdk`; sus tests de sala importan el servidor como dependencia de desarrollo). `shared` no depende de nadie (TS puro, sin React,
 Three.js, DOM ni Node en `src/`; lo vigilan `tsconfig.json` sin tipos de Node y `purity.test.ts`).
 
 ## `@payload/shared`: el motor
 
 - **Contrato:** `src/types.ts`. Solo cambios aditivos; romperlo exige un ADR.
-- **Catálogo:** `catalog/{naves,averias,destinos,sectores,mundos,economia,mejoras}.json` (fases 1-3) y, de la fase 4, `{misiones,modulos,instrumentos,lanzadores,sistema-solar}.json` → `parseCatalog` (zod) → `catalog`. Misiones (6), módulos (22), instrumentos (13), lanzadores (4) y sistema solar (25 cuerpos con fuente NASA + 7 estaciones ficticias).
+- **Catálogo:** `catalog/{naves,averias,destinos,sectores,mundos,economia,mejoras}.json` (fases 1-3) y, de la fase 4, `{misiones,modulos,instrumentos,lanzadores,sistema-solar}.json` y, de la fase 6, `roles.json` → `parseCatalog` (zod) → `catalog`. Misiones (6), módulos (22), instrumentos (13), lanzadores (4) y sistema solar (25 cuerpos con fuente NASA + 7 estaciones ficticias).
 - **Módulos (`src/`):** `types` (contrato), `catalog` (esquema y búsquedas), `galaxy` (generador de
   sectores), `surface` (mundos, superficie y física del descenso), `economy` (precios, oferta, mejoras y nave efectiva), `design` (diseño de misión: presupuestos, Go/No-Go y nave generada; fase 4), `solar` (sistema solar: zonas, ruta, potencia 1/d², posiciones y sector; fase 4), `run` (la partida), `rng` (`createRng`, `deriveSeed`), `messages`/`locales` (i18n `sim`).
 - **API:** `createRun`, `generateSector`, `isSectorSolvable`, `computeScore`, `fuelPerLy`,
@@ -195,6 +196,9 @@ No hay tests de renderizado 3D ni E2E (fase 7). La escena se comprueba a mano en
 - **Fase 3 (economía):** existe (ADR 0014). Créditos en `RunState`, terminal de estación y mejoras como cambios numéricos sobre la nave y las reglas del traje (`effectiveShip`, `effectiveSurfaceRules`); precios fijos con multiplicador por sector, sin mercado dinámico. Pendiente de prueba con jugadores.
 - **Fase 4 (diseño de misión y sistema solar):** existe (ADR 0015 y 0016); fusionada en el PR #6. El diseño entra como dato determinista de `createRun` y genera la nave. Pendiente de prueba con personas; lo heredado está en `docs/phases/fase-4.md`.
 - **Fase 5 (ciencia, datos y astronauta articulado):** instrumentos que generan datos, bajada en ventanas de contacto, puntuación e informe con cadena de causas. Parte de los campos que ya existen en el catálogo (`scienceValue`, `dataRateMbps`, `commsRangeAu`, `storageGb`, `missionTarget`); ver `docs/phases/fase-5.md`.
-- **Fase 6 (cooperativo):** `apps/game-server` corre `createRun` y aplica las `RunAction` de cada
-  cliente; el cliente gana una capa de sesión local/sala. Base: ADR 0009 y 0010.
+- **Fase 6 (cooperativo):** base implementada (Harry Hernández) e integrada antes de la fase 5. `apps/game-server`
+  corre `createRun` y aplica las `RunAction` de cada cliente; difunde el `RunState` entero a 10 Hz y el cliente lo
+  refleja en una `Run` local hidratada (`run.hydrate`), así la interfaz es la misma en solitario y en sala
+  (`apps/client/src/net`). Contrato en `docs/MULTIPLAYER.md`; decisiones en ADR 0017 (y 0009, 0010). La sala arranca
+  partidas libres; si un estado trae `missionDesign`, el espejo se crea con ese diseño. Falta diseño compartido y voto.
 - **Fase 7:** `apps/api`, rankings recalculados por el servidor, despliegue.

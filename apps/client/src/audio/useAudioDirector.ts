@@ -5,13 +5,14 @@ import { useSettings } from '../state/settings';
 import { audio } from './audioEngine';
 import { cue, resetCueMemory } from './cues';
 import { dangerLevel, musicMixFor, type MusicContext } from './musicLogic';
+import { myCrew } from '../game/me';
 
 /** Contexto de música a partir del estado de la partida (puro respecto al motor de audio). */
 export function currentMusicContext(): MusicContext {
   const { screen, hud } = useGame.getState();
   if (screen !== 'game' || !hud) return { screen: 'menu' };
   const ship = effectiveShipOf(hud, getRun()?.catalog);
-  const me = hud.crew.find((c) => c.alive) ?? hud.crew[0];
+  const me = myCrew(hud);
   const outside = me?.location === 'eva';
   const storm = hud.surface ? (hud.surface.storm.active ? 1 : hud.surface.storm.warned ? 0.4 : 0) : 0;
   return {

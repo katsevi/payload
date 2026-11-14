@@ -39,6 +39,8 @@ import { Hull } from './ShipInterior';
 import { Stations } from './ShipStations';
 import { SpaceView } from './SpaceView';
 import { SurfaceWorld } from './SurfaceWorld';
+import { KEY_PING, reportPose, sendPing } from '../net/coopSession';
+import { CrewAvatars } from './CrewAvatars';
 
 const BOUNDS: CameraBounds = { minX: -HULL.halfWidth + 0.4, maxX: HULL.halfWidth - 0.4, minZ: HULL.minZ + 0.4, maxZ: HULL.maxZ - 0.4, maxY: HULL.height - 0.3 };
 
@@ -109,6 +111,7 @@ function GameLoop() {
     const realDt = Math.min(delta, 1);
     const game = useGame.getState();
     game.tick(dt);
+    reportPose(playerState.pos.x, playerState.pos.y, playerState.pos.z, playerState.yaw, 'ship');
     const run = getRun();
     const ui = useUi.getState();
     minigame.dodgeFlash = Math.max(0, minigame.dodgeFlash - dt * 2.5);
@@ -314,6 +317,8 @@ function GameLoop() {
       } else if (e.code === 'KeyQ' && ui.overlay === null && !minigame.dodge) {
         const action = altAction(currentInteraction(), run.state);
         if (action && useGame.getState().act(action).ok) cue('toggle');
+      } else if (e.code === KEY_PING && ui.overlay === null) {
+        sendPing('look', playerState.pos.x, playerState.pos.y, playerState.pos.z, 'ship');
       } else if (e.code === 'KeyV' && ui.overlay === null) {
         ui.toggleView();
       } else if (e.code === 'KeyH' || e.code === 'F1') {
@@ -414,6 +419,7 @@ export function ShipScene() {
       <DodgeHolo />
       <FlameTarget />
       <Markers />
+      <CrewAvatars area="ship" />
       <GameLoop />
     </Canvas>
   );

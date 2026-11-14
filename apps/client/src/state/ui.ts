@@ -4,7 +4,8 @@ import { create } from 'zustand';
  * Panel modal abierto. `map`, `power`, `terminal` y `help` no detienen la partida (como el mapa: atracada
  * el tiempo sigue, igual que las averías); `pause`, `settings` y `credits` sí.
  */
-export type Overlay = 'settings' | 'credits' | 'map' | 'power' | 'terminal' | 'help' | 'pause' | null;
+/** `coop` = entrada a una sala cooperativa (solo desde el menú). */
+export type Overlay = 'settings' | 'credits' | 'map' | 'power' | 'terminal' | 'help' | 'pause' | 'coop' | null;
 export type ViewMode = 'first' | 'third';
 
 /** Acción disponible junto al jugador (la calcula la escena de la nave). */

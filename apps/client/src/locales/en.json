@@ -23,10 +23,10 @@
     "language": "Language",
     "best": "Best expedition: {{sectors}} sectors · {{score}} points",
     "goal": "Design a mission or play free: keep the ship alive. If hull or oxygen hit zero, it is over.",
-    "coop": "1-4 player co-op in a later phase",
     "mission": "Design a mission",
     "free": "Free play",
-    "missionHint": "Build the ship, pass the review and fly it through the Solar System"
+    "missionHint": "Build the ship, pass the review and fly it through the Solar System",
+    "coopPlay": "Co-op"
   },
   "settings": {
     "title": "Settings",
@@ -285,7 +285,8 @@
     "jump": "Jump · hold in the air: jetpack (falling: brakes) · on descent: brake",
     "down": "Jetpack down (descend sooner)",
     "click": "Faults: aim the extinguisher, press on time or seal (click or Space)",
-    "repair": "Spare: hold and release on the mark, twice"
+    "repair": "Spare: hold and release on the mark, twice",
+    "ping": "Ping the crew (co-op)"
   },
   "keys": {
     "move": "WASD",
@@ -299,7 +300,8 @@
     "jump": "Space",
     "down": "C",
     "repair": "R",
-    "click": "Click"
+    "click": "Click",
+    "ping": "G"
   },
   "sound": {
     "fixed": "[repaired]",
@@ -576,6 +578,45 @@
     "radiation": {
       "term": "Radiation",
       "line": "Near Jupiter, a computer that is not hardened breaks down."
+    }
+  },
+  "coop": {
+    "title": "Co-op crew",
+    "name": "Your name",
+    "create": "Create room",
+    "code": "Code",
+    "join": "Join",
+    "connecting": "Connecting…",
+    "back": "Back",
+    "codeLabel": "Room code",
+    "you": "you",
+    "host": "Host",
+    "noRole": "No role",
+    "ready": "Ready",
+    "notReady": "Waiting",
+    "role": "Role",
+    "start": "Start expedition",
+    "waitingReady": "Some players are not ready yet",
+    "setReady": "I'm ready",
+    "unready": "Not yet",
+    "leave": "Leave room",
+    "backToLobby": "Back to the room",
+    "waitingHost": "The host decides whether to try again",
+    "reconnecting": "Reconnecting…",
+    "disconnected": "Disconnected",
+    "outside": "outside · O₂ {{o2}}%",
+    "roleHint": {
+      "pilot": "Dodges for less fuel",
+      "engineer": "Repairs faster",
+      "manager": "Power, route and purchases",
+      "explorer": "Bigger backpack and jetpack"
+    },
+    "error": {
+      "room-full": "The room is full",
+      "in-progress": "That run has already started",
+      "not-found": "No room with that code",
+      "unreachable": "Could not reach the server",
+      "lost": "Connection to the room was lost"
     }
   }
 }

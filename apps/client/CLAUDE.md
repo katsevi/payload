@@ -2,7 +2,9 @@
 
 Fases 1-3 y fase 4 (diseño de misión): menú → elegir misión → hangar (diseño y Go/No-Go) → partida en el interior de
 la nave (mapa del sistema solar, o mapa estelar en la partida libre; saltos, averías) → aterrizaje en destinos con
-superficie (descenso, EVA con jetpack, recogida, vuelta, despegue) → fin de sector o de expedición (→ «Rediseñar»). Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Diseño: `docs/GDD.md`.
+superficie (descenso, EVA con jetpack, recogida, vuelta, despegue) → fin de sector o de expedición (→ «Rediseñar»).
+Además, la base del cooperativo 1-4 (fase 6): menú → «Cooperativo» → sala con código → la misma partida reflejada
+desde el servidor. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Diseño: `docs/GDD.md`.
 
 ## Estructura (`src/`)
 
@@ -17,6 +19,7 @@ superficie (descenso, EVA con jetpack, recogida, vuelta, despegue) → fin de se
 | `audio/` | Web Audio procedural: `soundLogic.ts` y `musicLogic.ts` (puros), `audioEngine.ts`, `cues.ts` (`cue(id)`), `useAudioDirector.ts`, `SoundCaptions.tsx` |
 | `state/` | `ui.ts` (panel abierto, vista, aviso de acción, `descentView`, `hudView`), `settings.ts` (persistido), `minigame.ts` (minijuegos en curso, mutable), `hangar.ts` (pieza señalada en la paleta) |
 | `models/` | GLB con `useGLTF`: `Models.tsx` (`FittedModel`, `ModelBoundary` con forma de respaldo) |
+| `net/` | Cooperativo (fase 6): `coopSession.ts` (conexión, lobby, envío agrupado, poses, pings) y `coopStore.ts` (`useCoop`, `coopLive`) |
 | `i18n/`, `locales/` | i18next: namespace `ui` (`locales/{es,en}.json`) y `sim` (del motor) |
 | `data/` | `credits.ts` (espejo de `assets/CREDITS.md`) |
 
@@ -166,6 +169,28 @@ superficie (descenso, EVA con jetpack, recogida, vuelta, despegue) → fin de se
   juntaba demasiado los gigantes.
 - **Unidades:** con diseño, las distancias del mapa son «u» (unidades de ruta, `map.units`; las cifras de `distanceLy`),
   nunca «años luz»; la distancia al Sol, en UA. La barra de energía va contra `shipPowerKw` a la distancia actual.
+## Cooperativo (fase 6, ADR 0017; contrato en `docs/MULTIPLAYER.md`)
+
+- **`net/coopSession.ts`**: conecta con el servidor (`createRoom`, `joinRoom(código)`, `leaveRoom`, `sendLobby`),
+  recibe `lobby`/`state`/`events`/`result`/`poses`/`ping` y los pasa a `runStore` y `coopStore`. El SDK
+  (`@colyseus/sdk`) se carga con `import()`. `reportPose` y `sendPing` (tecla G, `KEY_PING`) los llaman las escenas.
+  URL: `VITE_GAME_SERVER_URL` o `ws://<host de la página>:2567`. Los tests inyectan un cliente con `configureCoop`.
+- **`net/coopStore.ts`**: `useCoop` (estado de conexión, lobby, mi id, error) para React y `coopLive` (poses y
+  pings) para leer por frame.
+- **`runStore` en sala** (`isRemote()`): la `Run` es un espejo. `enterRemote`/`remoteState` la hidratan,
+  `remoteEvents` reparte los eventos del servidor, `tick` no avanza nada y `act` valida en el espejo con mi
+  `crewId`, deshace y envía. **Sigue valiendo la regla: toda escritura pasa por `act`.** No hay pausa en sala.
+- **«Yo» es `myCrew(state)`** (`game/me.ts`), nunca `crew[0]`: en sala cada jugador lee su tripulante (su traje,
+  su mochila, su escena). `effectiveRulesOf(state)` ya incluye la ventaja de mi rol.
+- **Interfaz:** `ui/CoopScreen.tsx` (`CoopScreen`: entrada y lobby sobre el menú; `CrewBar`: tripulación durante
+  la partida; `ROLE_COLORS`). Fin de partida en sala: el anfitrión devuelve a todos al lobby.
+- **Escena:** `scenes/CrewAvatars.tsx` pinta a los compañeros de la misma zona (`ship` o `surface`) interpolando
+  las poses, y los pings como halos. Sin colisión entre jugadores.
+- **Con diseño de misión:** la sala arranca siempre una partida libre. Si un estado recibido trae `missionDesign`,
+  `enterRemote` crea el espejo con ese diseño (si no, `hydrate` recalcularía la nave sobre la nave clásica). En sala
+  no se ofrece «Rediseñar» (saldría de la sala).
+- **Menú:** «Diseñar una misión», «Partida libre» y «Cooperativo» (abre `CoopScreen`).
+- Probar: `pnpm dev:server` + `pnpm dev`, dos pestañas, Menú → Cooperativo. Test: `__tests__/coop.test.ts`.
 
 ## Superficie (fase 2)
 
@@ -314,7 +339,7 @@ fixture, el último guardado), p. ej. `?play=1&seed=7&mission=mission-mars-habit
 ```bash
 pnpm --filter @payload/client dev        # http://localhost:5173  (?play=1&seed=7)
 pnpm --filter @payload/client typecheck
-pnpm --filter @payload/client test       # game, surface, minigames, shop, design (fase 4: hangar, guardado, escala solar, flujo) e i18n
+pnpm --filter @payload/client test       # game, surface, minigames, shop, design (fase 4: hangar, guardado, escala solar, flujo), coop (fase 6: sesión contra una sala en memoria) e i18n
 pnpm --filter @payload/client build
 ```
 

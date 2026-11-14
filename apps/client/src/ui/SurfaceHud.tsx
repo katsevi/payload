@@ -10,6 +10,7 @@ import { useSettings } from '../state/settings';
 import { hudView } from '../state/ui';
 import { fmt } from './common';
 import { Gauge, levelOf } from './Hud';
+import { myCrew } from '../game/me';
 
 /** Reglas de traje y jetpack EFECTIVAS (con las mejoras): la mochila ampliada se ve con su nuevo tope. */
 const rules = (s: RunState) => effectiveRulesOf(s, getRun()?.catalog);
@@ -112,7 +113,7 @@ export function DescentHud({ s }: { s: RunState }) {
 /** El traje: oxígeno, jetpack y carga; y una línea de la nave por si allí pasa algo. */
 export function SuitVitals({ s }: { s: RunState }) {
   const { t } = useTranslation();
-  const me = s.crew[0];
+  const me = myCrew(s);
   if (!me) return null;
   const r = rules(s);
   const ship = effectiveShipOf(s, getRun()?.catalog);
@@ -252,7 +253,7 @@ export function ToolCompass() {
  */
 function LodeBadge({ s }: { s: RunState }) {
   const { t } = useTranslation();
-  const me = s.crew[0];
+  const me = myCrew(s);
   const p = me ? currentLode(s, me, me.x, me.z) : null;
   if (!p) return null;
   return (
@@ -331,7 +332,7 @@ export function ShipCompass() {
  */
 export function O2Vignette({ s }: { s: RunState }) {
   const k = useSettings((x) => x.effects);
-  const me = s.crew[0];
+  const me = myCrew(s);
   if (!me || me.location !== 'eva') return null;
   const r = rules(s);
   const o2 = me.suitO2Pct;

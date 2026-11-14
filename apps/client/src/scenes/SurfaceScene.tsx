@@ -39,6 +39,10 @@ import { ShipExterior } from './ShipExterior';
 import { LodeFinishers, SurfaceTools } from './SurfaceTools';
 import { deepestDropM } from '../game/terrain';
 import { liveTerrain, SurfaceWorld, windAngleOf } from './SurfaceWorld';
+import { effectiveRulesOf } from '../game/effective';
+import { myCrew } from '../game/me';
+import { KEY_PING, reportPose, sendPing } from '../net/coopSession';
+import { CrewAvatars } from './CrewAvatars';
 
 const isTyping = (e: KeyboardEvent): boolean => {
   const el = e.target as HTMLElement | null;
@@ -66,6 +70,7 @@ function useSceneKeys(pauseOnUnlock: boolean) {
         if (ui.overlay === null || ui.overlay === 'help') ui.toggleOverlay('help');
       } else if (e.code === 'Escape' && !pauseOnUnlock && ui.overlay === null) ui.setOverlay('pause');
       else if (e.code === 'Space' && ui.overlay === null) e.preventDefault();
+      else if (e.code === KEY_PING && ui.overlay === null && pauseOnUnlock) sendPing('look', playerState.pos.x, playerState.pos.y, playerState.pos.z, 'surface');
     };
     const onLock = () => {
       const phase = getRun()?.state.phase;
@@ -221,7 +226,7 @@ function SurfaceLoop({ motion }: { motion: MotionParams }) {
     const run = getRun();
     const s = run?.state;
     const ui = useUi.getState();
-    const me = s?.crew.find((c) => c.alive) ?? s?.crew[0];
+    const me = myCrew(s);
     if (!run || !s || !s.surface || !me || me.location !== 'eva' || !me.alive) {
       if (jetLoop.current) audio.stopLoop('jetpack', 0.1);
       jetLoop.current = false;
@@ -235,8 +240,9 @@ function SurfaceLoop({ motion }: { motion: MotionParams }) {
     }
     const world = getWorld(s.surface.worldId);
     // Reglas EFECTIVAS del motor (objeto vivo: con el traje o el jetpack mejorados).
-    const rules = run.effectiveSurfaceRules();
+    const rules = effectiveRulesOf(s, run.catalog);
 
+    reportPose(playerState.pos.x, playerState.pos.y, playerState.pos.z, playerState.yaw, 'surface');
     hudView.x = playerState.pos.x;
     hudView.z = playerState.pos.z;
     hudView.yaw = playerState.yaw;
@@ -364,7 +370,7 @@ export function SurfaceScene({ mode }: { mode: 'descent' | 'eva' }) {
   const dust = useMemo(() => ({ strength: { value: 0 } }), []);
   const gravity = worldId ? getWorld(worldId).gravityMps2 : 1.6;
   const motion = useMemo(
-    () => surfaceMotion(gravity, flightLimitsOf(getRun()?.effectiveSurfaceRules() ?? getSurfaceCatalog().rules), worldId ? deepestDropM(worldId, getWorld(worldId).unstable.pitDepthM) : 0),
+    () => surfaceMotion(gravity, flightLimitsOf(effectiveRulesOf(getRun()?.state, getRun()?.catalog)), worldId ? deepestDropM(worldId, getWorld(worldId).unstable.pitDepthM) : 0),
     [gravity, worldId],
   );
   const radius = useGame((g) => g.hud?.surface?.radiusM ?? 100);
@@ -377,6 +383,7 @@ export function SurfaceScene({ mode }: { mode: 'descent' | 'eva' }) {
       <Physics gravity={[0, 0, 0]} timeStep="vary">
         <SurfaceWorld physics={mode === 'eva'} />
         <SurfaceTools />
+        {mode === 'eva' && <CrewAvatars area="surface" />}
         <LodeFinishers />
         <group ref={ship} position={[SHIP_OFFSET.x, SHIP_OFFSET.y + (mode === 'descent' ? descentAlt : 0), SHIP_OFFSET.z]}>
           <ShipExterior colliders={mode === 'eva'} />

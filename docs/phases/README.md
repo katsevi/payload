@@ -10,7 +10,7 @@ Las casillas las marca quien **valida** la fase (agente `validator` o una person
 | 3 · Economía y progresión | Venta en estaciones, mejoras de nave y de equipo, carga | Implementada · validada con observaciones · hito pendiente de prueba con jugadores | [fase-3.md](fase-3.md) |
 | 4 · Diseño de misión y sistema solar | Fase de diseño antes de zarpar (objetivo, instrumentos, módulos, lanzador; presupuesto, masa, potencia, plazo; Go/No-Go) y sistema solar real como mapa | Implementada · validada con observaciones · fusionada (PR #6) · hito pendiente de prueba con personas | [fase-4.md](fase-4.md) |
 | 5 · Ciencia, datos y astronauta articulado | Instrumentos que generan datos, bajada en ventanas de contacto, puntuación por ciencia, informe post-misión, dificultad, misión guiada de CubeSat, astronauta articulado | Pendiente | [fase-5.md](fase-5.md) |
-| 6 · Cooperativo 1-4 con roles | Servidor autoritativo, roles por disciplina, Go/No-Go con voto, astronautas remotos de bajo detalle | Pendiente (`apps/game-server` es un marcador) | [fase-6.md](fase-6.md) |
+| 6 · Cooperativo 1-4 con roles | Servidor autoritativo, roles por disciplina, Go/No-Go con voto, astronautas remotos de bajo detalle | Implementada la base (Harry Hernández) · integrada antes de la fase 5 · pendiente de validación y de prueba con 4 personas; falta diseño compartido y voto | [fase-6.md](fase-6.md) |
 | 7 · Pulido y lanzamiento | Rankings, mando y táctil, E2E, despliegue | Pendiente (`apps/api` es un marcador) | [fase-7.md](fase-7.md) |
 
 Las fases 1-3 siguen los tres pilares del plan (`docs/plan/plan-tripulacion-de-exploracion.md` § 2); la 6

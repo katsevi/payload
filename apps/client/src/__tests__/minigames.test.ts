@@ -108,7 +108,7 @@ describe('esquiva de asteroides (timón)', () => {
       }
       expect(hits, `nivel ${level}`).toBe(0);
     }
-  });
+  }, 30_000); // barrido largo: con `pnpm validate` corre en paralelo con los tests de red del servidor
 
   it('hacerlo mal no bloquea: quieto también termina, y en difícil quieto se choca', () => {
     let hits = 0;
@@ -179,7 +179,7 @@ describe('incentivo: llegar pronto al timón nunca es peor que llegar tarde', ()
       // Peor cuanto más tarde.
       expect(damage(lateDodgeResult(0.5, level, max))).toBeGreaterThanOrEqual(damage(lateDodgeResult(4, level, max)));
     }
-  });
+  }, 30_000); // barrido largo: con `pnpm validate` corre en paralelo con los tests de red del servidor
 
   it('la dificultad se nota: el daño esperado de un piloto medio y de uno torpe sube con el sector', () => {
     expect(expected(1, 'medium')).toBeGreaterThan(expected(0.3, 'medium') + 0.04);

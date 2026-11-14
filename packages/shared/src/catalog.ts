@@ -9,6 +9,7 @@ import nodeKindsJson from '../catalog/destinos.json';
 import sectorJson from '../catalog/sectores.json';
 import surfaceJson from '../catalog/mundos.json';
 import economyJson from '../catalog/economia.json';
+import rolesJson from '../catalog/roles.json';
 import upgradesJson from '../catalog/mejoras.json';
 import missionsJson from '../catalog/misiones.json';
 import modulesJson from '../catalog/modulos.json';
@@ -16,7 +17,7 @@ import instrumentsJson from '../catalog/instrumentos.json';
 import launchersJson from '../catalog/lanzadores.json';
 import solarJson from '../catalog/sistema-solar.json';
 import {
-  MODULE_KINDS, NODE_KINDS, SCIENCE_KINDS, SUPPLY_IDS, THROTTLE_IDS, UPGRADE_FIELDS, UPGRADE_TARGETS,
+  MODULE_KINDS, NODE_KINDS, ROLE_IDS, SCIENCE_KINDS, SUPPLY_IDS, THROTTLE_IDS, UPGRADE_FIELDS, UPGRADE_TARGETS,
   type Catalog, type MaterialDef, type NodeKind, type NodeKindDef, type ShipDef, type SurfaceCatalog, type ThrottleDef, type ThrottleId, type WorldDef,
 } from './types';
 
@@ -358,6 +359,20 @@ const solarSystemSchema = z.strictObject({
   bodies: z.array(bodySchema).min(1),
 });
 
+// ─── Fase 6: roles de tripulación (ADR 0017) ───────────────────────────────
+
+const roleSchema = z.strictObject({
+  id: z.enum(ROLE_IDS),
+  name: localized,
+  perks: z.strictObject({
+    evadeFuelMult: nonNeg.optional(),
+    evadeDamageMult: nonNeg.optional(),
+    repairSpeedMult: positive.optional(),
+    carryCapacityMult: positive.optional(),
+    jetpackDrainMult: nonNeg.optional(),
+  }),
+});
+
 const catalogSchema = z
   .strictObject({
     ships: z.array(shipSchema).min(1),
@@ -373,6 +388,7 @@ const catalogSchema = z
     instruments: z.array(instrumentSchema).optional(),
     launchers: z.array(launcherSchema).optional(),
     solarSystem: solarSystemSchema.optional(),
+    roles: z.array(roleSchema).optional(),
   })
   .superRefine((cat, ctx) => {
     const shipIds = new Set<string>();
@@ -386,13 +402,16 @@ const catalogSchema = z
     const station = cat.nodeKinds.find((n) => n.id === 'station');
     if (station && !station.shop && !station.service) ctx.addIssue({ code: 'custom', message: 'el tipo "station" debe declarar `shop`' });
     if (!cat.nodeKinds.some((n) => n.weight > 0)) ctx.addIssue({ code: 'custom', message: 'ningún tipo de destino tiene peso > 0' });
+    for (const r of ROLE_IDS) {
+      if ((cat.roles ?? []).filter((x) => x.id === r).length > 1) ctx.addIssue({ code: 'custom', message: `rol repetido: ${r}` });
+    }
     const surface = cat.surface;
     if (!surface) return;
     const ids = new Set<string>([...shipIds, ...NODE_KINDS]);
     const materialIds = new Set<string>();
     const toolIds = new Set(surface.tools.map((t) => t.id));
     for (const mat of surface.materials) if (!toolIds.has(mat.tool)) ctx.addIssue({ code: 'custom', message: `el material "${mat.id}" usa una herramienta desconocida: ${mat.tool}` });
-    for (const entry of [...surface.tools, ...surface.materials, ...surface.worlds, ...(cat.upgrades ?? [])]) {
+    for (const entry of [...surface.tools, ...surface.materials, ...surface.worlds, ...(cat.upgrades ?? []), ...(cat.roles ?? [])]) {
       if (ids.has(entry.id)) ctx.addIssue({ code: 'custom', message: `id repetido en el catálogo: ${entry.id}` });
       ids.add(entry.id);
     }
@@ -470,6 +489,7 @@ export function parseCatalog(raw: unknown): Catalog {
         ...(!('instruments' in raw) ? { instruments: instrumentsJson.instruments } : {}),
         ...(!('launchers' in raw) ? { launchers: launchersJson.launchers } : {}),
         ...(!('solarSystem' in raw) ? { solarSystem: solarJson } : {}),
+        ...(!('roles' in raw) ? { roles: rolesJson.roles } : {}),
       }
     : raw;
   const r = catalogSchema.safeParse(input);
@@ -495,6 +515,7 @@ export const catalog: Catalog = parseCatalog({
   instruments: instrumentsJson.instruments,
   launchers: launchersJson.launchers,
   solarSystem: solarJson,
+  roles: rolesJson.roles,
 });
 
 export function getShip(shipId: string | undefined, cat: Catalog = catalog): ShipDef {

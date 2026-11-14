@@ -8,11 +8,11 @@ supervivencia sea la *operación* de la misión diseñada (ADR `docs/adr/0015-re
 
 - **Fase 4 · Diseño de misión y sistema solar: implementada · validada con observaciones · fusionada en `main`** (PR #6, commit `750255a`; ADR 0016). `pnpm validate` 11/11 con **430 tests** (257 shared + 173 client). Diseño de misión antes de zarpar (6 misiones, módulos, instrumentos, lanzadores, Go/No-Go con motivo), sistema solar con 25 cuerpos reales y potencia 1/d², hangar y mapa solar 3D, glosario opcional. Partida clásica idéntica a la fase 3. **Pendiente para la fase 5:** ver «Fase 4 — qué se hizo» y `docs/phases/fase-4.md` § «Pendiente heredado» (el objetivo no termina la partida, avisos sin efecto, Europa/Titán sin vuelta, CubeSat). **Sin verificar por personas:** diseñar una misión en < 10 min, FPS con el mapa solar, tramos con Júpiter/Saturno y los mundos nuevos en superficie.
 - **Fase 5 · Ciencia, datos y astronauta articulado:** `docs/phases/fase-5.md` (lista las decisiones que hay que tomar antes de empezar).
-- **Fase 6 · Cooperativo 1-4 con roles** (antigua fase 4) y **fase 7 · Pulido y lanzamiento** (antigua fase 5): `fase-6.md`, `fase-7.md`.
+- **Fase 6 · Cooperativo 1-4 con roles** (antigua fase 4; ficha `fase-6.md`) y **fase 7 · Pulido y lanzamiento** (antigua fase 5; `fase-7.md`).
 - **Regla 6 revisada:** se permiten explicaciones opcionales de una línea (ayuda con tecla, glosario, motivo del Go/No-Go, informe final); nunca lectura obligatoria.
-- Los ADR 0009 y 0010 (servidor) siguen aceptados y en suspenso hasta la fase 6. En las notas antiguas de este archivo, el cooperativo que aparece como «fase 4» es ahora la fase 6.
+- **Fase 6 · Cooperativo 1-4: base implementada por Harry Hernández e integrada antes de la fase 5** (commit `6272af2` de la rama `feat/f4-cooperativo`, escrita cuando era la fase 4; integrada desde `feat/f6-integrar-cooperativo` el 2026-11-14). Su ADR se renumeró de 0015 a **0017**. Ver «Fase 6 — qué se hizo» y «Fase 6 — pendiente». Los ADR 0009 y 0010 siguen aceptados; el 0017 sustituye el detalle de implementación del 0009. En las notas antiguas de este archivo, el cooperativo que aparece como «fase 4» es ahora la fase 6.
 
-Última actualización: **2026-11-14** · rama `main` (fase 4 fusionada, PR #6) · Propuesta: 0.7.0 (fase 4; ver `CHANGELOG.md`). Guía para probar el juego: [`docs/guias/primera-mision.md`](guias/primera-mision.md)
+Última actualización: **2026-11-14** · rama `feat/f6-integrar-cooperativo` (main con la fase 4 fusionada, PR #6, + el cooperativo de Harry integrado; pendiente de PR) · Propuesta: 0.7.0 (fase 4; ver `CHANGELOG.md`). Guía para probar el juego: [`docs/guias/primera-mision.md`](guias/primera-mision.md)
 
 > Léelo antes de empezar y actualízalo al terminar una tarea relevante. Las casillas de
 > `docs/phases/fase-*.md` las marca quien valida la fase, no quien implementa: aquí solo se resume.
@@ -24,7 +24,9 @@ decisión en ADR 0011). El juego se rehízo el 2026-11-09.
 
 - La **fase 1 está fusionada en `main`** (PR #3), y la fase 2 con las herramientas de minería y los minijuegos
   (ADR 0013) entró por el PR #4 (`feat/f2-herramientas-e-interacciones`). La **fase 3 (economía y progresión)**
-  está **implementada pero sin commitear** en **`feat/f3-economia-progresion`** (ADR 0014).
+  está **fusionada en `main`** (PR #5, ADR 0014). La **fase 4 (diseño de misión)** está
+  **fusionada** (PR #6) y la base de la **fase 6 (cooperativo)** de Harry Hernández (`feat/f4-cooperativo`) se integra
+  en `feat/f6-integrar-cooperativo` (ADR 0017, contrato en `docs/MULTIPLAYER.md`).
 - No existe ninguna etiqueta local `v0.3.0-simulador` (`git tag` está vacío): la versión anterior (0.3.0) está en
   el historial, en el commit `76ae5ab` (ADR 0011). Su documentación está en `docs/archivo/v0.3-simulador/`.
 - **Fase 2 (exploración de superficie): implementada.** Pendiente de validación independiente final y de prueba
@@ -34,7 +36,13 @@ decisión en ADR 0011). El juego se rehízo el 2026-11-09.
   Créditos, terminal de estación de pago (venta, suministros, 11 mejoras con contrapartida), ayuda de emergencia
   gratuita (sustituye al servicio gratuito) y la masa a bordo encarece cada salto. `pnpm validate` 11/11, **300 tests**
   (181 + 119). Nadie ha jugado 20 minutos para comprobar el hito ni ha visto el terminal con GPU real. Decisiones: ADR 0014.
-- **Fase 4 (diseño de misión y sistema solar) fusionada (PR #6); siguiente: fase 5 (ciencia y datos); el cooperativo es ahora la fase 6.** Toda la economía entra como `RunAction` y es determinista (ver «Próximos pasos»).
+- **Fase 4 (diseño de misión y sistema solar) fusionada (PR #6); siguiente: fase 5 (ciencia y datos).** Toda la economía entra como `RunAction` y es determinista (ver «Próximos pasos»).
+- **Fase 6 (cooperativo 1-4): base implementada (Harry Hernández) e integrada.** Hay servidor autoritativo
+  (`apps/game-server`, Colyseus 0.18), roles con ventajas pasivas, sala privada con código, capa de sesión en el
+  cliente, avatares y pings. Tras la integración, `pnpm validate` 11/11 con **472 tests** (274 shared + 18 game-server +
+  180 client). Probado por Harry en un solo equipo con dos pestañas de Chrome contra el servidor real; **nadie lo ha jugado
+  en red local con varios equipos** ni ha pasado la validación independiente. La sala arranca siempre partidas libres
+  (sin diseño). Ver «Fase 6 — qué se hizo».
 
 ## Estado por fase
 
@@ -45,7 +53,7 @@ decisión en ADR 0011). El juego se rehízo el 2026-11-09.
 | 3 · Economía y progresión | **Implementada · validada con observaciones** (rama `feat/f3-economia-progresion`, sin commitear). `pnpm validate` en verde (300 tests) y validación independiente «cumple con observaciones» (sin exploits de dinero ni soft-locks). **Falta:** el hito con jugadores (20 min: vender, >= 2 mejoras, la nave se siente otra), ver el terminal y los créditos en un navegador con GPU real y escuchar los cues. |
 | 4 · Diseño de misión y sistema solar | **Implementada · validada con observaciones · fusionada** (PR #6). `pnpm validate` en verde (430 tests). **Falta:** el hito con personas (diseñar una misión en < 10 min), FPS con el mapa solar y las decisiones heredadas para la fase 5. Ficha: `docs/phases/fase-4.md`; decisiones: ADR 0015 y 0016. |
 | 5 · Ciencia, datos y astronauta articulado | No iniciada. Depende de la fase 4. |
-| 6 · Cooperativo 1-4 con roles | No iniciada (antigua fase 4). `apps/game-server` es un marcador. |
+| 6 · Cooperativo 1-4 con roles | **Base implementada (Harry Hernández) · integrada en esta rama antes de la fase 5** (antigua fase 4). Servidor, roles, sala, sesión del cliente, avatares y pings; `pnpm validate` en verde. **Falta:** validación independiente, el hito con cuatro equipos en red local, diseño compartido y voto, y lo listado en «Fase 6 — pendiente». Ficha: `docs/phases/fase-6.md`; decisiones: ADR 0017. |
 | 7 · Pulido y lanzamiento | No iniciada (antigua fase 5). `apps/api` es un marcador. |
 
 ### Fase 1 — qué se hizo
@@ -163,7 +171,7 @@ verdad, sin pico»). No pertenece a ninguna fase del plan. Decisiones: ADR 0013.
   (`ok`, `fetch`, `leave`, `short`). Un haz por filón; el HUD muestra el avance del filón («2/3») y la escena marca la veta que lo completa.
 - Teclas: E usar/abrir/colocar/recoger; Q alternativa; clic o Espacio la habilidad; R reparar con repuesto.
 
-### Fase 3 — qué se hizo (2026-11-13, rama `feat/f3-economia-progresion`, sin commitear)
+### Fase 3 — qué se hizo (2026-11-13, fusionada en `main` por el PR #5)
 
 La carga de la bodega pasa a ser progreso: en una estación se vende, se compra y se mejora la nave. Decisiones y
 reglas completas en ADR 0014, `packages/shared/CLAUDE.md` y `apps/client/CLAUDE.md`. Contrato aditivo.
@@ -248,6 +256,89 @@ Ruta completa = 2·(zonas−1) tramos. Columnas: % que acaba la ruta / % que lle
 
 Problemas que enseña la tabla: `ligera-a-bennu` casi nunca llega a Bennu; en Europa y Titán casi todas las partidas se pierden en la **vuelta** (varada o casco). Los No-Go representativos se pierden en vuelo (paneles en Júpiter: 90 pérdidas por casco; solo RTG en Titán: 100; sin combustible de vuelta en Marte: 100 % varadas). El No-Go `antena-corta` del cinturón juega igual que un Go porque el enlace aún no tiene efecto (fase 5).
 
+### Fase 6 — qué se hizo (2026-11-13, Harry Hernández, rama `feat/f4-cooperativo`; integrada el 2026-11-14)
+
+Hasta cuatro personas juegan la misma partida: el servidor corre el motor y los clientes lo reflejan. Decisiones en
+ADR 0017; contrato de red en `docs/MULTIPLAYER.md`. Contrato del motor aditivo.
+
+**Motor (`packages/shared`):**
+- **Roles** en datos (`catalog/roles.json`, `roles.ts`): piloto (esquiva a mitad de combustible, roces −25 %), ingeniero
+  (repara ×1,3), explorador (mochila ×1,25, jetpack −20 %) y gestor de recursos (sin ventaja por ahora).
+  `createRun({ crewSize, roles })`, `CrewMember.role`, y `crewId?` en `work-incident`, `repair-system` y `evade`.
+  Sin roles (solitario, bot de balance) nada cambia: las cifras de balance son las de `main`.
+- **`Run.hydrate(state)`**: copia un estado recibido por red en una partida local (espejo del cliente).
+- **`net.ts`**: mensajes, límites (`COOP_LIMITS`) y validación de lo que llega de la red; código de sala de 4 caracteres.
+
+**Servidor (`apps/game-server`, antes un marcador):**
+- `roomModel.ts` (puro): lobby (rol único y opcional, listo, anfitrión), una `Run` con un tripulante por jugador, el
+  servidor impone el `crewId` de quien actúa, presupuesto de trabajo mantenido (no más que el tiempo real), caídas y
+  salidas, vuelta al lobby tras perder, poses y pings.
+- `CrewRoom.ts` (Colyseus 0.18): sala privada `crew`, código = `roomId`, tick de 10 Hz que difunde el estado entero
+  (≈ 3 kB; el sector solo cuando cambia), reconexión con 60 s de gracia, bloqueo al empezar.
+- Tests: paridad sala-motor (mismo estado y eventos), antiabuso y, con servidor y cuatro clientes SDK reales,
+  sincronía, rechazos, poses, pings y reconexión.
+
+**Cliente (`apps/client`):**
+- `net/coopSession.ts` y `net/coopStore.ts`; `runStore` en modo espejo (`enterRemote`, `remoteState`, `remoteEvents`):
+  `act` valida en local con mi tripulante y envía; la posición y el trabajo mantenido salen agrupados cada 66 ms.
+- `game/me.ts` (`myCrew`): todo lo «mío» deja de ser `crew[0]`. `effectiveRulesOf` incluye la ventaja de mi rol.
+- `ui/CoopScreen.tsx`: Menú → Cooperativo (nombre, crear sala, entrar con código), lobby y `CrewBar` en partida.
+  Fin de partida en sala: el anfitrión devuelve a todos al lobby.
+- `scenes/CrewAvatars.tsx`: compañeros (astronauta simple con el color del rol) y pings (tecla G) en la nave y fuera.
+- `pnpm dev:server` y `pnpm dev:lan` en la raíz.
+
+**Comprobado a mano (Chrome, un equipo, servidor real):** crear sala, entrar con código desde otra pestaña, rol
+ocupado rechazado, empezar, saltar y apagar un sistema a través del servidor, barra de tripulación y avatar del
+compañero visibles, sin errores en consola.
+
+**Integración con la fase 4 (2026-11-14):** `Catalog` lleva `roles` y los campos del diseño; `createRun` admite
+`roles` y `design` a la vez. La sala arranca siempre una **partida libre** (clásica). El espejo del cliente
+(`runStore.enterRemote`) se crea con el `missionDesign` del estado si lo trae (test de `hydrate` con diseño en
+`packages/shared/src/__tests__/coop.test.ts`), así que permitir misiones en sala solo exige que el lobby y el
+servidor elijan el diseño. En sala, el fin de partida no ofrece «Rediseñar». El menú tiene «Diseñar una misión»,
+«Partida libre» y «Cooperativo».
+
+### Fase 6 — pendiente
+
+- **Diseño compartido y Go/No-Go con voto** (alcance de la fase 6 tras el ADR 0015): hoy el anfitrión no puede elegir
+  misión ni diseño; la sala juega la partida libre. Los roles por disciplina tampoco existen.
+
+- **Hito sin probar:** cuatro equipos en red local completando un sector. Solo se ha visto con dos pestañas en un equipo.
+- **Validación independiente** (agente `validator`) y marcar las casillas de `docs/phases/fase-6.md`.
+- **La superficie en sala no se ha jugado:** descenso con varios, dos tripulantes fuera a la vez, avatares en la
+  superficie y despegue con todos a bordo solo están cubiertos por los tests del motor, no vistos en pantalla.
+- **Minijuegos con latencia** (esquiva, averías): funcionan por diseño (el cliente informa el resultado), sin probar en red.
+- **Avatares provisionales:** sin animación ni nombre flotante; el aspecto se vio en una sola captura. Todos aparecen
+  en el mismo punto de la nave y no hay colisión entre jugadores.
+- **Pings:** solo «mirad aquí» (G) tiene tecla; `danger` y `help` existen en el contrato pero no en la interfaz. Sin sonido.
+- **Tripulante muerto:** quien muere fuera se queda mirando la escena sin poder hacer nada (no hay modo espectador).
+- **Quien se va con su tripulante fuera** bloquea el despegue hasta que se le acaba el oxígeno.
+- **Recargar la página pierde el sitio** (el SDK solo reconecta con la pestaña abierta); no se guarda el token.
+- **El chunk inicial del cliente creció** de 0,53 a 0,59 MB; revisar si el SDK queda fuera del arranque.
+
+## Métricas verificadas (2026-11-13, fase 6 en la rama de Harry, antes de integrar)
+
+| Métrica | Valor |
+| --- | --- |
+| `pnpm validate` | Verde: 11/11 tareas. Total **341 tests** |
+| Tests `@payload/shared` | **197** en 9 archivos (`coop` nuevo) |
+| Tests `@payload/game-server` | **18** en 2 archivos (`roomModel`, `network`) |
+| Tests `@payload/client` | **126** en 6 archivos (`coop` nuevo) |
+| Mensaje `state` | ≈ 2,4 kB atracada y ≈ 3,5 kB en tránsito (sin el sector, ≈ 1,8 kB), 10 por segundo |
+| Balance | Sin cambios respecto a la fase 3 (sin roles el motor es el mismo) |
+| Sin verificar | Red local con varios equipos, latencia real, superficie en sala, FPS con avatares |
+
+## Métricas verificadas (2026-11-14, integración fase 4 + fase 6)
+
+| Métrica | Valor |
+| --- | --- |
+| `pnpm validate` | Verde: 11/11 tareas. Total **472 tests** |
+| Tests `@payload/shared` | **274** en 12 archivos (257 de la fase 4 + 16 de `coop` + 1 de `hydrate` con diseño) |
+| Tests `@payload/game-server` | **18** en 2 archivos |
+| Tests `@payload/client` | **180** en 7 archivos (173 + 7 de `coop`) |
+| Balance (`pnpm balance 100 3`) | Perfiles clásicos y por misión idénticos a `main` (los roles no se usan en solitario ni en el bot) |
+| Sin verificar | Sala con varios clientes reales en navegador tras la integración, red local, superficie en sala |
+
 ## Métricas verificadas (2026-11-13, fase 3)
 
 | Métrica | Valor |
@@ -310,6 +401,9 @@ Ningún agente puede hacerlas.
 F4-a. **Hito de la fase 4:** que una persona nueva diseñe una misión en < 10 min (`pnpm dev`, «Diseñar una misión»; guía en `docs/guias/primera-mision.md`; atajo `?design=1&mission=mission-lunar-ice`): ¿entiende por qué sale No-Go con la línea de H? ¿lo que diseñó es lo que juega?
 F4-b. **Medir FPS** del mapa solar abierto en GPU real (dos `<Canvas>`), jugar un tramo con Júpiter y Saturno y entrar en superficie en Marte, hielo, Titán y Encélado (mundos nuevos).
 F4-c. **Decidir las cuestiones heredadas** de la fase 4 antes de empezar la 5 (ver `docs/phases/fase-5.md` § «Decisiones que debe tomar la fase 5»).
+F6-a. **Hito de la fase 6 (cooperativo):** cuatro personas en cuatro equipos de la misma red (`pnpm dev:server` y `pnpm dev:lan` en uno; los demás abren `http://<ip>:5173`) completan un sector. ¿Se desincroniza algo? ¿se nota el retardo al reparar o esquivar?
+F6-b. **Jugar la superficie en sala** con al menos dos personas fuera a la vez y mirar los avatares en la nave y fuera.
+F6-c. **Decidir** la ventaja del gestor de recursos, quién puede gastar créditos y qué pasa con el tripulante de quien se va, y cómo se elige y vota el diseño de misión en sala.
 F3-a. **Hito de la fase 3:** jugar 20 minutos (`pnpm dev`, `?play=1&seed=7&station=1`): ¿se vende, se compran >= 2 mejoras y la nave se siente otra? ¿dos partidas seguidas acaban con mejoras distintas? ¿los precios dan duda real?
 F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de créditos, pantalla de fin de partida) en un navegador con GPU real, y **escuchar** los cues `sale`, `purchase`, `upgrade` y `noCredits` (nadie los ha oído).
 0. **Jugar la superficie** (`pnpm dev`, `?play=1&seed=7&surface=1`; semillas por mundo en `apps/client/CLAUDE.md`):
@@ -321,7 +415,7 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
 4. **Recalificar la última corrección de la revisión de diseño** (8/10 tras tres pasadas; los tres flecos finales no se han vuelto a evaluar) si se quiere una nota definitiva.
 5. **Hito de la fase 1:** prueba con >= 3 personas que no conozcan el juego (ver `docs/phases/fase-1.md`).
 6. **Validación independiente final de la fase 2** (agente `validator` o una persona) y marcar las casillas de `docs/phases/fase-2.md`.
-7. **Decidir el commit** de `feat/f3-economia-progresion` (cambios sin commitear) y el PR de la fase 3.
+7. **Abrir el PR** de `feat/f4-cooperativo` cuando se decida (la rama está subida). (La fase 3 ya entró por el PR #5.)
 8. **Probar con ratón capturado** (pointer lock) en una sesión real.
 9. **Mirar el rediseño gráfico y opinar** (`?play=1&seed=7&body=<tipo>`): brillo, color y legibilidad, otras semillas.
 10. **ERIZON** (CC-BY-NC-ND): decidir si se sustituye antes de cualquier uso comercial.
@@ -341,6 +435,12 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
   - **La oferta no se renueva** (fija por estación).
   - **Con todas las mejoras, la demanda con todo encendido supera el reactor** (aceptado por diseño, con aviso de sobrecarga en el terminal).
   - **`isSectorSolvable` asume repostaje completo en estación** (hoy 75 % gratis y el resto de pago): un sector «completable» puede no serlo para quien llegue sin créditos ni carga y con mucha masa. Vigilar varadas en la prueba con personas.
+- **Cooperativo (fase 6), a decidir con jugadores:**
+  - **El gestor de recursos no tiene ventaja pasiva** (el plan solo define las de piloto, ingeniero y explorador).
+  - **Cualquiera puede gastar los créditos** de la tripulación; la propuesta de que lidere el gestor no está en el juego.
+  - **Jugar sin rol es válido** y una persona sola en sala con rol va algo mejor que en solitario (tiene una ventaja).
+  - **La dificultad no escala** con el número de jugadores (descartado en `fase-6.md`): cuatro personas lo tendrán más fácil.
+  - **No hay pausa en sala** y los que se caen no detienen la partida mientras quede alguien conectado.
 - **Sin tutorial.** Solo ayuda con H y carteles. Decidir tras la prueba con jugadores.
 - **El mapa solo se abre en la mesa del puente** (hay que ir andando). Es deliberado, pero puede resultar pesado.
 - **Los sistemas apagados por el jugador no se encienden solos** tras una sobrecarga: decidir si es buena fricción.
@@ -396,15 +496,15 @@ Amplify (cuenta de AWS y autorización de GitHub) y crear una alarma de presupue
 
 ## Próximos pasos
 
-0. **Fase 5 (ciencia, datos y astronauta articulado):** empezar por `docs/phases/fase-5.md` § «Decisiones que debe tomar la fase 5» y un ADR 0017; el punto de partida (campos de datos de instrumentos, antenas y computadoras, `missionTarget`) está en esa ficha y en ADR 0016 § 4. Antes, el hito de la fase 4 con personas (F4-a) y la medida de FPS (F4-b).
+0. **Fase 5 (ciencia, datos y astronauta articulado):** empezar por `docs/phases/fase-5.md` § «Decisiones que debe tomar la fase 5» y un ADR 0018 (el 0017 es el del cooperativo); el punto de partida (campos de datos de instrumentos, antenas y computadoras, `missionTarget`) está en esa ficha y en ADR 0016 § 4. Antes, el hito de la fase 4 con personas (F4-a) y la medida de FPS (F4-b).
 
-### Hacia el cooperativo (fase 6)
+### Cooperativo (fase 6, base integrada)
 
 1. Cerrar la fase 2: segunda revisión de diseño, validación independiente final, prueba con jugadores y medida de FPS;
    ajustar `catalog/mundos.json` con `pnpm balance` (ver `.claude/skills/add-catalog-item`).
 2. La prueba con jugadores de la fase 1.
 3. Cerrar la fase 3 (fusionada en `main`): prueba de 20 minutos con personas y ajuste de precios y mejoras (`economia.json`, `mejoras.json`) con `pnpm balance`.
-4. Escribir `docs/MULTIPLAYER.md` nuevo antes de tocar `apps/game-server` (fase 6); el antitrampas de `set-position` y la autoridad dividida (ADR 0012) son su punto de partida.
+4. Fase 6: probar en red local, pasar el `validator` y resolver «Fase 6 — pendiente» (diseño compartido y voto, espectador, reanudación tras recargar, pings de peligro y ayuda, avatares). Contrato: `docs/MULTIPLAYER.md`.
 5. **Lo que el cooperativo debe saber de la economía** (para `docs/MULTIPLAYER.md` y `apps/game-server`):
    - Todo el comercio entra como `RunAction` (`sell`, `buy-supply`, `buy-upgrade`, `service`) y es determinista: la oferta sale de semilla + sector + nodo, sin azar propio del servidor. El motor valida estación, créditos y oferta, así que el servidor solo reenvía acciones.
    - `run.stationQuote()` es la fuente única de precios y oferta; `effectiveShip()` y `effectiveSurfaceRules()`, de la nave y las reglas con mejoras. El cliente no calcula cifras y el servidor debe usar las mismas.
