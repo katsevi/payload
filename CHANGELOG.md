@@ -8,6 +8,43 @@ Cada entrada se agrupa por paquete.
 ### Despliegue
 - Configuración de AWS Amplify Hosting: `amplify.yml` (Node de `.nvmrc`, pnpm por corepack, build del cliente) y `customHttp.yml` (caché por tipo de archivo y cabeceras de seguridad). Guía en `docs/despliegue-aws.md`.
 
+## Fase 6 · Cooperativo 1-4 (Harry Hernández, integrado en el PR #9)
+
+Commit `6272af2` de Harry Hernández (rama `feat/f4-cooperativo`, 2026-11-13, escrita cuando el cooperativo era la fase 4), integrado en `main` el 2026-11-14 desde `feat/f6-integrar-cooperativo`, **antes de la fase 5**. Decisiones: ADR 0017 (escrito como 0015; renumerado al integrarlo). Contrato de red: `docs/MULTIPLAYER.md`.
+
+### Añadido
+
+#### `@payload/shared`
+- Roles de tripulación en datos (`catalog/roles.json`, `roles.ts`): `ROLE_IDS`, `RoleDef`, `RolePerks`, `Catalog.roles`, `CrewMember.role`, `RunOptions.roles`; `crewId` opcional en `work-incident`, `repair-system` y `evade` para aplicar la ventaja de quien actúa. Sin roles el motor se comporta igual.
+- `Run.hydrate(state)`: espejo de una partida recibida por red.
+- `net.ts`: contrato de red del cooperativo (mensajes, `COOP_LIMITS`, validación, código de sala).
+- Tests `coop.test.ts` (en la rama original, 197 tests en 9 archivos).
+
+#### `@payload/game-server`
+- Deja de ser un marcador: servidor autoritativo con Colyseus 0.18. `RoomModel` (lógica pura de sala) y `CrewRoom` (adaptador): sala privada con código de 4 caracteres, lobby con roles, partida compartida a 10 Hz, reconexión con 60 s de gracia, antiabuso del trabajo mantenido, poses y pings.
+- Tests de paridad sala-motor y de red con clientes reales; 18 en 2 archivos.
+
+#### `@payload/client`
+- Cooperativo desde el menú: crear sala o entrar con código, lobby con roles y listo, barra de tripulación en partida, avatares de los compañeros y ping con G.
+- `net/coopSession.ts`, `net/coopStore.ts`, `game/me.ts` (`myCrew`) y `runStore` en modo espejo.
+- Tests `coop.test.ts` (en la rama original, 126 tests en 6 archivos).
+
+#### Raíz
+- Scripts `pnpm dev:server` y `pnpm dev:lan`.
+
+### Cambiado
+- El cliente ya no asume un único tripulante (`crew[0]`): lee el suyo con `myCrew`.
+- El menú sustituye el aviso «cooperativo en una fase posterior» por el botón Cooperativo (junto a «Diseñar una misión» y «Partida libre»).
+
+### Pendiente
+- Prueba en red local con cuatro equipos, validación independiente y la lista de «Fase 6 — pendiente» de `docs/STATUS.md`. Diseño compartido y Go/No-Go con voto: la sala arranca siempre una partida libre.
+
+### Integración con la fase 4
+- `Catalog` lleva a la vez `roles` y los campos del diseño de misión; `RunOptions` admite `roles` y `design` juntos.
+- El espejo del cliente (`runStore.enterRemote`) se crea con el `missionDesign` del estado recibido si lo trae; test de `hydrate` con diseño en `packages/shared/src/__tests__/coop.test.ts`. La sala sigue arrancando partidas libres.
+- `effectiveRulesOf` combina la nave base del diseño (`baseShipOf`) con la ventaja de rol de mi tripulante.
+- En sala, el fin de partida no ofrece «Rediseñar» (saldría de la sala).
+
 ## Fase 4 · Diseño de misión y sistema solar
 
 Versión propuesta: **0.7.0** (rama `feat/f4-diseno-de-mision`, 2026-11-14; **fusionada en `main`, PR #6**). Decisiones: ADR 0015 (reto NASA y roadmap) y ADR 0016. Guía de juego: `docs/guias/primera-mision.md`. `pnpm validate` 11/11 con 430 tests (257 shared en 11 archivos + 173 client en 6); partida clásica idéntica bit a bit a la fase 3.

@@ -4,7 +4,7 @@ Diseño del juego vigente desde el 2026-11-09. Plan de partida: `docs/plan/plan-
 Por qué se rehízo el juego: `docs/adr/0011-reinicio-tripulacion-de-exploracion.md`. El GDD del simulador
 anterior está en `docs/archivo/v0.3-simulador/GDD.md`.
 
-Leyenda: **[F1]** existe desde la fase 1 · **[F2]** existe desde la fase 2 (superficie) · **[F3] [F4] [F5] [F6] [F7]** diseño previsto para esa fase (nuevo orden: ADR 0015).
+Leyenda: **[F1]** existe desde la fase 1 · **[F2]** existe desde la fase 2 (superficie) · **[F3] [F4] [F5] [F6] [F7]** diseño previsto para esa fase (nuevo orden: ADR 0015). La fase 3 (economía), la 4 (diseño de misión) y la base de la 6 (cooperativo; ver `docs/MULTIPLAYER.md`) ya existen.
 
 ## 1. Concepto
 
@@ -235,7 +235,10 @@ Desde un destino atracado que sea planeta, luna o campo de asteroides, el piloto
   Ficha: `docs/phases/fase-5.md`.
 - **[F6] Cooperativo 1-4 con roles.** Servidor autoritativo que corre el mismo motor (ADR 0009), roles por
   disciplina (dirección, ingeniería, ciencia, operaciones), Go/No-Go con voto, pings y astronautas remotos de bajo
-  detalle; dificultad escalada con el número de jugadores. Ficha: `docs/phases/fase-6.md`.
+  detalle; dificultad escalada con el número de jugadores. Ficha: `docs/phases/fase-6.md`. **Existe la base** (Harry
+  Hernández, ADR 0017, `docs/MULTIPLAYER.md`): sala privada con código, un tripulante por jugador, roles como ventajas
+  pasivas (piloto, ingeniero, explorador; el gestor aún sin ventaja), avatares y ping. Sin voz integrada ni dificultad
+  escalada (descartado en la ficha). Faltan los roles por disciplina, el diseño compartido y el voto.
 - **[F7] Pulido.** Rankings, mando y táctil, despliegue, pruebas E2E.
 
 ## 12. Assets y licencias

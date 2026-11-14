@@ -24,7 +24,7 @@ Vitest, pnpm + Turborepo. Interfaz en español (por defecto) e inglés.
 | 3 · Economía y progresión | **Implementada** (rama `feat/f3-economia-progresion`): créditos, terminal de estación (venta, suministros y 11 mejoras con contrapartida) y la carga pesa. Validada con observaciones; pendiente de prueba con jugadores. |
 | 4 · Diseño de misión y sistema solar | **Implementada y fusionada** (PR #6): hangar de diseño (módulos, instrumentos, lanzador), revisión Go/No-Go con motivo, sistema solar real con potencia 1/d² y mapa solar 3D. Validada con observaciones; pendiente de prueba con personas. |
 | 5 · Ciencia, datos y astronauta articulado | Pendiente: instrumentos que generan datos, bajada a la Tierra, puntuación por ciencia e informe con cadena de causas. |
-| 6 · Cooperativo 1-4 con roles | Pendiente: servidor autoritativo y roles (`apps/game-server` es un marcador). |
+| 6 · Cooperativo 1-4 con roles | **Implementada la base** (Harry Hernández) **e integrada** antes de la fase 5: servidor autoritativo, sala privada con código, roles con ventajas pasivas, avatares y pings. Falta validarla, probarla con cuatro equipos en red local y el diseño compartido con voto. Contrato: [`docs/MULTIPLAYER.md`](docs/MULTIPLAYER.md). |
 | 7 · Pulido y lanzamiento | Pendiente (`apps/api` es un marcador). |
 
 Detalle, métricas y acciones pendientes: [`docs/STATUS.md`](docs/STATUS.md). Roadmap: [`docs/phases/`](docs/phases/README.md).
@@ -40,6 +40,8 @@ Detalle, métricas y acciones pendientes: [`docs/STATUS.md`](docs/STATUS.md). Ro
 ```bash
 pnpm install
 pnpm dev          # cliente en http://localhost:5173
+pnpm dev:server   # servidor del cooperativo en ws://localhost:2567 (ver docs/MULTIPLAYER.md)
+pnpm dev:lan      # cliente abierto a la red local (cooperativo desde otros equipos)
 pnpm test         # tests de todos los paquetes (Vitest)
 pnpm typecheck    # tsc --noEmit en todos los paquetes
 pnpm build        # build de producción (Turborepo)
@@ -101,11 +103,11 @@ Diseño completo: [`docs/GDD.md`](docs/GDD.md).
 payload/
 ├─ apps/
 │  ├─ client/        # React 19 + R3F + Rapier + Vite: escenas, interfaz, audio, i18n
-│  ├─ game-server/   # marcador: servidor del cooperativo (fase 6)
+│  ├─ game-server/   # servidor autoritativo del cooperativo (fase 6; Colyseus, corre el motor de shared)
 │  └─ api/           # marcador: rankings y persistencia (fase 7)
 ├─ packages/
 │  └─ shared/        # motor del juego en TypeScript puro, con tests
-│     ├─ catalog/    # naves, averías, destinos, sectores, mundos, economía, mejoras, misiones, módulos, instrumentos, lanzadores y sistema solar (.json)
+│     ├─ catalog/    # naves, averías, destinos, sectores, mundos, economía, mejoras, misiones, módulos, instrumentos, lanzadores, sistema solar y roles (.json)
 │     └─ locales/    # textos del motor (es/en)
 ├─ assets/           # modelos 3D (originales y optimizados) y CREDITS.md
 ├─ docs/             # plan, GDD, fases, ADR, arquitectura, estado, archivo

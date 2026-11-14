@@ -9,6 +9,7 @@ import { Glow } from '../gfx/Glow';
 import { mats } from '../gfx/materials';
 import { beamMaterial } from '../gfx/surfaceShaders';
 import { liveTerrain } from './SurfaceWorld';
+import { myCrew } from '../game/me';
 
 /**
  * Herramientas de minería colocadas sobre las vetas (`surface.tools`), modeladas con `Builder` y animadas
@@ -309,7 +310,7 @@ export function LodeFinishers() {
     t.current += dt;
     clock.current -= dt;
     const s = getRun()?.state;
-    const me = s?.crew.find((c) => c.alive);
+    const me = myCrew(s);
     if (clock.current <= 0) {
       clock.current = 0.25;
       ids.current = s && me ? lodeFinisherIds(s, me) : [];

@@ -1,7 +1,7 @@
 /**
  * CONTRATO DE DOMINIO DE PAYLOAD (v2: tripulación de exploración, ver docs/adr/0011)
  * ------------------------------------------------------------------
- * Contrato entre el motor (packages/shared), el cliente (apps/client) y, en la fase 4, el
+ * Contrato entre el motor (packages/shared), el cliente (apps/client) y, en la fase 6, el
  * servidor de juego (apps/game-server).
  *
  * Reglas:
@@ -218,6 +218,35 @@ export interface Catalog {
   launchers?: LauncherDef[];
   /** Fase 4: cuerpos reales, zonas y reglas de la ruta (`catalog/sistema-solar.json`). */
   solarSystem?: SolarSystemDef;
+  /** Fase 6: roles de tripulación y sus ventajas pasivas (`catalog/roles.json`). Siempre presente tras validar. */
+  roles?: RoleDef[];
+}
+
+// ─── Roles de tripulación (fase 6, ADR 0017) ─────────────────────────────────
+
+export const ROLE_IDS = ['pilot', 'engineer', 'manager', 'explorer'] as const;
+/** Rol de un tripulante en cooperativo. Solo da ventajas pasivas: ningún puesto se bloquea por rol. */
+export type RoleId = (typeof ROLE_IDS)[number];
+
+/** Ventajas pasivas de un rol. Solo se aplican a las acciones que llevan el `crewId` de quien lo tiene. */
+export interface RolePerks {
+  /** Piloto: multiplicador del combustible de la maniobra evasiva. */
+  evadeFuelMult?: number;
+  /** Piloto: multiplicador del daño que entra tras una esquiva con roces. */
+  evadeDamageMult?: number;
+  /** Ingeniero: multiplicador del trabajo en averías y reparaciones con repuesto. */
+  repairSpeedMult?: number;
+  /** Explorador: multiplicador de la capacidad de la mochila. */
+  carryCapacityMult?: number;
+  /** Explorador: multiplicador del gasto del jetpack. */
+  jetpackDrainMult?: number;
+}
+
+/** Rol de tripulación. Nombre en `catalog.<id>`. */
+export interface RoleDef {
+  id: RoleId;
+  name: LocalizedText;
+  perks: RolePerks;
 }
 
 // ─── Economía y mejoras (fase 3, ADR 0014) ───────────────────────────────────
@@ -615,7 +644,7 @@ export interface ShipState {
   solarSupplyKw?: number;
 }
 
-/** Tripulante. En solitario hay uno; la fase 4 tendrá hasta cuatro. */
+/** Tripulante. En solitario hay uno; la fase 6 tendrá hasta cuatro. */
 export interface CrewMember {
   id: number;
   alive: boolean;
@@ -650,6 +679,8 @@ export interface CrewMember {
   tools: Record<string, number>;
   /** Vetas de filón que este tripulante ha agotado (recogido hasta la última unidad) en la salida en curso. */
   lodeVeinsDone: number[];
+  /** Fase 6: rol en cooperativo (ausente en solitario: sin ventajas). */
+  role?: RoleId;
 }
 
 /** Avance de un filón para un tripulante en la salida en curso (ver `lodeProgress`). */
@@ -905,13 +936,14 @@ export type RunAction =
   | { type: 'jump'; toId: string }
   | { type: 'set-throttle'; throttle: ThrottleId }
   | { type: 'toggle-system'; systemId: SystemId; enabled: boolean }
-  | { type: 'work-incident'; incidentId: number; seconds: number }
-  | { type: 'repair-system'; systemId: SystemId; seconds: number }
+  // Fase 6: `crewId` (opcional) dice quién actúa, para aplicar la ventaja de su rol. Sin él, sin ventaja.
+  | { type: 'work-incident'; incidentId: number; seconds: number; crewId?: number }
+  | { type: 'repair-system'; systemId: SystemId; seconds: number; crewId?: number }
   /**
    * Sin `grazes`: anula el impacto (compatibilidad). Con `grazes` (roces del minijuego, se redondea y
    * recorta a 0..maxGrazes): el impacto entra con esa fracción del daño.
    */
-  | { type: 'evade'; grazes?: number }
+  | { type: 'evade'; grazes?: number; crewId?: number }
   /** Fase 3: ayuda de emergencia gratuita (una vez por estación; ver `EconomyRules.emergency`). */
   | { type: 'service' }
   /**
@@ -1015,19 +1047,27 @@ export interface Run {
   effectiveSurfaceRules(): SurfaceRules;
   /** Fase 3: atracada en una estación con terminal, precios y ofertas; si no, null. */
   stationQuote(): StationQuote | null;
+  /**
+   * Fase 6: sustituye el estado por una copia recibida por red (espejo del cliente en cooperativo), para que
+   * las consultas (`estimateJump`, `stationQuote`, nave efectiva…) den lo mismo que en el servidor. No restaura
+   * los flujos de azar ni los contadores internos: una partida hidratada NO debe avanzarse con `step`/`apply`.
+   */
+  hydrate(state: RunState): void;
 }
 
 export interface RunOptions {
   seed: number;
   shipId?: string;
   catalog?: Catalog;
-  /** Tripulantes (1 en solitario; la fase 4 usará hasta 4). */
+  /** Tripulantes (1 en solitario; la fase 6 usará hasta 4). */
   crewSize?: number;
   /**
    * Fase 4 (ADR 0016): misión diseñada. Con él, la nave sale de `shipFromDesign` (se ignora `shipId`) y el
    * mapa es el sistema solar (`generateSolarSector`). Sin él, la partida es la clásica de las fases 1-3.
    */
   design?: MissionDesign;
+  /** Fase 6: rol de cada tripulante, por orden (`null` o ausente = sin rol). */
+  roles?: (RoleId | null)[];
 }
 
 // ─── Diseño de misión y sistema solar (fase 4, ADR 0016) ─────────────────────

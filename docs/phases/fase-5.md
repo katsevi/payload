@@ -23,7 +23,7 @@ verificar sobre lo que vivió.
 
 ## Decisiones que debe tomar la fase 5
 
-Resolverlas (ADR nuevo, 0017) antes de escribir código; cada una afecta al contrato de `types.ts` (solo aditivo).
+Resolverlas (ADR nuevo, 0018; el 0017 es el del cooperativo) antes de escribir código; cada una afecta al contrato de `types.ts` (solo aditivo).
 
 1. **Condición de éxito de la misión** y qué pasa con la ruta: ¿atracar en `missionTarget`, aterrizar en el cuerpo, o además volver a la Tierra? ¿La partida termina al cumplirla (fase `won`/informe) o se puede seguir? Hoy la ruta se repite como un sector.
 2. **Modelo de datos y almacenamiento:** unidades (Mbit o GB), qué genera cada instrumento (`dataRateMbps` × tiempo en qué fase: crucero, órbita, superficie), tope de `storageGb` y qué se pierde al llenarse.

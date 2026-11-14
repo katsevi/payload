@@ -1,7 +1,7 @@
 # @payload/shared — motor del juego
 
 TypeScript puro. Sin React, Three.js, DOM ni APIs de Node en `src/` (los tests y `scripts/` sí pueden
-usar Node). Corre en el navegador (solitario) y correrá en el servidor de juego (fase 6).
+usar Node). Corre en el navegador (solitario) y en el servidor de juego del cooperativo (fase 6, `apps/game-server`).
 Diseño que implementa: `docs/GDD.md`. Contrato: `src/types.ts` (reescrito en el ADR 0011).
 
 ## API pública (`src/index.ts`)
@@ -23,7 +23,7 @@ Diseño que implementa: `docs/GDD.md`. Contrato: `src/types.ts` (reescrito en el
 | `generateSector` | `(seed, index, cat?, shipId?) => SectorMap` | Determinista; reintenta hasta dar un sector completable |
 | `isSectorSolvable` | `(sector, ship, marginPct = 15) => boolean` | Ruta hacia delante a régimen económico con repostajes |
 | `ecoFuelCost`, `nodeDistanceLy`, `getNode` | | Utilidades del mapa |
-| `createRun` | `({ seed, shipId?, catalog?, crewSize?, design? }) => Run` | La partida. Ver abajo (`crewSize` 1-4, por defecto 1). Con `design` (fase 4): nave diseñada y mapa del sistema solar |
+| `createRun` | `({ seed, shipId?, catalog?, crewSize?, roles?, design? }) => Run` | La partida. Ver abajo (`crewSize` 1-4, por defecto 1; `roles` por orden, fase 6). Con `design` (fase 4): nave diseñada y mapa del sistema solar |
 | `computeDesignBudgets`, `reviewDesign` | `(design, cat?) => DesignBudgets` · `(design, cat?) => DesignReview` | Fase 4 (ADR 0016): presupuestos y Go/No-Go del diseño; puras y baratas |
 | `shipFromDesign`, `designMassKg`, `emptyDesign` | `(design, cat?) => ShipDef` · `(design, cat?) => number` · `(missionId) => MissionDesign` | Nave de la partida; las mejoras van encima con `effectiveShip` |
 | `getDesignRules`, `getMissions`/`getMission`, `getModules`/`getModule`, `getInstruments`/`getInstrument`, `getLaunchers`/`getLauncher` | `(cat?)` · `(id, cat?)` | Fase 4; las de un id lanzan si no existe |
@@ -32,6 +32,8 @@ Diseño que implementa: `docs/GDD.md`. Contrato: `src/types.ts` (reescrito en el
 | `getSolarSystem`, `findBody`/`getBody`, `getZone`, `bodySunDistanceAu` | | Cuerpos y zonas del catálogo |
 | `solarPowerFactor`, `solarKw`, `shipPowerKw` | `(au)` · `(ship, au = 1)` · `(ship, au = 1)` | 1/d²; paneles a esa distancia; nuclear + paneles |
 | `bodyPositionAu`, `solarNodePositionsAu` | `(body, cat?, days = 0) => {x, y}` · `(sector, cat?, days = 0) => Record<nodeId, {x, y}>` | Posiciones en UA para dibujar el mapa (órbitas circulares) |
+| `getRoles`, `getRole`, `crewPerks`, `crewCarryCapacityKg`, `crewJetpackDrainPctPerS` | `(cat)` · `(roleId, cat)` · `(member, cat)` · `(rules, member, cat)` | Fase 6 (ADR 0017): roles y sus ventajas pasivas |
+| `COOP_LIMITS`, `COOP_ROOM`, `NET`, `parse*`, `sanitizePlayerName`, `makeRoomCode`, `normalizeRoomCode` | | Fase 6: contrato de red (`net.ts`; ver `docs/MULTIPLAYER.md`) |
 | `computeScore` | `(stats) => number` | 1000·sector + 50·salto + 20·avería + 30·esquiva + años luz + puntos de materiales guardados a bordo (vender no cambia la puntuación; créditos y mejoras no puntúan) |
 | `getEconomy`, `getUpgrades`, `getUpgrade`, `hasShop` | `(cat)` · `(cat)` · `(id, cat)` · `(nodeKindDef)` | Fase 3 (ADR 0014). `hasShop`: `shop` o el obsoleto `service` |
 | `effectiveShip`, `effectiveSurfaceRules` | `(base, upgrades, cat) => ShipDef` · `(baseRules, upgrades, cat) => SurfaceRules` | Nave y reglas de traje/jetpack/caídas con las mejoras (puras) |
@@ -49,7 +51,7 @@ Diseño que implementa: `docs/GDD.md`. Contrato: `src/types.ts` (reescrito en el
 | `formatMessage`, `lookupSimKey`, `flattenKeys` | | Texto final sin i18next (tests, scripts, servidor) |
 
 Constantes del contrato: `SYSTEM_IDS`, `THROTTLE_IDS`, `INCIDENT_KINDS`, `HAZARD_KINDS`, `NODE_KINDS`, `SUPPLY_IDS`,
-`UPGRADE_TARGETS`, `UPGRADE_FIELDS` y, en la fase 4, `SCIENCE_KINDS`, `MODULE_KINDS`, `DESIGN_RESOURCE_IDS`.
+`UPGRADE_TARGETS`, `UPGRADE_FIELDS`, en la fase 4 `SCIENCE_KINDS`, `MODULE_KINDS`, `DESIGN_RESOURCE_IDS` y, en la fase 6, `ROLE_IDS`, `PING_KINDS`.
 
 ## `Run` (la partida)
 
@@ -66,6 +68,7 @@ run.estimateTakeOff()                   // en superficie: despegue con lo cargad
 run.stationQuote()                      // atracada en estación: venta, suministros, emergencia y mejoras ofrecidas (si no, null)
 run.effectiveShip()                     // nave con mejoras (objeto vivo, solo lectura)
 run.effectiveSurfaceRules()             // reglas de traje/jetpack/caídas con mejoras (objeto vivo, solo lectura)
+run.hydrate(state)                      // fase 6: sustituye el estado por el recibido del servidor (espejo; no lo avances después)
 ```
 
 - **Acciones (`RunAction`):** `jump`, `set-throttle`, `toggle-system`, `work-incident` y `repair-system`
@@ -199,6 +202,26 @@ Cifras en `catalog/misiones.json` (`rules` + `missions`), `modulos.json`, `instr
 - **Fixtures por misión:** `src/__tests__/fixtures/missions/<missionId>.json` (`valid` >= 2 con Go y distintos,
   `failing` >= 2 con `cause` = un `blocker` y causas distintas). `design.test.ts` falla si una misión no tiene. El primer
   válido es el diseño de referencia (`referenceDesign`) con el que juega el bot.
+
+## Cooperativo (fase 6, ADR 0017; cifras en `catalog/roles.json`; red en `docs/MULTIPLAYER.md`)
+
+- **Roles** (`ROLE_IDS`: `pilot`, `engineer`, `manager`, `explorer`): `createRun({ crewSize, roles })` pone
+  `crew[i].role`. Solo dan ventajas pasivas (`RolePerks`) y solo a quien las tiene: `repairSpeedMult`
+  (ingeniero: `work-incident` y `repair-system`), `evadeFuelMult` y `evadeDamageMult` (piloto: `evade`),
+  `carryCapacityMult` y `jetpackDrainMult` (explorador). El gestor de recursos no tiene ninguna por ahora.
+  Nombre en `catalog.<id>`. `Catalog.roles` es opcional en el JSON (`parseCatalog` pone el de por defecto).
+- **Quién actúa:** `work-incident`, `repair-system` y `evade` aceptan `crewId?`. Sin él (solitario) no hay
+  ventaja; con él, cuenta el rol de ese tripulante si está vivo y a bordo. El servidor siempre lo pone.
+  Con la ventaja del piloto, una esquiva fallida entra con menos daño y cuenta como roce (sin fuga).
+- **Sin roles nada cambia:** el solitario y el bot de balance no los usan.
+- **`hydrate(state)`:** copia un `RunState` recibido por red dentro de la partida (conserva las referencias
+  internas y recalcula la nave y las reglas efectivas). No restaura los flujos de azar ni los contadores: una
+  partida hidratada sirve para leer y consultar, no para avanzarla. El cliente la crea con la misma semilla,
+  tripulación y roles que el servidor y, si el estado trae `missionDesign`, con ese mismo diseño (`createRun({ design })`):
+  sin él la nave base y el mapa no coincidirían. Test con diseño en `coop.test.ts`. La sala aún arranca siempre sin diseño.
+- **`net.ts`:** tipos de mensaje, límites (`COOP_LIMITS`) y validación de lo que llega de la red. Puro, como
+  el resto de `src/`. `makeRoomCode(random)` recibe la fuente de azar (la pone el servidor).
+- Tests: `src/__tests__/coop.test.ts`.
 
 ## Superficie (fase 2; cifras en `catalog/mundos.json`)
 

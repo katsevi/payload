@@ -10,9 +10,10 @@
  * siendo el de la nave del catálogo de la que parte, así que no basta con `getShip(shipId)`).
  */
 import {
-  catalog as defaultCatalog, effectiveShip, effectiveSurfaceRules, getShip, getSurfaceCatalog, shipFromDesign, shipPowerKw,
+  catalog as defaultCatalog, crewCarryCapacityKg, crewJetpackDrainPctPerS, effectiveShip, effectiveSurfaceRules, getShip, getSurfaceCatalog, shipFromDesign, shipPowerKw,
   type Catalog, type MissionDesign, type RunState, type ShipDef, type SurfaceRules,
 } from '@payload/shared';
+import { myCrew } from './me';
 
 type Levels = Readonly<Record<string, number>>;
 
@@ -57,12 +58,14 @@ export function baseShipOf(state: BaseState, cat: Catalog = defaultCatalog): Shi
 interface Memo<T> {
   cat: Catalog | null;
   base: ShipDef | null;
+  /** Rol de mi tripulante (solo para las reglas de superficie en cooperativo; '' = sin rol). */
+  key: string;
   levels: Levels;
   value: T | null;
 }
 
-const shipMemo: Memo<ShipDef> = { cat: null, base: null, levels: {}, value: null };
-const rulesMemo: Memo<SurfaceRules> = { cat: null, base: null, levels: {}, value: null };
+const shipMemo: Memo<ShipDef> = { cat: null, base: null, key: '', levels: {}, value: null };
+const rulesMemo: Memo<SurfaceRules> = { cat: null, base: null, key: '', levels: {}, value: null };
 const NONE: Levels = {};
 
 /** La nave con las mejoras de `state.upgrades` (la misma que usa el motor). */
@@ -87,13 +90,22 @@ export function maxPowerKwOf(state: BaseState & Partial<Pick<RunState, 'upgrades
   return Math.max(1e-6, shipPowerKw(ship, state.sunDistanceAu ?? 1));
 }
 
-/** Reglas de traje, jetpack y caídas con las mejoras de `state.upgrades`. */
-export function effectiveRulesOf(state: Pick<RunState, 'upgrades'> | null | undefined, cat: Catalog = defaultCatalog): SurfaceRules {
+/**
+ * Reglas de traje, jetpack y caídas con las mejoras de `state.upgrades` y, en cooperativo, con la ventaja
+ * del rol de MI tripulante (mochila y jetpack del explorador): lo que pinta la interfaz es lo que cobra el motor.
+ */
+export function effectiveRulesOf(state: (Pick<RunState, 'upgrades'> & Partial<Pick<RunState, 'crew'>>) | null | undefined, cat: Catalog = defaultCatalog): SurfaceRules {
   const levels = state?.upgrades ?? NONE;
+  const me = state?.crew ? myCrew({ crew: state.crew }) : undefined;
+  const role = me?.role ?? '';
   const m = rulesMemo;
-  if (m.value && m.cat === cat && sameLevels(m.levels, levels)) return m.value;
-  m.value = effectiveSurfaceRules(getSurfaceCatalog(cat).rules, levels, cat);
+  if (m.value && m.cat === cat && m.key === role && sameLevels(m.levels, levels)) return m.value;
+  const base = effectiveSurfaceRules(getSurfaceCatalog(cat).rules, levels, cat);
+  m.value = role
+    ? { ...base, suit: { ...base.suit, carryCapacityKg: crewCarryCapacityKg(base, me, cat) }, jetpack: { ...base.jetpack, drainPctPerS: crewJetpackDrainPctPerS(base, me, cat) } }
+    : base;
   m.cat = cat;
+  m.key = role;
   m.levels = { ...levels };
   return m.value;
 }

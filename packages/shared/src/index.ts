@@ -19,6 +19,8 @@ export {
 } from './solar';
 export { createRun, computeScore, fuelPerLy, cruiseSpeedLyPerS, evadeDamageFraction, evadeDifficulty, FIXED_STEP_S, MAX_WORK_SECONDS } from './run';
 export { getNodeWorld, generateSurface, takeOffFuel, referenceBrake, simulateDescent, descentStep, REFERENCE_BRAKE_MARGIN, streakMultiplier, suitRefill, lodeProgress, lodeBonusApplies, type DescentResult } from './surface';
+export { getRoles, getRole, crewPerks, crewCarryCapacityKg, crewJetpackDrainPctPerS } from './roles';
 export { createRng, deriveSeed, type Rng } from './rng';
+export * from './net';
 export { simLocales } from './locales';
 export { formatMessage, lookupSimKey, flattenKeys } from './messages';

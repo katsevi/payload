@@ -1,0 +1,24 @@
+{
+  "roles": [
+    {
+      "id": "pilot",
+      "name": { "es": "Piloto", "en": "Pilot" },
+      "perks": { "evadeFuelMult": 0.5, "evadeDamageMult": 0.75 }
+    },
+    {
+      "id": "engineer",
+      "name": { "es": "Ingeniero", "en": "Engineer" },
+      "perks": { "repairSpeedMult": 1.3 }
+    },
+    {
+      "id": "manager",
+      "name": { "es": "Gestor de recursos", "en": "Resource manager" },
+      "perks": {}
+    },
+    {
+      "id": "explorer",
+      "name": { "es": "Explorador", "en": "Explorer" },
+      "perks": { "carryCapacityMult": 1.25, "jetpackDrainMult": 0.8 }
+    }
+  ]
+}
