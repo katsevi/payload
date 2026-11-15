@@ -19,7 +19,16 @@ import { distanceText, nodeName } from './names';
 import { cue } from '../audio/cues';
 
 // Mapa 3D del sistema solar (partidas con diseño): la escena solo se descarga si hace falta.
-const SolarMapScene = lazy(() => import('../scenes/SolarMapScene').then((m) => ({ default: m.SolarMapScene })));
+const loadSolarMap = () => import('../scenes/SolarMapScene');
+const SolarMapScene = lazy(() => loadSolarMap().then((m) => ({ default: m.SolarMapScene })));
+
+/**
+ * Precarga del mapa solar en segundo plano (partida con misión): descarga la escena y hornea en workers las superficies
+ * de los planetas. Así abrir el mapa no espera a nada.
+ */
+export function prefetchSolarMap(): void {
+  void loadSolarMap().then((m) => m.warmSolarMap());
+}
 
 const KIND_COLOR: Record<NodeKind, string> = {
   station: '#38e1c0',

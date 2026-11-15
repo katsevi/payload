@@ -1,5 +1,23 @@
 # Estado del proyecto — traspaso entre sesiones
 
+## Mapa del sistema solar: carga (2026-11-15, rama `feat/f4-mapa-solar-carga`)
+
+- **Problema:** en las misiones, abrir el mapa del sistema solar congelaba el juego. Medido por CDP en Chrome con la Iris
+  Xe (ANGLE/Vulkan) y las cachés de shaders desactivadas (peor caso, como la primera apertura o Windows/D3D11): **2,2 s**
+  de hilo principal bloqueado, de los que 2,1 s eran `getProgramInfoLog` (enlace) del shader procedural de planeta
+  (`planetMaterial`: cráteres con bucles 3×3×3, simplex con 5 octavas, tres evaluaciones del relieve por píxel). El mapa
+  es un `<Canvas>` aparte, así que lo recompila aunque la nave ya lo tenga. Sin ese shader: 0,27 s.
+- **Arreglo:** `gfx/planetBake.ts` (PURO) porta el algoritmo a TS y hornea albedo + normal en equirrectangular (512×256
+  para los cuerpos de radio de escena ≥ 0,3, 256×128 el resto; la pendiente sale de diferencias en la rejilla, 3× más
+  rápido que evaluar tres veces). Lo corren hasta 3 Web Workers (`planetBake.worker.ts`; cola y caché de sesión en
+  `planetTextures.ts`, con respaldo en el hilo principal si no hay workers). El mapa usa `mapPlanetMaterial`
+  (`spaceShaders.ts`): misma luz, especular, terminador, nubes (deslizándose) y grietas de lava (latiendo). `App` llama a
+  `prefetchSolarMap()` 2,5 s después de empezar una partida con misión. Resultado en el mismo peor caso: **~0,27 s**
+  (restan programas pequeños y React en modo desarrollo). Capturas lado a lado (Tierra, Júpiter, Saturno, Ío, Luna,
+  Marte, Europa, Titán): mismo aspecto; el ruido muy fino (grietas de Europa) sale algo más suave por los mipmaps.
+- **Sin verificar:** FPS con el mapa abierto y medición en el build de producción (no expone `__payload`); Windows/D3D11.
+  El planeta de proa de la nave (`SpaceBodies`) sigue con el shader procedural (lo precompila `ShaderWarmup`).
+
 ## Audio inmersivo (2026-11-15, rama `feat/audio-inmersivo`)
 
 - **Salto que «se oía mal»:** el `jump` arrancaba un bucle de ruido blanco a 0,7 + sierra a 42 Hz que sonaba TODO el

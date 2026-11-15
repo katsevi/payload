@@ -21,7 +21,8 @@ import { once } from '../gfx/build';
 import { Glow, ShaderClock } from '../gfx/Glow';
 import { mats } from '../gfx/materials';
 import { rockGeometry, rockMaterial } from '../gfx/rocks';
-import { planetMaterial, ringMaterial } from '../gfx/spaceShaders';
+import { planetMaps, planetMapsNow } from '../gfx/planetTextures';
+import { mapPlanetMaterial, ringMaterial } from '../gfx/spaceShaders';
 import { nodeName } from '../ui/names';
 
 const Y = 0;
@@ -136,7 +137,13 @@ function Belt({ cat }: { cat: Catalog }) {
   );
 }
 
-/** Un cuerpo del catálogo en su sitio, con el aspecto que da `bodyLook` y la luz hacia el Sol. */
+/** Duración del fundido de una esfera lisa a su superficie horneada (s). */
+const BAKE_FADE_S = 0.45;
+
+/**
+ * Un cuerpo del catálogo en su sitio, con el aspecto que da `bodyLook` y la luz hacia el Sol. Los globos leen las
+ * texturas horneadas en un worker (`planetMaps`); si aún no están, se ven lisos y funden al llegar.
+ */
 function BodyMesh({ body, at }: { body: SolarBodyDef; at: ScenePos }) {
   const look = useMemo(() => bodyLook(body), [body]);
   const radius = bodyDisplayRadius(body);
@@ -147,10 +154,29 @@ function BodyMesh({ body, at }: { body: SolarBodyDef; at: ScenePos }) {
   }, [at.x, at.z]);
   const globe = useMemo(() => {
     if (look.kind !== 'globe') return null;
-    const m = planetMaterial(look.look);
-    m.material.uniforms.uSun!.value = sun;
-    return m.material;
-  }, [look, sun]);
+    const m = mapPlanetMaterial(look.look);
+    m.u.uSun.value = sun;
+    const now = planetMapsNow(body.id, look.look, radius);
+    if (now) {
+      m.u.uAlbedo.value = now.albedo;
+      m.u.uNormal.value = now.normal;
+      m.u.uReady.value = 1;
+    }
+    return m;
+  }, [look, sun, body.id, radius]);
+  // Texturas que llegan después de montar: se asignan y `uReady` sube en `useFrame` (fundido).
+  useEffect(() => {
+    if (!globe || look.kind !== 'globe' || globe.u.uReady.value >= 1) return;
+    let alive = true;
+    void planetMaps(body.id, look.look, radius).then((maps) => {
+      if (!alive) return;
+      globe.u.uAlbedo.value = maps.albedo;
+      globe.u.uNormal.value = maps.normal;
+    });
+    return () => {
+      alive = false;
+    };
+  }, [globe, look, body.id, radius]);
   const ring = useMemo(() => {
     if (look.kind !== 'globe' || !look.ring) return null;
     const r = ringMaterial(look.look.b.clone().lerp(new Color('#ffffff'), 0.3), look.look.seed, radius * 1.35, radius * 2.25, radius);
@@ -158,12 +184,13 @@ function BodyMesh({ body, at }: { body: SolarBodyDef; at: ScenePos }) {
     return r;
   }, [look, radius, sun]);
   useEffect(() => () => {
-    globe?.dispose();
+    globe?.material.dispose();
     ring?.dispose();
   }, [globe, ring]);
   const spin = useRef<Mesh>(null);
   useFrame((_, dt) => {
     if (spin.current) spin.current.rotation.y += dt * 0.05;
+    if (globe && globe.u.uAlbedo.value && globe.u.uReady.value < 1) globe.u.uReady.value = Math.min(1, globe.u.uReady.value + dt / BAKE_FADE_S);
   });
   if (look.kind === 'sun') return null;
   if (look.kind === 'station') {
@@ -181,7 +208,7 @@ function BodyMesh({ body, at }: { body: SolarBodyDef; at: ScenePos }) {
   }
   return (
     <group position={[at.x, Y, at.z]}>
-      <mesh ref={spin} material={globe ?? undefined}>
+      <mesh ref={spin} material={globe?.material}>
         <sphereGeometry args={[radius, 48, 32]} />
       </mesh>
       {ring && (
@@ -334,6 +361,26 @@ function Framing({ center, radius }: { center: ScenePos; radius: number }) {
   return null;
 }
 
+/** Solo desarrollo: `__payload.solarFocus(bodyId, distancia)` acerca la cámara a un cuerpo (revisión visual). */
+function DevFocus({ cat }: { cat: Catalog }) {
+  const { camera } = useThree();
+  const controls = useThree((s) => s.controls) as unknown as { target: Vector3; update: () => void } | null;
+  useEffect(() => {
+    if (!import.meta.env.DEV || !controls) return;
+    const w = window as unknown as { __payload?: Record<string, unknown> };
+    w.__payload = { ...(w.__payload ?? {}), solarFocus: (id: string, d = 3) => {
+      const b = getSolarSystem(cat).bodies.find((x) => x.id === id);
+      if (!b) return false;
+      const at = bodyScenePos(b, cat);
+      controls.target.set(at.x, 0, at.z);
+      camera.position.set(at.x + d * 0.55, d * 0.45, at.z + d * 0.7);
+      controls.update();
+      return true;
+    } };
+  }, [camera, controls, cat]);
+  return null;
+}
+
 function Labels({ cat, skip }: { cat: Catalog; skip: ReadonlySet<string> }) {
   // Nombres de los planetas que no son nodos del tramo (orientación).
   const planets = useMemo(() => getSolarSystem(cat).bodies.filter((b) => b.type === 'planet' && !skip.has(b.id)), [cat, skip]);
@@ -347,6 +394,17 @@ function Labels({ cat, skip }: { cat: Catalog; skip: ReadonlySet<string> }) {
       })}
     </>
   );
+}
+
+/**
+ * Precarga del mapa (se llama al empezar una partida con misión, en segundo plano): hornea en los workers las
+ * superficies de todos los globos del catálogo, los grandes primero. Al abrir el mapa ya están y no hay fundido.
+ */
+export function warmSolarMap(cat: Catalog = getRun()?.catalog ?? defaultCatalog): void {
+  for (const b of getSolarSystem(cat).bodies) {
+    const look = bodyLook(b);
+    if (look.kind === 'globe') void planetMaps(b.id, look.look, bodyDisplayRadius(b));
+  }
 }
 
 export interface SolarMapProps {
@@ -448,6 +506,7 @@ export function SolarMapScene({ sector, hereId, reachable, selectedId, onSelect,
       <ShipMarker pos={pos} />
       <OrbitControls makeDefault enableDamping dampingFactor={0.12} minDistance={3} maxDistance={90} maxPolarAngle={Math.PI * 0.47} />
       <Framing center={center} radius={bounds.radius} />
+      <DevFocus cat={catalog} />
     </Canvas>
   );
 }

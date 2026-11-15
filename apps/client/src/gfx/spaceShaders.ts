@@ -4,7 +4,7 @@
  *
  * Los cuerpos se iluminan con `SUN_DIR`, la misma dirección que la luz direccional de la escena.
  */
-import { AdditiveBlending, BackSide, Color, DoubleSide, ShaderMaterial, Vector3 } from 'three';
+import { AdditiveBlending, BackSide, Color, DoubleSide, ShaderMaterial, Vector3, type Texture } from 'three';
 import { NOISE2, NOISE3, OUTPUT, TIME, VERT_UV } from './glsl';
 
 /**
@@ -186,6 +186,88 @@ export function planetMaterial(look: PlanetLook) {
             nObj = normalize(p - grad * 0.16);
           }
         }
+        vec3 n = normalize(vRot * nObj);
+        vec3 sphereN = normalize(vRot * p);
+        vec3 V = normalize(cameraPosition - vWorldPos);
+        float sphereLit = dot(sphereN, uSun);
+        float day = smoothstep(-0.1, 0.25, sphereLit);
+        float lit = max(dot(n, uSun), 0.0) * day;
+        vec3 col = albedo * (lit * 1.25 + 0.012);
+        col += vec3(1.0, 0.95, 0.85) * pow(max(dot(n, normalize(uSun + V)), 0.0), 70.0) * gloss * day;
+        col = mix(col, vec3(1.0) * (max(sphereLit, 0.0) * 1.1 + 0.015), cloud * 0.9);
+        float fres = pow(1.0 - max(dot(sphereN, V), 0.0), 3.0);
+        col += uAtmo * fres * smoothstep(-0.25, 0.4, sphereLit) * 0.9;
+        col += emissive;
+        gl_FragColor = vec4(col, 1.0);
+        ${OUTPUT}
+      }
+    `,
+  });
+  return { material, u };
+}
+
+/**
+ * Planeta del mapa solar: el mismo aspecto que `planetMaterial`, pero leído de las texturas horneadas en un worker
+ * (`planetTextures.ts`) en vez de calcular el ruido por píxel. Su programa se compila en milisegundos (el procedural
+ * congelaba ~2 s el mapa al abrirse, porque el mapa tiene su propio contexto WebGL). Mientras llegan las texturas se ve
+ * una esfera lisa con el color base; `uReady` (0 → 1) funde al aspecto completo. Lava: grietas que laten; terrestre:
+ * nubes que se deslizan despacio; en todos, especular, terminador suave y borde de atmósfera como el procedural.
+ */
+export function mapPlanetMaterial(look: PlanetLook) {
+  const base = look.a.clone().lerp(look.b, 0.5);
+  const u = {
+    uTime: TIME,
+    uAlbedo: { value: null as Texture | null },
+    uNormal: { value: null as Texture | null },
+    uReady: { value: 0 },
+    uBase: { value: base },
+    uEmit: { value: look.c },
+    uAtmo: { value: look.atmosphere },
+    uLava: { value: look.type === 'lava' ? 1 : 0 },
+    uCloudy: { value: look.type === 'terran' ? 1 : 0 },
+    uSun: { value: SUN_DIR },
+  };
+  const material = new ShaderMaterial({
+    uniforms: u,
+    vertexShader: /* glsl */ `
+      varying vec2 vUv;
+      varying vec3 vObj;
+      varying vec3 vWorldPos;
+      varying mat3 vRot;
+      void main() {
+        vUv = uv;
+        vObj = position;
+        vRot = mat3(modelMatrix);
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vWorldPos = wp.xyz;
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform float uTime;
+      uniform sampler2D uAlbedo;
+      uniform sampler2D uNormal;
+      uniform float uReady;
+      uniform vec3 uBase;
+      uniform vec3 uEmit;
+      uniform vec3 uAtmo;
+      uniform float uLava;
+      uniform float uCloudy;
+      uniform vec3 uSun;
+      varying vec2 vUv;
+      varying vec3 vObj;
+      varying vec3 vWorldPos;
+      varying mat3 vRot;
+      void main() {
+        vec3 p = normalize(vObj);
+        vec4 al = texture2D(uAlbedo, vUv);
+        vec4 nm = texture2D(uNormal, vUv);
+        vec3 albedo = mix(uBase, al.rgb, uReady);
+        vec3 nObj = normalize(mix(p, nm.xyz * 2.0 - 1.0, uReady));
+        float gloss = al.a * (1.0 - uLava) * uReady;
+        float cloud = uCloudy * uReady * texture2D(uNormal, vUv + vec2(uTime * 0.0015, 0.0)).a;
+        float phase = al.a * 6.2831853 - 3.1415927;
+        vec3 emissive = uEmit * nm.a * uLava * uReady * (1.6 + 0.5 * sin(uTime * 0.8 + phase));
         vec3 n = normalize(vRot * nObj);
         vec3 sphereN = normalize(vRot * p);
         vec3 V = normalize(cameraPosition - vWorldPos);
