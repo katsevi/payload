@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { effectiveShipOf } from '../game/effective';
 import { getRun, useGame } from '../game/runStore';
 import { useSettings } from '../state/settings';
+import { useUi } from '../state/ui';
+import { isRemote } from '../game/runStore';
 import { audio } from './audioEngine';
 import { cue, resetCueMemory } from './cues';
 import { dangerLevel, musicMixFor, type MusicContext } from './musicLogic';
@@ -10,7 +12,8 @@ import { myCrew } from '../game/me';
 /** Contexto de música a partir del estado de la partida (puro respecto al motor de audio). */
 export function currentMusicContext(): MusicContext {
   const { screen, hud } = useGame.getState();
-  if (screen !== 'game' || !hud) return { screen: 'menu' };
+  if (screen !== 'game') return { screen };
+  if (!hud) return { screen: 'game' };
   const ship = effectiveShipOf(hud, getRun()?.catalog);
   const me = myCrew(hud);
   const outside = me?.location === 'eva';
@@ -61,15 +64,7 @@ export function useAudioDirector(): void {
     return useSettings.subscribe(apply);
   }, []);
 
-  // Clic de interfaz (botones, enlaces, selectores y casillas)
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      const el = (e.target as Element | null)?.closest?.('button, a, select, [role="button"], input[type="checkbox"]');
-      if (el && !el.hasAttribute('disabled')) cue('click');
-    };
-    document.addEventListener('click', onClick, true);
-    return () => document.removeEventListener('click', onClick, true);
-  }, []);
+  // El clic y el «hover» de interfaz los pone `useUiSounds` (montado en App).
 
   // Música adaptativa por estado de la partida; al volver al menú se limpian subtítulos y enfriamientos
   useEffect(() => {
@@ -79,5 +74,24 @@ export function useAudioDirector(): void {
       if (s.hud !== p.hud || s.screen !== p.screen) update();
       if (s.screen !== 'game' && p.screen === 'game') resetCueMemory();
     });
+  }, []);
+
+  // Pausa: los bucles (motor del salto, propulsores, viento) bajan casi a nada mientras el juego está parado
+  useEffect(() => {
+    const PAUSING = new Set(['pause', 'settings', 'credits']);
+    const apply = () => {
+      const { screen } = useGame.getState();
+      const overlay = useUi.getState().overlay;
+      audio.setPaused(screen === 'game' && !isRemote() && overlay !== null && PAUSING.has(overlay));
+    };
+    apply();
+    const a = useUi.subscribe(apply);
+    const b = useGame.subscribe((s, p) => {
+      if (s.screen !== p.screen) apply();
+    });
+    return () => {
+      a();
+      b();
+    };
   }, []);
 }

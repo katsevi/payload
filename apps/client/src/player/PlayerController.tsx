@@ -5,6 +5,8 @@ import { MathUtils, Vector3, type Group, type PerspectiveCamera, type Sprite } f
 import { applyAstronautPose, ArticulatedAstronaut, newAstronautRig } from '../models/ArticulatedAstronaut';
 import { advanceGait, astronautPose } from '../game/astronautPose';
 import { newMotionState, settleMotion, SHIP_MOTION, stepMotion, type MotionInput, type MotionParams } from '../game/motion';
+import { cue } from '../audio/cues';
+import { FOOT_LAND_MIN_MPS, stepSfxFor, STRIDE_RUN_M, STRIDE_WALK_M } from '../audio/soundLogic';
 import { fx as viewFx, getRun } from '../game/runStore';
 import { Glow } from '../gfx/Glow';
 import { useSettings } from '../state/settings';
@@ -68,6 +70,8 @@ export function PlayerController({ start, startYaw = 0, bounds, motion = SHIP_MO
   const camPos = useRef(new Vector3());
   const camInit = useRef(false);
   const t = useRef(0);
+  /** Metros recorridos andando desde el último paso sonoro. */
+  const strideAcc = useRef(0);
   const scratch = useMemo(
     () => ({ dir: new Vector3(), fpPos: new Vector3(), right: new Vector3(), pivot: new Vector3(), tpPos: new Vector3(), want: new Vector3(), lookAt: new Vector3(), tmp: new Vector3() }),
     [],
@@ -216,6 +220,18 @@ export function PlayerController({ start, startYaw = 0, bounds, motion = SHIP_MO
     playerState.thrusting = s.thrusting;
     if (s.thrusting) playerState.thrustS += dt;
     if (impact > playerState.impactMps) playerState.impactMps = impact;
+
+    // ── Sonido de pasos: uno por zancada recorrida, solo con los pies en el suelo ──
+    if (impact >= FOOT_LAND_MIN_MPS) {
+      cue('footLand');
+      strideAcc.current = 0;
+    } else if (s.grounded && moving) {
+      strideAcc.current += Math.hypot(m.x, m.z);
+      if (strideAcc.current >= (inp.run ? STRIDE_RUN_M : STRIDE_WALK_M)) {
+        strideAcc.current = 0;
+        cue(stepSfxFor(motion !== SHIP_MOTION, getRun()?.state.surface?.worldId));
+      }
+    } else if (!s.grounded) strideAcc.current = 0;
 
     // ── Cámara (transición suave 1ª ↔ 3ª) ──
     const target = ui.view === 'third' ? 1 : 0;

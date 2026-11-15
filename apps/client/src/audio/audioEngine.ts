@@ -1,17 +1,25 @@
 /**
  * Motor de audio procedural con Web Audio API nativa (sin archivos ni dependencias).
  *
- *   capas de música ─► musicBus ─┐
- *   efectos ─────────► sfxBus ───┼─► master ─► salida
- *   avisos y voz ────► alertBus ─┘
+ *   música ─► musicBus ─► duck ─┐
+ *   efectos ─► sfxBus ──────────┤
+ *   bucles ──► loopBus ─► sfxBus │
+ *   avisos ──► alertBus ────────┼─► master ─► limitador ─► salida
+ *   voz ─────► alertBus ────────┘
  *
  * Reglas:
  *  - El AudioContext solo se crea en `unlock()`, llamado desde un gesto del usuario (política de autoplay).
  *  - Sin AudioContext (tests en node, navegadores antiguos) todo es un no-op: nunca lanza.
- *  - La decisión de QUÉ suena vive en `musicLogic.ts` / `soundLogic.ts` (puras); aquí solo se sintetiza.
+ *  - La decisión de QUÉ suena vive en `musicLogic.ts` / `soundLogic.ts` (puras); la síntesis en
+ *    `musicSynth.ts` / `sfxSynth.ts` (sobre `SynthKit`, renderizable offline en los tests).
+ *  - El limitador del master evita la saturación cuando se suman música, bucles y alarmas.
+ *  - Los avisos (`alerts`) bajan la música un momento (ducking) para que se oigan sin subir el volumen.
  */
-import { MUSIC_LAYERS, SILENT_MIX, sameMix, type MusicLayer, type MusicMix } from './musicLogic';
-import type { SfxId, SoundBus } from './soundLogic';
+import { SILENT_MIX, sameMix, type MusicMix } from './musicLogic';
+import { createMusic, type MusicGenerator } from './musicSynth';
+import { synthSfx } from './sfxSynth';
+import { SFX_META, type SfxId } from './soundLogic';
+import { SynthKit } from './synthKit';
 
 export interface Volumes {
   muteAll: boolean;
@@ -24,9 +32,21 @@ export interface Volumes {
 export type EmitterKind = 'consoleHum' | 'exhibitHum';
 export type Vec3 = readonly [number, number, number];
 
-/** Segundos de fundido entre mezclas de música. */
-const MUSIC_FADE_S = 1.6;
 const MASTER_LEVEL = 0.8;
+/**
+ * Ajuste interno de cada bus sobre el volumen del jugador (validación 2026-11-15: la música sonaba por
+ * encima de efectos y avisos). Jerarquía buscada: avisos > efectos > interfaz > música/ambiente.
+ */
+export const BUS_TRIM = { music: 0.7, sfx: 1.12, alerts: 1.25 } as const;
+/** Volúmenes por defecto de los ajustes (espejo de `state/settings.ts`, para el render offline). */
+export const DEFAULT_VOLUMES = { music: 0.5, sfx: 0.8, alerts: 0.8 } as const;
+/** Ganancia final de un bus: curva cuadrática del control por el ajuste interno. */
+export const busGain = (bus: keyof typeof BUS_TRIM, v: number): number => Math.max(0, Math.min(1, v)) ** 2 * BUS_TRIM[bus];
+/** Nivel de los bucles con la partida en pausa (no se cortan del todo: no hay salto al volver). */
+const PAUSED_LOOP_LEVEL = 0.12;
+/** Cuánto baja la música con un aviso, y durante cuánto. */
+const DUCK_LEVEL = 0.55;
+const DUCK_HOLD_S = 0.9;
 
 type Ctor = typeof AudioContext;
 function audioCtor(): Ctor | null {
@@ -40,10 +60,19 @@ interface EmitterSpec {
   live?: { stop: () => void };
 }
 
-interface Loop {
-  stop: (fadeS: number) => void;
-  /** Volumen relativo 0-1 del bucle (los que lo admiten). */
-  level?: (v: number) => void;
+/** Construye la cadena de salida: master → limitador → destino. Exportado para el render offline. */
+export function buildOutputChain(ctx: BaseAudioContext): { master: GainNode; limiter: DynamicsCompressorNode } {
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value = -6;
+  limiter.knee.value = 4;
+  limiter.ratio.value = 16;
+  limiter.attack.value = 0.003;
+  limiter.release.value = 0.2;
+  limiter.connect(ctx.destination);
+  const master = ctx.createGain();
+  master.gain.value = MASTER_LEVEL;
+  master.connect(limiter);
+  return { master, limiter };
 }
 
 export class AudioEngine {
@@ -51,16 +80,15 @@ export class AudioEngine {
   private failed = false;
   private master: GainNode | null = null;
   private buses: Record<'music' | 'sfx' | 'alerts', GainNode | null> = { music: null, sfx: null, alerts: null };
-  private layerGains: Partial<Record<MusicLayer, GainNode>> = {};
-  /** Osciladores de la música (para pararlos con volumen 0) y colector activo durante su construcción. */
-  private musicSources: OscillatorNode[] = [];
-  private collecting = false;
+  private loopBus: GainNode | null = null;
+  private duck: GainNode | null = null;
+  private kit: SynthKit | null = null;
+  private music: MusicGenerator | null = null;
   private mix: MusicMix = { ...SILENT_MIX };
   private volumes: Volumes = { muteAll: false, music: 0.5, sfx: 0.8, alerts: 0.8 };
-  private noise: AudioBuffer | null = null;
-  private loops = new Map<string, Loop>();
   private emitters = new Set<EmitterSpec>();
   private background = false;
+  private paused = false;
 
   /** true si el navegador ofrece Web Audio. */
   isAvailable(): boolean {
@@ -82,10 +110,10 @@ export class AudioEngine {
     const Ctx = audioCtor();
     if (!Ctx) return false;
     try {
-      this.ctx = new Ctx();
+      this.ctx = new Ctx({ latencyHint: 'interactive' });
       this.buildGraph(this.ctx);
       this.applyVolumes();
-      this.applyMix(true);
+      this.music?.setMix(this.mix, true);
       for (const e of this.emitters) this.startEmitter(e);
       this.syncRunState();
       return true;
@@ -112,9 +140,8 @@ export class AudioEngine {
   setMusic(target: MusicMix): void {
     if (sameMix(target, this.mix)) return;
     this.mix = { ...target };
-    if (!this.ctx) return;
     try {
-      this.applyMix(false);
+      this.music?.setMix(this.mix, false);
     } catch {
       /* ignorar */
     }
@@ -130,14 +157,34 @@ export class AudioEngine {
     this.syncRunState();
   }
 
+  /** Partida en pausa: los bucles (motor, propulsores, viento) bajan casi a nada; la música sigue. */
+  setPaused(paused: boolean): void {
+    if (paused === this.paused) return;
+    this.paused = paused;
+    const ctx = this.ctx;
+    if (!ctx || !this.loopBus) return;
+    try {
+      const t = ctx.currentTime;
+      this.loopBus.gain.cancelScheduledValues(t);
+      this.loopBus.gain.setValueAtTime(this.loopBus.gain.value, t);
+      this.loopBus.gain.setTargetAtTime(paused ? PAUSED_LOOP_LEVEL : 1, t, 0.15);
+    } catch {
+      /* ignorar */
+    }
+  }
+
   // ─── Efectos ──────────────────────────────────────────────────────────────
 
   /** Reproduce un efecto. No hace nada sin contexto o con todo silenciado. */
   play(id: SfxId): void {
     const ctx = this.ctx;
-    if (!ctx || this.volumes.muteAll || ctx.state === 'closed') return;
+    const kit = this.kit;
+    if (!ctx || !kit || this.volumes.muteAll || ctx.state === 'closed') return;
     try {
-      this.synth(ctx, id, ctx.currentTime);
+      // Un poco por delante del reloj: con el hilo principal ocupado (p. ej. compilando shaders al
+      // saltar) las envolventes que empiezan «ya» llegan tarde y se recortan con un clic.
+      synthSfx(kit, id, ctx.currentTime + 0.02);
+      if (SFX_META[id].bus === 'alerts') this.duckMusic();
     } catch (e) {
       console.warn('[audio] fallo al sintetizar', id, e);
     }
@@ -145,16 +192,20 @@ export class AudioEngine {
 
   /** Ajusta el volumen relativo (0-1) de un bucle que suena (p. ej. el viento que crece antes de la tormenta). */
   setLoopLevel(name: string, level: number): void {
-    this.loops.get(name)?.level?.(level);
+    this.kit?.setLoopLevel(name, level);
   }
 
   /** Detiene un bucle (p. ej. el rugido del motor) con un fundido. */
   stopLoop(name: string, fadeS = 0.8): void {
-    this.loops.get(name)?.stop(fadeS);
-    this.loops.delete(name);
+    this.kit?.stopLoop(name, fadeS);
   }
 
-  // ─── Sonido posicional (sin uso todavía en la nave) ───────────────────────────────────────────
+  /** true si el bucle suena. */
+  isLooping(name: string): boolean {
+    return this.kit?.hasLoop(name) ?? false;
+  }
+
+  // ─── Sonido posicional ────────────────────────────────────────────────────
 
   /** Registra un emisor 3D. Devuelve la función que lo quita. Se activa al desbloquear el audio. */
   addEmitter(kind: EmitterKind, pos: Vec3): () => void {
@@ -194,10 +245,10 @@ export class AudioEngine {
 
   /** Libera todo (para tests y recarga en caliente). */
   dispose(): void {
-    for (const l of this.loops.values()) l.stop(0);
-    this.loops.clear();
+    if (this.kit) for (const name of [...this.kit.loops.keys()]) this.kit.stopLoop(name, 0);
     for (const e of this.emitters) e.live?.stop();
     this.emitters.clear();
+    this.music?.stop();
     try {
       void this.ctx?.close();
     } catch {
@@ -206,22 +257,38 @@ export class AudioEngine {
     this.ctx = null;
     this.master = null;
     this.buses = { music: null, sfx: null, alerts: null };
-    this.layerGains = {};
-    this.musicSources = [];
-    this.noise = null;
+    this.loopBus = null;
+    this.duck = null;
+    this.kit = null;
+    this.music = null;
   }
 
   // ─── Interno: grafo ───────────────────────────────────────────────────────
 
   private buildGraph(ctx: AudioContext): void {
-    const master = ctx.createGain();
-    master.connect(ctx.destination);
+    const { master } = buildOutputChain(ctx);
     this.master = master;
     for (const k of ['music', 'sfx', 'alerts'] as const) {
       const g = ctx.createGain();
-      g.connect(master);
       this.buses[k] = g;
     }
+    const duck = ctx.createGain();
+    duck.connect(master);
+    this.duck = duck;
+    this.buses.music?.connect(duck);
+    this.buses.sfx?.connect(master);
+    this.buses.alerts?.connect(master);
+    const loopBus = ctx.createGain();
+    loopBus.gain.value = this.paused ? PAUSED_LOOP_LEVEL : 1;
+    if (this.buses.sfx) loopBus.connect(this.buses.sfx);
+    this.loopBus = loopBus;
+    this.kit = new SynthKit(ctx, {
+      music: this.buses.music,
+      sfx: this.buses.sfx,
+      alerts: this.buses.alerts,
+      voice: this.buses.alerts,
+      loops: loopBus,
+    });
     this.startMusic();
   }
 
@@ -229,31 +296,30 @@ export class AudioEngine {
     return !this.volumes.muteAll && this.volumes.music > 0.001;
   }
 
-  /** Crea las capas de música si no existen. */
-  private startMusic(): void {
-    const ctx = this.ctx;
+  /** Crea la música si no existe. */
+  private startMusic(): MusicGenerator | null {
     const bus = this.buses.music;
-    if (!ctx || !bus || this.musicSources.length > 0 || !this.musicOn()) return;
-    this.collecting = true;
-    try {
-      this.buildMusic(ctx, bus);
-    } finally {
-      this.collecting = false;
-    }
+    if (!this.kit || !bus || this.music || !this.musicOn()) return null;
+    this.music = createMusic(this.kit, bus);
+    return this.music;
   }
 
-  /** Con volumen de música 0 se paran las capas: no gastan CPU hasta que se suba el volumen. */
+  /** Con volumen de música 0 se para la música: no gasta CPU hasta que se suba el volumen. */
   private stopMusic(): void {
-    for (const o of this.musicSources) {
-      try {
-        o.stop();
-      } catch {
-        /* ya detenido */
-      }
-    }
-    this.musicSources = [];
-    for (const g of Object.values(this.layerGains)) g?.disconnect();
-    this.layerGains = {};
+    this.music?.stop();
+    this.music = null;
+  }
+
+  private duckMusic(): void {
+    const ctx = this.ctx;
+    const d = this.duck;
+    if (!ctx || !d) return;
+    const t = ctx.currentTime;
+    d.gain.cancelScheduledValues(t);
+    d.gain.setValueAtTime(d.gain.value, t);
+    d.gain.linearRampToValueAtTime(DUCK_LEVEL, t + 0.08);
+    d.gain.setValueAtTime(DUCK_LEVEL, t + DUCK_HOLD_S);
+    d.gain.linearRampToValueAtTime(1, t + DUCK_HOLD_S + 0.8);
   }
 
   private applyVolumes(): void {
@@ -262,30 +328,14 @@ export class AudioEngine {
     const v = this.volumes;
     const t = ctx.currentTime;
     if (this.musicOn()) {
-      if (this.musicSources.length === 0) {
-        this.startMusic();
-        this.applyMix(true);
-      }
+      if (!this.music) this.startMusic()?.setMix(this.mix, true);
     } else {
       this.stopMusic();
     }
-    const sq = (n: number) => Math.max(0, Math.min(1, n)) ** 2;
     this.master.gain.setTargetAtTime(v.muteAll ? 0 : MASTER_LEVEL, t, 0.05);
-    this.buses.music?.gain.setTargetAtTime(sq(v.music), t, 0.1);
-    this.buses.sfx?.gain.setTargetAtTime(sq(v.sfx), t, 0.05);
-    this.buses.alerts?.gain.setTargetAtTime(sq(v.alerts), t, 0.05);
-  }
-
-  private applyMix(immediate: boolean): void {
-    const ctx = this.ctx;
-    if (!ctx) return;
-    const t = ctx.currentTime;
-    for (const layer of MUSIC_LAYERS) {
-      const g = this.layerGains[layer];
-      if (!g) continue;
-      if (immediate) g.gain.setValueAtTime(0, t);
-      g.gain.setTargetAtTime(this.mix[layer] * 0.5, t, MUSIC_FADE_S / 3);
-    }
+    this.buses.music?.gain.setTargetAtTime(busGain('music', v.music), t, 0.1);
+    this.buses.sfx?.gain.setTargetAtTime(busGain('sfx', v.sfx), t, 0.05);
+    this.buses.alerts?.gain.setTargetAtTime(busGain('alerts', v.alerts), t, 0.05);
   }
 
   /** Suspende el contexto con todo silenciado o en segundo plano; lo reanuda si no. */
@@ -302,498 +352,6 @@ export class AudioEngine {
     } catch {
       /* ignorar */
     }
-  }
-
-  // ─── Interno: música (cinco capas que corren siempre; solo cambia su ganancia) ──
-
-  private osc(ctx: AudioContext, type: OscillatorType, freq: number, dest: AudioNode, level = 1, detune = 0): OscillatorNode {
-    const o = ctx.createOscillator();
-    o.type = type;
-    o.frequency.value = freq;
-    o.detune.value = detune;
-    const g = ctx.createGain();
-    g.gain.value = level;
-    o.connect(g).connect(dest);
-    o.start();
-    if (this.collecting) this.musicSources.push(o);
-    return o;
-  }
-
-  /** LFO que modula un parámetro: `param = base + lfo*depth`. */
-  private lfo(ctx: AudioContext, rateHz: number, depth: number, param: AudioParam, type: OscillatorType = 'sine'): OscillatorNode {
-    const o = ctx.createOscillator();
-    o.type = type;
-    o.frequency.value = rateHz;
-    const g = ctx.createGain();
-    g.gain.value = depth;
-    o.connect(g).connect(param);
-    o.start();
-    if (this.collecting) this.musicSources.push(o);
-    return o;
-  }
-
-  private buildMusic(ctx: AudioContext, bus: GainNode): void {
-    const layer = (name: MusicLayer): GainNode => {
-      const g = ctx.createGain();
-      g.gain.value = 0;
-      g.connect(bus);
-      this.layerGains[name] = g;
-      return g;
-    };
-
-    // pad: acorde de La menor suave (La2 Mi3 La3 Do4), filtrado y con respiración lenta
-    {
-      const out = layer('pad');
-      const lp = ctx.createBiquadFilter();
-      lp.type = 'lowpass';
-      lp.frequency.value = 800;
-      lp.connect(out);
-      this.lfo(ctx, 0.08, 300, lp.frequency);
-      for (const [f, d] of [[110, -6], [110, 7], [164.81, 0], [220, 4], [261.63, -3]] as const) {
-        this.osc(ctx, f > 200 ? 'sine' : 'triangle', f, lp, 0.32, d);
-      }
-    }
-    // pulse: pulso de telemetría (un "bip" grave-agudo que late ~1.4 Hz)
-    {
-      const out = layer('pulse');
-      const amp = ctx.createGain();
-      amp.gain.value = 0.5;
-      amp.connect(out);
-      this.lfo(ctx, 1.4, 0.5, amp.gain, 'square');
-      this.osc(ctx, 'sine', 880, amp, 0.35);
-      this.osc(ctx, 'sine', 1320.5, amp, 0.15);
-    }
-    // tension: tritono grave con trémolo
-    {
-      const out = layer('tension');
-      const lp = ctx.createBiquadFilter();
-      lp.type = 'lowpass';
-      lp.frequency.value = 520;
-      const amp = ctx.createGain();
-      amp.gain.value = 0.7;
-      lp.connect(amp).connect(out);
-      this.lfo(ctx, 4.5, 0.3, amp.gain);
-      this.osc(ctx, 'sawtooth', 98, lp, 0.4);
-      this.osc(ctx, 'sawtooth', 138.6, lp, 0.3, 8);
-    }
-    // drive: bajo rítmico para el lanzamiento (quinta + fundamental con latido)
-    {
-      const out = layer('drive');
-      const lp = ctx.createBiquadFilter();
-      lp.type = 'lowpass';
-      lp.frequency.value = 240;
-      const amp = ctx.createGain();
-      amp.gain.value = 0.6;
-      lp.connect(amp).connect(out);
-      this.lfo(ctx, 2.2, 0.4, amp.gain);
-      this.osc(ctx, 'sawtooth', 55, lp, 0.6);
-      this.osc(ctx, 'sawtooth', 82.4, lp, 0.4, 5);
-    }
-    // resolve: acorde de Do mayor luminoso
-    {
-      const out = layer('resolve');
-      for (const [f, l] of [[261.63, 0.4], [329.63, 0.35], [392, 0.35], [523.25, 0.18]] as const) {
-        this.osc(ctx, 'sine', f, out, l);
-      }
-    }
-  }
-
-  // ─── Interno: síntesis de efectos ─────────────────────────────────────────
-
-  private busNode(bus: SoundBus): GainNode | null {
-    return bus === 'sfx' ? this.buses.sfx : this.buses.alerts;
-  }
-
-  private getNoise(ctx: AudioContext): AudioBuffer {
-    if (this.noise) return this.noise;
-    const len = Math.max(1, Math.floor(ctx.sampleRate * 2));
-    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-    this.noise = buf;
-    return buf;
-  }
-
-  /** Tono con envolvente (ataque corto, caída exponencial) y deslizamiento de frecuencia opcional. */
-  private tone(
-    ctx: AudioContext, bus: SoundBus, at: number,
-    o: { freq: number; dur: number; type?: OscillatorType; vol?: number; slideTo?: number },
-  ): void {
-    const dest = this.busNode(bus);
-    if (!dest) return;
-    const osc = ctx.createOscillator();
-    osc.type = o.type ?? 'sine';
-    osc.frequency.setValueAtTime(o.freq, at);
-    if (o.slideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.slideTo), at + o.dur);
-    const g = ctx.createGain();
-    const vol = o.vol ?? 0.2;
-    g.gain.setValueAtTime(0.0001, at);
-    g.gain.linearRampToValueAtTime(vol, at + 0.005);
-    g.gain.exponentialRampToValueAtTime(0.0001, at + o.dur);
-    osc.connect(g).connect(dest);
-    osc.start(at);
-    osc.stop(at + o.dur + 0.05);
-  }
-
-  /** Ráfaga de ruido filtrado; la frecuencia del filtro puede barrer de `f0` a `f1`. */
-  private noiseBurst(
-    ctx: AudioContext, bus: SoundBus, at: number,
-    o: { dur: number; vol?: number; filter?: BiquadFilterType; f0: number; f1?: number; q?: number },
-  ): void {
-    const dest = this.busNode(bus);
-    if (!dest) return;
-    const src = ctx.createBufferSource();
-    src.buffer = this.getNoise(ctx);
-    const f = ctx.createBiquadFilter();
-    f.type = o.filter ?? 'lowpass';
-    f.Q.value = o.q ?? 0.7;
-    f.frequency.setValueAtTime(o.f0, at);
-    if (o.f1) f.frequency.exponentialRampToValueAtTime(Math.max(20, o.f1), at + o.dur);
-    const g = ctx.createGain();
-    const vol = o.vol ?? 0.3;
-    g.gain.setValueAtTime(0.0001, at);
-    g.gain.linearRampToValueAtTime(vol, at + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, at + o.dur);
-    src.connect(f).connect(g).connect(dest);
-    src.start(at);
-    src.stop(at + o.dur + 0.05);
-  }
-
-  private synth(ctx: AudioContext, id: SfxId, t: number): void {
-    switch (id) {
-      case 'click':
-        this.tone(ctx, 'sfx', t, { freq: 1500, dur: 0.035, type: 'square', vol: 0.07 });
-        break;
-      case 'fixed':
-        this.tone(ctx, 'sfx', t, { freq: 190, dur: 0.14, type: 'square', vol: 0.18, slideTo: 90 });
-        this.tone(ctx, 'sfx', t + 0.03, { freq: 920, dur: 0.06, type: 'triangle', vol: 0.12 });
-        this.noiseBurst(ctx, 'sfx', t, { dur: 0.08, vol: 0.12, filter: 'highpass', f0: 2500 });
-        break;
-      case 'toggle':
-        this.tone(ctx, 'sfx', t, { freq: 520, dur: 0.12, type: 'triangle', vol: 0.15, slideTo: 240 });
-        this.noiseBurst(ctx, 'sfx', t, { dur: 0.1, vol: 0.1, filter: 'highpass', f0: 2000 });
-        break;
-      case 'alarm':
-        for (let k = 0; k < 3; k++) {
-          this.tone(ctx, 'alerts', t + k * 0.42, { freq: 880, dur: 0.18, type: 'square', vol: 0.16 });
-          this.tone(ctx, 'alerts', t + k * 0.42 + 0.2, { freq: 660, dur: 0.18, type: 'square', vol: 0.16 });
-        }
-        break;
-      case 'ok':
-        this.tone(ctx, 'alerts', t, { freq: 1568, dur: 0.09, vol: 0.2 });
-        this.tone(ctx, 'alerts', t + 0.13, { freq: 2093, dur: 0.12, vol: 0.2 });
-        break;
-      case 'sparks':
-        for (let k = 0; k < 5; k++) {
-          this.noiseBurst(ctx, 'sfx', t + k * 0.11 + Math.random() * 0.04, {
-            dur: 0.07 + Math.random() * 0.05, vol: 0.14 + Math.random() * 0.1, filter: 'bandpass', f0: 1800 + Math.random() * 1800, q: 1.2,
-          });
-        }
-        break;
-      case 'warnTick':
-        this.tone(ctx, 'alerts', t, { freq: 880, dur: 0.1, vol: 0.2 });
-        break;
-      case 'jump':
-        this.startRoar(ctx);
-        break;
-      case 'clunk':
-        this.noiseBurst(ctx, 'sfx', t, { dur: 0.3, vol: 0.4, f0: 1800, f1: 300 });
-        this.tone(ctx, 'sfx', t, { freq: 130, dur: 0.35, type: 'square', vol: 0.2, slideTo: 55 });
-        this.tone(ctx, 'sfx', t + 0.05, { freq: 1900, dur: 0.05, type: 'triangle', vol: 0.1 });
-        break;
-      case 'impact':
-        this.noiseBurst(ctx, 'alerts', t, { dur: 1.8, vol: 0.55, f0: 2200, f1: 90 });
-        this.tone(ctx, 'alerts', t, { freq: 80, dur: 1.2, type: 'sawtooth', vol: 0.3, slideTo: 28 });
-        break;
-      case 'objective':
-        // Paso del objetivo cumplido: dos notas ascendentes suaves (más discreto que el éxito de la misión).
-        this.tone(ctx, 'alerts', t, { freq: 659.25, dur: 0.16, type: 'triangle', vol: 0.16 });
-        this.tone(ctx, 'alerts', t + 0.14, { freq: 987.77, dur: 0.28, type: 'triangle', vol: 0.16 });
-        break;
-      case 'success':
-      case 'complete':
-        [523.25, 659.25, 783.99, 1046.5].forEach((f, k) => this.tone(ctx, 'alerts', t + k * 0.12, { freq: f, dur: 0.4, vol: 0.14 }));
-        break;
-      case 'descent':
-        // Separación de la órbita: golpe metálico y zumbido descendente.
-        this.noiseBurst(ctx, 'sfx', t, { dur: 0.5, vol: 0.35, f0: 1500, f1: 200 });
-        this.tone(ctx, 'sfx', t, { freq: 220, dur: 1.4, type: 'sawtooth', vol: 0.12, slideTo: 70 });
-        break;
-      case 'thruster':
-        this.startNoiseLoop(ctx, 'thruster', { bus: 'sfx', filter: 'bandpass', f0: 380, f1: 520, rampS: 0.15, vol: 0.5, subHz: 55, subVol: 0.25, flutterHz: 13 });
-        break;
-      case 'jetpack':
-        this.startNoiseLoop(ctx, 'jetpack', { bus: 'sfx', filter: 'bandpass', f0: 900, f1: 1300, rampS: 0.08, vol: 0.28, subHz: 0, subVol: 0, flutterHz: 22 });
-        break;
-      case 'storm':
-        this.startNoiseLoop(ctx, 'storm', { bus: 'sfx', filter: 'lowpass', f0: 300, f1: 1100, rampS: 3, vol: 0.55, subHz: 0, subVol: 0, flutterHz: 0.35 });
-        break;
-      case 'wind':
-        // Viento que crece durante el aviso de tormenta (la escena sube su volumen con `setLoopLevel`).
-        this.startNoiseLoop(ctx, 'wind', { bus: 'sfx', filter: 'bandpass', f0: 250, f1: 600, rampS: 1.5, vol: 0.4, subHz: 0, subVol: 0, flutterHz: 0.5 });
-        this.setLoopLevel('wind', 0.15);
-        break;
-      case 'dodgeGraze':
-        // Roce: chirrido metálico corto.
-        this.noiseBurst(ctx, 'sfx', t, { dur: 0.25, vol: 0.3, filter: 'bandpass', f0: 2600, f1: 1400, q: 4 });
-        break;
-      case 'dodgeHit':
-        this.noiseBurst(ctx, 'alerts', t, { dur: 0.7, vol: 0.6, f0: 1400, f1: 90 });
-        this.tone(ctx, 'alerts', t, { freq: 80, dur: 0.5, type: 'sawtooth', vol: 0.3, slideTo: 35 });
-        break;
-      case 'skillHit':
-        this.tone(ctx, 'sfx', t, { freq: 880, dur: 0.09, type: 'triangle', vol: 0.16 });
-        this.tone(ctx, 'sfx', t + 0.07, { freq: 1320, dur: 0.12, type: 'triangle', vol: 0.14 });
-        break;
-      case 'skillMiss':
-        this.tone(ctx, 'sfx', t, { freq: 220, dur: 0.16, type: 'square', vol: 0.1, slideTo: 160 });
-        break;
-      case 'extinguisher':
-        this.startNoiseLoop(ctx, 'extinguisher', { bus: 'sfx', filter: 'highpass', f0: 2200, f1: 3200, rampS: 0.08, vol: 0.3, subHz: 0, subVol: 0, flutterHz: 9 });
-        break;
-      case 'toolPlace':
-        // Patas que se clavan y un zumbido que arranca.
-        this.noiseBurst(ctx, 'sfx', t, { dur: 0.15, vol: 0.3, filter: 'bandpass', f0: 500, q: 2 });
-        this.tone(ctx, 'sfx', t + 0.12, { freq: 180, dur: 0.5, type: 'sawtooth', vol: 0.08, slideTo: 420 });
-        break;
-      case 'toolReady':
-        // Tres pitidos ascendentes: «hay piezas».
-        [988, 1175, 1480].forEach((f, k) => this.tone(ctx, 'alerts', t + k * 0.09, { freq: f, dur: 0.08, type: 'triangle', vol: 0.12 }));
-        break;
-      case 'toolDone':
-        [1480, 1175, 988].forEach((f, k) => this.tone(ctx, 'alerts', t + k * 0.11, { freq: f, dur: 0.12, type: 'triangle', vol: 0.12 }));
-        break;
-      case 'toolStop':
-        this.tone(ctx, 'alerts', t, { freq: 420, dur: 0.6, type: 'sawtooth', vol: 0.1, slideTo: 90 });
-        break;
-      case 'toolResume':
-        this.tone(ctx, 'sfx', t, { freq: 120, dur: 0.5, type: 'sawtooth', vol: 0.08, slideTo: 420 });
-        break;
-      case 'sale':
-        // Monedas: dos campanillas rápidas y un tintineo.
-        this.tone(ctx, 'sfx', t, { freq: 1976, dur: 0.07, type: 'triangle', vol: 0.14 });
-        this.tone(ctx, 'sfx', t + 0.07, { freq: 2637, dur: 0.12, type: 'triangle', vol: 0.13 });
-        this.noiseBurst(ctx, 'sfx', t, { dur: 0.08, vol: 0.1, filter: 'highpass', f0: 5000 });
-        break;
-      case 'purchase':
-        // Caja que se carga: golpe sordo y confirmación corta.
-        this.noiseBurst(ctx, 'sfx', t, { dur: 0.12, vol: 0.2, f0: 900, f1: 250 });
-        this.tone(ctx, 'sfx', t + 0.08, { freq: 784, dur: 0.1, type: 'triangle', vol: 0.12 });
-        break;
-      case 'upgrade':
-        // Instalación: zumbido que sube y acorde de confirmación.
-        this.tone(ctx, 'alerts', t, { freq: 220, dur: 0.35, type: 'sawtooth', vol: 0.07, slideTo: 660 });
-        [659.25, 830.61, 987.77].forEach((f, k) => this.tone(ctx, 'alerts', t + 0.3 + k * 0.08, { freq: f, dur: 0.3, vol: 0.12 }));
-        break;
-      case 'noCredits':
-        // Dos tonos graves cortos: «no».
-        this.tone(ctx, 'alerts', t, { freq: 240, dur: 0.1, type: 'square', vol: 0.1 });
-        this.tone(ctx, 'alerts', t + 0.13, { freq: 180, dur: 0.16, type: 'square', vol: 0.1 });
-        break;
-      case 'toolLost':
-        this.tone(ctx, 'alerts', t, { freq: 330, dur: 0.3, vol: 0.14 });
-        this.tone(ctx, 'alerts', t + 0.3, { freq: 220, dur: 0.5, vol: 0.14 });
-        break;
-      case 'fallWarn':
-        // Dos tonos descendentes rápidos: «vas a golpear».
-        this.tone(ctx, 'alerts', t, { freq: 980, dur: 0.12, type: 'square', vol: 0.12, slideTo: 700 });
-        this.tone(ctx, 'alerts', t + 0.16, { freq: 980, dur: 0.12, type: 'square', vol: 0.12, slideTo: 700 });
-        break;
-      case 'takeOff':
-        this.startNoiseLoop(ctx, 'takeOff', { bus: 'sfx', filter: 'lowpass', f0: 200, f1: 1400, rampS: 1, vol: 0.75, subHz: 38, subVol: 0.3, flutterHz: 0 });
-        // Se apaga sola: el despegue dura unos segundos.
-        setTimeout(() => this.stopLoop('takeOff', 2.5), 3500);
-        break;
-      case 'landSoft':
-        this.noiseBurst(ctx, 'sfx', t, { dur: 0.6, vol: 0.4, f0: 900, f1: 120 });
-        this.tone(ctx, 'sfx', t, { freq: 90, dur: 0.5, type: 'sine', vol: 0.3, slideTo: 45 });
-        break;
-      case 'landHard':
-        this.noiseBurst(ctx, 'alerts', t, { dur: 2.2, vol: 0.7, f0: 2600, f1: 70 });
-        this.tone(ctx, 'alerts', t, { freq: 70, dur: 1.5, type: 'sawtooth', vol: 0.4, slideTo: 24 });
-        for (let k = 0; k < 4; k++) this.noiseBurst(ctx, 'alerts', t + 0.15 + k * 0.17, { dur: 0.12, vol: 0.25, filter: 'bandpass', f0: 2400 - k * 300, q: 2 });
-        break;
-      case 'airlock':
-        // Siseo de presurización con un cierre al final.
-        this.noiseBurst(ctx, 'sfx', t, { dur: 1.1, vol: 0.32, filter: 'highpass', f0: 3000, f1: 900 });
-        this.tone(ctx, 'sfx', t + 1, { freq: 160, dur: 0.25, type: 'square', vol: 0.15, slideTo: 80 });
-        break;
-      case 'collect':
-        this.tone(ctx, 'sfx', t, { freq: 1240, dur: 0.08, type: 'triangle', vol: 0.18 });
-        this.tone(ctx, 'sfx', t + 0.08, { freq: 1660, dur: 0.12, type: 'triangle', vol: 0.16 });
-        this.noiseBurst(ctx, 'sfx', t, { dur: 0.06, vol: 0.15, filter: 'highpass', f0: 3500 });
-        break;
-      case 'store':
-        [392, 523.25, 659.25].forEach((f, k) => this.tone(ctx, 'sfx', t + k * 0.09, { freq: f, dur: 0.22, vol: 0.14 }));
-        this.noiseBurst(ctx, 'sfx', t, { dur: 0.25, vol: 0.2, f0: 1200, f1: 300 });
-        break;
-      case 'stormWarn':
-        this.noiseBurst(ctx, 'alerts', t, { dur: 3, vol: 0.3, filter: 'bandpass', f0: 250, f1: 900, q: 0.8 });
-        this.tone(ctx, 'alerts', t, { freq: 660, dur: 0.18, vol: 0.14 });
-        this.tone(ctx, 'alerts', t + 0.3, { freq: 660, dur: 0.18, vol: 0.14 });
-        break;
-      case 'crack':
-        for (let k = 0; k < 6; k++) {
-          this.noiseBurst(ctx, 'alerts', t + k * 0.07 + Math.random() * 0.05, { dur: 0.05 + Math.random() * 0.06, vol: 0.25, filter: 'bandpass', f0: 600 + Math.random() * 900, q: 3 });
-        }
-        this.tone(ctx, 'alerts', t, { freq: 60, dur: 0.6, type: 'sine', vol: 0.25, slideTo: 40 });
-        break;
-      case 'collapse':
-        this.noiseBurst(ctx, 'alerts', t, { dur: 2.4, vol: 0.6, f0: 900, f1: 50 });
-        this.tone(ctx, 'alerts', t, { freq: 55, dur: 2, type: 'sawtooth', vol: 0.3, slideTo: 22 });
-        break;
-      case 'o2Low':
-        this.tone(ctx, 'alerts', t, { freq: 740, dur: 0.15, vol: 0.18 });
-        this.tone(ctx, 'alerts', t + 0.22, { freq: 554, dur: 0.22, vol: 0.18 });
-        break;
-      case 'o2Critical':
-        this.tone(ctx, 'alerts', t, { freq: 1320, dur: 0.09, type: 'square', vol: 0.12 });
-        break;
-      case 'breath':
-      case 'breathFast': {
-        // Inspiración y espiración: ruido filtrado dentro del casco del traje.
-        const fast = id === 'breathFast';
-        const inS = fast ? 0.32 : 0.7;
-        this.noiseBurst(ctx, 'sfx', t, { dur: inS, vol: fast ? 0.14 : 0.07, filter: 'bandpass', f0: 700, f1: 1100, q: 1.2 });
-        this.noiseBurst(ctx, 'sfx', t + inS + 0.05, { dur: inS * 1.2, vol: fast ? 0.11 : 0.05, filter: 'bandpass', f0: 1000, f1: 500, q: 1.2 });
-        break;
-      }
-      case 'suitHit':
-        this.noiseBurst(ctx, 'alerts', t, { dur: 0.35, vol: 0.5, f0: 1600, f1: 120 });
-        this.noiseBurst(ctx, 'alerts', t + 0.1, { dur: 0.9, vol: 0.2, filter: 'highpass', f0: 4000, f1: 2500 });
-        break;
-      case 'crewDead':
-        this.tone(ctx, 'alerts', t, { freq: 880, dur: 2.2, vol: 0.12 });
-        this.tone(ctx, 'alerts', t, { freq: 110, dur: 2, type: 'sawtooth', vol: 0.16, slideTo: 40 });
-        break;
-      case 'jettison':
-        this.noiseBurst(ctx, 'sfx', t, { dur: 0.6, vol: 0.35, f0: 700, f1: 150 });
-        this.tone(ctx, 'sfx', t, { freq: 300, dur: 0.3, type: 'square', vol: 0.12, slideTo: 120 });
-        break;
-      case 'blip': {
-        const n = 2 + Math.floor(Math.random() * 3);
-        for (let k = 0; k < n; k++) {
-          const f = 520 + Math.random() * 480;
-          this.tone(ctx, 'alerts', t + k * 0.07, { freq: f, dur: 0.06, type: 'triangle', vol: 0.09, slideTo: f * (0.85 + Math.random() * 0.4) });
-        }
-        break;
-      }
-    }
-  }
-
-  /** Rugido del motor: ruido filtrado que barre en frecuencia, hasta que se detiene con `stopLoop('roar')`. */
-  private startRoar(ctx: AudioContext): void {
-    this.stopLoop('roar', 0.1);
-    const dest = this.buses.sfx;
-    if (!dest) return;
-    const t = ctx.currentTime;
-    const src = ctx.createBufferSource();
-    src.buffer = this.getNoise(ctx);
-    src.loop = true;
-    const lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.setValueAtTime(180, t);
-    lp.frequency.linearRampToValueAtTime(900, t + 4);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(0.7, t + 1.2);
-    // rumble grave
-    const sub = ctx.createOscillator();
-    sub.type = 'sawtooth';
-    sub.frequency.value = 42;
-    const subG = ctx.createGain();
-    subG.gain.value = 0.18;
-    sub.connect(subG).connect(g);
-    src.connect(lp).connect(g).connect(dest);
-    src.start(t);
-    sub.start(t);
-    this.loops.set('roar', {
-      stop: (fadeS) => {
-        const now = ctx.currentTime;
-        try {
-          g.gain.cancelScheduledValues(now);
-          g.gain.setValueAtTime(g.gain.value, now);
-          g.gain.linearRampToValueAtTime(0.0001, now + Math.max(0.02, fadeS));
-          src.stop(now + fadeS + 0.1);
-          sub.stop(now + fadeS + 0.1);
-        } catch {
-          /* ya detenido */
-        }
-      },
-    });
-  }
-
-  /** Bucle de ruido filtrado (propulsores, jetpack, viento) hasta `stopLoop(name)`. */
-  private startNoiseLoop(
-    ctx: AudioContext,
-    name: string,
-    o: { bus: SoundBus; filter: BiquadFilterType; f0: number; f1: number; rampS: number; vol: number; subHz: number; subVol: number; flutterHz: number },
-  ): void {
-    if (this.loops.has(name)) return;
-    const dest = this.busNode(o.bus);
-    if (!dest) return;
-    const t = ctx.currentTime;
-    const src = ctx.createBufferSource();
-    src.buffer = this.getNoise(ctx);
-    src.loop = true;
-    const f = ctx.createBiquadFilter();
-    f.type = o.filter;
-    f.Q.value = o.filter === 'bandpass' ? 0.9 : 0.7;
-    f.frequency.setValueAtTime(o.f0, t);
-    f.frequency.linearRampToValueAtTime(o.f1, t + Math.max(0.05, o.rampS));
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(o.vol, t + Math.max(0.03, o.rampS));
-    const extra: OscillatorNode[] = [];
-    if (o.subHz > 0) {
-      const sub = ctx.createOscillator();
-      sub.type = 'sawtooth';
-      sub.frequency.value = o.subHz;
-      const sg = ctx.createGain();
-      sg.gain.value = o.subVol;
-      sub.connect(sg).connect(g);
-      sub.start(t);
-      extra.push(sub);
-    }
-    if (o.flutterHz > 0) {
-      const lfo = ctx.createOscillator();
-      lfo.frequency.value = o.flutterHz;
-      const lg = ctx.createGain();
-      lg.gain.value = o.vol * 0.3;
-      lfo.connect(lg).connect(g.gain);
-      lfo.start(t);
-      extra.push(lfo);
-    }
-    src.connect(f).connect(g).connect(dest);
-    src.start(t);
-    this.loops.set(name, {
-      level: (v) => {
-        try {
-          const now = ctx.currentTime;
-          g.gain.cancelScheduledValues(now);
-          g.gain.setTargetAtTime(Math.max(0.0001, o.vol * Math.min(1, Math.max(0, v))), now, 0.25);
-        } catch {
-          /* detenido */
-        }
-      },
-      stop: (fadeS) => {
-        const now = ctx.currentTime;
-        try {
-          g.gain.cancelScheduledValues(now);
-          g.gain.setValueAtTime(g.gain.value, now);
-          g.gain.linearRampToValueAtTime(0.0001, now + Math.max(0.02, fadeS));
-          src.stop(now + fadeS + 0.1);
-          for (const x of extra) x.stop(now + fadeS + 0.1);
-        } catch {
-          /* ya detenido */
-        }
-      },
-    });
-  }
-
-  /** true si el bucle suena. */
-  isLooping(name: string): boolean {
-    return this.loops.has(name);
   }
 
   // ─── Interno: emisores posicionales ───────────────────────────────────────
@@ -820,14 +378,37 @@ export class AudioEngine {
       amp.gain.value = 0.5;
       amp.connect(panner).connect(dest);
       const oscs: OscillatorNode[] = [];
+      const osc = (type: OscillatorType, freq: number, level: number) => {
+        const o = ctx.createOscillator();
+        o.type = type;
+        o.frequency.value = freq;
+        const g = ctx.createGain();
+        g.gain.value = level;
+        o.connect(g).connect(amp);
+        o.start();
+        oscs.push(o);
+      };
+      const lfo = (rate: number, depth: number) => {
+        const o = ctx.createOscillator();
+        o.frequency.value = rate;
+        const g = ctx.createGain();
+        g.gain.value = depth;
+        o.connect(g).connect(amp.gain);
+        o.start();
+        oscs.push(o);
+      };
       if (e.kind === 'consoleHum') {
         // zumbido eléctrico de la consola (100 Hz + armónico) con parpadeo lento
-        oscs.push(this.osc(ctx, 'sine', 100, amp, 0.5), this.osc(ctx, 'triangle', 200.7, amp, 0.25), this.osc(ctx, 'sine', 1200, amp, 0.04));
-        oscs.push(this.lfo(ctx, 0.35, 0.18, amp.gain));
+        osc('sine', 100, 0.5);
+        osc('triangle', 200.7, 0.25);
+        osc('sine', 1200, 0.04);
+        lfo(0.35, 0.18);
       } else {
-        // zumbido grave de la exhibición (reactor del mecha): batido de dos tonos casi iguales
-        oscs.push(this.osc(ctx, 'sine', 62, amp, 0.55), this.osc(ctx, 'sine', 64.5, amp, 0.55), this.osc(ctx, 'triangle', 124, amp, 0.12));
-        oscs.push(this.lfo(ctx, 0.2, 0.15, amp.gain));
+        // zumbido grave de la exhibición: batido de dos tonos casi iguales
+        osc('sine', 62, 0.55);
+        osc('sine', 64.5, 0.55);
+        osc('triangle', 124, 0.12);
+        lfo(0.2, 0.15);
       }
       e.live = {
         stop: () => {

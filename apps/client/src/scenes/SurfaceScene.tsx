@@ -209,6 +209,7 @@ function SurfaceLoop({ motion }: { motion: MotionParams }) {
   const jetLoop = useRef(false);
   const breathIn = useRef(2);
   const beepIn = useRef(0);
+  const hailIn = useRef(0);
   useSceneKeys(true);
   useSceneCleanup();
   useEffect(() => {
@@ -260,6 +261,12 @@ function SurfaceLoop({ motion }: { motion: MotionParams }) {
     if (windUp && !windLoop.current) cue('wind');
     if (windUp) audio.setLoopLevel('wind', 0.15 + 0.85 * st.warn);
     if (!windUp && windLoop.current) audio.stopLoop('wind', st.active > 0 ? 2 : 0.8);
+    // Granizo de polvo contra el traje: una ráfaga de golpecitos cada tanto, más seguida cuanto más fuerte la tormenta.
+    hailIn.current -= dt;
+    if (st.active > 0.15 && hailIn.current <= 0) {
+      cue('hail');
+      hailIn.current = (0.5 + Math.random() * 0.9) / (0.4 + st.active);
+    }
     windLoop.current = windUp;
 
     // Caída peligrosa: tal como va (con el freno si se está usando), ¿golpeará por encima de lo inofensivo?

@@ -5,6 +5,16 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+### Audio inmersivo (rama `feat/audio-inmersivo`)
+- **client:** el salto ya no satura: arranque y crucero suaves en lugar de ruido blanco fuerte todo el tránsito; limitador
+  en el master, ducking de la música con los avisos, bucles que bajan en pausa y ruido descorrelado.
+- **client:** música adaptativa generativa por escena (menú, hangar, a bordo, tránsito, aterrizaje, EVA, victoria, derrota)
+  con escalada de peligro en 3 escalones.
+- **client:** todos los efectos rediseñados y 38 sonidos nuevos (pasos, interfaz, mapa, paneles, hangar, radio, sala…),
+  con subtítulos es/en donde informan.
+- **client:** laboratorio de audio offline sin dependencias (`audio:report`) y test de regresión contra clipping, clics y
+  ruido de banda ancha. Rúbrica y validación en `docs/diseno/`.
+
 ### Objetivo visible y primera misión guiada (rama `feat/f5-objetivo-y-guia-primera-mision`)
 - **shared:** `currentObjective(state, cat?)` (`src/objective.ts`), pura y sin campos nuevos en `RunState`: pasos de misión
   (`launch`, `reach-target`, `observe`, `downlink`, `return`) y de partida libre (sector 1: `jump`, `repair` opcional,
