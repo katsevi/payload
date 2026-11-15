@@ -158,6 +158,10 @@ la recompensa de +8 por superar el sector (§ 7.9). Son un **objetivo de diseño
 mano con los parámetros de § 8.3 da ≈97/86/66/40 en los sectores 1-4, del mismo orden. Las cifras definitivas se
 ajustan con `pnpm balance`.
 
+### 5.6 Misiones diseñadas
+
+Solo en partidas con `design` (la clásica no cambia). Un único punto, `missionPsychMult(design, cat)` en `sanity.ts`, se multiplica en `drainMult` dentro de `effectivePsychRules`: `durMult × dificultad × misión`. `durMult = clamp(1 + durationK × (deadlineMonths − durationRefMonths) / durationSpanMonths, durationMin, durationMax)` con `psych.mission` en `cordura.json` (Luna y asteroide ×1, Marte ×1,1, cinturón ×1,2, Europa ×1,4, Titán ×1,5). `psychDrainMult` opcional por nivel de dificultad (0,7 / 1 / 1,3) y por misión en `misiones.json`; con 0 la cordura queda en pausa (ni drenaje, ni golpes, ni lapsus, medidor en 100). El CubeSat guiado usa 0,5: desgaste suave, para que se aprenda sin castigo pero se vea. El aviso Go/No-Go pasa a `design.review.crew-wellbeing-high` (param `severity: 'high'`) con plazo ≥ 84 meses sin hábitat ni huerto.
+
 ## 6. Debuffs (lo que se siente)
 
 | Multiplicador | Estable | Tensa | Crítica | Quiebre | Dónde se aplica |

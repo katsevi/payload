@@ -161,7 +161,7 @@ describe('reglas efectivas (mejoras `crew` y módulos)', () => {
   it('los módulos del diseño (hábitat, huerto) bajan el drenaje', () => {
     const design = { missionId: 'mission-mars-habitability', destinationId: null, moduleIds: ['habitat-cabin', 'greenhouse-pod'], instrumentIds: [], launcherId: null };
     const e = effectivePsychRules(R, {}, cat, design);
-    expect(e.drainMult).toBeCloseTo(0.8 * 0.9, 8);
+    expect(e.drainMult).toBeCloseTo(0.8 * 0.9 * 1.1, 8);
     expect(e.rest.recoverPctPerS).toBeCloseTo(0.5 * 1.2, 8);
   });
 });

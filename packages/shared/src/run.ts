@@ -25,7 +25,7 @@ import { generateSector, getNode, nodeDistanceLy } from './galaxy';
 import { crewCarryCapacityKg, crewJetpackDrainPctPerS, crewPerks } from './roles';
 import { createRng, deriveSeed, type Rng } from './rng';
 import {
-  bandIndex, callRecoveryPct, cohesionDeltaPctPerS, contactWindowOpen, effectivePsychRules, getPsychRules, psychRoll, sanityBandFor, sanityDebuffs, sanityDrainPctPerS,
+  bandIndex, callRecoveryPct, cohesionDeltaPctPerS, contactWindowOpen, effectivePsychRules, getPsychRules, psychPausedFor, psychRoll, sanityBandFor, sanityDebuffs, sanityDrainPctPerS,
   commsDelayMin,
 } from './sanity';
 import { finishMission, getScienceRules, loseWithShip, newScienceState, sciencePoints, scienceProfile, stepScience, type ScienceEvent } from './science';
@@ -144,6 +144,8 @@ export function createRun(options: RunOptions): Run {
   const crewSize = clamp(Math.trunc(options.crewSize ?? 1), 1, MAX_CREW);
   /** Fase 8: reglas de cordura efectivas (mejoras `crew` y módulos del diseño); null = sin cordura (juego de siempre). */
   const basePsych = getPsychRules(cat);
+  /** Misión diseñada con `psychDrainMult: 0` (CubeSat guiado): la cordura queda en pausa (100). */
+  const psychPaused = psychPausedFor(design, cat);
   let psychRules: PsychRules | null = basePsych ? effectivePsychRules(basePsych, upgrades, cat, design) : null;
 
   /** Mapa del sector `index`: el sistema solar con diseño (generado con la nave diseñada, sin mejoras); si no, el abstracto. */
@@ -1108,7 +1110,7 @@ export function createRun(options: RunOptions): Run {
 
   // ── Cordura (fase 8) ────────────────────────────────────────────────────────────────────────
   function addSanity(m: CrewMember, delta: number): void {
-    if (m.sanityPct === undefined) return;
+    if (m.sanityPct === undefined || psychPaused) return;
     m.sanityPct = clamp(m.sanityPct + delta, 0, 100);
   }
 

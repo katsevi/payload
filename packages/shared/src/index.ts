@@ -24,7 +24,7 @@ export {
 } from './science';
 export { getRoles, getRole, crewPerks, crewCarryCapacityKg, crewJetpackDrainPctPerS } from './roles';
 export {
-  getPsychRules, effectivePsychRules, sanityBandFor, bandIndex, sanityDebuffs, sanityDrainPctPerS, commsDelayMin, callRecoveryPct, psychRoll, cohesionDeltaPctPerS,
+  getPsychRules, effectivePsychRules, missionPsychMult, psychPausedFor, sanityBandFor, bandIndex, sanityDebuffs, sanityDrainPctPerS, commsDelayMin, callRecoveryPct, psychRoll, cohesionDeltaPctPerS,
   contactWindowOpen, crewFieldValues, PSYCH_SALT, type DrainContext, type SanityDebuffs,
 } from './sanity';
 export { createRng, deriveSeed, type Rng } from './rng';

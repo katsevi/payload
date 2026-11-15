@@ -5,7 +5,7 @@
  *
  * La cordura nunca mata ni pierde la partida: solo frena el trabajo, empeora la esquiva y provoca lapsus pequeños.
  */
-import { getModules } from './design';
+import { getDifficulty, getMissions, getModules } from './design';
 import { boughtEffects } from './economy';
 import { createRng, deriveSeed } from './rng';
 import type { Catalog, CrewMember, MissionDesign, PsychRules, RunState, SanityBand, ScienceRules, UpgradeEffect } from './types';
@@ -54,7 +54,28 @@ export function effectivePsychRules(base: PsychRules, upgrades: Record<string, n
       default: break;
     }
   }
+  if (design) r.drainMult = Math.max(0, (r.drainMult ?? 1) * missionPsychMult(design, cat));
   return r;
+}
+
+/** Fase 8: la misión del diseño tiene `psychDrainMult: 0` (p. ej. el CubeSat guiado) ⇒ la cordura queda en pausa (100). */
+export function psychPausedFor(design: MissionDesign | undefined, cat: Catalog): boolean {
+  if (!design) return false;
+  return getMissions(cat).find((x) => x.id === design.missionId)?.psychDrainMult === 0;
+}
+
+/**
+ * Multiplicador de drenaje de una misión diseñada: duración (plazo de la misión) × dificultad × el de la misión. Un
+ * único punto; la partida clásica (sin diseño) no lo usa. Siempre >= 0.
+ */
+export function missionPsychMult(design: MissionDesign, cat: Catalog): number {
+  const mission = getMissions(cat).find((x) => x.id === design.missionId);
+  const c = cat.psych?.mission;
+  const dur = mission && c
+    ? Math.min(c.durationMax, Math.max(c.durationMin, 1 + (c.durationK * (mission.deadlineMonths - c.durationRefMonths)) / c.durationSpanMonths))
+    : 1;
+  const diff = getDifficulty(design.difficultyId, cat).psychDrainMult ?? 1;
+  return Math.max(0, dur * diff * (mission?.psychDrainMult ?? 1));
 }
 
 /** Valor de cada campo `UPGRADE_FIELDS.crew` en unas reglas (para previsualizar el efecto de una mejora, como `effectiveSurfaceRules` con el traje). */

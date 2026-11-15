@@ -83,6 +83,12 @@ export function App() {
       // ?station=1 (con carga para vender) · ?station=bare (sin bajar a por carga): atracada y con el terminal abierto
       const station = q.get('station');
       if (station) toStation(station !== 'bare');
+      // Fase 8: ?morale=30 empieza con la cordura de toda la tripulación en ese valor (para probar bandas y debuffs).
+      const morale = q.get('morale');
+      if (morale !== null) {
+        const pct = Math.max(0, Math.min(100, Number(morale)));
+        for (const m of getRun()?.state.crew ?? []) if (m.sanityPct !== undefined) m.sanityPct = pct;
+      }
     };
     const seed = q.get('seed') ? Number(q.get('seed')) : undefined;
     if (q.get('play') && missionId) {

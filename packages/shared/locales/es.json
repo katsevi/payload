@@ -309,7 +309,8 @@
       "all-clear": "Todo en orden: márgenes sanos",
       "guided-ship": "Misión guiada: la nave y el lanzador ya están elegidos",
       "guided-instrument": "Misión guiada: $t(catalog.{{instrument}}) no va en este CubeSat",
-      "crew-wellbeing": "Misión de {{months}} meses sin hábitat: la tripulación se agotará."
+      "crew-wellbeing": "Misión de {{months}} meses sin hábitat: la tripulación se agotará.",
+      "crew-wellbeing-high": "{{months}} meses sin hábitat ni huerto: riesgo alto de colapso de la tripulación."
     }
   },
   "report": {

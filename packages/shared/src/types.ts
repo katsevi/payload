@@ -1249,6 +1249,8 @@ export interface MissionDef {
   difficulty: number;
   /** Fase 5 (ADR 0018 § 8): misión guiada (nave, lanzador y destino fijos; solo se elige la carga). */
   guided?: GuidedMissionDef;
+  /** Fase 8: multiplicador del desgaste de cordura en esta misión (0 = sin desgaste: la cordura queda en pausa). */
+  psychDrainMult?: number;
 }
 
 /** Comprobación automática de un paso de la misión guiada. */
@@ -1310,6 +1312,8 @@ export interface DifficultyDef {
   wearMult: number;
   hazardMult: number;
   contactWindowMult: number;
+  /** Fase 8: multiplicador del desgaste de cordura en partidas con diseño (1 si falta). */
+  psychDrainMult?: number;
 }
 
 /** Cómo afectan en vuelo la fiabilidad, el calor y la batería de la nave diseñada (fase 5). */
@@ -1645,6 +1649,8 @@ export interface PsychRules {
   crewOfferSize: number;
   /** Opcional y desactivado por defecto: golpe único al 75 % del plazo (ficción de juego). */
   thirdQuarter?: { enabled: boolean; fictional: boolean; atFrac: number; shockPct: number };
+  /** Misiones diseñadas: el desgaste crece con el plazo (`missionPsychMult`). Sin él, ×1. */
+  mission?: { durationK: number; durationRefMonths: number; durationSpanMonths: number; durationMin: number; durationMax: number };
   /** Derivado por `effectivePsychRules` (mejoras y módulos), no va en el catálogo. */
   drainMult?: number;
   recoverMult?: number;

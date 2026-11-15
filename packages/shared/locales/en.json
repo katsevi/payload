@@ -309,7 +309,8 @@
       "all-clear": "All clear: healthy margins",
       "guided-ship": "Guided mission: the ship and launcher are already chosen",
       "guided-instrument": "Guided mission: $t(catalog.{{instrument}}) does not fit this CubeSat",
-      "crew-wellbeing": "{{months}}-month mission without a habitat: the crew will wear down."
+      "crew-wellbeing": "{{months}}-month mission without a habitat: the crew will wear down.",
+      "crew-wellbeing-high": "{{months}} months with no habitat or garden: high risk of crew breakdown."
     }
   },
   "report": {
