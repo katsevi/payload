@@ -1,6 +1,6 @@
 import { countermeasures } from '../game/sanityFx';
-import type { ReactNode } from 'react';
-import { Activity, ArrowDownToLine, CircleCheck, CircleX, CloudLightning, Drill, Flame, Mountain, Navigation, Wind, Zap } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Activity, ArrowDownToLine, ChevronRight, CircleCheck, CircleX, CloudLightning, Drill, Flame, Mountain, Navigation, Wind, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { catalog as defaultCatalog, getPsychRules, missionReport, type Locale, type MissionReport } from '@payload/shared';
 import { CREDITS } from '../data/credits';
@@ -12,6 +12,7 @@ import { useSettings } from '../state/settings';
 import { useUi } from '../state/ui';
 import { Modal, Panel, fmt } from './common';
 import { distanceText } from './names';
+import { Button, KeyHint, SectionLabel, StatRow } from './kit';
 
 export function LanguageSelect() {
   const { t } = useTranslation();
@@ -19,51 +20,124 @@ export function LanguageSelect() {
   return (
     <div className="flex items-center gap-1" role="group" aria-label={t('menu.language')}>
       {(['es', 'en'] as Locale[]).map((l) => (
-        <button key={l} className={`btn ${cur === l ? 'btn-primary' : ''}`} onClick={() => setLocale(l)} aria-pressed={cur === l}>
-          {t(`lang.${l}`)}
+        <button
+          key={l}
+          className="seg-option chip num px-2.5 py-1 text-xs font-semibold tracking-widest"
+          onClick={() => setLocale(l)}
+          aria-pressed={cur === l}
+          aria-label={t(`lang.${l}`)}
+          title={t(`lang.${l}`)}
+        >
+          {l.toUpperCase()}
         </button>
       ))}
     </div>
   );
 }
 
+type MenuEntry = { id: 'mission' | 'free' | 'coop' | 'help' | 'settings' | 'credits'; label: string; run: () => void; primary?: boolean };
+
+/**
+ * Menú principal: fondo 3D vivo (`MenuScene`), logotipo tipográfico, navegación lateral con índice y una ficha con
+ * la descripción de la entrada señalada. Ratón y teclado (↑↓ + Intro); la entrada señalada es la que tiene el foco.
+ */
 export function MenuScreen() {
   const { t } = useTranslation();
   const setOverlay = useUi((s) => s.setOverlay);
   const best = useGame((s) => s.best);
+  const [active, setActive] = useState(0);
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const items: MenuEntry[] = [
+    { id: 'mission', label: t('menu.mission'), run: () => useGame.getState().openMissions(), primary: true },
+    { id: 'free', label: t('menu.free'), run: () => useGame.getState().startRun() },
+    { id: 'coop', label: t('menu.coopPlay'), run: () => setOverlay('coop') },
+    { id: 'help', label: t('help.title'), run: () => setOverlay('help') },
+    { id: 'settings', label: t('menu.settings'), run: () => setOverlay('settings') },
+    { id: 'credits', label: t('menu.credits'), run: () => setOverlay('credits') },
+  ];
+  useEffect(() => {
+    refs.current[0]?.focus();
+  }, []);
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    const next = (active + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+    refs.current[next]?.focus();
+  };
+  const cur = items[active] ?? items[0]!;
+  const code = (i: number) => String(i + 1).padStart(2, '0');
   return (
-    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 overflow-auto p-4">
-      <div className="absolute right-4 top-4">
-        <LanguageSelect />
-      </div>
-      <div className="rounded-xl bg-black/45 px-8 py-6 text-center backdrop-blur-[2px]">
-        <h1 className="num text-6xl font-bold tracking-[0.35em] text-accent drop-shadow-[0_0_18px_rgba(56,225,192,.5)] sm:text-8xl">{t('app.title')}</h1>
-        <p className="mt-3 text-slate-300">{t('app.subtitle')}</p>
-        <p className="num mt-1 text-xs uppercase tracking-widest text-slate-500">{t('menu.tagline')}</p>
-      </div>
-      <nav className="flex w-64 flex-col gap-3">
-        <button className="btn btn-primary !py-3" onClick={() => useGame.getState().openMissions()} title={t('menu.missionHint')}>
-          {t('menu.mission')}
-        </button>
-        <button className="btn" onClick={() => useGame.getState().startRun()}>
-          {t('menu.free')}
-        </button>
-        <button className="btn" onClick={() => setOverlay('coop')}>
-          {t('menu.coopPlay')}
-        </button>
-        <button className="btn" onClick={() => setOverlay('help')}>
-          {t('help.title')}
-        </button>
-        <button className="btn" onClick={() => setOverlay('settings')}>
-          {t('menu.settings')}
-        </button>
-        <button className="btn" onClick={() => setOverlay('credits')}>
-          {t('menu.credits')}
-        </button>
-      </nav>
-      <div className="max-w-md text-center text-sm text-slate-300">
-        <p>{t('menu.goal')}</p>
-        {best.score > 0 && <p className="num mt-2 text-xs text-accent">{t('menu.best', { sectors: best.sectors, score: fmt(best.score, 0) })}</p>}
+    <div className="absolute inset-0 z-10 overflow-hidden">
+      <div className="menu-veil pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div className="menu-grid pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div className="scanlines pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div className="ui-enter relative flex h-full flex-col overflow-auto px-5 py-5 sm:px-[6vw] sm:py-[4.5vh]">
+        <header className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="h-2 w-2 bg-accent" aria-hidden="true" />
+            <span className="label-code !text-slate-300">{t('app.subtitle')}</span>
+            <span className="ticks hidden w-24 sm:block" aria-hidden="true" />
+            <span className="panel-code hidden sm:inline" aria-hidden="true">PL-00 // EXP</span>
+          </div>
+          <LanguageSelect />
+        </header>
+
+        <main className="grid flex-1 items-center gap-8 py-6 lg:grid-cols-[minmax(20rem,27rem)_1fr] lg:items-end">
+          <div className="flex flex-col gap-8 lg:self-center">
+            <div>
+              <p className="label-code !text-accent">{t('menu.tagline')}</p>
+              <h1 className="logo mt-2 text-[clamp(3.2rem,7vw,6.6rem)]">{t('app.title')}</h1>
+              <div className="mt-3 flex items-center gap-3" aria-hidden="true">
+                <span className="h-px w-12 bg-accent" />
+                <span className="h-1 w-1 bg-accent" />
+                <span className="ticks w-40" />
+              </div>
+            </div>
+            <nav aria-label={t('menu.navLabel')} onKeyDown={onKey}>
+              <ul className="ui-stagger flex flex-col border-l border-line">
+                {items.map((it, i) => (
+                  <li key={it.id}>
+                    <button
+                      ref={(el) => {
+                        refs.current[i] = el;
+                      }}
+                      className={`menu-item ${i === active ? 'is-active' : ''} ${it.primary ? 'is-primary' : ''}`}
+                      onClick={it.run}
+                      onFocus={() => setActive(i)}
+                      onPointerEnter={() => setActive(i)}
+                      aria-describedby="menu-desc"
+                    >
+                      <span className="menu-index" aria-hidden="true">{code(i)}</span>
+                      <span className="menu-label">{it.label}</span>
+                      <ChevronRight size={18} className="menu-chev" aria-hidden="true" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </div>
+
+          {/* Ficha de la entrada señalada: qué es, en una línea. */}
+          <aside className="console-panel w-full max-w-md p-4 lg:ml-auto" aria-live="polite">
+            <div className="flex items-center gap-2">
+              <span className="panel-code" aria-hidden="true">SEL-{code(active)} // MNU</span>
+              <span className="ticks flex-1" aria-hidden="true" />
+            </div>
+            <p className="display mt-2 text-lg font-semibold text-slate-50">{cur.label}</p>
+            <p id="menu-desc" className="mt-1 text-sm text-slate-300">{t(`menu.desc.${cur.id}`)}</p>
+            <div className="rule my-3" aria-hidden="true" />
+            <p className="text-xs text-slate-400">{t('menu.goal')}</p>
+            {best.score > 0 && <p className="num mt-2 text-xs text-accent">{t('menu.best', { sectors: best.sectors, score: fmt(best.score, 0) })}</p>}
+          </aside>
+        </main>
+
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+          <span className="label-code">{t('menu.build', { version: __APP_VERSION__ })}</span>
+          <span className="flex items-center gap-4">
+            <KeyHint k="↑↓">{t('menu.hintMove')}</KeyHint>
+            <KeyHint k={t('menu.keyEnter')}>{t('menu.hintSelect')}</KeyHint>
+          </span>
+        </footer>
       </div>
     </div>
   );
@@ -77,10 +151,10 @@ function closeToPrevious(): void {
 export function SettingsPanel() {
   const { t } = useTranslation();
   const s = useSettings();
-  const row = 'flex items-center justify-between gap-4 py-2 text-sm';
+  const row = 'flex items-center justify-between gap-4 border-b border-line/50 py-2 text-sm last:border-b-0';
   return (
     <Modal onClose={closeToPrevious}>
-      <Panel title={t('settings.title')}>
+      <Panel title={t('settings.title')} code="CFG-01">
         <div className={row}>
           <span>{t('settings.language')}</span>
           <LanguageSelect />
@@ -113,7 +187,7 @@ export function SettingsPanel() {
             <input type="checkbox" checked={s[key]} onChange={(e) => s.set({ [key]: e.target.checked })} />
           </label>
         ))}
-        <h3 className="num mt-3 border-t border-line pt-3 text-xs uppercase tracking-widest text-accent">{t('settings.audio')}</h3>
+        <SectionLabel code="CFG-02" className="mt-4 mb-1">{t('settings.audio')}</SectionLabel>
         <label className={row}>
           <span>{t('settings.muteAll')}</span>
           <input type="checkbox" checked={s.muteAll} onChange={(e) => s.set({ muteAll: e.target.checked })} />
@@ -147,17 +221,17 @@ export function CreditsScreen() {
   const { t } = useTranslation();
   return (
     <Modal onClose={closeToPrevious}>
-      <Panel title={t('credits.title')}>
+      <Panel title={t('credits.title')} code="INF-03">
         <p className="mb-4 text-sm text-slate-300">{t('credits.intro')}</p>
         <ul className="space-y-3">
           {CREDITS.map((c) => (
-            <li key={c.id} className="rounded border border-line p-3 text-sm">
+            <li key={c.id} className="chamfer p-3 text-sm">
               <div className="font-bold">
                 <a className="underline" href={c.sourceUrl} target="_blank" rel="noopener noreferrer">{c.title}</a>
               </div>
               <div className="text-slate-300">
                 {t('credits.by')}{' '}
-                <a className="underline" href={c.authorUrl} target="_blank" rel="noopener noreferrer">{c.author}</a> · {t('credits.source')}
+                <a className="underline" href={c.authorUrl} target="_blank" rel="noopener noreferrer">{c.author}</a> · {t(c.sourceKey ?? 'credits.source')}
               </div>
               <div className="num text-xs text-accent">
                 {t('credits.license')}:{' '}
@@ -202,7 +276,7 @@ export function HelpOverlay() {
   const psych = !!getPsychRules(getRun()?.catalog ?? defaultCatalog);
   return (
     <Modal onClose={close}>
-      <Panel title={t('help.title')}>
+      <Panel title={t('help.title')} code="OPS-00">
         <p className="mb-3 text-sm text-slate-200">{t('help.goal')}</p>
         <dl className="mb-4 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5 text-sm">
           {HELP_KEYS.map((k) => (
@@ -244,22 +318,22 @@ export function PauseScreen() {
   const hasDesign = useGame((g) => g.runDesign !== null);
   return (
     <Modal onClose={() => setOverlay(null)}>
-      <Panel title={t('pause.title')} className="mx-auto max-w-xs">
-        <nav className="flex flex-col gap-3">
-          <button className="btn btn-primary !py-3" onClick={() => setOverlay(null)} autoFocus>
+      <Panel title={t('pause.title')} code="SYS-PA" className="mx-auto max-w-xs">
+        <nav className="ui-stagger flex flex-col gap-2">
+          <Button variant="primary" size="lg" onClick={() => setOverlay(null)} autoFocus>
             {t('pause.resume')}
-          </button>
-          <button className="btn" onClick={() => setOverlay('settings')}>
+          </Button>
+          <Button size="lg" onClick={() => setOverlay('settings')}>
             {t('common.settings')}
-          </button>
+          </Button>
           {hasDesign && (
-            <button className="btn" onClick={() => useGame.getState().redesign()}>
+            <Button size="lg" onClick={() => useGame.getState().redesign()}>
               {t('end.redesign')}
-            </button>
+            </Button>
           )}
-          <button className="btn" onClick={() => useGame.getState().toMenu()}>
+          <Button size="lg" variant="danger" onClick={() => useGame.getState().toMenu()}>
             {t('pause.quit')}
-          </button>
+          </Button>
         </nav>
       </Panel>
     </Modal>
@@ -329,23 +403,25 @@ export function EndScreen() {
   if (critS > 0) stats.push([t('end.sanityCritical'), formatTime(critS)]);
   if (counter > 0) stats.push([t('end.countermeasures'), String(counter)]);
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/65 p-4" role="dialog" aria-modal="true">
-      <Panel className="w-full max-w-md text-center">
-        <h2 className={`num text-2xl font-bold uppercase tracking-widest ${lost ? 'text-bad' : missionOver && !s.science?.objectiveMet ? 'text-warn' : 'text-accent'}`}>
-          {lost ? t('end.lostTitle') : missionOver ? (s.science?.objectiveMet ? t('end.missionSuccessTitle') : t('end.missionPartialTitle')) : t('end.wonTitle', { sector: s.sector.index })}
-        </h2>
-        {lost && s.lossReason && <p className="mt-2 text-slate-200">{tr({ key: `loss.${s.lossReason}` })}</p>}
+    <div className="modal-backdrop absolute inset-0 z-40 flex items-center justify-center overflow-auto p-4" role="dialog" aria-modal="true">
+      <Panel className="ui-enter w-full max-w-lg">
+        {/* Informe: franja de resultado, motivo, cadena de causas y ficha de cifras. */}
+        <header className={`-mx-4 -mt-4 mb-3 border-b px-4 pb-3 pt-4 ${lost ? 'border-bad/50 bg-bad/10' : 'border-line bg-accent/5'}`}>
+          <p className="panel-code" aria-hidden="true">RPT-{String(s.sector.index).padStart(2, '0')}</p>
+          <h2 className={`display mt-1 text-2xl font-bold !tracking-[0.2em] ${lost ? 'text-bad' : missionOver && !s.science?.objectiveMet ? 'text-warn' : 'text-accent'}`}>
+            {lost ? t('end.lostTitle') : missionOver ? (s.science?.objectiveMet ? t('end.missionSuccessTitle') : t('end.missionPartialTitle')) : t('end.wonTitle', { sector: s.sector.index })}
+          </h2>
+          {lost && s.lossReason && <p className="mt-1 text-slate-200">{tr({ key: `loss.${s.lossReason}` })}</p>}
+        </header>
         {report && (lost || missionOver) && <MissionReportView report={report} />}
         {newBest && <p className="num mt-2 animate-pulse text-sm text-warn">{t('end.newBest')}</p>}
-        <dl className="mx-auto mt-4 grid max-w-xs grid-cols-2 gap-x-4 gap-y-1 text-left text-sm">
+        <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-[1fr_auto_1fr_auto]">
           {stats.map(([label, value]) => (
-            <div key={label} className="contents">
-              <dt className="text-slate-400">{label}</dt>
-              <dd className="num text-right text-slate-100">{value}</dd>
-            </div>
+            <StatRow key={label} label={label} value={value} />
           ))}
-          <dt className="mt-2 border-t border-line pt-2 font-bold text-slate-200">{t('end.score')}</dt>
-          <dd className="num mt-2 border-t border-line pt-2 text-right text-lg font-bold text-accent">{fmt(s.score, 0)}</dd>
+        </dl>
+        <dl className="mt-3 grid grid-cols-[1fr_auto] items-baseline border-t border-line pt-2">
+          <StatRow label={t('end.score')} value={fmt(s.score, 0)} tone="accent" strong />
         </dl>
         <div className="mt-5 flex flex-col gap-2">
           {lost && inRoom ? (

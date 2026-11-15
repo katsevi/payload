@@ -1,4 +1,4 @@
-# Créditos de assets 3D
+# Créditos de assets (modelos 3D y tipografías)
 
 Todos los modelos son de Sketchfab. Los originales están en `models/source/` y los versiones optimizadas para la web en `web/models/`.
 
@@ -25,6 +25,18 @@ Para los modelos CC-BY, la pantalla de créditos del juego debe mostrar el títu
 - CC-BY-4.0 permite uso comercial y derivados (incluido el uso como vehículo lunar/marciano), siempre con atribución.
 - Atribución mínima: título, autor (Jungle Jim, con enlace), enlace al original, enlace a la licencia CC-BY-4.0 y la indicación "modificado" (compresión, texturas WebP y fusión de mallas).
 - No se usa el logo ni la marca de Sketchfab ni del autor para promocionar el juego.
+
+## Tipografías de la interfaz (OFL 1.1)
+
+Se empaquetan con el cliente desde npm (`@fontsource/*`, solo el subconjunto latino; sin peticiones a Google en
+ejecución). La SIL Open Font License 1.1 permite uso comercial, incrustación y redistribución con la licencia; no
+permite vender la fuente sola ni usar sus nombres reservados en una versión modificada (no se modifican).
+
+| Tipografía | Autor | Fuente | Licencia | Uso | Paquete |
+| --- | --- | --- | --- | --- | --- |
+| Chakra Petch | [Cadson Demak](https://github.com/cadsondemak/Chakra-Petch) | [Google Fonts](https://fonts.google.com/specimen/Chakra+Petch) | [OFL-1.1](https://openfontlicense.org/open-font-license-official-text/) | Títulos, botones y etiquetas | `@fontsource/chakra-petch` (500, 600, 700) |
+| Barlow | [Jeremy Tribby](https://github.com/jpt/barlow) | [Google Fonts](https://fonts.google.com/specimen/Barlow) | [OFL-1.1](https://openfontlicense.org/open-font-license-official-text/) | Texto de la interfaz | `@fontsource/barlow` (400, 500, 600) |
+| JetBrains Mono | [JetBrains](https://www.jetbrains.com/lp/mono/) | [Google Fonts](https://fonts.google.com/specimen/JetBrains+Mono) | [OFL-1.1](https://openfontlicense.org/open-font-license-official-text/) | Cifras y códigos | `@fontsource-variable/jetbrains-mono` |
 
 ## Gráficos procedurales (sin atribución de assets)
 

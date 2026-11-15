@@ -1,5 +1,5 @@
 export interface CreditEntry {
-  id: 'astronaut' | 'walker' | 'galaxy' | 'erizon' | 'console';
+  id: 'astronaut' | 'walker' | 'galaxy' | 'erizon' | 'console' | 'fontChakra' | 'fontBarlow' | 'fontJetbrains';
   title: string;
   author: string;
   authorUrl: string;
@@ -9,12 +9,15 @@ export interface CreditEntry {
   commercialOk: boolean;
   /** Clave i18n (ns ui) con la indicación de modificación. */
   modifiedKey: string;
+  /** Clave i18n de la fuente (por defecto `credits.source`, Sketchfab). */
+  sourceKey?: string;
 }
 
 const CC_BY = 'https://creativecommons.org/licenses/by/4.0/';
 const CC_BY_NC_ND = 'https://creativecommons.org/licenses/by-nc-nd/4.0/';
+const OFL = 'https://openfontlicense.org/open-font-license-official-text/';
 
-/** Atribuciones de los modelos 3D (todos de Sketchfab). Espejo de assets/CREDITS.md. */
+/** Atribuciones de los modelos 3D (Sketchfab) y de las tipografías (OFL). Espejo de assets/CREDITS.md. */
 export const CREDITS: CreditEntry[] = [
   {
     id: 'astronaut', title: 'Astronaut by Jungle Jim', author: 'Jungle Jim', authorUrl: 'https://sketchfab.com/jungle_jim',
@@ -40,5 +43,21 @@ export const CREDITS: CreditEntry[] = [
     id: 'console', title: 'Sci-Fi Computer Desk Console', author: 'Inditrion Dradnon', authorUrl: 'https://sketchfab.com/dradnon',
     sourceUrl: 'https://sketchfab.com/3d-models/sci-fi-computer-desk-console-28c67457f2ef4973a0bbc8b667bb183f',
     license: 'CC-BY 4.0', licenseUrl: CC_BY, commercialOk: true, modifiedKey: 'credits.modifiedCompressed',
+  },
+  // Tipografías de la interfaz (sistema visual): OFL 1.1, empaquetadas con @fontsource (sin peticiones a terceros).
+  {
+    id: 'fontChakra', title: 'Chakra Petch', author: 'Cadson Demak', authorUrl: 'https://github.com/cadsondemak/Chakra-Petch',
+    sourceUrl: 'https://fonts.google.com/specimen/Chakra+Petch', license: 'OFL 1.1', licenseUrl: OFL, commercialOk: true,
+    modifiedKey: 'credits.modifiedNone', sourceKey: 'credits.sourceFonts',
+  },
+  {
+    id: 'fontBarlow', title: 'Barlow', author: 'Jeremy Tribby', authorUrl: 'https://github.com/jpt/barlow',
+    sourceUrl: 'https://fonts.google.com/specimen/Barlow', license: 'OFL 1.1', licenseUrl: OFL, commercialOk: true,
+    modifiedKey: 'credits.modifiedNone', sourceKey: 'credits.sourceFonts',
+  },
+  {
+    id: 'fontJetbrains', title: 'JetBrains Mono', author: 'JetBrains', authorUrl: 'https://www.jetbrains.com/lp/mono/',
+    sourceUrl: 'https://fonts.google.com/specimen/JetBrains+Mono', license: 'OFL 1.1', licenseUrl: OFL, commercialOk: true,
+    modifiedKey: 'credits.modifiedNone', sourceKey: 'credits.sourceFonts',
   },
 ];

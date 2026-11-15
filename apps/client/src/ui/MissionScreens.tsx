@@ -23,6 +23,7 @@ import { useUi } from '../state/ui';
 import { fmt } from './common';
 import { GlossaryButton, GlossaryPanel, useGlossary } from './Glossary';
 import { LanguageSelect } from './Screens';
+import { SectionLabel, SegBar, Tag } from './kit';
 
 const GROUP_ICON: Record<PaletteGroup, ReactNode> = {
   structure: <Box size={15} />,
@@ -47,7 +48,7 @@ const RESOURCE_ICON: Record<DesignResourceId, ReactNode> = {
   fuel: <Fuel size={18} />,
 };
 
-const STATUS_BAR = { ok: 'bg-accent', tight: 'bg-warn', over: 'bg-bad' } as const;
+const STATUS_TONE = { ok: 'accent', tight: 'warn', over: 'bad' } as const;
 const STATUS_TEXT = { ok: 'text-slate-100', tight: 'text-warn', over: 'text-bad' } as const;
 
 const partName = (id: string): string => i18n.t(`catalog.${id}`, { ns: 'sim' });
@@ -67,25 +68,27 @@ function Difficulty({ level }: { level: number }) {
   );
 }
 
-function MissionCard({ mission }: { mission: MissionDef }) {
+function MissionCard({ mission, index }: { mission: MissionDef; index: number }) {
   const { t } = useTranslation();
   const bodies = mission.destinations.map((id) => t(`catalog.${id}`, { ns: 'sim' })).join(' · ');
   const kinds = mission.requirements.requiredKinds.map((k) => t(`design.science.${k}`, { ns: 'sim' })).join(', ');
   return (
-    <button
-      className="console-panel flex flex-col gap-1.5 p-4 text-left transition hover:border-accent focus-visible:border-accent"
-      onClick={() => useGame.getState().openDesign(mission.id)}
-    >
-      <span className="flex items-start justify-between gap-2">
-        <span className="text-base font-bold text-slate-100">{lt(mission.name)}</span>
+    <button className="mission-card console-panel group flex flex-col gap-2 p-4 text-left" onClick={() => useGame.getState().openDesign(mission.id)}>
+      {/* Expediente: código, etiquetas y dificultad arriba; nombre; descripción; ficha de datos. */}
+      <span className="flex items-center gap-2">
+        <span className="panel-code" aria-hidden="true">EXP-{String(index + 1).padStart(2, '0')}</span>
+        <span className="ticks flex-1" aria-hidden="true" />
+        {mission.guided && <Tag tone="accent">{t('missions.guided')}</Tag>}
         <Difficulty level={mission.difficulty} />
-        {mission.guided && <span className="num rounded border border-accent/60 px-1.5 text-[10px] uppercase tracking-wider text-accent">{t('missions.guided')}</span>}
       </span>
-      <span className="text-xs text-slate-400">{lt(mission.description)}</span>
-      <span className="num text-xs text-accent">{t('missions.destinations', { bodies })}</span>
-      <span className="num text-xs text-slate-200">{t('missions.money', { budget: fmt(mission.budgetMUSD, 0), months: fmt(mission.deadlineMonths, 0) })}</span>
-      <span className="num text-xs text-slate-200">{t('missions.science', { min: fmt(mission.requirements.minScience, 0), kinds })}</span>
-      {hasSavedDesign(mission.id) && <span className="num text-[11px] uppercase tracking-wider text-ok">{t('missions.saved')}</span>}
+      <span className="display text-base font-semibold !tracking-[0.1em] text-slate-50 group-hover:text-accent">{lt(mission.name)}</span>
+      <span className="text-sm leading-snug text-slate-300">{lt(mission.description)}</span>
+      <span className="mt-auto flex flex-col gap-1 border-t border-line pt-2">
+        <span className="num flex items-center gap-2 text-xs text-accent"><span className="h-px w-2 shrink-0 bg-accent" aria-hidden="true" />{t('missions.destinations', { bodies })}</span>
+        <span className="num flex items-center gap-2 text-xs text-slate-200"><span className="h-px w-2 shrink-0 bg-slate-500" aria-hidden="true" />{t('missions.money', { budget: fmt(mission.budgetMUSD, 0), months: fmt(mission.deadlineMonths, 0) })}</span>
+        <span className="num flex items-center gap-2 text-xs text-slate-200"><span className="h-px w-2 shrink-0 bg-slate-500" aria-hidden="true" />{t('missions.science', { min: fmt(mission.requirements.minScience, 0), kinds })}</span>
+      </span>
+      {hasSavedDesign(mission.id) && <Tag tone="ok" className="self-start">{t('missions.saved')}</Tag>}
     </button>
   );
 }
@@ -98,18 +101,25 @@ export function MissionsScreen() {
     return () => window.removeEventListener('keydown', k);
   }, []);
   return (
-    <div className="absolute inset-0 z-10 flex flex-col items-center gap-5 overflow-auto bg-black/40 p-4 sm:p-8">
-      <div className="flex w-full max-w-5xl items-center justify-between gap-3">
-        <button className="btn flex items-center gap-1" onClick={() => useGame.getState().toMenu()}>
-          <ArrowLeft size={15} /> {t('common.menu')}
-        </button>
-        <h1 className="num text-xl uppercase tracking-[0.3em] text-accent">{t('missions.title')}</h1>
-        <LanguageSelect />
-      </div>
-      <div className="grid w-full max-w-5xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {getMissions(getRun()?.catalog).map((m) => (
-          <MissionCard key={m.id} mission={m} />
-        ))}
+    <div className="absolute inset-0 z-10 overflow-auto">
+      <div className="menu-veil pointer-events-none fixed inset-0" aria-hidden="true" />
+      <div className="scanlines pointer-events-none fixed inset-0" aria-hidden="true" />
+      <div className="ui-enter relative mx-auto flex w-full max-w-6xl flex-col gap-5 p-4 sm:p-8">
+        <header className="flex flex-wrap items-center gap-4 border-b border-line pb-3">
+          <button className="btn" onClick={() => useGame.getState().toMenu()}>
+            <ArrowLeft size={15} aria-hidden="true" /> {t('common.menu')}
+          </button>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="panel-code" aria-hidden="true">MSN // 01</span>
+            <h1 className="display text-2xl font-semibold text-slate-50">{t('missions.title')}</h1>
+          </div>
+          <LanguageSelect />
+        </header>
+        <div className="ui-stagger grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {getMissions(getRun()?.catalog).map((m, i) => (
+            <MissionCard key={m.id} mission={m} index={i} />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -155,12 +165,8 @@ function Meter({ r, ghost, why }: { r: DesignResource; ghost?: DesignResource; w
           {t('design.meter', { used: fmt(r.used, digits), available: fmt(r.available, digits), unit })}
         </span>
       </div>
-      <div className="relative h-3.5 overflow-hidden rounded-sm bg-black/60 ring-1 ring-line">
-        {ghostFill !== null && <div className="absolute inset-y-0 left-0 bg-white/25" style={{ width: `${(Math.min(1.25, ghostFill) / 1.25) * 100}%` }} />}
-        <div className={`absolute inset-y-0 left-0 ${STATUS_BAR[r.status]} ${r.status === 'over' ? 'animate-pulse' : ''}`} style={{ width: `${(fill / 1.25) * 100}%` }} />
-        {/* La marca blanca es el límite (100 %). */}
-        <div className="absolute inset-y-0 w-0.5 bg-white/90" style={{ left: `${100 / 1.25}%` }} />
-      </div>
+      {/* Escala hasta 125 %: la marca blanca es el límite (100 %); el fantasma, cómo quedaría con la pieza señalada. */}
+      <SegBar pct={fill * 100} ghost={ghostFill !== null ? ghostFill * 100 : undefined} marker={100} max={125} tone={STATUS_TONE[r.status]} pulse={r.status === 'over'} seg={7} className="h-2.5" />
       {why && <p className="text-[11px] leading-tight text-slate-400">{line}</p>}
     </div>
   );
@@ -173,11 +179,17 @@ function ReviewPanel({ review, onLaunch }: { review: DesignReview; onLaunch: () 
   const shared = useGame((g) => g.sharedDesign);
   return (
     <div className="console-panel flex flex-col gap-2 p-3">
-      <div className="flex items-center justify-between gap-2">
-        <span className="num text-xs uppercase tracking-widest text-slate-400">{t('design.review')}</span>
-        <span className={`num text-lg font-bold tracking-widest ${go ? 'text-ok' : 'text-bad'}`}>{go ? t('design.goTitle') : t('design.noGoTitle')}</span>
+      <div className={`-mx-3 -mt-3 mb-1 flex items-center justify-between gap-2 border-b px-3 py-2 ${go ? 'border-ok/50 bg-ok/10' : 'border-bad/50 bg-bad/10'}`}>
+        <span className="flex flex-col">
+          <span className="panel-code" aria-hidden="true">QA-06</span>
+          <span className="label-code !text-slate-300">{t('design.review')}</span>
+        </span>
+        <span className={`display flex items-center gap-2 text-xl font-bold ${go ? 'text-ok' : 'text-bad'}`}>
+          {go ? <CircleCheck size={20} aria-hidden="true" /> : <CircleX size={20} aria-hidden="true" />}
+          {go ? t('design.goTitle') : t('design.noGoTitle')}
+        </span>
       </div>
-      <ul className="flex max-h-52 flex-col gap-1 overflow-auto text-xs" aria-live="polite">
+      <ul className="flex max-h-52 flex-col gap-1 overflow-auto text-xs [@media(max-height:780px)]:max-h-24" aria-live="polite">
         {sortedIssues(review).map((x, i) => (
           <li key={`${x.code}-${i}`} className={`flex items-start gap-1.5 ${x.severity === 'blocker' ? 'text-bad' : x.severity === 'warning' ? 'text-warn' : 'text-ok'}`}>
             <span className="mt-px shrink-0">{x.severity === 'blocker' ? <CircleX size={13} /> : x.severity === 'warning' ? <AlertTriangle size={13} /> : <CircleCheck size={13} />}</span>
@@ -188,7 +200,7 @@ function ReviewPanel({ review, onLaunch }: { review: DesignReview; onLaunch: () 
       {shared ? (
         <SharedVote />
       ) : (
-        <button className="btn btn-primary flex items-center justify-center gap-2 !py-3 text-base" disabled={!go} onClick={onLaunch}>
+        <button className="btn btn-primary btn-lg !tracking-[0.08em]" disabled={!go} onClick={onLaunch}>
           <Rocket size={17} /> {go ? t('design.launch') : t('design.launchBlocked')}
         </button>
       )}
@@ -201,11 +213,12 @@ function Pickers({ design, mission, update }: { design: MissionDesign; mission: 
   const dests = destinationOptions(mission);
   // Fase 5: en la misión guiada el lanzador es fijo (solo se enseña el suyo).
   const launchers = launcherOptions(design).filter((l) => !mission.guided || l.launcherId === mission.guided.launcherId);
-  const pill = (on: boolean) => `num rounded border px-2 py-1 text-left text-xs ${on ? 'border-accent bg-accent/15 text-accent' : 'border-line bg-black/40 text-slate-200 hover:border-accent/60'}`;
+  // Selección por `aria-checked` (estilo en `.seg-option`).
+  const pill = (_on: boolean) => 'seg-option chip num px-2 py-1 text-left text-xs';
   return (
     <div className="flex flex-col gap-2">
       <div role="radiogroup" aria-label={t('design.destination')} className="flex flex-wrap items-center gap-1.5">
-        <span className="num w-20 text-[11px] uppercase tracking-widest text-slate-400">{t('design.destination')}</span>
+        <span className="label-code w-20">{t('design.destination')}</span>
         {dests.map((d) => (
           <button key={d.bodyId} role="radio" aria-checked={design.destinationId === d.bodyId} className={pill(design.destinationId === d.bodyId)} onClick={() => update(setDestination(design, d.bodyId))}>
             <span className="font-bold">{t(`catalog.${d.bodyId}`, { ns: 'sim' })}</span>{' '}
@@ -215,7 +228,7 @@ function Pickers({ design, mission, update }: { design: MissionDesign; mission: 
       </div>
       {/* Fase 5: nivel de dificultad (presupuesto, plazo, ciencia pedida y, en vuelo, averías, peligros y ventanas). */}
       <div role="radiogroup" aria-label={t('design.difficulty')} className="flex flex-wrap items-center gap-1.5">
-        <span className="num w-20 text-[11px] uppercase tracking-widest text-slate-400">{t('design.difficulty')}</span>
+        <span className="label-code w-20">{t('design.difficulty')}</span>
         {getDifficulties().map((d) => {
           const on = getDifficulty(design.difficultyId).id === d.id;
           return (
@@ -226,7 +239,7 @@ function Pickers({ design, mission, update }: { design: MissionDesign; mission: 
         })}
       </div>
       <div role="radiogroup" aria-label={t('design.launcher')} className="flex flex-wrap items-center gap-1.5">
-        <span className="num w-20 text-[11px] uppercase tracking-widest text-slate-400">{t('design.launcher')}</span>
+        <span className="label-code w-20">{t('design.launcher')}</span>
         {launchers.map((l) => (
           <button
             key={l.launcherId}
@@ -300,7 +313,7 @@ function Palette({ design, update, budgetsNow }: { design: MissionDesign; update
 
   return (
     <div className="console-panel flex min-h-0 flex-col gap-2 p-3">
-      <div className="num text-xs uppercase tracking-widest text-accent">{t('design.palette')}</div>
+      <SectionLabel code="BOM-01">{t('design.palette')}</SectionLabel>
       <div role="tablist" className="flex flex-wrap gap-1">
         {groups.map((g) => {
           const n = mountedIn(g);
@@ -310,7 +323,7 @@ function Palette({ design, update, budgetsNow }: { design: MissionDesign; update
               role="tab"
               aria-selected={g === group}
               title={t(`design.group.${g}`)}
-              className={`num flex items-center gap-1 rounded border px-1.5 py-1 text-[11px] ${g === group ? 'border-accent bg-accent/15 text-accent' : 'border-line text-slate-300 hover:border-accent/60'}`}
+              className="seg-option chip num flex items-center gap-1 px-1.5 py-1 text-[11px]"
               onClick={() => setGroup(g)}
             >
               {GROUP_ICON[g]}
@@ -326,7 +339,7 @@ function Palette({ design, update, budgetsNow }: { design: MissionDesign; update
           const name = partName(part.id);
           const br = breaks[i] ?? [];
           return (
-            <li key={part.id} className={`flex items-stretch gap-1 rounded border ${n > 0 ? 'border-accent/60 bg-accent/5' : 'border-line bg-black/30'}`}>
+            <li key={part.id} className={`flex items-stretch gap-1 border transition-colors hover:border-accent/60 ${n > 0 ? 'border-accent/60 bg-accent/5 shadow-[inset_2px_0_0_var(--color-accent)]' : 'border-line bg-black/30'}`}>
               <button
                 ref={(el) => {
                   refs.current[i] = el;
@@ -395,11 +408,11 @@ function Mounted({ design, update }: { design: MissionDesign; update: (d: Missio
   if (chips.length === 0) return <p className="console-panel px-3 py-2 text-sm text-slate-300">{t('design.empty')}</p>;
   return (
     <div className="console-panel flex max-w-full flex-wrap items-center gap-1 px-2 py-1.5">
-      <span className="num mr-1 text-[10px] uppercase tracking-widest text-slate-400">{t('design.mounted')}</span>
+      <span className="label-code mr-1">{t('design.mounted')}</span>
       {chips.map(({ part, n }) => {
         const name = partName(part.id);
         return (
-          <button key={`${part.kind}:${part.id}`} className="num flex items-center gap-1 rounded border border-line bg-black/40 px-1.5 py-0.5 text-[11px] text-slate-200 hover:border-bad hover:text-bad" aria-label={t('design.remove', { part: name })} title={t('design.remove', { part: name })} onClick={() => update(removePart(design, part))}>
+          <button key={`${part.kind}:${part.id}`} className="chip num flex items-center gap-1 border border-line bg-black/40 px-1.5 py-0.5 text-[11px] text-slate-200 hover:border-bad hover:text-bad focus-visible:border-bad" aria-label={t('design.remove', { part: name })} title={t('design.remove', { part: name })} onClick={() => update(removePart(design, part))}>
             {name}
             {n > 1 && <span className="text-accent">×{n}</span>}
             <Minus size={11} aria-hidden="true" />
@@ -453,11 +466,12 @@ export function DesignScreen() {
       {/* Arriba: volver, misión, destino y lanzador. */}
       <header className="console-panel flex flex-col gap-2 p-2 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-start gap-2">
-          <button className="btn flex shrink-0 items-center gap-1" onClick={() => useGame.getState().openMissions()}>
+          <button className="btn shrink-0" onClick={() => useGame.getState().openMissions()}>
             <ArrowLeft size={15} /> {shared ? t('design.backToRoom') : t('design.back')}
           </button>
           <div className="min-w-0">
-            <h1 className="num truncate text-base uppercase tracking-widest text-accent">{t('design.title', { mission: lt(mission.name) })}</h1>
+            <span className="panel-code" aria-hidden="true">HGR // 04</span>
+            <h1 className="display truncate text-base font-semibold text-slate-50">{t('design.title', { mission: lt(mission.name) })}</h1>
             <p className="truncate text-xs text-slate-400">{lt(mission.description)}</p>
           </div>
         </div>
@@ -482,10 +496,10 @@ export function DesignScreen() {
         </div>
 
         <aside className="flex w-full flex-col gap-2 overflow-auto lg:w-[21rem]">
-          <div className="console-panel flex flex-col gap-2.5 p-3">
+          <div className="console-panel flex flex-col gap-2 p-3">
             <div className="flex items-center justify-between">
-              <span className="num text-xs uppercase tracking-widest text-accent">{t('design.budgets')}</span>
-              <button className="num text-[11px] text-slate-400 hover:text-accent" onClick={() => setWhy((w) => !w)} aria-pressed={why}>
+              <SectionLabel code="BUD-02" className="mr-2 min-w-0 flex-1">{t('design.budgets')}</SectionLabel>
+              <button className="num shrink-0 whitespace-nowrap text-[11px] text-slate-400 hover:text-accent" onClick={() => setWhy((w) => !w)} aria-pressed={why}>
                 {why ? t('design.whyOn') : t('design.whyOff')}
               </button>
             </div>

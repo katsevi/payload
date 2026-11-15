@@ -1,7 +1,7 @@
 import { Activity, AlertTriangle, BatteryMedium, FlaskConical, Flame, Fuel, HardDrive, Heart, Navigation, SatelliteDish, Shield, Sun, Telescope, Thermometer, Wind, Wrench, Zap } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { catalog as defaultCatalog, findBody, getMissions, getNode, getPsychRules, type EventTone, type IncidentKind, type RunState } from '@payload/shared';
+import { catalog as defaultCatalog, findBody, getMissions, getNode, getPsychRules, type IncidentKind, type RunState } from '@payload/shared';
 import { effectiveShipOf, maxPowerKwOf } from '../game/effective';
 import { getRun, TOAST_MS, useGame } from '../game/runStore';
 import { lt, tr } from '../i18n';
@@ -16,12 +16,35 @@ import { DescentHud, FallAlert, ToolCompass, O2Vignette, ShipCompass, SuitVitals
 import { myCrew } from '../game/me';
 import { moraleView } from '../game/sanityFx';
 import { SanityVignette } from './SanityVignette';
+import { SegBar, Toast, type Tone } from './kit';
 
-const TONE_TEXT: Record<EventTone, string> = { info: 'text-slate-200 border-line', ok: 'text-ok border-ok/60', warn: 'text-warn border-warn/60', bad: 'text-bad border-bad/70' };
+/** Cabecera mínima de un bloque del HUD: código decorativo y regla con marcas (no comunica nada). */
+export function HudHead({ code }: { code: string }) {
+  return (
+    <div className="-mt-1 mb-0.5 flex items-center gap-2" aria-hidden="true">
+      <span className="panel-code !text-[9px] opacity-80">{code}</span>
+      <span className="ticks flex-1 opacity-60" />
+    </div>
+  );
+}
+
+/** Mira: punto y cuatro marcas finas (no tapa lo que se apunta). */
+function Crosshair() {
+  return (
+    <div className="absolute left-1/2 top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2" aria-hidden="true">
+      <span className="absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 bg-white/85" />
+      <span className="absolute left-1/2 top-0 h-1.5 w-px -translate-x-1/2 bg-white/50" />
+      <span className="absolute bottom-0 left-1/2 h-1.5 w-px -translate-x-1/2 bg-white/50" />
+      <span className="absolute left-0 top-1/2 h-px w-1.5 -translate-y-1/2 bg-white/50" />
+      <span className="absolute right-0 top-1/2 h-px w-1.5 -translate-y-1/2 bg-white/50" />
+    </div>
+  );
+}
+
 const INCIDENT_ICON: Record<IncidentKind, ReactNode> = { fire: <Flame size={14} />, short: <Zap size={14} />, leak: <Wind size={14} /> };
 
 export type Level = 'ok' | 'warn' | 'bad';
-const LEVEL_BAR: Record<Level, string> = { ok: 'bg-accent', warn: 'bg-warn', bad: 'bg-bad' };
+const LEVEL_TONE: Record<Level, Tone> = { ok: 'accent', warn: 'warn', bad: 'bad' };
 const LEVEL_TEXT: Record<Level, string> = { ok: 'text-slate-100', warn: 'text-warn', bad: 'text-bad' };
 export const levelOf = (pct: number, warn: number, bad: number): Level => (pct <= bad ? 'bad' : pct <= warn ? 'warn' : 'ok');
 
@@ -31,10 +54,7 @@ export function Gauge({ icon, label, pct, text, level, marker }: { icon: ReactNo
       <span className={`${LEVEL_TEXT[level]} ${level === 'bad' ? 'animate-pulse' : ''}`} title={label}>
         {icon}
       </span>
-      <div className="relative h-2.5 w-36 overflow-hidden rounded-sm bg-black/60 ring-1 ring-line">
-        <div className={`h-full ${LEVEL_BAR[level]}`} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
-        {marker !== undefined && <div className="absolute top-0 h-full w-0.5 bg-white/80" style={{ left: `${Math.max(0, Math.min(100, marker))}%` }} />}
-      </div>
+      <SegBar pct={pct} tone={LEVEL_TONE[level]} marker={marker} seg={5} className="h-2 w-36" />
       <span className={`num w-24 text-xs ${LEVEL_TEXT[level]}`}>
         <span className="sr-only">{label} </span>
         {text}
@@ -73,7 +93,8 @@ function Vitals({ s }: { s: RunState }) {
   const demandPct = (s.ship.powerDemandKw / maxKw) * 100;
   const blackout = s.ship.powerSupplyKw <= 0;
   return (
-    <div className="console-panel absolute left-3 top-3 flex flex-col gap-1.5 p-3">
+    <div className="hud-frame absolute left-3 top-3 flex flex-col gap-1.5 p-3">
+      <HudHead code="SHP-01" />
       <Gauge icon={<Shield size={16} />} label={t('hud.hull')} pct={hullPct} text={`${Math.ceil(s.ship.hull)}`} level={levelOf(hullPct, 50, 30)} />
       <Gauge icon={<Heart size={16} />} label={t('hud.oxygen')} pct={s.ship.oxygenPct} text={`${Math.ceil(s.ship.oxygenPct)} %`} level={levelOf(s.ship.oxygenPct, 55, 35)} />
       <Gauge icon={<Fuel size={16} />} label={t('hud.fuel')} pct={fuelPct} text={`${Math.floor(s.ship.fuel)}`} level={levelOf(fuelPct, 35, 20)} />
@@ -188,21 +209,19 @@ function Voyage({ s }: { s: RunState }) {
   const pct = s.transit ? (s.transit.traveledLy / s.transit.distanceLy) * 100 : 0;
   const eta = s.transit && s.ship.speedLyPerS > 0 ? Math.ceil((s.transit.distanceLy - s.transit.traveledLy) / s.ship.speedLyPerS) : null;
   return (
-    <div className="console-panel absolute left-1/2 top-3 flex min-w-64 -translate-x-1/2 flex-col items-center gap-1 px-4 py-2 text-center">
-      <div className="num text-[10px] uppercase tracking-widest text-slate-400">
+    <div className="hud-frame absolute left-1/2 top-3 flex min-w-72 -translate-x-1/2 flex-col items-center gap-1 px-5 py-2 text-center">
+      <div className="label-code">
         {t('hud.sector', { sector: s.sector.index })} · {t('hud.score', { score: s.score })}
       </div>
       {s.missionDesign && <MissionLine s={s} />}
       {s.surface ? (
         <WorldBadge s={s} />
       ) : (
-        <div className="text-sm text-slate-100">{s.transit ? t('hud.transit', { node: nodeName(target) }) : t('hud.docked', { node: nodeName(target) })}</div>
+        <div className="display text-sm font-semibold !tracking-[0.1em] text-slate-50">{s.transit ? t('hud.transit', { node: nodeName(target) }) : t('hud.docked', { node: nodeName(target) })}</div>
       )}
       {s.transit && (
         <>
-          <div className="h-1.5 w-56 overflow-hidden rounded-sm bg-black/60 ring-1 ring-line">
-            <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
-          </div>
+          <SegBar pct={pct} seg={4} className="h-1.5 w-60" />
           <div className={`num text-xs ${eta === null ? 'animate-pulse text-bad' : 'text-slate-300'}`}>
             {t(`throttle.${s.ship.throttle}`, { ns: 'sim' })} · {eta === null ? t('hud.stopped') : t('hud.eta', { seconds: eta })}
           </div>
@@ -221,7 +240,7 @@ function Alerts({ s }: { s: RunState }) {
     <>
       {(warning || evaded) && (
         <div
-          className={`num absolute left-1/2 top-24 flex -translate-x-1/2 items-center gap-2 rounded border px-4 py-2 text-lg font-bold ${warning ? 'animate-pulse border-warn bg-warn/15 text-warn' : 'border-ok/60 bg-ok/10 text-ok'}`}
+          className={`banner display absolute left-1/2 top-24 flex -translate-x-1/2 items-center gap-2 text-lg font-bold ${warning ? 'animate-pulse bg-warn/20 text-warn' : 'bg-ok/15 text-ok'}`}
           role="alert"
         >
           {warning ? <AlertTriangle size={22} /> : <Navigation size={20} />}
@@ -231,7 +250,7 @@ function Alerts({ s }: { s: RunState }) {
       {s.incidents.length > 0 && (
         <ul className="absolute left-3 top-44 flex flex-col gap-1" aria-live="assertive">
           {s.incidents.map((inc) => (
-            <li key={inc.id} className={`num flex items-center gap-1.5 rounded border bg-panel/85 px-2 py-1 text-xs ${inc.kind === 'short' ? 'border-warn/70 text-warn' : 'border-bad/70 text-bad'}`}>
+            <li key={inc.id} className={`toast num ui-enter flex items-center gap-1.5 !py-1 text-xs ${inc.kind === 'short' ? 'text-warn' : 'text-bad'}`}>
               {INCIDENT_ICON[inc.kind]}
               {t(`incident.${inc.kind}`, { ns: 'sim' })} · {t(`systemName.${inc.systemId}`, { ns: 'sim' })}
             </li>
@@ -250,9 +269,9 @@ function Toasts() {
   return (
     <ul className="absolute right-3 top-14 flex w-80 flex-col items-end gap-1" role="log" aria-live="polite">
       {visible.map((x) => (
-        <li key={x.id} className={`rounded border bg-panel/90 px-3 py-1.5 text-right text-sm ${TONE_TEXT[x.tone]}`}>
+        <Toast key={x.id} tone={x.tone} className="text-right">
           {tr(x.message)}
-        </li>
+        </Toast>
       ))}
     </ul>
   );
@@ -273,11 +292,11 @@ function PromptBar() {
   const throttle = typeof altParams.throttle === 'string' ? t(`throttle.${altParams.throttle}`, { ns: 'sim' }) : null;
   return (
     <div className="absolute bottom-20 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1.5">
-      <div className={`console-panel flex items-center gap-2 px-4 py-2 text-sm ${prompt.blocked ? 'text-slate-400' : prompt.warn ? 'text-warn' : 'text-slate-100'}`}>
+      <div className={`hud-frame flex items-center gap-2 px-4 py-2 text-sm ${prompt.blocked ? 'text-slate-400' : prompt.warn ? 'text-warn' : 'text-slate-100'}`}>
         {!prompt.blocked && (
           <>
             <span className="kbd">{t(prompt.inputKey ?? 'keys.interact')}</span>
-            {!prompt.noVerb && <span className="text-xs uppercase tracking-wider text-slate-400">{prompt.hold ? t('prompt.hold') : t('prompt.press')}</span>}
+            {!prompt.noVerb && <span className="label-code">{prompt.hold ? t('prompt.hold') : t('prompt.press')}</span>}
           </>
         )}
         {prompt.icon && (
@@ -290,18 +309,16 @@ function PromptBar() {
           {system && ` · ${system}`}
         </span>
         {prompt.badges?.map((b) => (
-          <span key={b.key} className={`num rounded border px-1.5 text-xs ${b.tone === 'warn' ? 'border-warn text-warn' : 'border-line text-accent'}`}>
+          <span key={b.key} className={`tag !text-[11px] !tracking-normal !normal-case ${b.tone === 'warn' ? 'text-warn' : 'text-accent'}`}>
             {t(b.key, b.params ?? {})}
           </span>
         ))}
       </div>
       {(prompt.hold || prompt.progressBar) && !prompt.blocked && (
-        <div className="h-2 w-56 overflow-hidden rounded-sm bg-black/60 ring-1 ring-line">
-          <div className="h-full bg-accent" style={{ width: `${prompt.progress * 100}%` }} />
-        </div>
+        <SegBar pct={prompt.progress * 100} seg={4} solid={prompt.hold} className="h-1.5 w-60" />
       )}
       {prompt.altKey && (
-        <div className="console-panel flex items-center gap-2 px-3 py-1 text-xs text-slate-200">
+        <div className="hud-frame flex items-center gap-2 px-3 py-1 text-xs text-slate-200">
           <span className="kbd">{t('keys.alt')}</span>
           {t(prompt.altKey)}
           {throttle && <span className="num text-accent">{throttle}</span>}
@@ -339,14 +356,14 @@ export function Hud() {
         </>
       )}
       <Toasts />
-      <div className="num absolute right-3 top-3 rounded border border-line bg-panel/80 px-2 py-1 text-xs text-slate-400">{t('hud.helpHint')}</div>
+      <div className="hud-frame num absolute right-3 top-3 px-2 py-1 text-xs text-slate-300">{t('hud.helpHint')}</div>
       {playing && overlay === null && (
         <>
-          <div className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/70" aria-hidden="true" />
+          <Crosshair />
           {!eva && <SkillHud />}
           {!eva && <HelmPointer />}
           <PromptBar />
-          {!locked && <div className="num absolute bottom-3 left-1/2 -translate-x-1/2 rounded bg-black/60 px-3 py-1 text-xs text-slate-300">{t('hud.clickToPlay')}</div>}
+          {!locked && <div className="hud-frame label-code absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1.5 !text-slate-200">{t('hud.clickToPlay')}</div>}
         </>
       )}
     </div>

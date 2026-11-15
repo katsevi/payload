@@ -5,6 +5,12 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+### Rediseño del sistema visual de la interfaz (`@payload/client`)
+- Sistema de diseño en `index.css` (tokens fríos con estados ok/ámbar/rojo, chaflanes, líneas de 1 px, barras segmentadas, etiquetas de ficha técnica, entradas cortas que respetan `prefers-reduced-motion`) y kit `ui/kit.tsx` (`Button`, `SegBar`, `Tag`, `KeyHint`, `StatRow`, `SectionLabel`, `Tabs`, `Toast`); `Panel` con cabecera de código y `Modal` con fondo desenfocado.
+- Menú principal nuevo: logotipo tipográfico, navegación lateral con índice y teclado (↑↓ + Intro), ficha con la descripción de la entrada señalada, versión y teclas; la galaxia del fondo pasa a la derecha.
+- Misiones como expedientes, hangar, ajustes, créditos, ayuda, pausa, fin de partida tipo informe, cooperativo, mapa estelar y solar, terminal, panel de energía, glosario y HUD de nave, superficie y descenso con el nuevo estilo (sin cambios de lógica ni de información).
+- Tipografías OFL 1.1 empaquetadas (Chakra Petch, Barlow, JetBrains Mono vía `@fontsource`), registradas en `assets/CREDITS.md` y en la pantalla de créditos.
+
 ### Hangar con nave realista (`@payload/client`)
 - El hangar del diseño de misión pinta una sonda creíble en lugar de bloques: modelo procedural por familia (bus octogonal con MLI, tobera o propulsores iónicos, alas solares con celdas, RTG y reactor con radiadores, antena parabólica o de látigo, radiadores, escudo Whipple o generador, tanques en cercha, instrumentos bajo la proa), variantes deducidas de los datos del catálogo.
 - Montaje pieza a pieza: cada pieza baja de la grúa, se suelda con chispas y se despliega; al quitarla se retira. Fantasma holográfico de la pieza señalada, bastidor vacío sin estructura y hangar con torre de servicio, grúa puente, focos y plataforma giratoria. Archivos nuevos: `gfx/probeModels.ts`, `gfx/hangarShaders.ts`, `scenes/HangarEnv.tsx`; tests en `__tests__/hangar.test.ts`.

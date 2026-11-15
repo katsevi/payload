@@ -14,7 +14,7 @@ desde el servidor. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Dis
 | `game/` | `runStore.ts` (Zustand: crea la `Run`, `tick`, `act`, avisos, mejor marca; `getRun()` = estado vivo; `fx.shake`, `shakeForEvent`, `shipSpawn`, `stopSurfaceLoops`), `layout.ts` (PURO: casco, mamparos, los 9 puestos con la esclusa, `CARGO_BAY`, `nearestStation`, `zoneAt`, `runSecondsBetween`), `interaction.ts` (PURO: `interactionAt` con estimaciones del timón y coste de O₂ de la esclusa, `promptFor`, `holdAction`, `chargedAction`, `altAction`, `nextThrottle`, `sendInChunks`), `surfaceRules.ts` (PURO: posición de la nave en la superficie, `sceneFor`, `surfaceInteractionAt`/`surfacePromptFor`/`surfaceUseAction`/`surfaceAltAction` (herramientas), `toolFor`, `leftOutside`, `nearestReadyTool`, `shipBearing`/`bearingTo`, `brakeThresholdMps`, `stormLevel`, `STORM_WIND_MPS`, `fallDanger`/`predictedImpactMps`, `o2ReturnShort`, ritmo de respiración y pitido), `terrain.ts` (PURO: `createTerrain` → `heightAt`/`chasmAt`, `terrainGrid`), `motion.ts` (PURO: `stepMotion`/`settleMotion`, `SHIP_MOTION`, `surfaceMotion(g, flightLimitsOf(rules))`, `simulateFlight`, `jetpackNetUpMps2`), `noise.ts` (PURO: `hashOf`, `rng`, `mixSeed`, ruido 2D/3D), `dodge.ts` (PURO: esquiva de asteroides en el timón), `repairGames.ts` (PURO: extintor, pulsos y sellado de las averías), `debug.ts` (`reachSurface`, `travelToLandable`, `autoDescend`, `reachStation`, `travelToStation`, `mineForSale`), `effective.ts` (`baseShipOf` = `shipFromDesign(missionDesign)` con diseño o `getShip(shipId)` sin él; `effectiveShipOf`/`effectiveRulesOf`: nave y reglas de superficie con las mejoras, memorizadas; `maxPowerKwOf`: 100 % de la barra de energía a la distancia al Sol actual), `missionDesign.ts` (PURO, fase 4: `addPart`/`removePart` (estructura y propulsión se sustituyen), `PALETTE_GROUPS`/`paletteItems`, `partTokens` (la línea de cada pieza), `previewAdd` (qué se excedería), `meterFill`, `sortedIssues`, `canLaunch`, `destinationOptions`/`launcherOptions`, `startingDesign`, `saveDesign`/`loadDesign`/`sanitizeDesign`/`hasSavedDesign` (localStorage `payload.design.<misión>`), `cycleIndex`/`partKeyAction`), `hangarLayout.ts` (PURO: bloques de la sonda montada con forma, variante, giro, anclaje y orden de montaje; test `hangar.test.ts`), `solarScale.ts` (PURO: escala del mapa solar, ver abajo), `shop.ts` (PURO: terminal de estación: `sellRows`, `supplyRows`, `upgradeRows`/`upgradeDeltas`, `FIELD_INFO`, acciones, `moveFocus`, `cargoFuelPct`, `installedUpgrades`) |
 | `scenes/` | `ShipScene` (`<Canvas>`, entorno de reflejos, `GameLoop`: tick + teclas E/Q/V/H + pausa al soltar el ratón; con la nave posada pinta `LandedView` en vez de `SpaceView`), `ShipInterior` (`Hull`), `ShipStations` (`Stations`: los puestos con sus colisiones), `ShipCargo` (`Airlock3D`, `CargoBay`), `ShipFx` (`ZoneLights`, `IncidentFx`, `Markers`), `ShipMinigames` (`DodgeHolo`: holograma de pilotaje sobre el timón; `FlameTarget`: foco del fuego al que se apunta), `SpaceView`, `SpaceBodies` (`Body`), `SurfaceScene` (`<Canvas>` propio: `DescentLoop` o `SurfaceLoop`), `SurfaceTools` (concentrador solar y taladro láser colocados, con sus estados), `SurfaceWorld` (terreno + colisión trimesh, rocas, vetas, terreno inestable, cielo, niebla, tormenta; `liveTerrain`), `ShipExterior` (la nave posada vista desde fuera, baliza, propulsores, colisiones), `MenuScene` (también tras las tarjetas de misión), `HangarScene` (fase 4: la sonda se monta pieza a pieza con grúa, soldadura y holograma de la pieza señalada; `HangarEnv`: nave de integración, plataforma giratoria, torre, grúa puente, focos), `SolarMapScene` (fase 4: mapa 3D del sistema solar, con `lazy` desde `StarMap`) |
 | `gfx/` | Gráficos procedurales (sin assets que descargar): `textures.ts`, `materials.ts` (`mats()`), `build.tsx` (`Builder`, `Parts`, `once`), `glsl.ts` (ruido y reloj `TIME`), `shipShaders.ts`, `fxShaders.ts` (`puffMaterial` exportado), `spaceShaders.ts`, `surfaceShaders.ts` (parche del suelo: grietas, borde, lava, explanada; cielo; tormenta; polvo; haces; llama de propulsor), `surfaceLook.ts` (paleta por `worldId` y aspecto de cada material de veta), `bodyLook.ts` (aspecto de los cuerpos del mapa solar: deducido de tipo, tamaño, atmósfera y mundo, con tabla propia para los reconocibles), `rocks.ts` (`rockGeometry`, `pebbleGeometry`, `rockMaterial`), `probeModels.ts` (piezas de la sonda del hangar), `hangarShaders.ts` (holograma, haces de focos, chispas de soldadura), `Glow.tsx`, `Sky.tsx` |
-| `ui/` | `MissionScreens` (fase 4: `MissionsScreen` con las tarjetas y `DesignScreen`, el hangar), `names.ts` (`nodeName`: `catalog.<bodyId>` o el nombre del punto de paso; `distanceText`: años luz o unidades de ruta), `Hud` (barras, viaje, alertas, avisos, acción disponible; con diseño, distancia al Sol y paneles bajo la energía y misión → destino; exporta `Gauge`/`levelOf`), `SkillHud` (mira del extintor y barras de pulso/presión, sin React por frame), `SurfaceHud` (`DescentHud`, `SuitVitals` con teclas del jetpack, racha y herramientas, `ShipCompass`, `ToolCompass`, `FallAlert`, `O2Vignette`, `WorldBadge`), `ToolIcon`, `StarMap`, `PowerPanel`, `StationTerminal` (terminal de estación), `Credits` (`CreditsBadge`, `UpgradeIcon`, `UpgradeStrip`), `Screens`, `common` |
+| `ui/` | `kit` (piezas del sistema visual: `Button`, `SegBar`, `Tag`, `KeyHint`, `StatRow`, `SectionLabel`, `Tabs`, `Toast`; ver «Sistema visual (UI)»), `MissionScreens` (fase 4: `MissionsScreen` con las tarjetas y `DesignScreen`, el hangar), `names.ts` (`nodeName`: `catalog.<bodyId>` o el nombre del punto de paso; `distanceText`: años luz o unidades de ruta), `Hud` (barras, viaje, alertas, avisos, acción disponible; con diseño, distancia al Sol y paneles bajo la energía y misión → destino; exporta `Gauge`/`levelOf`), `SkillHud` (mira del extintor y barras de pulso/presión, sin React por frame), `SurfaceHud` (`DescentHud`, `SuitVitals` con teclas del jetpack, racha y herramientas, `ShipCompass`, `ToolCompass`, `FallAlert`, `O2Vignette`, `WorldBadge`), `ToolIcon`, `StarMap`, `PowerPanel`, `StationTerminal` (terminal de estación), `Credits` (`CreditsBadge`, `UpgradeIcon`, `UpgradeStrip`), `Screens`, `common` |
 | `player/` | `PlayerController` (controlador cinemático Rapier parametrizado por `MotionParams`, cámaras 1ª/3ª con rayo contra colisiones, sacudida), `input.ts`, `playerState.ts` (`playerState`, `motionEnv`, `resetPlayerState`) |
 | `audio/` | Web Audio procedural: `soundLogic.ts` y `musicLogic.ts` (puros), `audioEngine.ts`, `cues.ts` (`cue(id)`), `useAudioDirector.ts`, `SoundCaptions.tsx` |
 | `state/` | `ui.ts` (panel abierto, vista, aviso de acción, `descentView`, `hudView`), `settings.ts` (persistido), `minigame.ts` (minijuegos en curso, mutable), `hangar.ts` (pieza señalada en la paleta) |
@@ -400,6 +400,45 @@ pnpm --filter @payload/client test       # game, surface, minigames, shop, desig
 pnpm --filter @payload/client build
 ```
 
+## Sistema visual (UI)
+
+Ciencia ficción técnica y **funcional** (2026-11-14, rama `feat/ui-tecnologica`). Principios tomados como inspiración, nunca
+copiados: menús a pantalla completa sobre fondo 3D vivo con navegación lateral y jerarquía título → descripción → acción;
+HUD diegético de líneas de 1 px, corchetes en las esquinas y cifras monoespaciadas; fichas industriales con códigos,
+unidades y barras segmentadas. Ningún logo, tipografía, icono ni texto de otro juego.
+
+- **Tokens (`src/index.css`, `@theme`):** superficies `void` (fondo), `panel`, `panel-2`; líneas `line` y `line-strong`;
+  texto `ink`; acento frío `accent` (#4cd8ff: interacción, selección, datos propios) y `accent-dim`; `signal` (cálido, solo
+  marcas destacadas, no es estado); estados `ok`/`warn`/`bad` (mismo significado que antes). La escala `slate-*` está
+  retintada en neutros fríos: **`slate-400` o más claro** para texto sobre panel (AA); `slate-500` solo para texto grande
+  o decorativo. Radios a 0-3 px: la forma la dan los chaflanes (`--cut-lg` 14 px, `--cut` 9, `--cut-sm` 6).
+- **Tipografías (OFL 1.1, `@fontsource`, importadas en `main.tsx`, solo latino):** `font-display` Chakra Petch (títulos,
+  botones, etiquetas; mayúsculas con espaciado), `font-sans` Barlow (texto), `font-mono` JetBrains Mono (cifras, códigos;
+  clase `.num`). Registradas en `assets/CREDITS.md` y `src/data/credits.ts`. Sin peticiones a terceros en ejecución.
+- **Clases base:** `.console-panel` (superficie con chaflán, aristas de 1 px y marca de acento; la variable `--edge` cambia
+  la arista), `.chamfer` (igual, chaflán menor), `.chip` (esquina cortada pequeña), `.hud-frame` (HUD: fondo leve y
+  corchetes; `.is-warn`/`.is-bad`), `.btn` + `.btn-primary` (relleno claro = acción principal o «encendido/seleccionado»)
+  / `.btn-danger` / `.btn-ghost` / `.btn-lg`, `.seg-option` (pastillas y pestañas: el estado sale de `aria-checked`,
+  `aria-selected` o `aria-pressed`, no de clases), `.kbd`, `.tag`, `.label-code` (etiqueta de ficha técnica), `.panel-head`
+  / `.panel-code`, `.ticks` (regla con marcas), `.rule`, `.segbar` (+ `-fill`, `-ghost`, `-mark`, `tone-*`), `.toast`,
+  `.banner` (alerta central), `.field` (inputs), `.modal-backdrop`, `.scanlines`, `.menu-*` (menú), `.mission-card`,
+  `.map-grid`, `.ui-enter` / `.ui-stagger` (entrada de 220 ms).
+- **Componentes:** `ui/common.tsx` → `Panel` (`title`, `code` decorativo, `aside`) y `Modal` (fondo desenfocado y
+  entrada). `ui/kit.tsx` → `Button` (`variant`, `size`), `SegBar` (`pct`, `tone`, `marker`, `ghost`, `max`, `seg`,
+  `solid`, `pulse`), `Tag`, `KeyHint`, `StatRow` (dentro de un `<dl>` en rejilla), `SectionLabel` (código + título +
+  marcas), `Tabs`, `Toast`. `Hud.tsx` exporta `HudHead` (código y regla de un bloque del HUD) y `Gauge` (ya con `SegBar`).
+- **Reglas:** usa los componentes y clases antes que utilidades sueltas de color y borde; nada de `rounded-*` nuevo (sale
+  recto); un solo acento por vista; ámbar y rojo solo para estados. Los **códigos decorativos** («SYS-PA», «EXP-03»,
+  «QA-06») no comunican nada y no van por i18n; si un texto informa, va por `t()` (es + en). Foco: `:focus-visible` con
+  contorno de acento; en elementos con `clip-path` (botones, paneles) el foco es un borde interior (el contorno se
+  recortaría). Deshabilitado: rayado + texto `slate-500`, nunca solo opacidad. `prefers-reduced-motion`: sin entradas ni
+  transiciones y los `animate-pulse` pasan a 3 s. Rendimiento: todo es CSS; el HUD sigue leyendo `hud` (~10 Hz) y lo que
+  cambia por frame toca clases o estilos con refs (`useFrameFlag`), nunca `setState`.
+- **Menú (`MenuScreen`):** capas `menu-veil` + `menu-grid` + `scanlines` sobre `MenuScene` (la cámara mira a la izquierda
+  del centro: la galaxia queda a la derecha). Entradas con índice; la señalada (foco o ratón) muestra su línea
+  `menu.desc.<id>` en la ficha de la derecha; ↑↓ mueven el foco, Intro elige. Versión de `package.json` vía
+  `__APP_VERSION__` (`define` en `vite.config.ts`).
+
 ## Pendiente conocido
 
 Hangar: visto en el panel del navegador (lunar, Titán, diseño vacío, diseño cargado de todo); sin FPS medidos y el destello de soldadura no se llegó a capturar en una imagen. Fase 4: hangar y mapa solar revisados en el panel del navegador (sin GPU dedicada ni FPS medidos); solo se vio el
@@ -414,5 +453,9 @@ repetir el pase de terreno y rocas; sin GPU real para medirlo se prefirió el re
 despegue no tiene vista exterior (solo sonido y sacudida); el bucle `wind`, `fallWarn` y los sonidos de herramientas no se han escuchado; la parada del
 concentrador por tormenta (hay hielo, escaso y lejos, en la luna volcánica y el mundo de tormentas) solo se ha
 visto forzándola en el navegador sin cabeza, no jugando.
+Sistema visual (UI): revisado con capturas de Chrome sin cabeza (SwiftShader) a 1440×900 y 1280×720 de menú (es/en),
+misiones, hangar, partida, superficie, descenso, mapa estelar y solar, terminal, energía, pausa, ajustes, ayuda,
+cooperativo (entrada sin servidor) y fin de partida. No visto: lobby con servidor, `CrewBar`, hangar compartido, glosario
+abierto, minijuegos de avería (`SkillHud`), alertas de impacto y averías en vivo, ni pantallas de menos de 1280 px.
 Terminal de estación: verificado en el navegador con el panel oculto (sin `requestAnimationFrame`), así que la
 tecla E en la esclusa y la animación de créditos no se vieron en marcha (la lógica tiene test). Ver `docs/STATUS.md`.

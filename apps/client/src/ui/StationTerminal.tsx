@@ -13,6 +13,7 @@ import { tr } from '../i18n';
 import { useUi } from '../state/ui';
 import { CreditsBadge, UpgradeIcon } from './Credits';
 import { Modal, Panel, fmt } from './common';
+import { SectionLabel } from './kit';
 
 const NOTICE_MS = 2600;
 const SUPPLY_ICON: Record<SupplyId, ReactNode> = { fuel: <Fuel size={15} />, hull: <Shield size={15} />, spares: <Wrench size={15} /> };
@@ -124,18 +125,14 @@ export function StationTerminal() {
   return (
     <Modal onClose={close} wide>
       <div ref={root} onKeyDown={onKeyDown}>
-        <Panel>
-          <div className="mb-3 flex items-center justify-between gap-3 border-b border-line pb-2">
-            <h2 className="num text-sm uppercase tracking-widest text-accent">{t('shop.title', { node: node?.name ?? '' })}</h2>
-            <CreditsBadge credits={s.credits} large />
-          </div>
+        <Panel title={t('shop.title', { node: node?.name ?? '' })} code="TRM-05" aside={<CreditsBadge credits={s.credits} large />}>
           <p className={`num mb-2 h-5 text-xs ${notice ? 'text-warn' : 'text-transparent'}`} role="alert" aria-live="assertive">
             {notice ?? '·'}
           </p>
           <div className="flex flex-col gap-4 lg:flex-row">
             {/* ── Venta de la bodega ── */}
             <section className="flex min-w-0 flex-1 flex-col gap-2" aria-label={t('shop.sell')}>
-              <h3 className="num text-xs uppercase tracking-widest text-slate-400">{t('shop.sell')}</h3>
+              <SectionLabel code="01">{t('shop.sell')}</SectionLabel>
               {sell.length === 0 ? (
                 <p className="text-sm text-slate-400">{t('shop.empty')}</p>
               ) : (
@@ -150,8 +147,8 @@ export function StationTerminal() {
                     }
                     const name = t(`catalog.${row.materialId}`, { ns: 'sim' });
                     return (
-                      <li key={row.materialId} className="flex items-center gap-2 rounded border border-line bg-black/30 px-2 py-1.5 text-sm">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: `${look?.color ?? '#38e1c0'}33`, color: look?.color ?? '#38e1c0' }} aria-hidden="true">
+                      <li key={row.materialId} className="flex items-center gap-2 chip border border-line bg-black/30 px-2 py-1.5 text-sm">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center" style={{ background: `${look?.color ?? '#38e1c0'}33`, color: look?.color ?? '#38e1c0' }} aria-hidden="true">
                           {rare ? <Gem size={14} /> : <Package size={14} />}
                         </span>
                         <span className="min-w-0 flex-1 truncate text-slate-100">{name}</span>
@@ -176,10 +173,10 @@ export function StationTerminal() {
 
             {/* ── Tienda: suministros, ayuda de emergencia y mejoras ── */}
             <section className="flex min-w-0 flex-1 flex-col gap-2" aria-label={t('shop.store')}>
-              <h3 className="num text-xs uppercase tracking-widest text-slate-400">{t('shop.supplies')}</h3>
+              <SectionLabel code="02">{t('shop.supplies')}</SectionLabel>
               <ul className="flex flex-col gap-1.5">
                 {supplies.map((row) => (
-                  <li key={row.supply} className="flex items-center gap-2 rounded border border-line bg-black/30 px-2 py-1.5 text-sm">
+                  <li key={row.supply} className="flex items-center gap-2 chip border border-line bg-black/30 px-2 py-1.5 text-sm">
                     <span className="text-accent" aria-hidden="true">
                       {SUPPLY_ICON[row.supply]}
                     </span>
@@ -207,7 +204,7 @@ export function StationTerminal() {
                   </li>
                 ))}
                 {quote.provisions && s.psych && (
-                  <li className="flex items-center gap-2 rounded border border-line bg-black/30 px-2 py-1.5 text-sm">
+                  <li className="flex items-center gap-2 chip border border-line bg-black/30 px-2 py-1.5 text-sm">
                     <Apple size={15} className="text-accent" aria-hidden="true" />
                     <span className="flex-1 text-slate-100">{t('shop.provisions')}</span>
                     <span className="num text-xs text-slate-300">{t('shop.level', { current: Math.floor(s.psych.provisions), max: Math.floor(s.psych.provisions + quote.provisions.missing) })}</span>
@@ -226,7 +223,7 @@ export function StationTerminal() {
                   </li>
                 )}
                 {quote.emergency.available && (
-                  <li className="flex items-center gap-2 rounded border border-warn/50 bg-warn/5 px-2 py-1.5 text-sm">
+                  <li className="flex items-center gap-2 chip border border-warn/50 bg-warn/5 px-2 py-1.5 text-sm">
                     <LifeBuoy size={15} className="text-warn" aria-hidden="true" />
                     <span className="text-slate-100">{t('shop.emergency')}</span>
                     <span className="num min-w-0 flex-1 truncate text-xs text-slate-300">
@@ -243,7 +240,7 @@ export function StationTerminal() {
                 )}
               </ul>
 
-              <h3 className="num mt-1 text-xs uppercase tracking-widest text-slate-400">{t('shop.upgrades')}</h3>
+              <SectionLabel code="03" className="mt-1">{t('shop.upgrades')}</SectionLabel>
               {upgrades.length === 0 ? (
                 <p className="text-sm text-slate-400">{t('shop.noUpgrades')}</p>
               ) : (
@@ -251,7 +248,7 @@ export function StationTerminal() {
                   {upgrades.map((u) => {
                     const name = t(`catalog.${u.upgradeId}`, { ns: 'sim' });
                     return (
-                      <li key={u.upgradeId} className={`flex items-center gap-2 rounded border px-2 py-1.5 text-sm ${u.level > 0 ? 'border-accent/50 bg-accent/5' : 'border-line bg-black/30'}`}>
+                      <li key={u.upgradeId} className={`flex items-center gap-2 chip border px-2 py-1.5 text-sm ${u.level > 0 ? 'border-accent/50 bg-accent/5' : 'border-line bg-black/30'}`}>
                         <span className="text-accent" aria-hidden="true">
                           <UpgradeIcon field={u.iconField} size={15} />
                         </span>

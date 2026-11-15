@@ -9,7 +9,7 @@ import { ToolIcon } from './ToolIcon';
 import { useSettings } from '../state/settings';
 import { hudView } from '../state/ui';
 import { fmt } from './common';
-import { Gauge, levelOf, MoraleGauge } from './Hud';
+import { Gauge, HudHead, levelOf, MoraleGauge } from './Hud';
 import { myCrew } from '../game/me';
 
 /** Reglas de traje y jetpack EFECTIVAS (con las mejoras): la mochila ampliada se ve con su nuevo tope. */
@@ -40,9 +40,9 @@ function useFrameFlag(ref: RefObject<HTMLElement | null>, flag: () => boolean, c
 
 const FALL_ROW = ['animate-pulse', 'rounded', 'ring-2', 'ring-bad'] as const;
 const FALL_FRAME = ['block', 'animate-pulse'] as const;
-const O2_SHORT = ['animate-pulse', 'border-bad'] as const;
+const O2_SHORT = ['animate-pulse', 'is-bad'] as const;
 const O2_SHORT_ARROW = ['text-bad'] as const;
-const O2_TOOLS = ['border-warn'] as const;
+const O2_TOOLS = ['is-warn'] as const;
 
 /** Nombre y gravedad del mundo (y la tormenta, si la hay): sustituye a «atracada en…» mientras se está en tierra. */
 export function WorldBadge({ s }: { s: RunState }) {
@@ -85,20 +85,21 @@ export function DescentHud({ s }: { s: RunState }) {
   const fuelPct = (s.ship.fuel / ship.fuelCapacity) * 100;
   const engines = s.ship.systems.engines.online && s.ship.fuel > 0;
   return (
-    <div className="console-panel absolute bottom-24 left-1/2 flex w-[22rem] -translate-x-1/2 flex-col gap-2 p-3" role="group" aria-label={t('descent.title')}>
+    <div className="hud-frame absolute bottom-24 left-1/2 flex w-[22rem] -translate-x-1/2 flex-col gap-2 p-3" role="group" aria-label={t('descent.title')}>
+      <HudHead code="DSC-02" />
       <div className="flex items-baseline justify-between">
         <span className="num text-2xl font-bold text-slate-100">{t('descent.altitude', { m: Math.max(0, Math.ceil(d.altitudeM)) })}</span>
         <span className={`num text-lg font-bold ${d.speedMps <= safe ? 'text-ok' : tooFast ? 'text-bad' : 'text-warn'}`}>{t('descent.speed', { v: fmt(d.speedMps, 1) })}</span>
       </div>
       {/* Velocidad: zona segura en verde, marca blanca = por encima de aquí, frena. */}
-      <div className="relative h-4 overflow-hidden rounded-sm bg-black/60 ring-1 ring-line" role="meter" aria-label={t('descent.speedLabel')} aria-valuenow={Math.round(d.speedMps)} aria-valuemin={0} aria-valuemax={Math.round(maxV)}>
+      <div className="segbar relative h-4" style={{ ['--seg' as string]: '5px' }} role="meter" aria-label={t('descent.speedLabel')} aria-valuenow={Math.round(d.speedMps)} aria-valuemin={0} aria-valuemax={Math.round(maxV)}>
         <div className="absolute inset-y-0 left-0 bg-ok/35" style={{ width: pct(safe) }} />
         <div className={`absolute inset-y-0 left-0 ${d.speedMps <= safe ? 'bg-ok' : tooFast ? 'bg-bad' : 'bg-warn'} opacity-80`} style={{ width: pct(d.speedMps) }} />
         <div className="absolute inset-y-0 w-1 bg-white" style={{ left: pct(threshold) }} />
       </div>
       <div className="flex items-center justify-between gap-3">
         <Gauge icon={<Fuel size={16} />} label={t('hud.fuel')} pct={fuelPct} text={`${Math.floor(s.ship.fuel)}`} level={levelOf(fuelPct, 35, 20)} />
-        <div className={`num rounded border px-2 py-0.5 text-sm font-bold uppercase tracking-wider ${tooFast ? 'animate-pulse border-bad text-bad' : 'border-line text-slate-500'}`} aria-live="polite">
+        <div className={`tag display !px-2 !py-0.5 !text-xs font-bold ${tooFast ? 'animate-pulse !text-bad' : '!text-slate-400'}`} aria-live="polite">
           {tooFast ? t('descent.brakeNow') : t('descent.coast')}
         </div>
       </div>
@@ -122,7 +123,8 @@ export function SuitVitals({ s }: { s: RunState }) {
   const o2Level = levelOf(me.suitO2Pct, r.suit.lowO2Pct, r.suit.criticalO2Pct);
   const critical = me.alive && me.suitO2Pct < r.suit.criticalO2Pct;
   return (
-    <div className="console-panel absolute left-3 top-3 flex flex-col gap-1.5 p-3">
+    <div className="hud-frame absolute left-3 top-3 flex flex-col gap-1.5 p-3">
+      <HudHead code="EVA-01" />
       {/* O₂ crítico: no depende de la viñeta (que se puede atenuar): marco rojo y triángulo junto a la barra. */}
       <div className={`flex items-center gap-1 ${critical ? 'animate-pulse rounded ring-2 ring-bad' : ''}`} role={critical ? 'alert' : undefined}>
         <Gauge icon={<Wind size={16} />} label={t('hud.suitO2')} pct={me.suitO2Pct} text={`${Math.ceil(me.suitO2Pct)} %`} level={o2Level} marker={r.suit.lowO2Pct} />
@@ -238,7 +240,7 @@ export function ToolCompass() {
   // Si toca ir ya a por las herramientas, la flecha apunta a la más cercana (tenga o no piezas) en ámbar.
   useFrameFlag(box, () => hudView.o2Route === 'fetch', ['text-warn', 'animate-pulse'], ['text-ok']);
   return (
-    <div ref={box} style={{ display: 'none' }} className="console-panel absolute left-1/2 top-36 flex -translate-x-1/2 items-center gap-2 px-3 py-1 text-ok" role="img" aria-label={t('hud.toolsReady')}>
+    <div ref={box} style={{ display: 'none' }} className="hud-frame absolute left-1/2 top-36 flex -translate-x-1/2 items-center gap-2 px-3 py-1 text-ok" role="img" aria-label={t('hud.toolsReady')}>
       <span ref={arrow} className="inline-flex will-change-transform">
         <ArrowUp size={18} />
       </span>
@@ -311,11 +313,11 @@ export function ShipCompass() {
     return () => cancelAnimationFrame(raf);
   }, []);
   return (
-    <div ref={box} className="console-panel absolute left-1/2 top-24 flex -translate-x-1/2 items-center gap-2 px-3 py-1" role="img" aria-label={t('hud.toShip')}>
+    <div ref={box} className="hud-frame absolute left-1/2 top-24 flex -translate-x-1/2 items-center gap-2 px-3 py-1" role="img" aria-label={t('hud.toShip')}>
       <span ref={arrow} className="inline-flex text-accent will-change-transform">
         <ArrowUp size={20} />
       </span>
-      <span className="num text-xs uppercase tracking-wider text-slate-400">{t('hud.toShip')}</span>
+      <span className="label-code">{t('hud.toShip')}</span>
       <span ref={dist} className="num w-14 text-right text-sm text-slate-100" />
       <span ref={fetchIcon} className="hidden animate-pulse text-warn" aria-label={t('hud.o2Fetch')}>
         <Drill size={18} />

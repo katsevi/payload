@@ -6,6 +6,7 @@ import { effectiveShipOf, maxPowerKwOf } from '../game/effective';
 import { getRun, useGame } from '../game/runStore';
 import { useUi } from '../state/ui';
 import { Modal, Panel } from './common';
+import { SegBar } from './kit';
 
 const POWERED: readonly PoweredSystemId[] = ['engines', 'lifeSupport', 'shields', 'nav'];
 
@@ -54,7 +55,7 @@ export function PowerPanel() {
   const reactor = systemStatus(s, 'reactor');
   return (
     <Modal onClose={close}>
-      <Panel title={t('power.title')}>
+      <Panel title={t('power.title')} code="PWR-02">
         <div className="mb-1 flex items-center justify-between text-sm">
           <span className="text-slate-200">
             {t('systemName.reactor', { ns: 'sim' })} · <span className={STATUS_TEXT[reactor]}>{t(`power.state.${reactor}`)}</span> · <span className="num">{t('power.health', { pct: Math.ceil(s.ship.systems.reactor.healthPct) })}</span>
@@ -63,11 +64,8 @@ export function PowerPanel() {
             {t('power.balance', { demand: Math.round(s.ship.powerDemandKw), supply: Math.round(s.ship.powerSupplyKw) })}
           </span>
         </div>
-        <div className="relative mb-1 h-3 overflow-hidden rounded-sm bg-black/60 ring-1 ring-line" aria-hidden="true">
-          <div className="absolute inset-y-0 left-0 bg-accent/25" style={{ width: `${supplyPct / 1.4}%` }} />
-          <div className={`absolute inset-y-0 left-0 ${s.ship.overloaded ? 'bg-bad' : 'bg-accent'}`} style={{ width: `${demandPct / 1.4}%`, opacity: 0.85 }} />
-          <div className="absolute inset-y-0 w-0.5 bg-white" style={{ left: `${supplyPct / 1.4}%` }} />
-        </div>
+        {/* Escala hasta 140 %: fantasma = suministro, relleno = demanda, marca blanca = suministro. */}
+        <SegBar pct={demandPct} ghost={supplyPct} marker={supplyPct} max={140} tone={s.ship.overloaded ? 'bad' : 'accent'} seg={7} className="mb-1 h-3" />
         {s.sunDistanceAu !== undefined && (
           <p className="num mb-1 text-xs text-warn">{t('power.solar', { kw: Math.round(s.ship.solarSupplyKw ?? 0), au: s.sunDistanceAu.toFixed(2) })}</p>
         )}
@@ -77,7 +75,7 @@ export function PowerPanel() {
             const status = systemStatus(s, id);
             const sys = s.ship.systems[id];
             return (
-              <li key={id} className="flex items-center gap-3 rounded border border-line p-2">
+              <li key={id} className={`chamfer flex items-center gap-3 p-2 ${sys.enabled ? '' : 'opacity-80'}`}>
                 <span className="kbd" title={t('power.toggle', { key: i + 1 })}>
                   {i + 1}
                 </span>

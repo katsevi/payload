@@ -72,7 +72,7 @@ export function SkillHud() {
       <div ref={reticle} style={{ display: 'none' }} className="absolute left-1/2 top-1/2 h-10 w-10 rounded-full border-2 border-warn" aria-hidden="true" />
       <div ref={dot} style={{ display: 'none' }} className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-warn" aria-hidden="true" />
       <div ref={bar} style={{ display: 'none' }} className="absolute left-1/2 top-[58%] flex -translate-x-1/2 items-center gap-2" aria-hidden="true">
-        <div className="relative h-5 w-64 overflow-hidden rounded-sm bg-black/70 ring-1 ring-line">
+        <div className="segbar is-solid relative h-5 w-64">
           <div ref={fill} className="absolute inset-y-0 left-0 bg-accent/60" />
           {/* Zona buena: corchetes y rayado (se distingue sin color). */}
           <div ref={zone} className="absolute inset-y-0 border-x-4 border-ok bg-[repeating-linear-gradient(45deg,rgba(80,230,160,0.35)_0_4px,transparent_4px_8px)]" />
