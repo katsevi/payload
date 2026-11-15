@@ -5,6 +5,10 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+### Hangar con nave realista (`@payload/client`)
+- El hangar del diseño de misión pinta una sonda creíble en lugar de bloques: modelo procedural por familia (bus octogonal con MLI, tobera o propulsores iónicos, alas solares con celdas, RTG y reactor con radiadores, antena parabólica o de látigo, radiadores, escudo Whipple o generador, tanques en cercha, instrumentos bajo la proa), variantes deducidas de los datos del catálogo.
+- Montaje pieza a pieza: cada pieza baja de la grúa, se suelda con chispas y se despliega; al quitarla se retira. Fantasma holográfico de la pieza señalada, bastidor vacío sin estructura y hangar con torre de servicio, grúa puente, focos y plataforma giratoria. Archivos nuevos: `gfx/probeModels.ts`, `gfx/hangarShaders.ts`, `scenes/HangarEnv.tsx`; tests en `__tests__/hangar.test.ts`.
+
 ## Fase 8 · Cordura de la tripulación
 
 Rama `feat/phase-8-implementation` (2026-11-14). Diseño: `docs/diseno/cordura-tripulacion.md`; ADR 0019 (propuesta).

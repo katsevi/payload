@@ -522,6 +522,14 @@ F3-b. **Ver el terminal de estación** (E en la esclusa atracado, animación de 
 - **Mecha Aurora G9:** aplazado (ADR 0012). Decidir en fases posteriores si vuelve como vehículo o se retira del GDD.
 - **Mascota:** no hay. Si vuelve, Rise sigue necesitando autorización de NASA.
 
+## Hangar con nave realista (2026-11-15, rama `feat/f4-hangar-nave-realista`)
+
+La pantalla de diseño ahora monta una sonda creíble pieza a pieza (grúa, soldadura, despliegue) en un hangar con torre y focos.
+Detalle en `apps/client/CLAUDE.md` § «Escena del hangar». Typecheck, 205 tests del cliente y build en verde; revisado en el navegador
+(misiones lunar y de Titán, diseño vacío y uno grande). **Sin verificar:** el destello de soldadura en pantalla, FPS en GPU real.
+**Pendiente:** brazo robótico (solo hay grúa), cajas de aviónica que se solapan si se pasa del límite de ranuras, banco de instrumentos poco
+visible desde la altura de la cámara.
+
 ## Despliegue
 
 - **Cliente: publicado** en AWS Amplify Hosting (`https://main.d24izpi0hbzbl0.amplifyapp.com/`, rama `main`, se publica

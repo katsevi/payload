@@ -315,6 +315,80 @@ export const brushedMaps = once((): SurfaceMaps => {
   return finish(albedo, height, { seed: 31, dirt: 0.05, roughBase: 0.34, roughVar: 0.1, bump: 0.5 });
 });
 
+/** Manta térmica MLI (lámina dorada arrugada): albedo casi liso y relieve de pliegues. */
+export const foilMaps = once((): SurfaceMaps => {
+  const S = 256;
+  const [albedo, a] = makeCanvas(S);
+  const [height, h] = makeCanvas(S);
+  const ai = a.createImageData(S, S);
+  const hi = h.createImageData(S, S);
+  const n1 = tileFbm(131, 4, 5);
+  const n2 = tileFbm(149, 8, 3);
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const i = (y * S + x) * 4;
+      // Pliegues: crestas del ruido (|n − 0,5|) a dos escalas.
+      const r1 = 1 - Math.abs(n1(x / S, y / S) - 0.5) * 2;
+      const r2 = 1 - Math.abs(n2(x / S, y / S) - 0.5) * 2;
+      const hv = Math.pow(r1, 3) * 0.7 + Math.pow(r2, 4) * 0.3;
+      const c = 200 + hv * 55;
+      ai.data[i] = c;
+      ai.data[i + 1] = c;
+      ai.data[i + 2] = c;
+      ai.data[i + 3] = 255;
+      hi.data[i] = hv * 255;
+      hi.data[i + 1] = hv * 255;
+      hi.data[i + 2] = hv * 255;
+      hi.data[i + 3] = 255;
+    }
+  }
+  a.putImageData(ai, 0, 0);
+  h.putImageData(hi, 0, 0);
+  return finish(albedo, height, { seed: 163, dirt: 0.08, roughBase: 0.34, roughVar: 0.16, bump: 2.6 });
+});
+
+/**
+ * Celdas solares (8 × 8 por baldosa): celda azul oscura con dedos y dos barras colectoras, junta clara entre
+ * celdas. El color final lo pone el material (estándar o de alta eficiencia).
+ */
+export const solarCellMaps = once((): SurfaceMaps => {
+  const S = 512;
+  const N = 8;
+  const C = S / N;
+  const [albedo, a] = makeCanvas(S);
+  const [height, h] = makeCanvas(S);
+  const r = rng(173);
+  a.fillStyle = gray(0.78);
+  a.fillRect(0, 0, S, S);
+  h.fillStyle = gray(0.2);
+  h.fillRect(0, 0, S, S);
+  for (let j = 0; j < N; j++) {
+    for (let i = 0; i < N; i++) {
+      const x = i * C + 2;
+      const y = j * C + 2;
+      const w = C - 4;
+      const g = a.createLinearGradient(x, y, x + w, y + w);
+      const t = 0.9 + r() * 0.2;
+      g.addColorStop(0, `rgb(${Math.round(34 * t)},${Math.round(52 * t)},${Math.round(104 * t)})`);
+      g.addColorStop(1, `rgb(${Math.round(18 * t)},${Math.round(30 * t)},${Math.round(70 * t)})`);
+      a.fillStyle = g;
+      a.fillRect(x, y, w, w);
+      h.fillStyle = gray(0.6);
+      h.fillRect(x, y, w, w);
+      // Dedos finos y dos barras colectoras.
+      a.fillStyle = 'rgba(200,210,230,0.16)';
+      for (let k = 4; k < w; k += 5) a.fillRect(x, y + k, w, 1);
+      a.fillStyle = 'rgba(215,222,235,0.75)';
+      a.fillRect(x + w * 0.3, y, 2, w);
+      a.fillRect(x + w * 0.7, y, 2, w);
+      h.fillStyle = gray(0.8);
+      h.fillRect(x + w * 0.3, y, 2, w);
+      h.fillRect(x + w * 0.7, y, 2, w);
+    }
+  }
+  return finish(albedo, height, { seed: 181, dirt: 0.04, roughBase: 0.22, roughVar: 0.08, bump: 1.2 });
+});
+
 /** Roca (asteroides): manchas y relieve de ruido. */
 export const rockMaps = once((): SurfaceMaps => {
   const S = 256;
