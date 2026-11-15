@@ -17,7 +17,7 @@
 
 export type Locale = 'es' | 'en';
 export const LOCALES: readonly Locale[] = ['es', 'en'] as const;
-export const DEFAULT_LOCALE: Locale = 'es';
+export const DEFAULT_LOCALE: Locale = 'en';
 
 /** Texto de contenido (catálogo) en ambos idiomas. */
 export type LocalizedText = Record<Locale, string>;

@@ -27,7 +27,7 @@ void i18n
     keySeparator: false,
     nsSeparator: false,
     interpolation: { escapeValue: false },
-    // Español por defecto: solo se consulta lo recordado por el usuario (no el idioma del navegador).
+    // Inglés por defecto: solo se consulta lo recordado por el usuario (no el idioma del navegador).
     detection: { order: ['localStorage'], caches: ['localStorage'], lookupLocalStorage: LANG_STORAGE_KEY },
     react: { useSuspense: false },
   });

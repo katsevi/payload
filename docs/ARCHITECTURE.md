@@ -157,7 +157,7 @@ App.tsx ── pantalla ──▶ MenuScene | HangarScene | ShipScene | SurfaceS
 | `ui` | `apps/client/src/locales/{es,en}.json` | Textos de la interfaz: `t('clave')` |
 | `sim` | `packages/shared/locales/{es,en}.json` + `catalog.<id>` generado | Textos del motor: `tr(messageRef)` o `t('systemName.x', { ns: 'sim' })` |
 
-Las claves se aplanan al cargar (`keySeparator: false`, `nsSeparator: false`). Español por defecto: solo
+Las claves se aplanan al cargar (`keySeparator: false`, `nsSeparator: false`). Inglés por defecto: solo
 se lee el idioma guardado por el usuario (`payload.lang`). Tests de paridad es/en en ambos paquetes; el
 del cliente comprueba además que toda clave literal usada en el código existe.
 
