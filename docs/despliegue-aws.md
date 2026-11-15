@@ -181,6 +181,8 @@ Ojo: el cliente (Amplify) se publica solo al fusionar, pero el servidor no. Si e
 | Caddy no consigue certificado | El DNS aún no apunta a la IP estática, o el puerto 80/443 está cerrado en el firewall de Lightsail |
 | Funciona en local pero no publicado | La página va por `https://` y el servidor por `ws://`: tiene que ser `wss://` |
 | Se cortan las salas al actualizar | Normal: reiniciar el servicio cierra las salas en memoria. Actualiza cuando no haya partidas |
+| En el lobby solo sale «Partida libre» y elegir misión no hace nada (aviso ámbar «el servidor… no admite misiones») | El cliente es de la fase 6 (diseño compartido, ADR 0020) y el servidor publicado es anterior: ignora `set-mission`. Sube el paquete de la misma rama que el cliente ([Actualizar el servidor sin acceso al repo](#actualizar-el-servidor-sin-acceso-al-repo)) |
+| A veces `WebSocket connection to 'wss://…/<proceso>/<sala>?sessionId=…' failed` al crear o entrar | La conexión TCP no llega (también falla `/matchmake`). Comprobado el 2026-11-14: fallaban igual el puerto 22 de la instancia y hosts ajenos a ella (API de EC2, GitHub, 1.1.1.1), así que era la red del jugador. El cliente reintenta solo hasta 3 veces (`CONNECT_ATTEMPTS`). Si pasa con otras redes, mira la instancia (`journalctl -u caddy`, créditos de CPU de la t3.micro) |
 
 **Coste aproximado:** el plan más pequeño de Lightsail es de pocos USD al mes con IP estática incluida mientras
 esté asignada. Añádelo a la alarma de presupuesto.

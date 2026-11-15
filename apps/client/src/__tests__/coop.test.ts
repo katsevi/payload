@@ -3,12 +3,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { designEditsBetween, getNode, NET, type LobbyView, type RunAction } from '@payload/shared';
 import { referenceDesign } from '../../../../packages/shared/src/__tests__/missionFixtures';
-import { sharedLaunchCheck } from '../ui/CoopScreen';
+import { missionsSupported, sharedLaunchCheck } from '../ui/CoopScreen';
 import { RoomModel } from '../../../game-server/src/roomModel';
 import { myCrew } from '../game/me';
 import { effectiveRulesOf } from '../game/effective';
 import { getRun, isRemote, useGame } from '../game/runStore';
-import { configureCoop, createRoom, FLUSH_INTERVAL_MS, joinRoom, leaveRoom, sendLobby, type ClientLike, type RoomLike } from '../net/coopSession';
+import { configureCoop, CONNECT_ATTEMPTS, createRoom, FLUSH_INTERVAL_MS, joinRoom, leaveRoom, sendLobby, type ClientLike, type RoomLike } from '../net/coopSession';
 import { mePlayer, useCoop } from '../net/coopStore';
 
 /** Servidor de mentira: una `RoomModel` y, por cliente, una `RoomLike` que entrega los mensajes al instante. */
@@ -267,5 +267,56 @@ describe('diseño compartido en sala (ADR 0020)', () => {
     expect(run.state.missionDesign?.missionId).toBe('mission-mars-habitability');
     expect(run.state.science).toBeDefined();
     expect(run.snapshot()).toEqual(server.model.run!.snapshot());
+  });
+});
+
+describe('conexión con una red que falla (despliegue)', () => {
+  it('si el primer intento no llega al servidor, reintenta solo y entra', async () => {
+    let calls = 0;
+    configureCoop(() => ({
+      ...client,
+      create: async (room, options) => {
+        calls++;
+        if (calls < CONNECT_ATTEMPTS) throw new Error('Room connection was closed unexpectedly (1006)');
+        return client.create(room, options);
+      },
+    }));
+    const done = createRoom('Ana');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(await done).toBe(true);
+    expect(calls).toBe(CONNECT_ATTEMPTS);
+    expect(useCoop.getState()).toMatchObject({ status: 'connected', error: null });
+  });
+
+  it('tras agotar los intentos avisa de que no llega; una sala inexistente no se reintenta', async () => {
+    let calls = 0;
+    configureCoop(() => ({
+      create: async () => {
+        calls++;
+        throw new Error('fetch failed');
+      },
+      joinById: async () => {
+        calls++;
+        throw new Error('room "ZZZZ" not found');
+      },
+    }));
+    const done = createRoom('Ana');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(await done).toBe(false);
+    expect(calls).toBe(CONNECT_ATTEMPTS);
+    expect(useCoop.getState()).toMatchObject({ status: 'idle', error: 'unreachable' });
+
+    calls = 0;
+    expect(await joinRoom('ZZZZ', 'Ana')).toBe(false);
+    expect(calls).toBe(1);
+    expect(useCoop.getState().error).toBe('not-found');
+  });
+
+  it('un servidor anterior a la fase 6 (sin `designRev`) no admite misiones', async () => {
+    await lobbyOfTwo();
+    const view = useCoop.getState().lobby!;
+    expect(missionsSupported(view)).toBe(true);
+    const { designRev: _rev, design: _design, ...old } = view;
+    expect(missionsSupported(old)).toBe(false);
   });
 });

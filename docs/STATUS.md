@@ -18,6 +18,16 @@ supervivencia sea la *operación* de la misión diseñada (ADR `docs/adr/0015-re
 > Léelo antes de empezar y actualízalo al terminar una tarea relevante. Las casillas de
 > `docs/phases/fase-*.md` las marca quien valida la fase, no quien implementa: aquí solo se resume.
 
+## Cooperativo publicado — diagnóstico (2026-11-14, rama `feat/f6-diseno-cooperativo`)
+
+- **«Solo deja elegir Partida libre»:** el cliente probado era el de la fase 6 y el servidor de EC2 es el paquete de `main`
+  (su lobby no trae `design` ni `designRev` e ignora `set-mission`; comprobado creando una sala contra
+  `wss://18-215-99-217.sslip.io`). Arreglo: subir el paquete de esta rama (`bundle:standalone`, `docs/despliegue-aws.md`)
+  **a la vez** que el cliente. El lobby ahora avisa si el servidor es antiguo.
+- **`WebSocket connection … failed` al crear:** fallos de conexión TCP intermitentes (también en `/matchmake`). Desde la
+  misma red fallaban igual el puerto 22 de la instancia y hosts ajenos (API de EC2, GitHub, 1.1.1.1): era la red local, no
+  el servidor. El cliente reintenta solo hasta 3 veces. Sin mirar los registros de la instancia (no hay acceso desde aquí).
+
 ## Fase 5 — primera entrega (2026-11-14, rama `feat/f5-ciencia-y-datos`)
 
 Decisiones en el ADR 0018 (propuesta: revisarla en equipo). Qué hay:

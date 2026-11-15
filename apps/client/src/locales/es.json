@@ -667,6 +667,7 @@
     "freePlay": "Partida libre (sin diseño)",
     "parts": "{{n}} piezas montadas",
     "openHangar": "Abrir el hangar",
+    "missionsUnsupported": "El servidor de la sala es antiguo y no admite misiones: hay que actualizarlo",
     "vote": {
       "title": "Voto Go/No-Go",
       "go": "Go",

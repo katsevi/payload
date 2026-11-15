@@ -24,6 +24,8 @@ Rama `feat/f6-diseno-cooperativo` (2026-11-14, desde la fase 5). Decisiones: ADR
 - `@payload/client`: en el lobby, misión (la elige el anfitrión), estado del diseño, «Abrir el hangar» y voto; el hangar en modo compartido envía ediciones, refleja las de los demás y sustituye «Lanzar» por el voto. Tests de sesión con diseño compartido.
 
 ### Corregido
+- `@payload/client`: con un servidor anterior a la fase 6 (sin `designRev`), el selector de misión del lobby volvía solo a «Partida libre» sin decir por qué; ahora se oculta y avisa en una línea de que hay que actualizar el servidor (`missionsSupported`).
+- `@payload/client`: crear o entrar en una sala reintenta solo hasta 3 veces (`CONNECT_ATTEMPTS`) si la conexión no llega (`WebSocket connection … failed` con redes que pierden conexiones); una sala llena, empezada o inexistente no se reintenta.
 - `design.test.ts` «300 evaluaciones en menos de un segundo» medía también la lectura de los fixtures del disco (fallaba con carga); ahora solo mide la revisión.
 
 ### Despliegue en producción
