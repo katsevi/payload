@@ -64,6 +64,39 @@ describe('lobby', () => {
     expect(room.view.players[0]).toMatchObject({ id: 'p2', host: true });
   });
 
+  it('el anfitrión sigue siéndolo aunque se caiga; solo pasa a otro si se va del todo', () => {
+    const room = newRoom();
+    room.join('p1', 'A');
+    room.join('p2', 'B');
+    room.lobby('p2', { type: 'set-ready', ready: true });
+    room.drop('p1');
+    expect(room.view.players.map((p) => p.host)).toEqual([true, false]);
+    // Nadie más puede empezar mientras el anfitrión está caído.
+    expect(room.lobby('p2', { type: 'start' })).toBe(false);
+    room.reconnect('p1');
+    expect(room.host).toBe('p1');
+    expect(room.lobby('p1', { type: 'start' })).toBe(true);
+  });
+
+  it('el dueño que vuelve a entrar con su clave recupera el anfitrión; otra clave no', () => {
+    const room = newRoom();
+    expect(room.join('p1', 'A', 'clave-del-duenyo')).toEqual({ ok: true });
+    room.join('p2', 'B', 'clave-de-beto-01');
+    room.leave('p1');
+    expect(room.host).toBe('p2');
+    room.join('p3', 'C', 'clave-de-otro-02');
+    expect(room.host).toBe('p2');
+    room.join('p4', 'A', 'clave-del-duenyo');
+    expect(room.host).toBe('p4');
+    // Una clave con forma inválida se ignora.
+    const other = newRoom();
+    other.join('q1', 'A', 'x');
+    other.leave('q1');
+    other.join('q2', 'B');
+    other.join('q3', 'A', 'x');
+    expect(other.host).toBe('q2');
+  });
+
   it('una persona sola puede jugar en sala', () => {
     const room = playing([null]);
     expect(room.run!.state.crew).toHaveLength(1);

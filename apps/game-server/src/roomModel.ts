@@ -8,6 +8,8 @@
  *   (`seconds`) al tiempo real transcurrido. Todo lo demás lo decide el motor.
  * - Caídas: el jugador conserva sitio y tripulante; si se va del todo, su tripulante se queda en la nave
  *   (o fuera, hasta que se le acabe el oxígeno). Sin nadie conectado, el tiempo no avanza.
+ * - Anfitrión: quien crea la sala. Lo sigue siendo aunque se caiga (conserva el sitio durante la gracia); solo
+ *   si se va del todo pasa al siguiente. Si vuelve a entrar con su clave (`key`, privada) lo recupera en el lobby.
  */
 import {
   applyDesignEdit, missionStartDesign, reviewDesign, voteTally,
@@ -18,6 +20,11 @@ import {
 
 /** Acciones cuyo `seconds` es trabajo mantenido: no pueden sumar más que el tiempo real transcurrido. */
 const WORK_ACTIONS: ReadonlySet<RunAction['type']> = new Set(['work-incident', 'repair-system', 'jetpack', 'rest', 'call-earth']);
+/** Clave privada del jugador (opcional): texto corto sin espacios; cualquier otra cosa se ignora. */
+function parsePlayerKey(raw: unknown): string | null {
+  return typeof raw === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(raw) ? raw : null;
+}
+
 /** Holgura del presupuesto de trabajo frente al jitter de red. */
 const WORK_BUDGET_SLACK = 1.15;
 /** Acciones que llevan el tripulante que actúa (el servidor lo impone). */
@@ -63,6 +70,10 @@ export class RoomModel {
   private readonly catalog: Catalog | undefined;
   private players: Player[] = [];
   private hostId: string | null = null;
+  /** Clave privada de quien creó la sala (la envía su cliente al crear; nunca se difunde). */
+  private ownerKey: string | null = null;
+  /** Clave de cada jugador (por id de sesión). */
+  private readonly keys = new Map<string, string>();
   private phaseValue: RoomPhase = 'lobby';
   private runValue: Run | null = null;
   private runId = 0;
@@ -109,50 +120,68 @@ export class RoomModel {
     return this.players.find((p) => p.id === id && !p.gone);
   }
 
+  /**
+   * El anfitrión no cambia mientras siga en la sala, aunque esté caído (lo guarda la gracia de reconexión): si
+   * pasara a otro con cada corte, el creador perdería el control de su sala. Solo al irse del todo pasa al
+   * siguiente (conectado si lo hay); si el creador vuelve a entrar con su clave, lo recupera (`join`).
+   */
   private pickHost(): void {
-    if (this.hostId && this.find(this.hostId)?.connected) return;
+    if (this.hostId && this.find(this.hostId)) return;
     this.hostId = (this.players.find((p) => !p.gone && p.connected) ?? this.players.find((p) => !p.gone))?.id ?? null;
   }
 
   // ── Entradas y salidas ──────────────────────────────────────────────────────────────────────
 
-  join(id: string, rawName: unknown): { ok: true } | { ok: false; code: JoinErrorCode } {
+  /**
+   * Entrada al lobby. `rawKey` es la clave privada del cliente (opcional): la del primero que entra (quien crea la
+   * sala) es la del dueño, y si vuelve a entrar con ella tras perder la conexión del todo, recupera el anfitrión.
+   */
+  join(id: string, rawName: unknown, rawKey?: unknown): { ok: true } | { ok: false; code: JoinErrorCode } {
     if (this.phaseValue !== 'lobby') return { ok: false, code: 'in-progress' };
     if (this.players.length >= COOP_LIMITS.maxPlayers) return { ok: false, code: 'room-full' };
     const name = sanitizePlayerName(rawName, `#${this.players.length + 1}`);
+    const key = parsePlayerKey(rawKey);
     this.players.push({ id, name, role: null, ready: false, connected: true, gone: false, crewId: null, pose: null, workBudgetS: 0, workAtS: 0, lastPingS: -Infinity, vote: null });
+    if (key) this.keys.set(id, key);
+    if (this.players.length === 1 && this.hostId === null && this.ownerKey === null) this.ownerKey = key;
     this.pickHost();
+    if (key && key === this.ownerKey) this.hostId = id;
     return { ok: true };
   }
 
-  /** Caída sin consentimiento: conserva sitio, rol y tripulante. */
+  /** Caída sin consentimiento: conserva sitio, rol, tripulante y, si lo era, el anfitrión. */
   drop(id: string): void {
     const p = this.find(id);
     if (!p) return;
     p.connected = false;
     p.pose = null;
-    this.pickHost();
   }
 
   reconnect(id: string): void {
     const p = this.find(id);
     if (!p) return;
     p.connected = true;
-    this.pickHost();
   }
 
   /** Salida definitiva. En el lobby libera el sitio; en partida, su tripulante se queda en el estado. */
   leave(id: string): void {
     const p = this.find(id);
     if (!p) return;
-    if (this.phaseValue === 'lobby') this.players = this.players.filter((x) => x !== p);
-    else {
+    if (this.phaseValue === 'lobby') {
+      this.players = this.players.filter((x) => x !== p);
+      this.keys.delete(id);
+    } else {
       p.gone = true;
       p.connected = false;
       p.pose = null;
     }
     if (this.hostId === id) this.hostId = null;
     this.pickHost();
+  }
+
+  /** Id del anfitrión (null si la sala está vacía). */
+  get host(): string | null {
+    return this.hostId;
   }
 
   /** Jugadores conectados (sin ninguno, el tiempo no avanza). */
@@ -242,6 +271,7 @@ export class RoomModel {
 
   private start(): void {
     // Los que estén caídos al empezar pierden el sitio: la tripulación son los presentes.
+    for (const p of this.players) if (!p.connected) this.keys.delete(p.id);
     this.players = this.players.filter((p) => p.connected);
     this.players.forEach((p, i) => {
       p.crewId = i + 1;
@@ -264,6 +294,7 @@ export class RoomModel {
   }
 
   private toLobby(): void {
+    for (const p of this.players) if (p.gone) this.keys.delete(p.id);
     this.players = this.players.filter((p) => !p.gone);
     for (const p of this.players) {
       p.crewId = null;

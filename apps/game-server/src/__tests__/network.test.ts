@@ -138,6 +138,32 @@ describe('sala cooperativa en red', () => {
     await Promise.all(players.map((p) => p.room.leave()));
   });
 
+  it('el cuarto jugador entra aunque quede un asiento reservado sin usar (reintento de conexión)', async () => {
+    const players = await openRoom(['Ana', 'Beto', 'Cira'], 13);
+    const code = players[0]!.room.roomId;
+    // Un intento que reserva asiento y nunca abre el WebSocket (lo que deja un reintento tras un corte de red).
+    await matchMaker.joinById(code, { name: 'Fantasma' });
+    const dani = track(await sdk().joinById(code, { name: 'Dani' }));
+    await waitFor(() => dani.lobby?.players.length === 4, 'Dani en el lobby');
+    // Y el quinto recibe «sala llena», no «partida empezada».
+    await expect(sdk().joinById(code, { name: 'Eva' })).rejects.toThrow(/room-full/);
+    await Promise.all([...players, dani].map((p) => p.room.leave()));
+  });
+
+  it('el anfitrión que se cae y vuelve sigue siendo el anfitrión', async () => {
+    const players = await openRoom(['Ana', 'Beto'], 17);
+    const [ana, beto] = players as [Player, Player];
+    const token = ana.room.reconnectionToken;
+    ana.room.reconnection.maxRetries = 0;
+    (ana.room.connection as unknown as { close(code?: number): void }).close(4010);
+    await waitFor(() => beto.lobby!.players[0]!.connected === false, 'Ana caída');
+    expect(beto.lobby!.players.map((p) => p.host)).toEqual([true, false]);
+    const back = track(await sdk().reconnect(token));
+    await waitFor(() => beto.lobby!.players[0]!.connected === true, 'Ana de vuelta');
+    expect(beto.lobby!.players.map((p) => p.host)).toEqual([true, false]);
+    await Promise.all([back.room.leave(), beto.room.leave()]);
+  });
+
   it('un cliente caído vuelve con su tripulante y el estado entero', async () => {
     const players = await openRoom(['Ana', 'Beto'], 11);
     const [ana, beto] = players as [Player, Player];

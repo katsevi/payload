@@ -36,7 +36,14 @@ export class CrewRoom extends Room {
   /** Gracia de reconexión (s). Solo los tests la acortan. */
   static reconnectGraceS: number = COOP_LIMITS.reconnectGraceS;
 
-  override maxClients: number = COOP_LIMITS.maxPlayers;
+  /**
+   * Cupo de Colyseus con holgura. Colyseus bloquea la sala solo en cuanto clientes + asientos reservados llegan a
+   * `maxClients`, y un intento de entrada que no llega a abrir el WebSocket deja su asiento reservado unos segundos
+   * (`seatReservationTimeout`). Con el cupo exacto, tres jugadores y un reintento bastaban para que el cuarto
+   * recibiera «sala bloqueada» (que el cliente muestra como partida empezada). El límite real de jugadores lo pone
+   * `RoomModel.join` (`room-full`), y el bloqueo por partida empezada lo hace `syncLobby`.
+   */
+  override maxClients: number = COOP_LIMITS.maxPlayers * 2;
   override maxMessagesPerSecond: number = COOP_LIMITS.maxMessagesPerSecond;
 
   private model!: RoomModel;
@@ -81,7 +88,7 @@ export class CrewRoom extends Room {
   }
 
   override onJoin(client: Client, options?: unknown): void {
-    const joined = this.model.join(client.sessionId, isObject(options) ? options.name : undefined);
+    const joined = this.model.join(client.sessionId, isObject(options) ? options.name : undefined, isObject(options) ? options.key : undefined);
     if (!joined.ok) throw new ServerError(ErrorCode.APPLICATION_ERROR, joined.code);
     this.syncLobby(true);
   }
