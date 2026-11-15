@@ -62,17 +62,25 @@ export function SharedVote() {
   );
 }
 
+/** ¿El servidor de la sala admite misiones y diseño compartido? (los de la fase 6 siempre mandan `designRev`). */
+export function missionsSupported(lobby: LobbyView): boolean {
+  return typeof lobby.designRev === 'number';
+}
+
 /** Fase 6: misión de la sala (la elige el anfitrión) y acceso al hangar compartido. */
 function MissionRow({ lobby, host }: { lobby: LobbyView; host: boolean }) {
   const { t } = useTranslation();
   const missions = getMissions();
   const design = lobby.design ?? null;
   const motorGo = design ? reviewDesign(design).go : false;
+  // Un servidor anterior a la fase 6 (ADR 0020) no manda `designRev` e ignora `set-mission`: el selector volvería solo
+  // a «Partida libre». Se avisa en vez de dejar un selector que no responde.
+  const supported = missionsSupported(lobby);
   return (
     <div className="mt-4 flex flex-col gap-2 rounded border border-line bg-black/30 p-2">
       <label className="flex items-center gap-2 text-sm">
         <span className="num w-20 shrink-0 text-[11px] uppercase tracking-widest text-slate-400">{t('coop.mission')}</span>
-        {host ? (
+        {host && supported ? (
           <select
             className="num flex-1 rounded border border-line bg-black/50 px-2 py-1 text-slate-100"
             value={design?.missionId ?? ''}
@@ -89,6 +97,7 @@ function MissionRow({ lobby, host }: { lobby: LobbyView; host: boolean }) {
           <span className="flex-1 text-slate-100">{design ? lt(missions.find((m) => m.id === design.missionId)?.name ?? { es: design.missionId, en: design.missionId }) : t('coop.freePlay')}</span>
         )}
       </label>
+      {!supported && host && <p className="num text-[11px] text-warn">{t('coop.missionsUnsupported')}</p>}
       {design && (
         <div className="flex items-center gap-2">
           <span className={`num text-xs font-bold ${motorGo ? 'text-ok' : 'text-bad'}`}>{motorGo ? t('design.goTitle') : t('design.noGoTitle')}</span>
