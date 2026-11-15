@@ -76,7 +76,7 @@ pnpm --filter @payload/shared test:watch   # TDD del motor
 4. **Determinismo.** Toda aleatoriedad del motor pasa por `createRng(seed)`. Prohibido `Math.random()`
    y `Date.now()` en `packages/shared/src`. El tiempo avanza en pasos fijos; toda decisión del jugador
    entra como `RunAction`.
-5. **Bilingüe desde el día 1.** Español por defecto, inglés completo. Nada de texto visible
+5. **Bilingüe desde el día 1.** Inglés por defecto, español completo. Nada de texto visible
    hardcodeado: UI en `apps/client/src/locales/{es,en}.json` (namespace `ui`), motor en
    `packages/shared/locales/{es,en}.json` (namespace `sim`), contenido en `LocalizedText` del catálogo.
    Hay tests de paridad de claves en ambos paquetes.
