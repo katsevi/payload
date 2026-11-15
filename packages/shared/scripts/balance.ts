@@ -7,6 +7,7 @@
  */
 import { playRun, type BotOptions, type ExploreStyle, type ShipSkill } from '../src/__tests__/bot';
 import { loadMissionFixture } from '../src/__tests__/missionFixtures';
+import { psychCatalog } from '../src/__tests__/psychHelpers';
 import { getMissions, routeZones } from '../src/index';
 
 const runs = Number(process.argv[2] ?? 200);
@@ -200,5 +201,47 @@ for (const margin of [25, 15, 8, 3]) {
     `${String(margin).padStart(4)} % | ${String(Math.round(s.evaValue / Math.max(1, s.evas))).padStart(12)} | ${String(pct(s.returned, s.evas)).padStart(5)} % | ` +
       `${String(pct(s.crewDeaths, runs)).padStart(13)} % | ${String(Math.round(s.value / runs)).padStart(20)} | ${String(Math.round(s.score / runs)).padStart(10)} | ` +
       `${String(Math.round(s.landValue / Math.max(1, s.landed))).padStart(16)} | ${Math.round(s.o2AtTakeOff / Math.max(1, s.takeOffs))} %`,
+  );
+}
+
+// Fase 8: cordura de la tripulación. El catálogo por defecto la trae apagada; aquí se juega con ella activa y las tres
+// políticas del bot (`ignore`, `rest`, `buy`). Por sector: cordura media y percentil 10 al terminar; después, tiempo en
+// banda crítica y contramedidas usadas.
+console.log(`\n== fase 8 · cordura (catálogo con psych.enabled, crew 3.5, ${runs} partidas, hasta 4 sectores) ==`);
+console.log('política | cordura media y p10 al terminar S1..S4 | segundos en crítica | descansos (s) | llamadas | lapsus | provisiones | créditos gastados | pérdidas');
+const psychCat = psychCatalog();
+for (const policy of ['ignore', 'rest', 'buy'] as const) {
+  const perSector: number[][] = [[], [], [], []];
+  let critical = 0;
+  let restS = 0;
+  let calls = 0;
+  let lapses = 0;
+  let provisions = 0;
+  let spent = 0;
+  const lost: Record<string, number> = {};
+  for (let seed = 1; seed <= runs; seed++) {
+    for (let k = 1; k <= 4; k++) {
+      const { state } = playRun(seed, { skill: 'crew', walkS: 3.5, sectors: k, catalog: psychCat, psychPolicy: policy });
+      const alive = state.crew.filter((c) => c.sanityPct !== undefined);
+      if (state.stats.sectorsCleared >= k) perSector[k - 1]!.push(alive.reduce((s, c) => s + (c.sanityPct ?? 0), 0) / Math.max(1, alive.length));
+      if (k === 4) {
+        critical += state.stats.sanityCriticalS ?? 0;
+        restS += state.stats.restS ?? 0;
+        calls += state.stats.callsMade ?? 0;
+        lapses += state.stats.lapses ?? 0;
+        provisions += state.stats.provisionsUsed ?? 0;
+        spent += state.stats.creditsSpent ?? 0;
+        if (state.lossReason) lost[state.lossReason] = (lost[state.lossReason] ?? 0) + 1;
+      }
+    }
+  }
+  const cell = (xs: number[]) => {
+    if (xs.length === 0) return '-';
+    const sorted = [...xs].sort((a, b) => a - b);
+    return `${Math.round(xs.reduce((s, x) => s + x, 0) / xs.length)}/${Math.round(sorted[Math.floor(sorted.length * 0.1)]!)}`;
+  };
+  console.log(
+    `${policy.padEnd(6)} | ${perSector.map(cell).join(' · ')} | ${Math.round(critical / runs)} | ${Math.round(restS / runs)} | ${(calls / runs).toFixed(1)} | ` +
+      `${(lapses / runs).toFixed(1)} | ${(provisions / runs).toFixed(1)} | ${Math.round(spent / runs)} | ${Object.entries(lost).map(([k, n]) => `${k} ${n}`).join(', ') || '-'}`,
   );
 }

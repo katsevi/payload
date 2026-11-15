@@ -90,7 +90,7 @@ let remote: (RemoteLink & { last: RunState }) | null = null;
 export const isRemote = (): boolean => remote !== null;
 
 /** Eventos de OTRO tripulante que son solo suyos (su traje, su esclusa, su mochila): ni suenan ni avisan aquí. */
-const PERSONAL_EVENTS: ReadonlySet<RunEvent['type']> = new Set(['suit-o2', 'suit-damaged', 'airlock', 'material-collected', 'tool-placed']);
+const PERSONAL_EVENTS: ReadonlySet<RunEvent['type']> = new Set(['suit-o2', 'suit-damaged', 'airlock', 'material-collected', 'tool-placed', 'crew-sanity', 'crew-rest', 'earth-call', 'crew-lapse']);
 const isOthersPersonal = (e: RunEvent): boolean => {
   const mine = getLocalCrewId();
   return mine !== null && e.crewId !== undefined && e.crewId !== mine && PERSONAL_EVENTS.has(e.type);

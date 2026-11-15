@@ -17,7 +17,7 @@
  */
 import {
   cargoMassKg, createRng, createRun, FIXED_STEP_S, getMaterial, getNode, getNodeKind, getWorld, lodeBonusApplies, referenceBrake, suitRefill,
-  type CrewMember, type Deposit, type MissionDesign, type Rng, type Run, type RunAction, type RunEvent, type RunState, type SurfaceState, type SystemId,
+  type Catalog, type CrewMember, type Deposit, type MissionDesign, type Rng, type Run, type RunAction, type RunEvent, type RunState, type SurfaceState, type SystemId,
 } from '../index';
 
 /** `thorough` («hasta vaciar»): como el prudente, pero repite salidas seguras mientras quede botín y la nave lo permita. */
@@ -50,6 +50,13 @@ export interface BotOptions {
   economyPolicy?: boolean;
   /** Fase 4: juega con la nave diseñada sobre el mapa del sistema solar (sin él, la partida clásica). */
   design?: MissionDesign;
+  /** Catálogo alternativo (p. ej. con `psych.enabled`); por defecto el del juego. */
+  catalog?: Catalog;
+  /**
+   * Fase 8 (cordura): `ignore` (por defecto, como si no existiera), `rest` (descansa en tránsito por debajo de 70 sin avisos ni
+   * averías y llama a casa si hay margen eléctrico) o `buy` (lo mismo, más provisiones desde el sector 3 y mejoras `crew` en la tienda).
+   */
+  psychPolicy?: 'ignore' | 'rest' | 'buy';
 }
 
 export type ShipSkill = 'medium' | 'simple' | 'clumsy';
@@ -109,7 +116,7 @@ export interface BotResult {
  */
 export const BOT_WALK_MPS = 4.75;
 
-type Post = SystemId | 'helm' | 'map';
+type Post = SystemId | 'helm' | 'map' | 'bunk' | 'comms';
 
 function chooseJump(run: Run): string | null {
   const s = run.state;
@@ -151,7 +158,9 @@ export function playRun(seed: number, options: BotOptions): BotResult {
     return { type: 'evade', grazes };
   };
   const maxSeconds = options.maxSeconds ?? (explore ? 7200 : 3600);
-  const run = createRun(options.design ? { seed, design: options.design } : { seed });
+  const run = createRun({ seed, ...(options.design ? { design: options.design } : {}), ...(options.catalog ? { catalog: options.catalog } : {}) });
+  const psychPolicy = options.psychPolicy ?? 'ignore';
+  let resting = false;
   const s = run.state;
   const events: RunEvent[] = [];
   const explorer = skill === 'crew' && explore ? new Explorer(run, explore, seed, returnMarginPct, options.economyPolicy !== false) : null;
@@ -207,6 +216,17 @@ export function playRun(seed: number, options: BotOptions): BotResult {
         if (goTo(urgent.systemId)) run.apply({ type: 'work-incident', incidentId: urgent.id, seconds: workS });
       } else if (damaged && ship.spares > 0) {
         if (goTo(damaged)) run.apply({ type: 'repair-system', systemId: damaged, seconds: workS });
+      } else if (psychPolicy !== 'ignore' && s.psych && s.phase === 'transit') {
+        // Cordura: descansa por debajo de 70 hasta recomponerse (90); si no, llama a casa cuando hay margen eléctrico.
+        const me = s.crew.find((c) => c.alive);
+        const sanity = me?.sanityPct ?? 100;
+        if (sanity < 70) resting = true;
+        else if (sanity >= 90) resting = false;
+        if (resting) {
+          if (goTo('bunk')) run.apply({ type: 'rest', seconds: workS });
+        } else if (sanity < 85 && ship.powerSupplyKw - ship.powerDemandKw >= 16 && (me?.callCooldownUntilS ?? 0) <= s.stats.timeS) {
+          if (goTo('comms')) run.apply({ type: 'call-earth', seconds: workS });
+        }
       }
     }
 
@@ -226,7 +246,8 @@ export function playRun(seed: number, options: BotOptions): BotResult {
       const visit = `${s.sector.index}:${s.stats.jumps}:${s.locationId}`;
       if (visit !== lastVisit) {
         lastVisit = visit;
-        shop(run, skill === 'crew' && options.economyPolicy !== false ? (explore ? EXPLORER_UPGRADES : CREW_UPGRADES) : []);
+        const base = skill === 'crew' && options.economyPolicy !== false ? (explore ? EXPLORER_UPGRADES : CREW_UPGRADES) : [];
+        shop(run, psychPolicy === 'buy' && base.length > 0 ? [...base, ...CREW_SANITY_UPGRADES] : base, psychPolicy === 'buy' ? 3 : undefined);
       }
       planLeftS -= FIXED_STEP_S;
       // Fase 5: espera atracado a que los instrumentos terminen de observar el cuerpo (la tripulación atenta).
@@ -259,6 +280,8 @@ export const EXPLORER_UPGRADES = [
   'eva-o2-tank', 'cargo-backpack', 'hull-plating', 'shield-capacitor', 'fuel-tank', 'reactor-heatsink', 'engine-stabilizers', 'jump-drive',
   'life-support-boost', 'jetpack-thrusters',
 ];
+/** Mejoras de cordura que añade la política `buy` (fase 8). */
+export const CREW_SANITY_UPGRADES = ['crew-quarters', 'comm-relay', 'leisure-kit', 'circadian-lighting'];
 /** Créditos que el bot guarda tras comprar mejoras (para repostar en la siguiente estación). */
 export const BOT_CREDIT_RESERVE = 40;
 /** Con esta carga (kg) en la bodega, el explorador deja de subir lo que apenas vale (lastre para los saltos). */
@@ -295,7 +318,7 @@ function upgradeScore(id: string, base: number, price: number, level: number, a:
  * llena el depósito, repone hasta 3 repuestos, repara el casco y, con lo que sobre por encima de la
  * reserva, compra mejoras de `wanted` que ofrezca la estación, la de más prioridad primero (`upgradeScore`).
  */
-function shop(run: Run, wanted: readonly string[]): void {
+function shop(run: Run, wanted: readonly string[], provisionsFromSector?: number): void {
   const q = run.stationQuote();
   if (!q) return;
   const s = run.state;
@@ -312,6 +335,10 @@ function shop(run: Run, wanted: readonly string[]): void {
   if (s.ship.fuel < ship.fuelCapacity - 0.5) run.apply({ type: 'buy-supply', supply: 'fuel' });
   if (s.ship.spares < 3) run.apply({ type: 'buy-supply', supply: 'spares', amount: 3 - s.ship.spares });
   if (s.ship.hull < ship.hullMax - 0.5) run.apply({ type: 'buy-supply', supply: 'hull' });
+  // Fase 8 (`buy`): provisiones frescas desde ese sector, sin pasar de 2 unidades por visita ni de las reservas.
+  if (provisionsFromSector !== undefined && q.provisions && s.sector.index >= provisionsFromSector && s.credits > BOT_CREDIT_RESERVE * 2) {
+    run.apply({ type: 'buy-provisions', amount: 2 });
+  }
   for (let guard = 0; guard < 8; guard++) {
     let best: { id: string; score: number } | null = null;
     for (const u of run.stationQuote()!.upgrades) {

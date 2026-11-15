@@ -49,7 +49,10 @@ export function setLocale(l: Locale): void {
 /** Traduce un MessageRef del motor (namespace `sim`). */
 export function tr(msg: MessageRef | undefined): string {
   if (!msg) return '';
-  return i18n.t(msg.key, { ns: 'sim', ...(msg.params ?? {}) }) as string;
+  const params: Record<string, unknown> = { ...(msg.params ?? {}) };
+  // Fase 8: el motor manda `#<crewId>` como nombre; el cliente no tiene nombres propios, así que «Tripulante N».
+  if (typeof params.name === 'string' && params.name.startsWith('#')) params.name = i18n.t('hud.crewName', { n: Number(params.name.slice(1)) }) as string;
+  return i18n.t(msg.key, { ns: 'sim', ...params }) as string;
 }
 
 /** Texto de contenido del catálogo en el idioma actual. */

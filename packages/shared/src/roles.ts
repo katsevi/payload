@@ -5,7 +5,8 @@
  * Un rol solo da ventajas pasivas (`catalog/roles.json`): ningún puesto se bloquea por rol. En solitario
  * no hay roles (`CrewMember.role` ausente) y nada cambia.
  */
-import type { Catalog, CrewMember, RoleDef, RoleId, RolePerks, SurfaceRules } from './types';
+import { sanityDebuffs } from './sanity';
+import type { Catalog, CrewMember, PsychRules, RoleDef, RoleId, RolePerks, SurfaceRules } from './types';
 
 const NO_PERKS: RolePerks = {};
 
@@ -24,11 +25,11 @@ export function crewPerks(member: Pick<CrewMember, 'role'> | null | undefined, c
 }
 
 /** Capacidad de la mochila de ese tripulante (reglas efectivas × ventaja de explorador). */
-export function crewCarryCapacityKg(rules: SurfaceRules, member: Pick<CrewMember, 'role'> | null | undefined, cat: Catalog): number {
-  return rules.suit.carryCapacityKg * (crewPerks(member, cat).carryCapacityMult ?? 1);
+export function crewCarryCapacityKg(rules: SurfaceRules, member: Pick<CrewMember, 'role' | 'sanityBand'> | null | undefined, cat: Catalog, psych?: PsychRules | null): number {
+  return rules.suit.carryCapacityKg * (crewPerks(member, cat).carryCapacityMult ?? 1) * sanityDebuffs(member, psych ?? null).carry;
 }
 
 /** Gasto del jetpack de ese tripulante por segundo de uso. */
-export function crewJetpackDrainPctPerS(rules: SurfaceRules, member: Pick<CrewMember, 'role'> | null | undefined, cat: Catalog): number {
-  return rules.jetpack.drainPctPerS * (crewPerks(member, cat).jetpackDrainMult ?? 1);
+export function crewJetpackDrainPctPerS(rules: SurfaceRules, member: Pick<CrewMember, 'role' | 'sanityBand'> | null | undefined, cat: Catalog, psych?: PsychRules | null): number {
+  return rules.jetpack.drainPctPerS * (crewPerks(member, cat).jetpackDrainMult ?? 1) * sanityDebuffs(member, psych ?? null).jetpack;
 }

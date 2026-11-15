@@ -20,11 +20,13 @@ export interface SettingsState {
   simpleRepairs: boolean;
   /** Extintor con un área de acierto más ancha (puntería menos fina). */
   wideAim: boolean;
+  /** Fase 8: sin viñeta ni desaturación por cordura baja (el medidor se conserva). */
+  reduceStress: boolean;
   set: (patch: Partial<Omit<SettingsState, 'set'>>) => void;
 }
 
 const KEY = 'payload.settings';
-const defaults = { fov: 75, headBob: false, sensitivity: 1, muteAll: false, volMusic: 0.5, volSfx: 0.8, volAlerts: 0.8, soundCaptions: false, effects: 1, simpleDodge: false, simpleRepairs: false, wideAim: false };
+const defaults = { fov: 75, headBob: false, sensitivity: 1, muteAll: false, volMusic: 0.5, volSfx: 0.8, volAlerts: 0.8, soundCaptions: false, effects: 1, simpleDodge: false, simpleRepairs: false, wideAim: false, reduceStress: false };
 
 function load(): typeof defaults {
   try {

@@ -102,7 +102,8 @@
     "purchase": {
       "fuel": "Refuelled: +{{amount}} fuel · −{{credits}} credits",
       "hull": "Hull repaired: +{{amount}} · −{{credits}} credits",
-      "spares": "Spares: +{{amount}} · −{{credits}} credits"
+      "spares": "Spares: +{{amount}} · −{{credits}} credits",
+      "provisions": "Fresh provisions: +{{amount}} · −{{credits}} credits"
     },
     "upgrade": "Installed: $t(catalog.{{upgrade}}) level {{level}} · −{{credits}} credits",
     "sectorReward": "Sector contract paid: +{{credits}} credits",
@@ -116,7 +117,26 @@
     "missionSuccess": "Mission accomplished: {{science}}/{{required}} science delivered",
     "missionPartial": "Mission over without the objective: {{science}}/{{required}} science",
     "overheat": "Overheating: {{demandKw}} kW but the radiators only shed {{heatKw}} kW",
-    "batteryEmpty": "Battery drained: overload now damages the reactor"
+    "batteryEmpty": "Battery drained: overload now damages the reactor",
+    "sanity": {
+      "tense": "{{name}} is strained: working slower.",
+      "critical": "{{name}} is at the limit. Get some rest.",
+      "breakdown": "{{name}} is breaking down: making mistakes.",
+      "recovered": "{{name}} is pulling it together."
+    },
+    "rest": {
+      "start": "{{name}} is resting. The clock ticks.",
+      "done": "{{name}} is back, rested."
+    },
+    "earthCall": "Call home: +{{pct}} morale ({{delayMin}} min delay).",
+    "lapse": {
+      "switch": "Slip: $t(system.{{system}}) switched off.",
+      "drop": "Slip: dropped $t(catalog.{{material}})."
+    },
+    "cohesion": {
+      "low": "The crew is fraying.",
+      "recovered": "The crew pulls together again."
+    }
   },
   "loss": {
     "hull": "The ship broke apart",
@@ -174,7 +194,17 @@
     "supplyFull": "Already at maximum",
     "notOffered": "This station does not offer that upgrade",
     "upgradeMaxed": "That upgrade is already maxed",
-    "missionOver": "The mission is over"
+    "missionOver": "The mission is over",
+    "crewResting": "Resting.",
+    "restEva": "Cannot rest outside the ship.",
+    "restDescent": "Cannot rest during the descent.",
+    "restNotNeeded": "No rest needed.",
+    "callPhase": "You can only call in transit or docked.",
+    "callNoNav": "No sensors, no link to Earth.",
+    "callCooldown": "Line busy: wait a bit.",
+    "callPower": "Not enough spare power to call.",
+    "callNoWindow": "Outside the contact window.",
+    "provisionsFull": "Pantry full."
   },
   "design": {
     "go": "Go: ready to launch",
@@ -221,7 +251,9 @@
       "tank": "Tanks",
       "shielding": "Protection",
       "lifeSupport": "Life support",
-      "workshop": "Workshop"
+      "workshop": "Workshop",
+      "habitat": "Habitat",
+      "greenhouse": "Garden"
     },
     "why": {
       "mass": {
@@ -276,7 +308,8 @@
       "no-shielding": "Without shields every impact goes straight to the hull",
       "all-clear": "All clear: healthy margins",
       "guided-ship": "Guided mission: the ship and launcher are already chosen",
-      "guided-instrument": "Guided mission: $t(catalog.{{instrument}}) does not fit this CubeSat"
+      "guided-instrument": "Guided mission: $t(catalog.{{instrument}}) does not fit this CubeSat",
+      "crew-wellbeing": "{{months}}-month mission without a habitat: the crew will wear down."
     }
   },
   "report": {

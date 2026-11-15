@@ -16,6 +16,7 @@ import {
 } from './types';
 
 const OFFER_SALT = 0x0ffe;
+const CREW_OFFER_SALT = 0x0c7e;
 
 export function getEconomy(cat: Catalog): EconomyRules {
   if (!cat.economy) throw new Error('El catálogo no tiene economía (usa parseCatalog)');
@@ -70,7 +71,7 @@ function applyEffect(value: number, e: UpgradeEffect): number {
 }
 
 /** Efectos de los niveles comprados (en orden de catálogo y de nivel), filtrados por objetivo. */
-function boughtEffects(upgrades: Record<string, number>, cat: Catalog, target: UpgradeTarget): UpgradeEffect[] {
+export function boughtEffects(upgrades: Record<string, number>, cat: Catalog, target: UpgradeTarget): UpgradeEffect[] {
   const out: UpgradeEffect[] = [];
   for (const u of getUpgrades(cat)) {
     const level = Math.min(u.levels.length, Math.max(0, Math.trunc(upgrades[u.id] ?? 0)));
@@ -153,7 +154,11 @@ export function stationOffer(seed: number, sector: SectorMap, nodeId: string, ca
   const node = sector.nodes[nodeIndex];
   const kind = node && cat.nodeKinds.find((k) => k.id === node.kind);
   if (!kind || !hasShop(kind)) return [];
-  const ids = getUpgrades(cat).map((u) => u.id);
+  // Fase 8: las mejoras `crew` no entran en la oferta de siempre (así no cambia con la cordura apagada ni encendida);
+  // se ofrecen aparte, con un flujo de azar propio.
+  const isCrew = (u: UpgradeDef) => u.levels.some((l) => l.effects.some((e) => e.target === 'crew'));
+  const regular = getUpgrades(cat).filter((u) => !isCrew(u));
+  const ids = regular.map((u) => u.id);
   const rng = createRng(deriveSeed(deriveSeed(seed >>> 0, OFFER_SALT + sector.index), nodeIndex));
   // Fisher-Yates parcial: los `size` primeros forman la oferta.
   const size = Math.min(ids.length, getEconomy(cat).offer.size);
@@ -162,5 +167,16 @@ export function stationOffer(seed: number, sector: SectorMap, nodeId: string, ca
     [ids[i], ids[j]] = [ids[j]!, ids[i]!];
   }
   const chosen = new Set(ids.slice(0, size));
+  const psych = cat.psych;
+  if (psych?.enabled && psych.crewOfferSize > 0) {
+    const crewIds = getUpgrades(cat).filter(isCrew).map((u) => u.id);
+    const crng = createRng(deriveSeed(deriveSeed(seed >>> 0, CREW_OFFER_SALT + sector.index), nodeIndex));
+    const csize = Math.min(crewIds.length, psych.crewOfferSize);
+    for (let i = 0; i < csize; i++) {
+      const j = crng.int(i, crewIds.length - 1);
+      [crewIds[i], crewIds[j]] = [crewIds[j]!, crewIds[i]!];
+    }
+    for (const id of crewIds.slice(0, csize)) chosen.add(id);
+  }
   return getUpgrades(cat).map((u) => u.id).filter((id) => chosen.has(id));
 }

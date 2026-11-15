@@ -2,7 +2,7 @@ import { useMemo, useRef, type ReactNode } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { CuboidCollider, CylinderCollider, RigidBody } from '@react-three/rapier';
 import { BoxGeometry, Color, type Group, type Mesh, type MeshBasicMaterial, type PointLight, type Sprite } from 'three';
-import { SYSTEM_IDS, THROTTLE_IDS, type PoweredSystemId, type SystemId } from '@payload/shared';
+import { catalog as defaultCatalog, getPsychRules, SYSTEM_IDS, THROTTLE_IDS, type PoweredSystemId, type SystemId } from '@payload/shared';
 import { HULL, STATIONS, type StationId } from '../game/layout';
 import { getRun } from '../game/runStore';
 import { Builder, Parts, once, type V3 } from '../gfx/build';
@@ -652,8 +652,52 @@ function NavRack() {
   );
 }
 
+// ───────────────────────────── Fase 8 · Litera y comunicaciones ─────────────────────────────
+
+const buildBunk = once(() => {
+  const m = mats();
+  const b = new Builder();
+  // Largo a lo largo de X local (= eje Z de la nave): la cabecera queda a −X.
+  b.box(m.machineDark, [0, 0.3, 0], [2.0, 0.5, 0.95]);
+  b.box(m.wallDark, [0.05, 0.6, 0], [1.85, 0.14, 0.85]);
+  b.box(m.wall, [-0.7, 0.72, 0], [0.32, 0.12, 0.6]);
+  b.box(m.machineDark, [0, 1.15, -0.45], [2.0, 0.9, 0.06]);
+  b.box(m.led, [0, 0.08, 0.49], [1.6, 0.02, 0.02]);
+  return b.build();
+});
+
+function Bunk() {
+  return (
+    <StationGroup id="bunk">
+      <Parts parts={buildBunk()} />
+      <pointLight position={[0, 1.2, 0.3]} intensity={0.35} distance={3} color="#ffb98a" />
+      <CuboidCollider args={[1.0, 0.35, 0.5]} position={[0, 0.35, 0]} />
+    </StationGroup>
+  );
+}
+
+const buildComms = once(() => {
+  const m = mats();
+  const b = new Builder();
+  b.box(m.machineDark, [0, 0.55, 0], [1.1, 1.1, 0.5]);
+  b.box(m.dark, [0, 1.35, 0.1], [0.95, 0.55, 0.06]);
+  b.box(m.led, [0, 1.35, 0.14], [0.85, 0.45, 0.01]);
+  return b.build();
+});
+
+function Comms() {
+  return (
+    <StationGroup id="comms">
+      <Parts parts={buildComms()} />
+      <StatusLamp id="nav" position={[0.42, 1.12, 0.26]} />
+      <CuboidCollider args={[0.55, 0.7, 0.28]} position={[0, 0.7, 0]} />
+    </StationGroup>
+  );
+}
+
 /** Todos los puestos de la nave, con sus colisiones. */
 export function Stations() {
+  const psych = !!getPsychRules(getRun()?.catalog ?? defaultCatalog);
   return (
     <RigidBody type="fixed" colliders={false}>
       <Helm />
@@ -666,6 +710,8 @@ export function Stations() {
       <NavRack />
       <Airlock3D />
       <CargoBay />
+      {psych && <Bunk />}
+      {psych && <Comms />}
     </RigidBody>
   );
 }

@@ -9,6 +9,7 @@ import {
 import { playRun } from './bot';
 import { referenceDesign } from './missionFixtures';
 import { operationsScript, scienceScript } from './scienceHelpers';
+import { calmPsychCatalog, psychCatalog } from './psychHelpers';
 
 describe('locales del motor (namespace sim)', () => {
   it('es y en tienen exactamente las mismas claves', () => {
@@ -63,6 +64,8 @@ describe('locales del motor (namespace sim)', () => {
     refs.push(...economyScript());
     refs.push(...scienceScript());
     refs.push(...operationsScript());
+    // Fase 8: cordura (catálogo con `psych.enabled`; con ella apagada nada de esto se emite).
+    refs.push(...psychScript());
     // Fase 4: partidas con misión diseñada sobre el sistema solar (cuerpos reales en los mensajes).
     for (const missionId of ['mission-mars-habitability', 'mission-europa-ocean']) {
       for (let seed = 1; seed <= 6; seed++) {
@@ -122,6 +125,9 @@ describe('locales del motor (namespace sim)', () => {
       'reject.noService', 'reject.serviceUsed', 'reject.serviceNotNeeded',
       // Fase 5: misión terminada.
       'reject.missionOver',
+      // Fase 8: cordura.
+      'reject.crewResting', 'reject.restEva', 'reject.restDescent', 'reject.restNotNeeded', 'reject.callPhase', 'reject.callNoNav', 'reject.callCooldown',
+      'reject.callPower', 'reject.callNoWindow', 'reject.provisionsFull',
     ]) expect(keys.has(key), key).toBe(true);
     for (const key of ['reject.noRoute', 'reject.notInTransit', 'reject.notAtGate', 'reject.reactorAlwaysOn', 'reject.noIncident', 'reject.noDamage', 'reject.invalid', 'reject.enginesOff', 'reject.inTransit', 'reject.noWarning']) {
       expect(keys.has(key), key).toBe(true);
@@ -407,4 +413,85 @@ function evadeScript(): MessageRef[] {
     if (refs.some((r) => r.key === 'event.impactGrazed')) return refs;
   }
   throw new Error('ninguna semilla sirvió para el guion de esquiva');
+}
+
+/** Fase 8: cordura. Cada evento y rechazo nuevo se emite al menos una vez (con atajos sobre el estado vivo). */
+function psychScript(): MessageRef[] {
+  const refs: MessageRef[] = [];
+  const tryA = (run: Run, a: RunAction) => {
+    const r = run.apply(a);
+    if (!r.ok) refs.push(r.reason);
+    return r.ok;
+  };
+  const step = (run: Run, seconds: number) => {
+    for (let t = 0; t < seconds - 1e-9; t += FIXED_STEP_S) run.step(FIXED_STEP_S);
+    refs.push(...run.takeEvents().map((e) => e.message));
+  };
+  const cat = calmPsychCatalog((raw) => {
+    raw.psych!.debuffs.lapsePerS = [0, 0, 1, 1]; // lapsus seguros en cuanto toque
+    raw.psych!.lapse.cooldownS = 0;
+  });
+  // Bandas: tensa, crítica, quiebre y recomposición.
+  const run = createRun({ seed: 4, catalog: cat, crewSize: 2 });
+  const [a, b] = run.state.crew;
+  for (const pct of [60, 30, 5, 100]) {
+    a!.sanityPct = pct;
+    step(run, 0.2);
+  }
+  // Cohesión baja y recuperada.
+  run.state.psych!.cohesionPct = 5;
+  step(run, 0.2);
+  run.state.psych!.cohesionPct = 95;
+  step(run, 0.2);
+  // Lapsus a bordo (apaga escudos o sensores) y en EVA (suelta lo que lleva).
+  b!.sanityPct = 5;
+  step(run, 1);
+  const material = catalog.surface!.materials[0]!;
+  Object.assign(b!, { location: 'eva', carried: { [material.id]: 2 }, carriedValues: { [material.id]: 10 }, carriedKg: material.massKg * 2, carriedValue: 10, carriedUnits: 2 });
+  step(run, 1);
+  Object.assign(b!, { location: 'ship', sanityPct: 100 });
+  // Descanso: inicio y fin (el sueño llega a 0).
+  const rest = createRun({ seed: 4, catalog: cat });
+  tryA(rest, { type: 'rest', seconds: 0.5 }); // no hace falta
+  step(rest, 3);
+  rest.state.crew[0]!.sanityPct = 50;
+  for (let i = 0; i < 4; i++) tryA(rest, { type: 'rest', seconds: 0.5 });
+  refs.push(...rest.takeEvents().map((e) => e.message));
+  // Rechazos de descanso y llamada, y la llamada completa.
+  const eva = createRun({ seed: 4, catalog: cat });
+  eva.state.crew[0]!.sanityPct = 50;
+  eva.state.crew[0]!.location = 'eva';
+  tryA(eva, { type: 'rest', seconds: 0.5 });
+  const landing = createRun({ seed: 4, catalog: cat });
+  landing.state.crew[0]!.sanityPct = 50;
+  (landing.state as { phase: string }).phase = 'landing';
+  tryA(landing, { type: 'rest', seconds: 0.5 });
+  tryA(landing, { type: 'call-earth', seconds: 0.5 });
+  const noNav = createRun({ seed: 4, catalog: cat });
+  noNav.apply({ type: 'toggle-system', systemId: 'nav', enabled: false });
+  tryA(noNav, { type: 'call-earth', seconds: 0.5 });
+  const noPower = createRun({ seed: 4, catalog: cat });
+  noPower.state.ship.powerSupplyKw = noPower.state.ship.powerDemandKw;
+  tryA(noPower, { type: 'call-earth', seconds: 0.5 });
+  const call = createRun({ seed: 4, catalog: cat });
+  call.state.crew[0]!.sanityPct = 40;
+  for (let i = 0; i < 14; i++) tryA(call, { type: 'call-earth', seconds: 0.5 });
+  refs.push(...call.takeEvents().map((e) => e.message));
+  // Descansando no se trabaja.
+  const busy = createRun({ seed: 4, catalog: cat });
+  busy.state.crew[0]!.sanityPct = 50;
+  busy.state.incidents.push({ id: 1, kind: 'short', systemId: 'nav', ageS: 0, progress: 0 });
+  tryA(busy, { type: 'rest', seconds: 0.5 });
+  tryA(busy, { type: 'work-incident', incidentId: 1, seconds: 0.5 });
+  // Provisiones: compra, despensa llena y fuera de ventana de contacto (con diseño y ciencia).
+  const shop = createRun({ seed: 4, catalog: psychCatalog() });
+  tryA(shop, { type: 'buy-provisions' });
+  tryA(shop, { type: 'buy-provisions' });
+  refs.push(...shop.takeEvents().map((e) => e.message));
+  const designed = createRun({ seed: 4, catalog: psychCatalog(), design: referenceDesign('mission-mars-habitability') });
+  for (let t = 0; t < 4000; t += 5) {
+    if (!tryA(designed, { type: 'call-earth', seconds: 0.5 })) break;
+    step(designed, 5);
+  }
+  return refs;
 }

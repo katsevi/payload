@@ -17,12 +17,14 @@ import {
 } from '@payload/shared';
 
 /** Acciones cuyo `seconds` es trabajo mantenido: no pueden sumar más que el tiempo real transcurrido. */
-const WORK_ACTIONS: ReadonlySet<RunAction['type']> = new Set(['work-incident', 'repair-system', 'jetpack']);
+const WORK_ACTIONS: ReadonlySet<RunAction['type']> = new Set(['work-incident', 'repair-system', 'jetpack', 'rest', 'call-earth']);
 /** Holgura del presupuesto de trabajo frente al jitter de red. */
 const WORK_BUDGET_SLACK = 1.15;
 /** Acciones que llevan el tripulante que actúa (el servidor lo impone). */
 const CREW_ACTIONS: ReadonlySet<RunAction['type']> = new Set([
   'work-incident', 'repair-system', 'evade', 'eva-exit', 'eva-enter', 'set-position', 'jetpack', 'fall-impact', 'deploy-tool', 'collect', 'retrieve-tool',
+  // Fase 8 (cordura): descanso y llamada son del tripulante que actúa; `buy-provisions` va como `buy-supply` (sin crewId).
+  'rest', 'call-earth',
 ]);
 
 interface Player {

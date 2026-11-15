@@ -24,15 +24,19 @@ import { designOperations, getDifficulty, parseMissionDesign, shipFromDesign } f
 import { generateSector, getNode, nodeDistanceLy } from './galaxy';
 import { crewCarryCapacityKg, crewJetpackDrainPctPerS, crewPerks } from './roles';
 import { createRng, deriveSeed, type Rng } from './rng';
+import {
+  bandIndex, callRecoveryPct, cohesionDeltaPctPerS, contactWindowOpen, effectivePsychRules, getPsychRules, psychRoll, sanityBandFor, sanityDebuffs, sanityDrainPctPerS,
+  commsDelayMin,
+} from './sanity';
 import { finishMission, getScienceRules, loseWithShip, newScienceState, sciencePoints, scienceProfile, stepScience, type ScienceEvent } from './science';
-import { generateSolarSector, getSolarSystem, solarKw } from './solar';
+import { findBody, generateSolarSector, getSolarSystem, getZone, solarKw } from './solar';
 import { descentStep, generateSurface, getNodeWorld, landingSeed, lodeBonusApplies, simulateDescent, streakMultiplier, suitRefill, takeOffFuel } from './surface';
 import {
   HAZARD_KINDS, INCIDENT_KINDS, ROLE_IDS, SUPPLY_IDS, SYSTEM_IDS, THROTTLE_IDS,
   type ActionResult, type Catalog, type CrewMember, type EventTone, type HazardKind, type Incident, type IncidentKind, type JumpEstimate,
   type LandingEstimate, type MessageRef, type PlannedHazard, type PoweredSystemId, type Run, type RunAction, type RunEvent, type RunEventType,
   type RunOptions, type RunState, type RunStats, type ShipDef, type ShipState, type SurfaceState, type SystemId, type SystemState,
-  type HazardRules, type PlacedTool, type StationQuote, type SupplyId, type TakeOffEstimate, type ThrottleId,
+  type HazardRules, type PlacedTool, type PsychRules, type SanityBand, type StationQuote, type SupplyId, type TakeOffEstimate, type ThrottleId,
 } from './types';
 
 /** Paso fijo de la simulación (10 Hz). */
@@ -138,6 +142,9 @@ export function createRun(options: RunOptions): Run {
   /** Reglas de superficie efectivas (traje, jetpack y caídas con mejoras). */
   let srules = effectiveSurfaceRules(surfaceCat.rules, upgrades, cat);
   const crewSize = clamp(Math.trunc(options.crewSize ?? 1), 1, MAX_CREW);
+  /** Fase 8: reglas de cordura efectivas (mejoras `crew` y módulos del diseño); null = sin cordura (juego de siempre). */
+  const basePsych = getPsychRules(cat);
+  let psychRules: PsychRules | null = basePsych ? effectivePsychRules(basePsych, upgrades, cat, design) : null;
 
   /** Mapa del sector `index`: el sistema solar con diseño (generado con la nave diseñada, sin mejoras); si no, el abstracto. */
   const makeSector = (index: number) =>
@@ -214,6 +221,17 @@ export function createRun(options: RunOptions): Run {
     state.stats.sciencePoints = 0;
   }
 
+  if (psychRules) {
+    for (const c of state.crew) {
+      Object.assign(c, { sanityPct: psychRules.startPct, sanityBand: 'stable' as SanityBand, awakeS: 0, restUntilS: 0, callProgressS: 0, callCooldownUntilS: 0, lapseCooldownUntilS: 0 });
+    }
+    state.psych = {
+      steps: 0, sinceNoveltyS: 0, stationRecoveredPct: 0, provisions: 0, provisionsS: 0, callUntilS: 0, saleBonusUsed: false, missionDays: 0,
+      ...(crewSize >= 2 ? { cohesionPct: psychRules.cohesion.start, cohesionBand: 'ok' as const } : {}),
+    };
+    Object.assign(state.stats, { sanityCriticalS: 0, restS: 0, callsMade: 0, provisionsUsed: 0, lapses: 0 });
+  }
+
   let accumulatorS = 0;
   let eventSeq = 0;
   let incidentSeq = 0;
@@ -270,6 +288,8 @@ export function createRun(options: RunOptions): Run {
       if (idSys === 'engines') demand += state.phase === 'transit' ? ship.systemDrawKw.engines * throttle.engineDrawMult : 0;
       else demand += ship.systemDrawKw[idSys];
     }
+    // Fase 8: la llamada a la Tierra pide corriente mientras dura (compite con el régimen y los escudos).
+    if (psychRules && state.psych && state.psych.callUntilS > state.stats.timeS + 1e-9) demand += psychRules.call.drawKw;
     sys.reactor.online = reactorUp;
     shipState.cargoKg = jumpMassKg();
     shipState.powerSupplyKw = supply;
@@ -412,6 +432,7 @@ export function createRun(options: RunOptions): Run {
       emit('impact-evaded', 'ok', 'event.impactEvaded', undefined, h.evadeDamageFrac === undefined ? undefined : { subtype: 'clean' });
       return;
     }
+    shockAboard(psychRules?.shocks.impact ?? 0);
     const failed = h.evaded && frac >= (rules.impact.evade?.failDamageFrac ?? 1) - 1e-9;
     const graze = h.evaded && !failed;
     if (graze) state.stats.impactsGrazed = (state.stats.impactsGrazed ?? 0) + 1;
@@ -505,6 +526,7 @@ export function createRun(options: RunOptions): Run {
     }
     const em = emergencyGives();
     const spares = Math.floor(em?.spares ?? 0);
+    const provisions = psychRules && state.psych ? provisionsOffer() : undefined;
     return {
       nodeId: state.locationId,
       credits: state.credits,
@@ -531,6 +553,7 @@ export function createRun(options: RunOptions): Run {
           overloadsAtCruise: marginAfter < -1e-9,
         };
       }),
+      ...(provisions ? { provisions } : {}),
     };
   }
 
@@ -568,6 +591,7 @@ export function createRun(options: RunOptions): Run {
     if (state.science && node.missionTarget) state.science.targetVisited = true;
     const arrivedMsg = nodeMessage('event.arrived', node);
     emit('arrived', 'info', arrivedMsg.key, arrivedMsg.params);
+    psychArrive(firstVisit);
     if (firstVisit && node.cache) {
       const fuel = Math.min(node.cache.fuel, ship.fuelCapacity - shipState.fuel);
       const spares = Math.min(node.cache.spares, ship.maxSpares - shipState.spares);
@@ -579,6 +603,7 @@ export function createRun(options: RunOptions): Run {
       state.phase = 'won';
       state.stats.sectorsCleared++;
       emit('sector-cleared', 'ok', 'event.sectorCleared', { sector: state.sector.index });
+      if (psychRules) for (const m of state.crew) if (m.alive) addSanity(m, psychRules.rewards.sectorCleared);
       // Contrato del sector: pago fijo × multiplicador de venta del sector.
       const reward = Math.round(economy.sectorRewardCredits * sectorPriceMults(economy, state.sector.index).sell);
       if (reward > 0) {
@@ -695,6 +720,8 @@ export function createRun(options: RunOptions): Run {
     refreshWarnings();
     if (state.phase !== 'won') stepScienceNow(dt);
 
+    stepPsych(dt);
+
     // Avisos de nivel bajo (una vez hasta que se recupere)
     const levels = [
       ['oxygen', shipState.oxygenPct, rules.alerts.lowOxygenPct, 'low-oxygen', 'event.lowOxygen'],
@@ -757,6 +784,10 @@ export function createRun(options: RunOptions): Run {
     state.stats.crewLost++;
     state.stats.evaTimeS += m.evaS;
     emit('crew-dead', 'bad', `event.crewDead.${cause}`, undefined, { crewId: m.id, subtype: cause });
+    if (psychRules) {
+      for (const o of state.crew) if (o.alive) addSanity(o, -psychRules.shocks.crewDeath);
+      if (state.psych?.cohesionPct !== undefined) state.psych.cohesionPct = clamp(state.psych.cohesionPct - psychRules.shocks.crewDeathCohesion, 0, 100);
+    }
     if (state.surface) abandonTools(state.surface);
     if (state.crew.every((c) => !c.alive)) lose('crew');
   }
@@ -809,7 +840,7 @@ export function createRun(options: RunOptions): Run {
   function pickUp(m: CrewMember, t: PlacedTool): number {
     const mat = getMaterial(t.materialId, cat);
     const deposit = state.surface!.deposits.find((d) => d.id === t.depositId)!;
-    const capacityKg = crewCarryCapacityKg(srules, m, cat);
+    const capacityKg = crewCarryCapacityKg(srules, m, cat, psychRules);
     const room = Math.floor((capacityKg - m.carriedKg + 1e-9) / mat.massKg);
     const n = Math.max(0, Math.min(t.ready, room));
     // Filón completo: la última veta vale más si este tripulante agotó las demás en esta salida.
@@ -852,6 +883,7 @@ export function createRun(options: RunOptions): Run {
     surface.touchdownSpeedMps = round1(speed);
     state.phase = 'surface';
     state.stats.landings++;
+    if (state.psych) state.psych.sinceNoveltyS = 0;
     const d = srules.descent;
     const excess = speed - d.safeSpeedMps;
     if (excess <= 0) {
@@ -860,6 +892,7 @@ export function createRun(options: RunOptions): Run {
     }
     surface.hardLanding = true;
     state.stats.hardLandings++;
+    shockAboard(psychRules?.shocks.hardLanding ?? 0);
     const rng = createRng(landingSeed(seed, state.sector, surface.nodeId));
     const sysRoll = rng.next();
     const incidentRoll = rng.next();
@@ -936,7 +969,7 @@ export function createRun(options: RunOptions): Run {
       if (!m.alive || m.location !== 'eva') continue;
       m.evaS += dt;
       m.moveBudgetM = Math.min(suit.maxMoveSpeedMps * MOVE_BUDGET_CAP_S, m.moveBudgetM + suit.maxMoveSpeedMps * dt);
-      m.suitO2Pct = Math.max(0, m.suitO2Pct - (suit.o2DrainPctPerS + stormDrain) * dt);
+      m.suitO2Pct = Math.max(0, m.suitO2Pct - (suit.o2DrainPctPerS * sanityDebuffs(m, psychRules).suitO2 + stormDrain) * dt);
       if (m.grounded) m.jetpackPct = Math.min(100, m.jetpackPct + srules.jetpack.rechargePctPerS * dt);
       if (m.suitO2Pct < suit.criticalO2Pct && m.o2Alert < 2) {
         m.o2Alert = 2;
@@ -1051,16 +1084,218 @@ export function createRun(options: RunOptions): Run {
     const value = m.carriedValue;
     state.stats.materialsStored += units;
     state.stats.materialsValue += value;
+    if (psychRules && value > 0) addSanity(m, Math.min(psychRules.rewards.storedMax, (value / 100) * psychRules.rewards.storedPer100));
     clearCarried(m);
     emit('cargo-stored', 'ok', 'event.cargoStored', { units, value: Math.round(value) }, { crewId: m.id, subtype: 'stored' });
     if (fuelGain > 0 || sparesGain > 0) emit('cargo-stored', 'ok', 'event.cargoProcessed', { fuel: Math.round(fuelGain), spares: sparesGain }, { crewId: m.id, subtype: 'processed' });
   }
 
-  /** Fase 6: ritmo de trabajo de quien repara (ventaja del ingeniero si actúa él, vivo y a bordo). */
-  function workMult(crewId: number | undefined): number {
-    if (crewId === undefined) return 1;
-    const m = state.crew.find((c) => c.id === crewId && c.alive && c.location === 'ship');
-    return crewPerks(m, cat).repairSpeedMult ?? 1;
+  /**
+   * Fase 6: ritmo de trabajo de quien repara (ventaja del ingeniero si actúa él, vivo y a bordo).
+   * Fase 8: con cordura, × el debuff de su banda (en solitario sin `crewId`, el primer vivo) y × el trabajo en equipo.
+   */
+  function workMult(crewId: number | undefined, inc?: Incident): number {
+    if (!psychRules) {
+      if (crewId === undefined) return 1;
+      const m = state.crew.find((c) => c.id === crewId && c.alive && c.location === 'ship');
+      return crewPerks(m, cat).repairSpeedMult ?? 1;
+    }
+    const m = crewId === undefined ? state.crew.find((c) => c.alive) : state.crew.find((c) => c.id === crewId && c.alive && c.location === 'ship');
+    const perk = crewId === undefined ? 1 : (crewPerks(m, cat).repairSpeedMult ?? 1);
+    const team = inc && (inc.workers?.length ?? 0) >= 2 && (state.psych?.cohesionPct ?? 0) >= psychRules.cohesion.teamworkMinPct ? psychRules.cohesion.teamworkMult : 1;
+    return perk * sanityDebuffs(m, psychRules).work * team;
+  }
+
+  // ── Cordura (fase 8) ────────────────────────────────────────────────────────────────────────
+  function addSanity(m: CrewMember, delta: number): void {
+    if (m.sanityPct === undefined) return;
+    m.sanityPct = clamp(m.sanityPct + delta, 0, 100);
+  }
+
+  /** Golpe instantáneo a todos los que van a bordo. */
+  function shockAboard(pct: number): void {
+    if (!psychRules || pct <= 0) return;
+    for (const m of state.crew) if (m.alive && m.location === 'ship') addSanity(m, -pct);
+  }
+
+  /** Recompensa de trabajo: a quien actúa (`crewId`) o al primer vivo. */
+  function rewardActor(crewId: number | undefined, pct: number): void {
+    if (!psychRules || pct <= 0) return;
+    const m = crewId === undefined ? state.crew.find((c) => c.alive) : state.crew.find((c) => c.id === crewId && c.alive);
+    if (m) addSanity(m, pct);
+  }
+
+  /** Registra quién trabaja en una avería (cohesión por reparar en grupo). */
+  function noteWorker(inc: Incident, crewId: number | undefined): void {
+    if (!psychRules) return;
+    const id = crewId ?? state.crew.find((c) => c.alive)?.id;
+    if (id === undefined) return;
+    const list = (inc.workers ??= []);
+    if (!list.includes(id)) list.push(id);
+  }
+
+  function psychArrive(firstVisit: boolean): void {
+    const ps = state.psych;
+    if (!ps || !psychRules) return;
+    if (firstVisit) ps.sinceNoveltyS = 0;
+    ps.stationRecoveredPct = 0;
+    ps.saleBonusUsed = false;
+    if (atShop()) {
+      const gain = Math.min(psychRules.station.arrivalPct, psychRules.station.capPct);
+      ps.stationRecoveredPct = gain;
+      for (const m of state.crew) if (m.alive) addSanity(m, gain);
+    }
+  }
+
+  function provisionsOffer(): { unitPrice: number; missing: number; affordable: number } {
+    const unitPrice = psychRules!.provisions.unitPrice * sectorPriceMults(economy, state.sector.index).buy;
+    const missing = Math.max(0, psychRules!.provisions.maxUnits - (state.psych?.provisions ?? 0));
+    return { unitPrice, missing, affordable: Math.min(missing, affordableUnits(state.credits, unitPrice)) };
+  }
+
+  /** Radiación intensa en la zona del nodo actual (o de destino en tránsito): solo con diseño. */
+  function inRadiation(): boolean {
+    if (!design) return false;
+    const nodeId = state.transit ? state.transit.toId : state.locationId;
+    const bodyId = getNode(state.sector, nodeId)?.bodyId;
+    const zoneId = bodyId ? findBody(bodyId, cat)?.zoneId : undefined;
+    return !!zoneId && !!getZone(zoneId, cat).radiation;
+  }
+
+  function dropLowestUnit(m: CrewMember): string | null {
+    let pick: string | null = null;
+    let best = Infinity;
+    for (const [materialId, count] of Object.entries(m.carried).sort(([a], [b]) => (a < b ? -1 : 1))) {
+      if (count <= 0) continue;
+      const unitValue = (m.carriedValues[materialId] ?? 0) / count;
+      if (unitValue < best) {
+        best = unitValue;
+        pick = materialId;
+      }
+    }
+    if (!pick) return null;
+    const mat = getMaterial(pick, cat);
+    const unitValue = best;
+    m.carried[pick] = (m.carried[pick] ?? 0) - 1;
+    m.carriedValues[pick] = (m.carriedValues[pick] ?? 0) - unitValue;
+    if (m.carried[pick]! <= 0) {
+      delete m.carried[pick];
+      delete m.carriedValues[pick];
+    }
+    m.carriedKg = Math.max(0, m.carriedKg - mat.massKg);
+    m.carriedValue = Math.max(0, m.carriedValue - unitValue);
+    m.carriedUnits = Math.max(0, m.carriedUnits - 1);
+    if (mat.streak) {
+      m.streakUnits = Math.max(0, m.streakUnits - 1);
+      m.streakMult = streakMultiplier(srules, m.streakUnits);
+    }
+    return pick;
+  }
+
+  /** Cordura de cada tripulante: drenaje o recuperación, bandas, lapsus y cohesión (un paso fijo, tras `refreshWarnings`). */
+  function stepPsych(dt: number): void {
+    const pr = psychRules;
+    const ps = state.psych;
+    if (!pr || !ps) return;
+    const t = state.stats.timeS;
+    ps.steps++;
+    ps.missionDays = Math.round(t * pr.daysPerS * 10) / 10;
+    ps.sinceNoveltyS += dt;
+    if (ps.provisions > 0 && state.phase === 'transit') {
+      ps.provisionsS += dt;
+      if (ps.provisionsS >= pr.provisions.secondsPerUnit - 1e-9) {
+        ps.provisionsS = 0;
+        ps.provisions--;
+        state.stats.provisionsUsed = (state.stats.provisionsUsed ?? 0) + 1;
+      }
+    }
+    const provisioned = ps.provisions > 0;
+    const station = atShop();
+    const alive = state.crew.filter((c) => c.alive);
+    const calling = ps.callUntilS > t + 1e-9;
+    const stationGain = station ? Math.max(0, Math.min(pr.station.recoverPctPerS * dt, pr.station.capPct - ps.stationRecoveredPct)) : 0;
+    ps.stationRecoveredPct += stationGain;
+    const lowO2 = shipState.oxygenPct < rules.alerts.lowOxygenPct;
+    const storm = !!state.surface?.storm.active;
+    const radiation = inRadiation();
+    const au = design ? sunDistanceAu() : undefined;
+    const base = pr.drainMult ?? 1;
+    const managerAura = alive.filter((c) => c.location === 'ship').map((c) => ({ id: c.id, mult: crewPerks(c, cat).sanityAuraMult ?? 1 })).filter((x) => x.mult !== 1);
+
+    for (const m of alive) {
+      if (m.sanityPct === undefined) continue;
+      m.awakeS = (m.awakeS ?? 0) + dt;
+      if (!calling && (m.callProgressS ?? 0) > 0) m.callProgressS = 0;
+      if (station) addSanity(m, stationGain);
+      else {
+        const context = state.phase === 'surface' ? (m.location === 'eva' ? 'eva' : 'surfaceAboard') : state.phase === 'docked' ? 'docked' : 'transit';
+        const aura = managerAura.reduce((acc, x) => (x.id === m.id ? acc : acc * x.mult), 1);
+        const drain = sanityDrainPctPerS({
+          context, sectorIndex: state.sector.index, ...(au !== undefined ? { sunDistanceAu: au } : {}), radiation, sinceNoveltyS: ps.sinceNoveltyS,
+          awakeS: m.awakeS, ...(ps.cohesionPct !== undefined ? { cohesionPct: ps.cohesionPct } : {}),
+          mitigation: (provisioned ? pr.provisions.drainMult : 1) * base * aura,
+          activeIncidents: state.incidents.length, lowShipO2: lowO2, stormEva: storm && m.location === 'eva',
+          suitCritical: m.location === 'eva' && m.suitO2Pct < srules.suit.criticalO2Pct,
+        }, pr);
+        addSanity(m, -drain * dt);
+      }
+      // Bandas con histéresis
+      const prev = m.sanityBand ?? 'stable';
+      const next = sanityBandFor(m.sanityPct, prev, pr);
+      if (next !== prev) {
+        m.sanityBand = next;
+        const down = bandIndex(next) > bandIndex(prev);
+        const sub = down ? (next as 'tense' | 'critical' | 'breakdown') : 'recovered';
+        emit('crew-sanity', down ? (next === 'tense' ? 'warn' : 'bad') : 'ok', `event.sanity.${sub}`, { name: `#${m.id}` }, { crewId: m.id, subtype: sub });
+      }
+      const idx = bandIndex(m.sanityBand ?? 'stable');
+      if (idx >= 2) state.stats.sanityCriticalS = (state.stats.sanityCriticalS ?? 0) + dt;
+      // Lapsus: tirada sin estado (no toca ningún otro flujo de azar)
+      const rate = sanityDebuffs(m, pr).lapsePerS;
+      if (rate > 0 && (m.lapseCooldownUntilS ?? 0) <= t) {
+        const roll = psychRoll(seed, ps.steps, m.id);
+        const p = rate * dt;
+        if (roll < p) {
+          const pickRoll = roll / p;
+          if (m.location === 'eva') {
+            const material = dropLowestUnit(m);
+            if (material) {
+              m.lapseCooldownUntilS = t + pr.lapse.cooldownS;
+              state.stats.lapses = (state.stats.lapses ?? 0) + 1;
+              emit('crew-lapse', 'warn', 'event.lapse.drop', { material }, { crewId: m.id, subtype: 'drop' });
+            }
+          } else if (state.phase !== 'landing') {
+            const options = pr.lapse.systems.filter((id) => sys[id].enabled);
+            const target = options[Math.min(options.length - 1, Math.floor(pickRoll * options.length))];
+            if (target) {
+              sys[target].enabled = false;
+              m.lapseCooldownUntilS = t + pr.lapse.cooldownS;
+              state.stats.lapses = (state.stats.lapses ?? 0) + 1;
+              emit('crew-lapse', 'warn', 'event.lapse.switch', { system: target }, { crewId: m.id, systemId: target, subtype: 'switch' });
+            }
+          }
+        }
+      }
+    }
+
+    // Cohesión (solo con 2 o más vivos)
+    if (alive.length >= 2) {
+      let c = ps.cohesionPct ?? pr.cohesion.start;
+      c += (cohesionDeltaPctPerS(state.crew, pr) + (station ? pr.station.cohesionPctPerS : 0)) * dt;
+      c = clamp(c, 0, 100);
+      ps.cohesionPct = c;
+      const wasLow = ps.cohesionBand === 'low';
+      if (!wasLow && c < pr.cohesion.lowPct) {
+        ps.cohesionBand = 'low';
+        emit('cohesion', 'warn', 'event.cohesion.low', undefined, { subtype: 'low' });
+      } else if (wasLow && c >= pr.cohesion.lowPct + pr.bands.hysteresisPct) {
+        ps.cohesionBand = 'ok';
+        emit('cohesion', 'ok', 'event.cohesion.recovered', undefined, { subtype: 'recovered' });
+      } else if (!ps.cohesionBand) ps.cohesionBand = 'ok';
+    } else {
+      delete ps.cohesionPct;
+      delete ps.cohesionBand;
+    }
   }
 
   function findMember(crewId: number | undefined): CrewMember | null {
@@ -1084,6 +1319,7 @@ export function createRun(options: RunOptions): Run {
       state.surface = surface;
       state.phase = 'landing';
       state.landedIds.push(state.locationId);
+      if (state.psych) state.psych.sinceNoveltyS = 0;
       // Equipo de extracción completo en cada aterrizaje.
       const kit = Object.fromEntries(surfaceCat.tools.map((t) => [t.id, t.perCrew]));
       for (const m of state.crew) Object.assign(m, { location: 'ship', x: 0, z: 0, grounded: true, evaS: 0, tools: { ...kit } });
@@ -1190,7 +1426,7 @@ export function createRun(options: RunOptions): Run {
         if (m.location !== 'eva') return reject('reject.notOutside');
         if (m.jetpackPct <= 0) return reject('reject.jetpackEmpty');
         const seconds = clamp(Number(action.seconds) || 0, 0, MAX_WORK_SECONDS);
-        m.jetpackPct = Math.max(0, m.jetpackPct - seconds * crewJetpackDrainPctPerS(srules, m, cat));
+        m.jetpackPct = Math.max(0, m.jetpackPct - seconds * crewJetpackDrainPctPerS(srules, m, cat, psychRules));
         return OK;
       }
       case 'fall-impact': {
@@ -1277,6 +1513,10 @@ export function createRun(options: RunOptions): Run {
       earn(credits);
       state.stats.unitsSold = (state.stats.unitsSold ?? 0) + units;
       emit('sale', 'ok', 'event.sold', { units, credits });
+      if (psychRules && state.psych && !state.psych.saleBonusUsed) {
+        state.psych.saleBonusUsed = true;
+        rewardActor(undefined, psychRules.rewards.sale);
+      }
       return OK;
     }
     if (action.type === 'buy-supply') {
@@ -1310,6 +1550,7 @@ export function createRun(options: RunOptions): Run {
     state.stats.upgradesBought = (state.stats.upgradesBought ?? 0) + 1;
     ship = effectiveShip(baseShip, upgrades, cat);
     srules = effectiveSurfaceRules(surfaceCat.rules, upgrades, cat);
+    if (basePsych) psychRules = effectivePsychRules(basePsych, upgrades, cat, design);
     // Un depósito o casco mayor no se llena solo; si alguna mejora los redujera, se recorta lo que sobra.
     shipState.fuel = Math.min(shipState.fuel, ship.fuelCapacity);
     shipState.hull = Math.min(shipState.hull, ship.hullMax);
@@ -1344,6 +1585,68 @@ export function createRun(options: RunOptions): Run {
     return { toId, distanceLy, cargoKg, cargoFuelMult: mult, byThrottle, expectedHazards, riskLevel: RISK_THRESHOLDS.filter((t) => risk >= t).length };
   }
 
+  // ── Descanso y llamada (fase 8) ─────────────────────────────────────────────────────────────
+  /** El tripulante que actúa está en la litera (el descanso se mantiene `restUntilS`). */
+  function isResting(crewId: number | undefined): boolean {
+    if (!psychRules) return false;
+    const m = findMember(crewId);
+    return !!m && (m.restUntilS ?? 0) > state.stats.timeS + 1e-9;
+  }
+
+  function actRest(action: Extract<RunAction, { type: 'rest' }>): ActionResult {
+    const pr = psychRules;
+    if (!pr || !state.psych) return reject('reject.invalid');
+    const m = findMember(action.crewId);
+    if (!m) return reject('reject.crewDead');
+    if (state.phase === 'landing') return reject('reject.restDescent');
+    if (m.location === 'eva') return reject('reject.restEva');
+    if ((m.sanityPct ?? 100) >= 99 && (m.awakeS ?? 0) < pr.awakeGraceS) return reject('reject.restNotNeeded');
+    const seconds = clamp(Number(action.seconds) || 0, 0, MAX_WORK_SECONDS);
+    const alarm = state.incidents.some((i) => i.kind === 'fire' || i.kind === 'leak');
+    const mult = (crewPerks(m, cat).sanityRecoverMult ?? 1) * (alarm ? pr.rest.alarmMult : 1);
+    const t = state.stats.timeS;
+    const wasResting = (m.restUntilS ?? 0) > t + 1e-9;
+    addSanity(m, seconds * pr.rest.recoverPctPerS * mult);
+    const hadAwake = (m.awakeS ?? 0) > 0;
+    m.awakeS = Math.max(0, (m.awakeS ?? 0) - seconds * pr.rest.awakeRecoverMult);
+    m.restUntilS = t + 0.6;
+    state.stats.restS = (state.stats.restS ?? 0) + seconds;
+    if (!wasResting) emit('crew-rest', 'info', 'event.rest.start', { name: `#${m.id}` }, { crewId: m.id, subtype: 'start' });
+    if (hadAwake && m.awakeS === 0) emit('crew-rest', 'ok', 'event.rest.done', { name: `#${m.id}` }, { crewId: m.id, subtype: 'done' });
+    return OK;
+  }
+
+  function actCall(action: Extract<RunAction, { type: 'call-earth' }>): ActionResult {
+    const pr = psychRules;
+    const ps = state.psych;
+    if (!pr || !ps) return reject('reject.invalid');
+    if (state.phase !== 'transit' && state.phase !== 'docked') return reject('reject.callPhase');
+    const m = findMember(action.crewId);
+    if (!m) return reject('reject.crewDead');
+    const t = state.stats.timeS;
+    if ((m.restUntilS ?? 0) > t + 1e-9) return reject('reject.crewResting');
+    if (!sys.nav.online) return reject('reject.callNoNav');
+    if ((m.callCooldownUntilS ?? 0) > t + 1e-9) return reject('reject.callCooldown');
+    if (!contactWindowOpen(state, sciRules)) return reject('reject.callNoWindow');
+    const baseDemand = shipState.powerDemandKw - (ps.callUntilS > t + 1e-9 ? pr.call.drawKw : 0);
+    if (shipState.powerSupplyKw - baseDemand < pr.call.drawKw - 1e-9) return reject('reject.callPower');
+    const seconds = clamp(Number(action.seconds) || 0, 0, MAX_WORK_SECONDS);
+    m.callProgressS = (m.callProgressS ?? 0) + seconds;
+    ps.callUntilS = t + 0.6;
+    if (m.callProgressS >= pr.call.seconds - 1e-9) {
+      const au = design ? sunDistanceAu() : 1 + 0.75 * (state.sector.index - 1);
+      const solo = state.crew.filter((c) => c.alive).length === 1;
+      const pct = callRecoveryPct(pr, au, solo, crewPerks(m, cat).sanityRecoverMult ?? 1);
+      addSanity(m, pct);
+      m.callProgressS = 0;
+      m.callCooldownUntilS = t + pr.call.cooldownS;
+      ps.callUntilS = t;
+      state.stats.callsMade = (state.stats.callsMade ?? 0) + 1;
+      emit('earth-call', 'ok', 'event.earthCall', { pct: Math.round(pct * 10) / 10, delayMin: Math.round(commsDelayMin(au)) }, { crewId: m.id });
+    }
+    return OK;
+  }
+
   function act(action: RunAction): ActionResult {
     if (state.phase === 'lost') return reject('reject.runOver');
     if (action.type === 'next-sector') {
@@ -1356,6 +1659,7 @@ export function createRun(options: RunOptions): Run {
       state.servicedIds = [];
       state.landedIds = [];
       state.phase = 'docked';
+      if (state.psych) Object.assign(state.psych, { sinceNoveltyS: 0, stationRecoveredPct: 0, saleBonusUsed: false });
       emit('new-sector', 'info', 'event.newSector', { sector: sector.index });
       return OK;
     }
@@ -1406,11 +1710,21 @@ export function createRun(options: RunOptions): Run {
         const inc = state.incidents.find((i) => i.id === action.incidentId);
         if (!inc) return reject('reject.noIncident');
         if (!crewAboard()) return reject('reject.crewOutside');
-        const seconds = clamp(Number(action.seconds) || 0, 0, MAX_WORK_SECONDS) * workMult(action.crewId);
+        if (isResting(action.crewId)) return reject('reject.crewResting');
+        noteWorker(inc, action.crewId);
+        const seconds = clamp(Number(action.seconds) || 0, 0, MAX_WORK_SECONDS) * workMult(action.crewId, inc);
         inc.progress += seconds / rules.incidents[inc.kind].repairS;
         if (inc.progress >= 1) {
           state.incidents.splice(state.incidents.indexOf(inc), 1);
           state.stats.incidentsFixed++;
+          if (psychRules) {
+            rewardActor(action.crewId, psychRules.rewards.incidentFixed);
+            const workers = (inc.workers ?? []).filter((id) => state.crew.some((c) => c.id === id && c.alive));
+            if (workers.length >= 2) {
+              if (state.psych?.cohesionPct !== undefined) state.psych.cohesionPct = clamp(state.psych.cohesionPct + psychRules.cohesion.groupRepairPct, 0, 100);
+              for (const id of workers) addSanity(state.crew.find((c) => c.id === id)!, psychRules.cohesion.groupRepairSanity);
+            }
+          }
           emit('incident-fixed', 'ok', `event.fixed.${inc.kind}`, { system: inc.systemId }, { systemId: inc.systemId, incidentKind: inc.kind });
         }
         return OK;
@@ -1421,6 +1735,7 @@ export function createRun(options: RunOptions): Run {
         if (s.healthPct >= 100) return reject('reject.noDamage');
         if (shipState.spares < 1) return reject('reject.noSpares');
         if (!crewAboard()) return reject('reject.crewOutside');
+        if (isResting(action.crewId)) return reject('reject.crewResting');
         const seconds = clamp(Number(action.seconds) || 0, 0, MAX_WORK_SECONDS) * workMult(action.crewId);
         s.repairProgress += seconds / rules.repair.kitRepairS;
         if (s.repairProgress >= 1) {
@@ -1429,6 +1744,7 @@ export function createRun(options: RunOptions): Run {
           state.stats.kitsUsed++;
           s.healthPct = Math.min(100, s.healthPct + rules.repair.kitRestorePct);
           emit('system-repaired', 'ok', 'event.systemRepaired', { system: action.systemId }, { systemId: action.systemId });
+          rewardActor(action.crewId, psychRules?.rewards.systemRepaired ?? 0);
         }
         return OK;
       }
@@ -1443,12 +1759,13 @@ export function createRun(options: RunOptions): Run {
         // Fase 6: la ventaja del piloto solo cuenta si la maniobra la hace él (y está vivo y a bordo).
         const pilot = action.crewId === undefined ? null : state.crew.find((c) => c.id === action.crewId && c.alive && c.location === 'ship');
         const perks = crewPerks(pilot, cat);
+        if (isResting(action.crewId)) return reject('reject.crewResting');
         const evadeFuel = ship.evadeFuel * (perks.evadeFuelMult ?? 1);
         if (shipState.fuel < evadeFuel) return reject('reject.notEnoughFuel');
         shipState.fuel -= evadeFuel;
         hazard.evaded = true;
         // Esquiva por habilidad: el cliente informa los roces del minijuego; el motor cobra.
-        if (action.grazes !== undefined && rules.impact.evade) hazard.evadeDamageFrac = evadeDamageFraction(rules, Number(action.grazes) || 0) * (perks.evadeDamageMult ?? 1);
+        if (action.grazes !== undefined && rules.impact.evade) hazard.evadeDamageFrac = evadeDamageFraction(rules, Number(action.grazes) || 0) * (perks.evadeDamageMult ?? 1) * sanityDebuffs(findMember(action.crewId), psychRules).evadeDamage;
         return OK;
       }
       case 'service': {
@@ -1465,6 +1782,27 @@ export function createRun(options: RunOptions): Run {
         shipState.spares += spares;
         state.servicedIds.push(state.locationId);
         emit('service', 'ok', 'event.service', { fuel: Math.round(gives.fuel), hull: Math.round(gives.hull), spares });
+        return OK;
+      }
+      case 'rest':
+        return actRest(action);
+      case 'call-earth':
+        return actCall(action);
+      case 'buy-provisions': {
+        const ps = state.psych;
+        if (!psychRules || !ps) return reject('reject.invalid');
+        if (onSurface) return reject('reject.onSurface');
+        if (state.phase !== 'docked') return reject('reject.inTransit');
+        if (!atShop()) return reject('reject.notAtStation');
+        const offer = provisionsOffer();
+        if (offer.missing < 1) return reject('reject.provisionsFull');
+        const wanted = action.amount === undefined ? offer.missing : Math.max(0, Math.trunc(Number(action.amount) || 0));
+        const n = Math.min(offer.missing, wanted, offer.affordable);
+        if (n <= 0) return reject(wanted <= 0 ? 'reject.invalid' : 'reject.noCredits', wanted <= 0 ? undefined : { credits: priceOf(1, offer.unitPrice) });
+        const cost = priceOf(n, offer.unitPrice);
+        spend(cost);
+        ps.provisions += n;
+        emit('purchase', 'ok', 'event.purchase.provisions', { amount: n, credits: cost });
         return OK;
       }
       case 'sell':
@@ -1533,6 +1871,7 @@ export function createRun(options: RunOptions): Run {
       Object.assign(upgrades, nextUpgrades);
       ship = effectiveShip(baseShip, upgrades, cat);
       srules = effectiveSurfaceRules(surfaceCat.rules, upgrades, cat);
+      if (basePsych) psychRules = effectivePsychRules(basePsych, upgrades, cat, design);
       pending = [];
     },
   };

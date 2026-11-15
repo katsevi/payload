@@ -1,4 +1,4 @@
-import { MAX_WORK_SECONDS } from '@payload/shared';
+import { getPsychRules, MAX_WORK_SECONDS } from '@payload/shared';
 import { useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer } from '@react-three/drei';
@@ -23,7 +23,7 @@ import {
   stepPulse,
   stepSeal,
 } from '../game/repairGames';
-import { HULL, PLAYER_START, STATIONS, USE_RADIUS, nearestStation } from '../game/layout';
+import { HULL, PLAYER_START, STATIONS, USE_RADIUS, nearestStation, stationIdsFor } from '../game/layout';
 import { fx, getRun, shipSpawn, useGame } from '../game/runStore';
 import { bearingTo, SHIP_OFFSET } from '../game/surfaceRules';
 import { ShaderClock } from '../gfx/Glow';
@@ -53,7 +53,7 @@ const isTyping = (e: KeyboardEvent): boolean => {
 function currentInteraction(): Interaction | null {
   const run = getRun();
   if (!run) return null;
-  const station = nearestStation(playerState.pos.x, playerState.pos.z);
+  const station = nearestStation(playerState.pos.x, playerState.pos.z, USE_RADIUS, stationIdsFor(!!getPsychRules(run.catalog)));
   const est = station === 'helm' ? { landing: run.state.phase === 'docked' ? run.estimateLanding() : null, takeOff: run.state.phase === 'surface' ? run.estimateTakeOff() : null } : {};
   return interactionAt(station, run.state, est, run.catalog);
 }
@@ -258,6 +258,20 @@ function GameLoop() {
       }
       if (work > 0) {
         sendInChunks(work, MAX_WORK_SECONDS, (seconds) => {
+          const action = holdAction(interaction, seconds);
+          return !!action && game.act(action, true).ok;
+        });
+      }
+      charge.current = 0;
+      ui.setPrompt(promptFor(interaction, run.state, 0, simple));
+      return;
+    }
+
+    // ── Fase 8: descansar en la litera / llamar a la Tierra (mantener E; moverse lo cancela) ──
+    if (interaction?.kind === 'bunk' || interaction?.kind === 'comms') {
+      const moving = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].some((k) => isDown(k));
+      if (holdingUse && !moving) {
+        sendInChunks(realDt, MAX_WORK_SECONDS, (seconds) => {
           const action = holdAction(interaction, seconds);
           return !!action && game.act(action, true).ok;
         });

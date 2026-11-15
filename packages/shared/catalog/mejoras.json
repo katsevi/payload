@@ -397,6 +397,149 @@
           ]
         }
       ]
+    },
+    {
+      "id": "crew-quarters",
+      "name": {
+        "es": "Camarotes privados",
+        "en": "Private quarters"
+      },
+      "levels": [
+        {
+          "price": 140,
+          "massKg": 40,
+          "effects": [
+            {
+              "target": "crew",
+              "field": "restRecoverPctPerS",
+              "mult": 1.3
+            }
+          ]
+        },
+        {
+          "price": 220,
+          "massKg": 40,
+          "effects": [
+            {
+              "target": "crew",
+              "field": "restRecoverPctPerS",
+              "mult": 1.2307692307692308
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "leisure-kit",
+      "name": {
+        "es": "Kit de ocio y RV",
+        "en": "Leisure & VR kit"
+      },
+      "levels": [
+        {
+          "price": 85,
+          "massKg": 15,
+          "effects": [
+            {
+              "target": "crew",
+              "field": "monotonyMax",
+              "mult": 0.5
+            },
+            {
+              "target": "ship",
+              "field": "systemDrawKw.lifeSupport",
+              "add": 4
+            }
+          ]
+        },
+        {
+          "price": 150,
+          "massKg": 15,
+          "effects": [
+            {
+              "target": "crew",
+              "field": "monotonyMax",
+              "mult": 0.5
+            },
+            {
+              "target": "ship",
+              "field": "systemDrawKw.lifeSupport",
+              "add": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "circadian-lighting",
+      "name": {
+        "es": "Iluminación circadiana",
+        "en": "Circadian lighting"
+      },
+      "levels": [
+        {
+          "price": 95,
+          "massKg": 10,
+          "effects": [
+            {
+              "target": "crew",
+              "field": "sleepPenalty",
+              "mult": 0.5
+            },
+            {
+              "target": "ship",
+              "field": "systemDrawKw.lifeSupport",
+              "add": 6
+            }
+          ]
+        },
+        {
+          "price": 170,
+          "massKg": 10,
+          "effects": [
+            {
+              "target": "crew",
+              "field": "sleepPenalty",
+              "mult": 0.4
+            },
+            {
+              "target": "ship",
+              "field": "systemDrawKw.lifeSupport",
+              "add": 6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "comm-relay",
+      "name": {
+        "es": "Enlace con casa",
+        "en": "Home uplink"
+      },
+      "levels": [
+        {
+          "price": 70,
+          "massKg": 5,
+          "effects": [
+            {
+              "target": "crew",
+              "field": "callRecoverPct",
+              "mult": 1.3
+            },
+            {
+              "target": "crew",
+              "field": "callCooldownS",
+              "add": -30
+            },
+            {
+              "target": "ship",
+              "field": "systemDrawKw.lifeSupport",
+              "add": 3
+            }
+          ]
+        }
+      ]
     }
   ]
 }

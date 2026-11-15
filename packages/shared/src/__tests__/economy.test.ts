@@ -12,6 +12,9 @@ import {
 
 const ship = getShip(undefined);
 const ALL_UPGRADES = catalog.upgrades!.map((u) => u.id);
+/** Fase 8: las mejoras `crew` (cordura) se ofrecen aparte de `offer.size`; estos tests cuentan solo las de siempre. */
+const CREW_UPGRADES = new Set(catalog.upgrades!.filter((u) => u.levels.some((l) => l.effects.some((e) => e.target === 'crew'))).map((u) => u.id));
+const regularOnly = (ids: string[]) => ids.filter((id) => !CREW_UPGRADES.has(id));
 
 /** Sin azar en ruta; `patch` para aislar la regla. */
 function econCatalog(patch?: (raw: Catalog) => void): Catalog {
@@ -60,7 +63,7 @@ describe('créditos y venta en la estación', () => {
     const q = run.stationQuote()!;
     expect(q.nodeId).toBe(run.state.locationId);
     expect(q.credits).toBe(run.state.credits);
-    expect(q.upgrades.length).toBe(catalog.economy!.offer.size);
+    expect(regularOnly(q.upgrades.map((u) => u.upgradeId)).length).toBe(catalog.economy!.offer.size);
   });
 
   it('vende una unidad, todo un material o toda la bodega al precio fijo por material', () => {
@@ -273,10 +276,10 @@ describe('mejoras', () => {
   it('solo se compra lo que ofrece esa estación', () => {
     const run = createRun({ seed: 8, catalog: econCatalog((raw) => { raw.economy!.startCredits = 5000; raw.economy!.offer.size = 2; }) });
     const offered = stationOffer(run.state.seed, run.state.sector, run.state.locationId, run.catalog);
-    expect(offered).toHaveLength(2);
-    const missing = ALL_UPGRADES.find((id) => !offered.includes(id))!;
+    expect(regularOnly(offered)).toHaveLength(2);
+    const missing = regularOnly(ALL_UPGRADES).find((id) => !offered.includes(id))!;
     expect(run.apply({ type: 'buy-upgrade', upgradeId: missing })).toEqual({ ok: false, reason: { key: 'reject.notOffered' } });
-    expect(run.apply({ type: 'buy-upgrade', upgradeId: offered[0]! })).toEqual({ ok: true });
+    expect(run.apply({ type: 'buy-upgrade', upgradeId: regularOnly(offered)[0]! })).toEqual({ ok: true });
   });
 
   it('el motor usa la nave efectiva: reactor, escudos y depósito', () => {
@@ -327,7 +330,7 @@ describe('oferta de mejoras por estación', () => {
     const station = sector.nodes.find((n) => n.kind === 'station')!;
     const a = stationOffer(11, sector, station.id, catalog);
     expect(stationOffer(11, sector, station.id, catalog)).toEqual(a);
-    expect(a).toHaveLength(catalog.economy!.offer.size);
+    expect(regularOnly(a)).toHaveLength(catalog.economy!.offer.size);
     expect(new Set(a).size).toBe(a.length);
     expect(generateSector(11, 1)).toEqual(sector);
     // Un nodo que no es estación no ofrece nada.

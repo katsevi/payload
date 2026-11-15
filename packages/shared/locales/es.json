@@ -102,7 +102,8 @@
     "purchase": {
       "fuel": "Repostado: +{{amount}} combustible · −{{credits}} créditos",
       "hull": "Casco reparado: +{{amount}} · −{{credits}} créditos",
-      "spares": "Repuestos: +{{amount}} · −{{credits}} créditos"
+      "spares": "Repuestos: +{{amount}} · −{{credits}} créditos",
+      "provisions": "Provisiones frescas: +{{amount}} · −{{credits}} créditos"
     },
     "upgrade": "Instalado: $t(catalog.{{upgrade}}) nivel {{level}} · −{{credits}} créditos",
     "sectorReward": "Contrato del sector cobrado: +{{credits}} créditos",
@@ -116,7 +117,26 @@
     "missionSuccess": "Misión cumplida: {{science}}/{{required}} de ciencia entregada",
     "missionPartial": "Misión terminada sin el objetivo: {{science}}/{{required}} de ciencia",
     "overheat": "Sobrecalentamiento: {{demandKw}} kW y los radiadores solo disipan {{heatKw}} kW",
-    "batteryEmpty": "Batería agotada: la sobrecarga ya daña el reactor"
+    "batteryEmpty": "Batería agotada: la sobrecarga ya daña el reactor",
+    "sanity": {
+      "tense": "{{name}} está tenso: trabaja más lento.",
+      "critical": "{{name}} está al límite. Que descanse.",
+      "breakdown": "{{name}} se derrumba: comete errores.",
+      "recovered": "{{name}} se recompone."
+    },
+    "rest": {
+      "start": "{{name}} descansa. El tiempo corre.",
+      "done": "{{name}} vuelve descansado."
+    },
+    "earthCall": "Llamada a casa: +{{pct}} de ánimo ({{delayMin}} min de retraso).",
+    "lapse": {
+      "switch": "Descuido: $t(system.{{system}}) apagado.",
+      "drop": "Descuido: se cae $t(catalog.{{material}})."
+    },
+    "cohesion": {
+      "low": "El equipo se resiente.",
+      "recovered": "El equipo vuelve a empujar junto."
+    }
   },
   "loss": {
     "hull": "La nave se ha desintegrado",
@@ -174,7 +194,17 @@
     "supplyFull": "Ya está al máximo",
     "notOffered": "Esta estación no ofrece esa mejora",
     "upgradeMaxed": "Esa mejora ya está al máximo",
-    "missionOver": "La misión ha terminado"
+    "missionOver": "La misión ha terminado",
+    "crewResting": "Está descansando.",
+    "restEva": "No se puede descansar fuera de la nave.",
+    "restDescent": "No se descansa durante el descenso.",
+    "restNotNeeded": "No necesita descanso.",
+    "callPhase": "Solo se llama desde el tránsito o atracado.",
+    "callNoNav": "Sin sensores no hay enlace con la Tierra.",
+    "callCooldown": "Línea ocupada: espera un poco.",
+    "callPower": "Sin margen eléctrico para llamar.",
+    "callNoWindow": "Fuera de la ventana de contacto.",
+    "provisionsFull": "Despensa llena."
   },
   "design": {
     "go": "Go: lista para lanzar",
@@ -221,7 +251,9 @@
       "tank": "Tanques",
       "shielding": "Protección",
       "lifeSupport": "Soporte vital",
-      "workshop": "Taller"
+      "workshop": "Taller",
+      "habitat": "Hábitat",
+      "greenhouse": "Huerto"
     },
     "why": {
       "mass": {
@@ -276,7 +308,8 @@
       "no-shielding": "Sin escudos, cada impacto va directo al casco",
       "all-clear": "Todo en orden: márgenes sanos",
       "guided-ship": "Misión guiada: la nave y el lanzador ya están elegidos",
-      "guided-instrument": "Misión guiada: $t(catalog.{{instrument}}) no va en este CubeSat"
+      "guided-instrument": "Misión guiada: $t(catalog.{{instrument}}) no va en este CubeSat",
+      "crew-wellbeing": "Misión de {{months}} meses sin hábitat: la tripulación se agotará."
     }
   },
   "report": {

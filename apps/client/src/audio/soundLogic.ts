@@ -156,6 +156,16 @@ export function sfxForRunEvent(event: Pick<RunEvent, 'type' | 'incidentKind' | '
       return 'purchase';
     case 'upgrade':
       return 'upgrade';
+    // Fase 8 · cordura: solo sonidos que ya existen.
+    case 'crew-sanity':
+      return event.subtype === 'recovered' ? 'ok' : event.subtype === 'tense' ? 'warnTick' : 'o2Low';
+    case 'crew-lapse':
+    case 'cohesion':
+      return event.subtype === 'recovered' ? 'ok' : 'warnTick';
+    case 'crew-rest':
+      return event.subtype === 'done' ? 'ok' : null;
+    case 'earth-call':
+      return 'ok';
     case 'impact-evaded':
     case 'service':
     case 'cache':

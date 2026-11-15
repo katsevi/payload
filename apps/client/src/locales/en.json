@@ -44,7 +44,8 @@
     "effects": "Effects intensity (shake and vignette)",
     "simpleDodge": "Simple dodge (hold E at the helm, no minigame)",
     "simpleRepairs": "Simple repairs (hold R, no minigames)",
-    "wideAim": "Wide extinguisher aim"
+    "wideAim": "Wide extinguisher aim",
+    "reduceStress": "Reduce stress effects"
   },
   "credits": {
     "title": "Credits",
@@ -67,7 +68,9 @@
     "helm": "Helm",
     "map": "Star map",
     "power": "Power panel",
-    "airlock": "Airlock"
+    "airlock": "Airlock",
+    "bunk": "Bunk",
+    "comms": "Comms"
   },
   "marker": {
     "evade": "To the helm!"
@@ -127,7 +130,9 @@
     "observing": "Observing {{body}}",
     "battery": "Battery",
     "overheatTitle": "Demand exceeds what the radiators shed: the reactor wears",
-    "overheat": "Heat {{demandKw}}/{{heatKw}} kW"
+    "overheat": "Heat {{demandKw}}/{{heatKw}} kW",
+    "morale": "Morale",
+    "crewName": "Crew {{n}}"
   },
   "prompt": {
     "hold": "Hold",
@@ -178,7 +183,9 @@
     "readyOut": "{{n}} pieces not collected",
     "evadeLate": "Half a manoeuvre · too late to fly it",
     "terminal": "Open the station terminal",
-    "credits": "{{credits}} cr"
+    "credits": "{{credits}} cr",
+    "rest": "Rest",
+    "callEarth": "Call Earth"
   },
   "map": {
     "title": "Star map · sector {{sector}}",
@@ -272,7 +279,9 @@
     "missionSuccessTitle": "Mission accomplished!",
     "missionPartialTitle": "Mission incomplete",
     "reportTitle": "Mission report",
-    "rootCause": "cause"
+    "rootCause": "cause",
+    "sanityCritical": "Time in critical",
+    "countermeasures": "Countermeasures"
   },
   "pause": {
     "title": "Paused",
@@ -299,7 +308,8 @@
       "terrain": "Glowing cracks: the ground gives way. Get off or you fall.",
       "storm": "A darkening horizon means a storm: get under cover.",
       "landing": "On descent, brake when your speed passes the white mark.",
-      "tools": "Place a tool on a vein and move on; come back when its beacon blinks."
+      "tools": "Place a tool on a vein and move on; come back when its beacon blinks.",
+      "morale": "Rest in the bunk when tension rises."
     },
     "jump": "Jump · hold in the air: jetpack (falling: brakes) · on descent: brake",
     "down": "Jetpack down (descend sooner)",
@@ -456,12 +466,23 @@
         "harmlessMps": "Safe fall",
         "o2LossPctPerMps": "O₂ lost in falls",
         "lethalMps": "Lethal fall"
+      },
+      "crew": {
+        "sanityDrainMult": "Crew wear",
+        "restRecoverPctPerS": "Rest",
+        "callRecoverPct": "Call home",
+        "callCooldownS": "Call cooldown",
+        "sleepPenalty": "Sleep penalty",
+        "monotonyMax": "Monotony",
+        "stationRecoverCapPct": "Station recovery"
       }
     },
     "giveFuel": "+{{n}} fuel",
     "giveHull": "+{{n}} hull",
     "giveSpares": "+{{n}} spares",
-    "overload": "overload with everything on"
+    "overload": "overload with everything on",
+    "provisions": "Fresh provisions",
+    "provisionsBuy": "Restock"
   },
   "missions": {
     "title": "Choose a mission",

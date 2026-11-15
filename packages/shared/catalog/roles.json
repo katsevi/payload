@@ -13,7 +13,7 @@
     {
       "id": "manager",
       "name": { "es": "Gestor de recursos", "en": "Resource manager" },
-      "perks": {}
+      "perks": { "sanityAuraMult": 0.85, "sanityRecoverMult": 1.25 }
     },
     {
       "id": "explorer",

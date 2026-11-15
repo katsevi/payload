@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  catalog, createRun, effectiveShip, effectiveSurfaceRules, getShip, getSurfaceCatalog, getUpgrades, parseCatalog, type Catalog, type Run, type StationQuote,
+  catalog, createRun, crewFieldValues, effectivePsychRules, effectiveShip, effectiveSurfaceRules, getShip, getSurfaceCatalog, getUpgrades, parseCatalog, type Catalog, type Run, type StationQuote,
 } from '@payload/shared';
 import { resetCueMemory, useCues } from '../audio/cues';
 import { sfxForRunEvent } from '../audio/soundLogic';
@@ -148,8 +148,10 @@ describe('terminal: mejoras', () => {
         const [target, ...rest] = d.field.split('.');
         const path = rest.join('.');
         const pick = (o: unknown) => path.split('.').reduce<unknown>((acc, k) => (acc as Record<string, unknown>)[k], o) as number;
-        const after = target === 'ship' ? pick(ship) : pick((rules as unknown as Record<string, unknown>)[target!]);
-        const before = target === 'ship' ? pick(base) : pick((getSurfaceCatalog(catalog).rules as unknown as Record<string, unknown>)[target!]);
+        // Fase 8: los campos `crew` salen de las reglas de cordura efectivas (no de las de superficie).
+        const crewOf = (levels: Record<string, number>) => crewFieldValues(effectivePsychRules(catalog.psych!, levels, catalog)) as unknown;
+        const after = target === 'ship' ? pick(ship) : target === 'crew' ? pick(crewOf(next)) : pick((rules as unknown as Record<string, unknown>)[target!]);
+        const before = target === 'ship' ? pick(base) : target === 'crew' ? pick(crewOf({})) : pick((getSurfaceCatalog(catalog).rules as unknown as Record<string, unknown>)[target!]);
         expect(d.after, `${u.id} ${d.field}`).toBeCloseTo(after, 9);
         expect(d.before, `${u.id} ${d.field}`).toBeCloseTo(before, 9);
         expect(d.good).toBe(d.after > d.before === FIELD_INFO[d.field]!.up);

@@ -52,6 +52,8 @@ describe('i18n de la interfaz (namespace ui)', () => {
       ...['online', 'off', 'shorted', 'broken', 'noPower'].map((s) => `power.state.${s}`),
       ...['engines', 'lifeSupport', 'shields', 'nav'].map((s) => `power.role.${s}`),
       ...['helm', 'map', 'power', 'airlock'].map((s) => `station.${s}`),
+      ...['bunk', 'comms'].map((s) => `station.${s}`),
+      'prompt.rest', 'prompt.callEarth', 'hud.morale', 'hud.crewName', 'settings.reduceStress', 'shop.provisions', 'end.sanityCritical', 'end.countermeasures', 'help.tips.morale',
       ...['move', 'run', 'look', 'interact', 'click', 'repair', 'alt', 'jump', 'down', 'view', 'ping', 'pause'].flatMap((k) => [`keys.${k}`, `help.${k}`]),
       ...['fire', 'leak', 'short', 'impact', 'power', 'landing', 'o2', 'terrain', 'storm', 'tools'].map((k) => `help.tips.${k}`),
       ...CREDITS.flatMap((c) => [`credits.${c.id}`, c.modifiedKey]),
@@ -63,7 +65,7 @@ describe('i18n de la interfaz (namespace ui)', () => {
       // Herramientas de minería y minijuegos (parte 2).
       'prompt.deployTool', 'prompt.noToolLeft', 'prompt.toolAirborne', 'prompt.toolsLeft', 'prompt.collectReady', 'prompt.collectAirborne',
       'prompt.toolPickUp', 'prompt.toolStorm', 'prompt.toolWorking', 'prompt.retrieveTool', 'prompt.toolsOut', 'prompt.readyOut',
-      ...['simpleDodge', 'simpleRepairs', 'wideAim'].map((k) => `settings.${k}`),
+      ...['simpleDodge', 'simpleRepairs', 'wideAim', 'reduceStress'].map((k) => `settings.${k}`),
       'prompt.evadeDodge', 'prompt.dodging', 'prompt.grazes', 'prompt.hits', 'keys.move',
       ...['fire', 'short', 'leak'].map((k) => `prompt.fix.${k}`),
       // Terminal de estación (fase 3): suministros, unidades y estilos de la línea de efecto.

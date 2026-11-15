@@ -1,0 +1,36 @@
+{
+  "psych": {
+    "enabled": true,
+    "startPct": 100,
+    "daysPerS": 0.5,
+    "bands": { "tense": 65, "critical": 35, "breakdown": 12, "hysteresisPct": 5 },
+    "base": { "transit": 0.055, "docked": 0.03, "surfaceAboard": 0.015, "eva": 0.025 },
+    "distPerSector": 0.35,
+    "distPerAu": 0.25,
+    "monotonyMax": 0.6,
+    "monotonyRampS": 180,
+    "awakeGraceS": 300,
+    "awakeRampS": 300,
+    "sleepPenalty": 0.5,
+    "radiationMult": 1.3,
+    "stressors": { "perIncident": 0.02, "maxIncidents": 3, "lowShipO2": 0.06, "stormEva": 0.05, "suitCritical": 0.08 },
+    "shocks": { "impact": 3, "hardLanding": 4, "crewDeath": 20, "crewDeathCohesion": 15 },
+    "rewards": { "incidentFixed": 2, "systemRepaired": 1.5, "storedPer100": 1, "storedMax": 4, "sale": 3, "sectorCleared": 4 },
+    "debuffs": {
+      "work":        [1, 0.9, 0.75, 0.6],
+      "evadeDamage": [1, 1.1, 1.25, 1.4],
+      "suitO2":      [1, 1, 1.05, 1.1],
+      "jetpack":     [1, 1, 1.1, 1.15],
+      "carry":       [1, 1, 0.95, 0.9],
+      "lapsePerS":   [0, 0, 0.0067, 0.0167]
+    },
+    "lapse": { "cooldownS": 60, "systems": ["shields", "nav"] },
+    "rest": { "recoverPctPerS": 0.5, "alarmMult": 0.4, "awakeRecoverMult": 4 },
+    "call": { "seconds": 6, "drawKw": 15, "recoverPct": 12, "delayHalfMin": 20, "soloMult": 1.5, "cooldownS": 90 },
+    "station": { "recoverPctPerS": 0.15, "arrivalPct": 2, "capPct": 10, "cohesionPctPerS": 0.2 },
+    "provisions": { "unitPrice": 6, "maxUnits": 6, "secondsPerUnit": 60, "drainMult": 0.7 },
+    "cohesion": { "start": 80, "lowPct": 50, "drainMax": 0.5, "groupRepairPct": 5, "groupRepairSanity": 1, "evaNearM": 15, "evaNearPctPerS": 0.05, "teamworkMult": 1.1, "teamworkMinPct": 80 },
+    "crewOfferSize": 2,
+    "thirdQuarter": { "enabled": true, "fictional": true, "atFrac": 0.75, "shockPct": 10 }
+  }
+}

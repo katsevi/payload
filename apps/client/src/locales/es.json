@@ -44,7 +44,8 @@
     "effects": "Intensidad de efectos (sacudida y viñeta)",
     "simpleDodge": "Esquiva simple (mantener E en el timón, sin minijuego)",
     "simpleRepairs": "Averías simples (mantener R, sin minijuegos)",
-    "wideAim": "Puntería amplia del extintor"
+    "wideAim": "Puntería amplia del extintor",
+    "reduceStress": "Reducir efectos de estrés"
   },
   "credits": {
     "title": "Créditos",
@@ -67,7 +68,9 @@
     "helm": "Timón",
     "map": "Mapa estelar",
     "power": "Panel de energía",
-    "airlock": "Esclusa"
+    "airlock": "Esclusa",
+    "bunk": "Litera",
+    "comms": "Comunicaciones"
   },
   "marker": {
     "evade": "¡Al timón!"
@@ -127,7 +130,9 @@
     "observing": "Observando {{body}}",
     "battery": "Batería",
     "overheatTitle": "La demanda supera lo que disipan los radiadores: el reactor se desgasta",
-    "overheat": "Calor {{demandKw}}/{{heatKw}} kW"
+    "overheat": "Calor {{demandKw}}/{{heatKw}} kW",
+    "morale": "Ánimo",
+    "crewName": "Tripulante {{n}}"
   },
   "prompt": {
     "hold": "Mantén",
@@ -178,7 +183,9 @@
     "readyOut": "{{n}} piezas sin recoger",
     "evadeLate": "Maniobra a medias · ya no da tiempo",
     "terminal": "Abrir el terminal de la estación",
-    "credits": "{{credits}} cr"
+    "credits": "{{credits}} cr",
+    "rest": "Descansar",
+    "callEarth": "Llamar a la Tierra"
   },
   "map": {
     "title": "Mapa estelar · sector {{sector}}",
@@ -272,7 +279,9 @@
     "missionSuccessTitle": "¡Misión cumplida!",
     "missionPartialTitle": "Misión incompleta",
     "reportTitle": "Informe de la misión",
-    "rootCause": "causa"
+    "rootCause": "causa",
+    "sanityCritical": "Tiempo en crítica",
+    "countermeasures": "Contramedidas"
   },
   "pause": {
     "title": "Pausa",
@@ -299,7 +308,8 @@
       "terrain": "Grietas que brillan: el suelo cede. Sal de ahí o caerás.",
       "storm": "Si el horizonte se oscurece, viene una tormenta: vuelve a cubierto.",
       "landing": "Al descender, frena cuando la velocidad pase la marca blanca.",
-      "tools": "Coloca la herramienta en la veta y ve a por otra; vuelve cuando su baliza parpadee."
+      "tools": "Coloca la herramienta en la veta y ve a por otra; vuelve cuando su baliza parpadee.",
+      "morale": "Descansa en la litera cuando suba la tensión."
     },
     "jump": "Saltar · mantén en el aire: jetpack (cayendo, frena) · en el descenso: frenar",
     "down": "Jetpack hacia abajo (bajar antes)",
@@ -456,12 +466,23 @@
         "harmlessMps": "Caída segura",
         "o2LossPctPerMps": "O₂ perdido al caer",
         "lethalMps": "Caída letal"
+      },
+      "crew": {
+        "sanityDrainMult": "Desgaste de la tripulación",
+        "restRecoverPctPerS": "Descanso",
+        "callRecoverPct": "Llamada a casa",
+        "callCooldownS": "Espera entre llamadas",
+        "sleepPenalty": "Efecto del sueño",
+        "monotonyMax": "Monotonía",
+        "stationRecoverCapPct": "Recuperación en estación"
       }
     },
     "giveFuel": "+{{n}} combustible",
     "giveHull": "+{{n}} casco",
     "giveSpares": "+{{n}} repuestos",
-    "overload": "sobrecarga con todo encendido"
+    "overload": "sobrecarga con todo encendido",
+    "provisions": "Provisiones frescas",
+    "provisionsBuy": "Reponer"
   },
   "missions": {
     "title": "Elige una misión",
