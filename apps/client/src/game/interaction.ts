@@ -4,7 +4,6 @@
  */
 import { catalog as defaultCatalog, getNode, getPsychRules, getNodeKind, hasShop, suitRefill, SYSTEM_IDS, THROTTLE_IDS, type Catalog, type Incident, type IncidentKind, type LandingEstimate, type RunAction, type RunState, type SystemId, type TakeOffEstimate, type ThrottleId } from '@payload/shared';
 import type { Prompt, PromptBadge } from '../state/ui';
-import { canPlayDodge } from './dodge';
 import { effectiveRulesOf } from './effective';
 import { myCrew } from './me';
 import type { StationId } from './layout';
@@ -25,7 +24,7 @@ const INCIDENT_PRIORITY: Record<IncidentKind, number> = { fire: 0, leak: 1, shor
 export type Interaction =
   | { kind: 'incident'; systemId: SystemId; incident: Incident }
   | { kind: 'repair'; systemId: SystemId; blocked: boolean }
-  | { kind: 'helm'; canEvade: boolean; late?: boolean }
+  | { kind: 'helm'; canEvade: boolean }
   | { kind: 'land'; worldId: string; gravity: number; fuel: number; canLand: boolean; enoughFuel: boolean; engines: boolean }
   | { kind: 'takeoff'; fuel: number; enoughFuel: boolean; heavy: boolean; canJettison: boolean; lootUnits: number }
   | { kind: 'airlock'; open: boolean; refill?: { shipO2Cost: number; suitO2Pct: number } }
@@ -67,8 +66,8 @@ export function incidentAt(state: RunState, systemId: SystemId): Incident | null
 function helmAt(state: RunState, est: HelmEstimates): Interaction {
   const warning = state.warnings.find((w) => !w.evaded);
   const canEvade = !!warning;
-  // Sin tiempo para jugar la esquiva entera: tomar los mandos da una maniobra a medias (`lateDodgeResult`).
-  if (warning) return canPlayDodge(warning.etaS) ? { kind: 'helm', canEvade } : { kind: 'helm', canEvade, late: true };
+  // Con aviso, tomar los mandos SIEMPRE abre la esquiva (aunque quede poco: en solitario el tiempo se ralentiza).
+  if (warning) return { kind: 'helm', canEvade };
   if (state.phase === 'surface' && est.takeOff) {
     const t = est.takeOff;
     const lootUnits = state.surface ? state.surface.deposits.reduce((n, d) => n + Math.max(0, d.units), 0) : 0;
@@ -150,8 +149,7 @@ export function promptFor(interaction: Interaction | null, state: RunState, char
     case 'helm':
       return {
         // Con aviso de impacto: pulsar E toma los mandos (esquiva); con interacciones simples, mantener E.
-        key: interaction.canEvade ? (interaction.late ? 'prompt.evadeLate' : simpleDodge ? 'prompt.evade' : 'prompt.evadeDodge') : 'prompt.helm',
-        ...(interaction.late ? { warn: true } : {}),
+        key: interaction.canEvade ? (simpleDodge ? 'prompt.evade' : 'prompt.evadeDodge') : 'prompt.helm',
         hold: interaction.canEvade && simpleDodge,
         progress: interaction.canEvade && simpleDodge ? charge : 0,
         blocked: !interaction.canEvade,

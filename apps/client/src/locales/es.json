@@ -201,7 +201,6 @@
     "retrieveTool": "Retirar la herramienta",
     "toolsOut": "fuera: {{n}} herr.",
     "readyOut": "{{n}} piezas sin recoger",
-    "evadeLate": "Maniobra a medias · ya no da tiempo",
     "terminal": "Abrir el terminal de la estación",
     "credits": "{{credits}} cr",
     "rest": "Descansar",

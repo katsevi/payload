@@ -56,29 +56,47 @@ export function dodgeLevelForSector(sectorIndex: number): number {
 }
 
 /**
- * Duración FIJA del minijuego: las rocas dependen solo de la dificultad, nunca del tiempo que falte. Así
- * llegar pronto al timón no es más difícil que llegar tarde.
+ * Duración del minijuego: las rocas dependen solo de la dificultad, nunca del tiempo que falte. Así llegar pronto al
+ * timón no es más difícil que llegar tarde, y la esquiva SIEMPRE se juega (antes, sin 3,4 s de margen, se resolvía
+ * sola con una «maniobra a medias» y no se llegaba a ver).
  */
 export const DODGE_DURATION_S = 3;
 /** Margen (s) con el que la esquiva termina antes del impacto, para que `evade` llegue a tiempo. */
 export const DODGE_LEAD_S = 0.4;
-/** Si el impacto está a menos de esto, la esquiva se da por terminada y se envía ya lo que haya. */
+/** Si el impacto está a menos de esto, la esquiva se da por terminada y se envía ya lo que haya (solo en sala). */
 export const DODGE_CUTOFF_S = 0.35;
+/** Tiempo de motor que se deja entre el final de la esquiva y el impacto con el tiempo ralentizado (s). */
+export const DODGE_ENGINE_MARGIN_S = 0.25;
+/** Esquiva más corta que se juega en sala cuando ya casi no queda tiempo (s). */
+export const DODGE_MIN_DURATION_S = 1.4;
 
-/** ¿Da tiempo a jugar la esquiva entera? (ETA < 0 = la nave está parada: hay tiempo.) */
-export function canPlayDodge(etaS: number): boolean {
-  return etaS < 0 || etaS >= DODGE_DURATION_S + DODGE_LEAD_S;
+/**
+ * Tiempo bala (en solitario): a qué ritmo avanza el motor mientras se pilota para que el impacto no llegue antes de
+ * terminar. 1 si da tiempo de sobra; menos cuanto más justo; 0 si el impacto ya está encima (se espera a la esquiva).
+ * `etaS` < 0 = la nave está parada (no hay prisa). `remainingS` = lo que le queda a la esquiva.
+ */
+export function dodgeTimeScale(etaS: number, remainingS: number): number {
+  if (etaS < 0 || remainingS <= 0) return 1;
+  const usable = etaS - DODGE_ENGINE_MARGIN_S;
+  if (usable <= 0) return 0;
+  return Math.min(1, usable / remainingS);
 }
 
 /**
- * Tomar los mandos sin tiempo para jugar: la maniobra sale a medias, nunca limpia, y peor cuanto más tarde
- * y más difícil. Calibrado para que no sea mejor que jugarla (ni siquiera para un piloto medio; ver test).
+ * Duración de la esquiva en sala, donde el tiempo lo lleva el servidor y no se puede ralentizar: entera si da tiempo,
+ * si no la que quepa antes del impacto (con un mínimo; el corte `DODGE_CUTOFF_S` envía lo que haya).
  */
-export function lateDodgeResult(etaS: number, level: number, maxGrazes: number): DodgeResult {
-  const lateness = etaS < 0 ? 0 : Math.max(0, Math.min(1, 1 - etaS / (DODGE_DURATION_S + DODGE_LEAD_S)));
-  // Suave al principio: un instante tarde ≈ jugarla regular (1 roce; 2 en lo más difícil), luego empeora.
-  const grazes = 1 + Math.floor(level * 1.2 + lateness * 2.5);
-  return { grazes: Math.min(maxGrazes, Math.max(1, grazes)), fullHit: false };
+export function remoteDodgeDuration(etaS: number): number {
+  if (etaS < 0) return DODGE_DURATION_S;
+  return Math.min(DODGE_DURATION_S, Math.max(DODGE_MIN_DURATION_S, etaS - DODGE_LEAD_S));
+}
+
+/**
+ * Resultado de una esquiva recortada (en sala, por llegar tarde): un roce más de lo pilotado, nunca limpia. Así llegar
+ * tarde al timón nunca sale mejor que llegar pronto, aunque la versión corta tenga menos rocas.
+ */
+export function shortenedDodgeResult(r: DodgeResult, durationS: number): DodgeResult {
+  return durationS < DODGE_DURATION_S - 1e-6 ? { grazes: r.grazes + 1, fullHit: r.fullHit } : r;
 }
 
 /** Máximo de roces que cuenta el motor (`hazards.impact.evade.maxGrazes`; sin esquiva por habilidad, 4). */
@@ -178,11 +196,13 @@ export function generateRocks(seed: number, durationS: number, d: DodgeDifficult
 }
 
 export function createDodge(seed: number, durationS: number, d: DodgeDifficulty): DodgeState {
-  const rocks = generateRocks(seed, durationS, d);
+  // En una esquiva recortada (sala, llegando tarde) las rocas viajan más deprisa para que lleguen dentro del tiempo.
+  const diff = { ...d, travelS: Math.min(d.travelS, durationS * 0.4) };
+  const rocks = generateRocks(seed, durationS, diff);
   return {
     seed,
     durationS,
-    travelS: d.travelS,
+    travelS: diff.travelS,
     t: 0,
     x: 0,
     y: 0,

@@ -174,6 +174,21 @@ function DescentLoop({ ship, dust }: { ship: RefObject<Group | null>; dust: { st
   return null;
 }
 
+/** Solo desarrollo: renderizador y escena de la superficie en `__payload.surface` (medir y aislar el coste de GPU). */
+function DevHandle() {
+  const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const w = window as unknown as { __payload?: Record<string, unknown> };
+    (w.__payload ??= {}).surface = { gl, scene };
+    return () => {
+      if (w.__payload) delete w.__payload.surface;
+    };
+  }, [gl, scene]);
+  return null;
+}
+
 /** Polvo levantado bajo la nave. */
 function PadDust({ worldId, strength }: { worldId: string; strength: { value: number } }) {
   const look = surfaceLook(worldId);
@@ -384,14 +399,16 @@ export function SurfaceScene({ mode }: { mode: 'descent' | 'eva' }) {
   const radius = useGame((g) => g.hud?.surface?.radiusM ?? 100);
   const groundAt = useMemo(() => (x: number, z: number) => liveTerrain.current?.heightAt(x, z) ?? 0, []);
   const descentAlt = getRun()?.state.surface?.descent?.altitudeM ?? 0;
-  const { dpr, monitor } = useAdaptiveDpr();
+  // El descenso es una vista exterior de ~15 s desde lejos: empieza un escalón más abajo (1,25), sin esperar al monitor.
+  const { dpr, monitor } = useAdaptiveDpr(mode === 'descent' ? 1 : 0);
   if (!worldId) return null;
   return (
     <Canvas style={{ isolation: 'isolate' }} dpr={dpr} camera={{ fov: 75, near: 0.1, far: 1300, position: [0, 3, 30] }}>
       {monitor}
+      {import.meta.env.DEV && <DevHandle />}
       <ShaderClock />
       <Physics gravity={[0, 0, 0]} timeStep="vary">
-        <SurfaceWorld physics={mode === 'eva'} />
+        <SurfaceWorld physics={mode === 'eva'} detail={mode === 'eva'} />
         {/* En el descenso no hay herramientas colocadas (se pierden al despegar): no se montan sus 12 huecos. */}
         {mode === 'eva' && <SurfaceTools />}
         {mode === 'eva' && <CrewAvatars area="surface" />}
