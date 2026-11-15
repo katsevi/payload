@@ -175,15 +175,17 @@ function cachedTerrainGeometry(terrain: Terrain, look: SurfaceLook): ReturnType<
   return built;
 }
 
-function TerrainMesh({ terrain, look, physics }: { terrain: Terrain; look: SurfaceLook; physics: boolean }) {
+function TerrainMesh({ terrain, look, physics, detail }: { terrain: Terrain; look: SurfaceLook; physics: boolean; detail: boolean }) {
   const uniforms = useMemo(terrainUniforms, []);
   const material = useMemo(() => {
     const maps = rockMaps();
-    const m = new MeshStandardMaterial({ vertexColors: true, map: maps.albedo, normalMap: maps.normal, roughness: 0.95, metalness: 0.02 });
+    // Sin `detail` (descenso: la cámara va a 30-170 m) no hay mapa de normales: ese relieve fino no se distingue desde
+    // el aire y en una GPU integrada era la parte más cara del suelo (medido: ~10 FPS de 40 a 1080p HiDPI).
+    const m = new MeshStandardMaterial({ vertexColors: true, map: maps.albedo, normalMap: detail ? maps.normal : null, roughness: 0.95, metalness: 0.02 });
     m.normalScale.setScalar(0.7);
     patchTerrainMaterial(m, uniforms);
     return m;
-  }, [uniforms]);
+  }, [uniforms, detail]);
   const built = useMemo(() => cachedTerrainGeometry(terrain, look), [terrain, look]);
   useEffect(() => () => material.dispose(), [material]);
   useEffect(() => {
@@ -603,7 +605,11 @@ export function windAngleOf(terrain: Terrain): number {
  * La superficie del destino: suelo, rocas, vetas, terreno inestable, cielo y tiempo. La pintan la escena
  * de superficie (con colisiones) y la vista desde la nave posada (sin ellas, desplazada).
  */
-export function SurfaceWorld({ physics = false, interior = false }: { physics?: boolean; interior?: boolean }) {
+/**
+ * `detail = false` quita del suelo el relieve fino (mapa de normales), invisible desde lejos: lo usa el descenso, que es
+ * lo que más píxeles de suelo pinta y donde más se notaba la GPU.
+ */
+export function SurfaceWorld({ physics = false, interior = false, detail = true }: { physics?: boolean; interior?: boolean; detail?: boolean }) {
   const terrain = useLiveTerrain();
   const worldId = terrain?.input.worldId ?? '';
   const look = useMemo(() => surfaceLook(worldId), [worldId]);
@@ -614,7 +620,7 @@ export function SurfaceWorld({ physics = false, interior = false }: { physics?: 
   return (
     <group>
       <SkyAndWeather look={look} warnS={world.storms?.warnS ?? 0} windAngle={windAngleOf(terrain)} interior={interior} />
-      <TerrainMesh terrain={terrain} look={look} physics={physics} />
+      <TerrainMesh terrain={terrain} look={look} physics={physics} detail={detail} />
       <Rocks terrain={terrain} look={look} physics={physics} />
       <Deposits terrain={terrain} onCollectFx={onCollectFx} />
       <CollectSparks terrain={terrain} target={working} />

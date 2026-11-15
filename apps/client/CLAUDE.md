@@ -72,7 +72,12 @@ desde el servidor. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Dis
   de la nave y las vetas raras son halos y haces aditivos (`fog: false`, se ven desde lejos).
 - **Fluidez (`gfx/quality.tsx`):** `ShaderWarmup` va el último dentro del `<Canvas>` de la nave y de la superficie:
   precompila todos los materiales (también los ocultos) con `compileAsync` y no pinta hasta tenerlos (`watch` repite al
-  cambiar lo que se ve fuera); toma el pintado con prioridad 1. `useAdaptiveDpr` baja la resolución a 1 si caen los FPS.
+  cambiar lo que se ve fuera); toma el pintado con prioridad 1. `useAdaptiveDpr(minLevel)` solo BAJA la resolución, a
+  escalones (`gfx/dprLevels.ts`: 1,75 → 1,25 → 1, por debajo de 50 FPS a 60 Hz) y recuerda el nivel en la sesión; nunca
+  la vuelvas a subir (oscilaba y cada redimensión daba un tirón de 150-300 ms). El descenso empieza en 1,25.
+  **El suelo es lo caro** (shader de `patchTerrainMaterial` sobre casi toda la pantalla): lo que añadas ahí, dentro de
+  una rama (`if (zMask > 0.0)`) para que solo cueste donde se ve; el descenso pinta el suelo sin mapa de normales
+  (`SurfaceWorld detail={false}`). Medido en una Iris Xe a 1080p HiDPI: descenso de 44-52 FPS con tirones a 60 estables.
   Los cambios de escena dentro de la partida pasan por un fundido (`App.useSceneTransition`, `.scene-veil`,
   `useUi.sceneVeil`) que la escena nueva quita al pintar (`revealScene`). Lo pesado por CPU de la superficie se cachea
   (malla del terreno en `SurfaceWorld`, texturas y rocas preparadas en el puente).
@@ -99,16 +104,16 @@ desde el servidor. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Dis
   misma mecánica que sellar, `minigame.spare`, envía `repair-system {seconds}` y el coste no cambia); **clic izquierdo o Espacio** = la habilidad de
   cada avería; Q = régimen / soltar carga. Las claves están en `interaction.ts` (`KEY_USE`, `KEY_REPAIR`,
   `KEY_SKILL`, `KEY_STEER`) y el aviso las pinta con `Prompt.inputKey` (y `noVerb`, `progressBar`).
-- **Esquiva (`game/dodge.ts` + `DodgeHolo`):** con un aviso de impacto, pulsar E en el timón arranca un minijuego
-  de duración FIJA `DODGE_DURATION_S` (3 s; dificultad compactada: más rocas/s y llegada más corta que la versión
-  de 4 s); las rocas dependen solo de la dificultad, nunca del ETA. Si al tomar los mandos no queda tiempo para
-  jugarla entera (`canPlayDodge`: ETA < 3 + `DODGE_LEAD_S` 0,4 = 3,4 s), no se juega: se envía
-  `lateDodgeResult(eta, nivel)` = `1 + ⌊1,2·nivel + 2,5·retraso⌋` roces (suave al principio, nunca limpia; el
-  aviso dice `prompt.evadeLate` en ámbar). Ventana para llegar (aviso a `warnLeadLy` 4 ly): económico 12,3 − 3,4
-  = 8,9 s, crucero 8 − 3,4 = 4,6 s (cruzar la nave cuesta como mucho 3,9 s: un test lo fija), máximo 5 − 3,4 =
-  1,6 s. Con el aviso activo y lejos del timón: `HelmPointer` (flecha ámbar junto a la mira hacia el timón,
-  `hudView.helm*`) y `warnTick` cada `WARN_REPEAT_S` (1,4 s) hasta llegar. Un test con pilotos simulados (`__tests__/dodgeBots.ts`: torpe, medio,
-  bueno) fija que llegar tarde nunca es mejor que jugarla (bien o en la media) y que la dificultad se nota. WASD/flechas mueven la nave del holograma; las
+- **Esquiva (`game/dodge.ts` + `DodgeHolo`):** con un aviso de impacto, pulsar E en el timón arranca SIEMPRE un minijuego
+  de duración fija `DODGE_DURATION_S` (3 s); las rocas dependen solo de la dificultad, nunca del ETA. **Llegue cuando
+  llegue se juega entero:** en solitario, mientras se pilota, el motor avanza a `dodgeTimeScale(eta, restante)` (tiempo
+  bala: 1 si da tiempo, menos si va justo, 0 con el impacto encima; deja `DODGE_ENGINE_MARGIN_S` de motor al terminar,
+  `engineTimeScale` en `ShipScene`). En sala el tiempo es del servidor: se juega `remoteDodgeDuration(eta)` (la que
+  quepa, mínimo `DODGE_MIN_DURATION_S` 1,4 s, rocas más rápidas para que quepan), corte `DODGE_CUTOFF_S` y
+  `shortenedDodgeResult` suma un roce si se recortó (llegar tarde nunca sale mejor; test). Antes, con menos de 3,4 s, la
+  esquiva se resolvía sola y no se veía. Con el aviso activo y lejos del timón: `HelmPointer` (flecha ámbar junto a la
+  mira hacia el timón, `hudView.helm*`) y `warnTick` cada `WARN_REPEAT_S` (1,4 s) hasta llegar. Un test con pilotos
+  simulados (`__tests__/dodgeBots.ts`: torpe, medio, bueno) fija que la dificultad se nota. WASD/flechas mueven la nave del holograma; las
   rocas llegan desde el fondo y proyectan un anillo donde golpearán. Semilla y dificultad del aviso del motor
   (`evadeSeed`, `evadeDifficulty`) o, si faltan, derivadas aquí. Pasos fijos de 1/120 s (no depende de los FPS).
   Al llegar cada roca: limpio, roce (`dodgeGraze`) o choque de lleno (`dodgeHit`, sacudida). Al terminar se
@@ -124,8 +129,7 @@ desde el servidor. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Dis
   ciegas (ajuste `wideAim`: área ×2). **Cortocircuito**: clic cuando la marca pasa por la zona entre corchetes
   (`PULSE_PERIOD_S` 1,25; acierto = 50 % del `repairS`, dos bastan; fallo = 6 % y espera más larga). **Fuga**: mantener para subir la presión y soltar en la zona
   (55 % / 10 %; pasarse revienta y reinicia). Acierto/fallo: icono ✓/✗ y sonido (`skillHit`/`skillMiss`).
-- **Modos simples** (ajustes separados): `simpleDodge` = esquiva manteniendo E (1 roce; si ya no daba tiempo,
-  el resultado de llegar tarde) y `simpleRepairs` = averías y repuestos manteniendo R a ritmo normal. `wideAim`
+- **Modos simples** (ajustes separados): `simpleDodge` = esquiva manteniendo E (1 roce) y `simpleRepairs` = averías y repuestos manteniendo R a ritmo normal. `wideAim`
   ensancha el área de acierto del extintor. `promptFor`/`chargedAction` aceptan `SimpleModes`. Para quien no pueda o no quiera los minijuegos.
 
 ## Economía y terminal de estación (fase 3, ADR 0014)
@@ -424,6 +428,7 @@ __payload.minigame                                       // minijuegos en curso 
 __payload.toSurface()                                    // viajar al aterrizable más cercano, aterrizar y salir
 __payload.toSurface('descent')                           // … o quedarse al empezar el descenso ('landed' = a bordo)
 __payload.liveTerrain.current.heightAt(10, 5)            // altura del suelo (en la escena de superficie)
+__payload.surface.gl.info.render                         // renderizador y escena de la superficie (medir/aislar GPU)
 ```
 
 `?play=1&seed=7&station=1` atraca en la estación más cercana tras bajar a por carga vendible y abre el terminal

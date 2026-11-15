@@ -9,6 +9,20 @@ Cada entrada se agrupa por paquete.
 - **client:** se quita «Abrir el hangar» del lobby. Con misión elegida, cuando todos los conectados votan Go la
   tripulación pasa sola al hangar compartido, donde se vota y zarpa. En el lobby el voto ya no muestra «Zarpar».
 
+### Aterrizaje fluido y esquiva de asteroides que siempre se juega (rama `fix/aterrizaje-y-esquiva`)
+- **client:** el descenso iba a 44-52 FPS con tirones de 50-67 ms en una Iris Xe a 1080p HiDPI (medido por CDP); el
+  cuello de botella era el shader del suelo. Ahora: ramas en el parche del terreno (grietas, lava y trazos de los anillos
+  solo donde se ven), suelo sin mapa de normales en el descenso (`SurfaceWorld detail`) y el descenso empieza a 1,25 de
+  densidad. Resultado en el mismo equipo: 60 FPS estables.
+- **client:** la resolución adaptativa oscilaba (bajaba a 1, subía a 1,75, volvía a caer…) y cada cambio daba un tirón de
+  150-300 ms al redimensionar; además no bajaba entre 40 y 55 FPS. Ahora solo baja, a escalones (1,75 → 1,25 → 1), por
+  debajo de 50 FPS, y recuerda el nivel entre escenas (`gfx/dprLevels.ts`).
+- **client:** la esquiva de asteroides SIEMPRE se juega: si al tomar los mandos quedaban menos de 3,4 s se resolvía sola
+  con una «maniobra a medias» y no se veía. En solitario el motor se ralentiza mientras se pilota (`dodgeTimeScale`,
+  tiempo bala) para que el impacto no llegue antes de terminar; en sala se juega la que quepa antes del impacto
+  (`remoteDodgeDuration`, mínimo 1,4 s) con un roce de penalización. Fuera `canPlayDodge`, `lateDodgeResult` y
+  `prompt.evadeLate`.
+
 ### Mapa del sistema solar sin congelación al abrirlo (rama `feat/f4-mapa-solar-carga`)
 - **client:** el mapa solar de las misiones abría con ~2,2 s de juego congelado (Iris Xe, sin caché de shaders): el 90 %
   era enlazar el shader procedural de planeta en el contexto WebGL propio del mapa. Ahora las superficies se hornean una

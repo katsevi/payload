@@ -6,7 +6,7 @@ import { Vector3 } from 'three';
 import { Physics } from '@react-three/rapier';
 import { cue } from '../audio/cues';
 import { audio } from '../audio/audioEngine';
-import { canPlayDodge, createDodge, DODGE_CUTOFF_S, DODGE_DURATION_S, dodgeDifficulty, dodgeLevelForSector, lateDodgeResult, dodgeResult, evadeAction, maxGrazesOf, SIMPLE_DODGE_RESULT, stepDodge } from '../game/dodge';
+import { createDodge, DODGE_CUTOFF_S, DODGE_DURATION_S, dodgeDifficulty, dodgeLevelForSector, dodgeResult, dodgeTimeScale, evadeAction, maxGrazesOf, remoteDodgeDuration, shortenedDodgeResult, SIMPLE_DODGE_RESULT, stepDodge } from '../game/dodge';
 import { altAction, chargedAction, dodgeBadges, holdAction, interactionAt, KEY_STEER, promptFor, sendInChunks, startsDodge, type Interaction } from '../game/interaction';
 import { mixSeed } from '../game/noise';
 import {
@@ -24,7 +24,7 @@ import {
   stepSeal,
 } from '../game/repairGames';
 import { HULL, PLAYER_START, STATIONS, USE_RADIUS, nearestStation, stationIdsFor } from '../game/layout';
-import { fx, getRun, shipSpawn, useGame } from '../game/runStore';
+import { fx, getRun, isRemote, shipSpawn, useGame } from '../game/runStore';
 import { bearingAngle, bearingTo, SHIP_OFFSET } from '../game/surfaceRules';
 import { ShaderClock } from '../gfx/Glow';
 import { PlayerController, type CameraBounds } from '../player/PlayerController';
@@ -68,6 +68,17 @@ const WARN_REPEAT_S = 1.4;
 /** La habilidad de las averías: clic izquierdo o Espacio. */
 const skillDown = (): boolean => isDown(MOUSE_PRIMARY) || isDown('Space');
 
+/**
+ * Ritmo del motor en este fotograma: 1 salvo pilotando la esquiva en solitario con el impacto cerca (tiempo bala, ver
+ * `dodgeTimeScale`). Así el minijuego se juega entero aunque se llegue al timón con el impacto encima.
+ */
+function engineTimeScale(): number {
+  const d = minigame.dodge;
+  if (!d || isRemote()) return 1;
+  const w = getRun()?.state.warnings.find((x) => x.hazardId === minigame.dodgeHazardId && !x.evaded);
+  return w ? dodgeTimeScale(w.etaS, d.durationS - d.t) : 1;
+}
+
 /** Toma los mandos en el timón: arranca la esquiva del primer impacto avisado. */
 function startDodge(): boolean {
   const run = getRun();
@@ -76,15 +87,10 @@ function startDodge(): boolean {
   // Semilla y dificultad del motor si las expone (`evadeSeed`/`evadeDifficulty`); si no, derivadas aquí.
   const level = w.evadeDifficulty ?? dodgeLevelForSector(run.state.sector.index);
   const seed = w.evadeSeed ?? mixSeed(run.state.seed, w.hazardId, 0xd0d6e);
-  const max = maxGrazesOf(run.catalog.hazards.impact.evade);
-  if (!canPlayDodge(w.etaS)) {
-    // Sin tiempo para jugarla entera: maniobra a medias, nunca limpia (peor cuanto más tarde).
-    const late = lateDodgeResult(w.etaS, level, max);
-    minigame.lastDodgeResult = late;
-    if (useGame.getState().act(evadeAction(late, max)).ok) cue('dodgeGraze');
-    return false;
-  }
-  minigame.dodge = createDodge(seed, DODGE_DURATION_S, dodgeDifficulty(level));
+  // La esquiva SIEMPRE se juega. En solitario dura siempre lo mismo y, si el impacto está cerca, el motor se ralentiza
+  // mientras se pilota (`dodgeTimeScale`). En sala el tiempo es del servidor: se juega la que quepa (`remoteDodgeDuration`).
+  const durationS = isRemote() ? remoteDodgeDuration(w.etaS) : DODGE_DURATION_S;
+  minigame.dodge = createDodge(seed, durationS, dodgeDifficulty(level));
   minigame.dodgeHazardId = w.hazardId;
   // De cara al holograma del timón.
   playerState.yaw = 0;
@@ -115,7 +121,7 @@ function GameLoop() {
     // Lo que se mantiene cuenta el tiempo real (a menos de 10 FPS no se alarga); tope por si la pestaña se durmió.
     const realDt = Math.min(delta, 1);
     const game = useGame.getState();
-    game.tick(dt);
+    game.tick(dt * engineTimeScale());
     reportPose(playerState.pos.x, playerState.pos.y, playerState.pos.z, playerState.yaw, 'ship');
     const run = getRun();
     const ui = useUi.getState();
@@ -141,8 +147,9 @@ function GameLoop() {
       hudView.objOn = false;
       const warning = run.state.warnings.find((w) => w.hazardId === minigame.dodgeHazardId && !w.evaded);
       const still = !!warning;
-      // Si el impacto está encima, se termina ya y se envía lo que haya (el `evade` debe llegar antes).
-      const late = !!warning && warning.etaS >= 0 && warning.etaS <= DODGE_CUTOFF_S;
+      // En sala, si el impacto está encima, se termina ya y se envía lo que haya (el `evade` debe llegar antes). En
+      // solitario no hace falta: el tiempo bala deja siempre `DODGE_ENGINE_MARGIN_S` de motor al terminar.
+      const late = isRemote() && !!warning && warning.etaS >= 0 && warning.etaS <= DODGE_CUTOFF_S;
       let ix = 0;
       let iy = 0;
       if (isDown('KeyA') || isDown('ArrowLeft')) ix -= 1;
@@ -160,7 +167,7 @@ function GameLoop() {
         minigame.dodgeFlash = Math.max(minigame.dodgeFlash, 0.5);
       }
       if (d.done || late || !still || run.state.phase === 'lost') {
-        const result = dodgeResult(d);
+        const result = shortenedDodgeResult(dodgeResult(d), d.durationS);
         minigame.lastDodgeResult = result;
         minigame.dodge = null;
         // Roces (o choque de lleno = esquiva fallida) al motor; el sonido del resultado llega con el evento.
@@ -304,10 +311,8 @@ function GameLoop() {
         if (charge.current >= 1) {
           charge.current = 0;
           // Interacciones simples: la esquiva entra con un resultado medio (1 roce).
-          // (Si ya no daba tiempo a jugarla, cuenta como tarde: la red de seguridad no salta la llegada.)
-          const w = run.state.warnings.find((x) => !x.evaded);
           const max = maxGrazesOf(run.catalog.hazards.impact.evade);
-          const simpleResult = w && !canPlayDodge(w.etaS) ? lateDodgeResult(w.etaS, w.evadeDifficulty ?? dodgeLevelForSector(run.state.sector.index), max) : SIMPLE_DODGE_RESULT;
+          const simpleResult = SIMPLE_DODGE_RESULT;
           const action = charged.action.type === 'evade' ? evadeAction(simpleResult, max) : charged.action;
           if (action.type === 'evade') minigame.lastDodgeResult = simpleResult;
           if (game.act(action).ok) cue('toggle');

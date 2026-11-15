@@ -82,28 +82,42 @@ export function patchTerrainMaterial(material: MeshStandardMaterial, u: TerrainU
           zHeat = max(zHeat, inside * zn.w);
           zEdge = max(zEdge, 1.0 - smoothstep(0.0, 0.3, abs(d - zn.z)));
         }
-        float cracks = crackLines(vWorldPos.xz) * zMask;
-        diffuseColor.rgb *= 1.0 - cracks * 0.8;
-        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.15, 1.05, 0.9), zMask * 0.35);
+        // Ramas: el ruido de las grietas y de la lava solo se evalúa donde se ve (zonas inestables, fondo con lava).
+        // Son regiones grandes y contiguas, así que la rama es coherente y ahorra casi todo el coste en el resto.
+        float cracks = 0.0;
+        if (zMask > 0.0) {
+          cracks = crackLines(vWorldPos.xz) * zMask;
+          diffuseColor.rgb *= 1.0 - cracks * 0.8;
+          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.15, 1.05, 0.9), zMask * 0.35);
+        }
         float lavaDepth = uLavaOn * smoothstep(-4.5, -8.5, vWorldPos.y);
         diffuseColor.rgb *= 1.0 - lavaDepth * 0.7;`,
       )
       .replace(
         '#include <emissivemap_fragment>',
         /* glsl */ `#include <emissivemap_fragment>
-        float pulse = 0.5 + 0.5 * sin(uTime * 17.0);
-        totalEmissiveRadiance += vec3(1.0, 0.5, 0.12) * (cracks * (0.12 + zHeat * (1.2 + 1.6 * pulse)) + zEdge * 0.22);
+        if (zMask > 0.0 || zEdge > 0.0) {
+          float pulse = 0.5 + 0.5 * sin(uTime * 17.0);
+          totalEmissiveRadiance += vec3(1.0, 0.5, 0.12) * (cracks * (0.12 + zHeat * (1.2 + 1.6 * pulse)) + zEdge * 0.22);
+        }
+        // Los trazos de los anillos (borde del área y explanada) solo cerca de su línea: atan es caro.
         float rr = length(vWorldPos.xz);
         float ring = 1.0 - smoothstep(0.0, 0.5, abs(rr - uRadius));
-        float dash = step(0.5, fract(atan(vWorldPos.z, vWorldPos.x) * uRadius / 3.5));
-        totalEmissiveRadiance += vec3(1.0, 0.72, 0.2) * ring * dash * 0.9;
+        if (ring > 0.0) {
+          float dash = step(0.5, fract(atan(vWorldPos.z, vWorldPos.x) * uRadius / 3.5));
+          totalEmissiveRadiance += vec3(1.0, 0.72, 0.2) * ring * dash * 0.9;
+        }
         // Marca de la explanada de aterrizaje: un anillo discontinuo que se ve desde el aire.
         vec2 pd = vWorldPos.xz - uPad.xy;
         float padRing = 1.0 - smoothstep(0.0, 0.4, abs(length(pd) - uPad.z));
-        float padDash = step(0.5, fract(atan(pd.y, pd.x) * 4.0 / 3.14159265));
-        totalEmissiveRadiance += vec3(0.22, 0.88, 0.75) * padRing * padDash * 0.6;
-        float flow = vnoise(vWorldPos.xz * 0.25 + vec2(uTime * 0.15, -uTime * 0.1));
-        totalEmissiveRadiance += uLava * lavaDepth * (0.5 + 0.9 * flow);`,
+        if (padRing > 0.0) {
+          float padDash = step(0.5, fract(atan(pd.y, pd.x) * 4.0 / 3.14159265));
+          totalEmissiveRadiance += vec3(0.22, 0.88, 0.75) * padRing * padDash * 0.6;
+        }
+        if (lavaDepth > 0.0) {
+          float flow = vnoise(vWorldPos.xz * 0.25 + vec2(uTime * 0.15, -uTime * 0.1));
+          totalEmissiveRadiance += uLava * lavaDepth * (0.5 + 0.9 * flow);
+        }`,
       );
   };
   material.customProgramCacheKey = () => 'payload-terrain';

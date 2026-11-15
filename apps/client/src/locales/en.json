@@ -201,7 +201,6 @@
     "retrieveTool": "Retrieve the tool",
     "toolsOut": "outside: {{n}} tools",
     "readyOut": "{{n}} pieces not collected",
-    "evadeLate": "Half a manoeuvre · too late to fly it",
     "terminal": "Open the station terminal",
     "credits": "{{credits}} cr",
     "rest": "Rest",
