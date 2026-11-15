@@ -1,5 +1,23 @@
 # Estado del proyecto — traspaso entre sesiones
 
+## Aterrizaje fluido y esquiva que siempre se juega (2026-11-15, rama `fix/aterrizaje-y-esquiva`)
+
+- **Problema 1:** el aterrizaje «iba con lag». Medido por CDP en Chrome (Iris Xe, ANGLE/Vulkan, 1920×1080 a escala 1,5):
+  a 720p el descenso iba a 60, pero a 1080p HiDPI caía a 44-52 FPS con tirones de 50-67 ms (límite de GPU). Aislando
+  objetos de la escena, el suelo era casi todo el coste (oculto: 59 FPS); dentro de su material, mapa de normales,
+  textura y parche de grietas/lava costaban ~10 FPS cada uno. Además la resolución adaptativa no bajaba entre 40 y
+  55 FPS y, cuando lo hacía, rebotaba (1 → 1,75 → 1…) con un tirón de 150-300 ms en cada redimensión.
+- **Arreglo:** ramas en `patchTerrainMaterial` (sin cambio visual), suelo sin mapa de normales en el descenso
+  (`SurfaceWorld detail`), resolución por escalones que solo baja y se recuerda en la sesión (`gfx/dprLevels.ts`,
+  umbral 50 FPS) y el descenso arranca a 1,25. Resultado: descenso a 60 FPS estables en el mismo equipo; la nave posada
+  tras aterrizar cae ~3 s a ~40 FPS y luego baja de escalón y va a 60.
+- **Problema 2:** la esquiva de asteroides «no se ejecutaba»: con menos de 3,4 s de ETA al tomar los mandos se enviaba
+  una maniobra a medias sin jugarla. **Arreglo:** siempre se juega. En solitario, tiempo bala (`dodgeTimeScale`); en sala
+  la que quepa (`remoteDodgeDuration`) + un roce. Verificado en Chrome: ETA 0,92 s → minijuego entero de 3 s, motor
+  ralentizado (ETA 0,92 → 0,22) y `evade` a tiempo.
+- **Sin verificar:** con personas; en Windows/D3D11 y en el build de producción; la esquiva recortada en sala (solo test).
+  El interior de la nave también va a ~44 FPS a 1080p HiDPI en esta GPU antes de bajar de escalón (no se ha tocado).
+
 ## Mapa del sistema solar: carga (2026-11-15, rama `feat/f4-mapa-solar-carga`)
 
 - **Problema:** en las misiones, abrir el mapa del sistema solar congelaba el juego. Medido por CDP en Chrome con la Iris

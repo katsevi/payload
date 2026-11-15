@@ -6,10 +6,14 @@ import {
   classifyArrival,
   createDodge,
   dodgeDifficulty,
-  canPlayDodge,
+  DODGE_CUTOFF_S,
   DODGE_DURATION_S,
+  DODGE_ENGINE_MARGIN_S,
   DODGE_LEAD_S,
-  lateDodgeResult,
+  DODGE_MIN_DURATION_S,
+  dodgeTimeScale,
+  remoteDodgeDuration,
+  shortenedDodgeResult,
   dodgeLevelForSector,
   dodgeResult,
   generateRocks,
@@ -136,9 +140,6 @@ describe('esquiva de asteroides (timón)', () => {
   it('duración fija; las rocas dependen solo de la dificultad; dificultad que sube con el sector', () => {
     expect(DODGE_DURATION_S).toBe(3);
     expect(DODGE_DURATION_S + DODGE_LEAD_S).toBeCloseTo(3.4, 6);
-    expect(canPlayDodge(30)).toBe(true);
-    expect(canPlayDodge(-1)).toBe(true);
-    expect(canPlayDodge(DODGE_DURATION_S + DODGE_LEAD_S - 0.01)).toBe(false);
     // Mismas rocas tome los mandos cuando los tome.
     expect(createDodge(5, DODGE_DURATION_S, dodgeDifficulty(0.5)).rocks).toEqual(createDodge(5, DODGE_DURATION_S, dodgeDifficulty(0.5)).rocks);
     expect(dodgeLevelForSector(1)).toBeLessThan(dodgeLevelForSector(3));
@@ -165,19 +166,29 @@ describe('incentivo: llegar pronto al timón nunca es peor que llegar tarde', ()
     return sum / n;
   };
 
-  it('para cualquier ETA, tomar los mandos tarde no es mejor que jugarla bien (ni que un piloto medio)', () => {
-    for (const level of [0, 0.3, 0.6, 1]) {
-      const good = expected(level, 'good');
-      const medium = expected(level, 'medium');
-      for (let eta = 0.2; eta < 10; eta += 0.3) {
-        if (canPlayDodge(eta)) continue;
-        const late = lateDodgeResult(eta, level, max);
-        expect(late.grazes, `nivel ${level}, eta ${eta}`).toBeGreaterThanOrEqual(1); // nunca limpia
-        expect(damage(late), `nivel ${level}, eta ${eta}`).toBeGreaterThanOrEqual(good);
-        expect(damage(late), `nivel ${level}, eta ${eta}`).toBeGreaterThanOrEqual(medium);
+  it('en sala, la esquiva recortada (llegar tarde) no sale mejor que la entera para el mismo piloto', () => {
+    const shortened = (level: number, pilot: keyof typeof PILOTS, dur: number, n = 30) => {
+      let sum = 0;
+      for (let seed = 1; seed <= n; seed++) {
+        const s = createDodge(seed * 7919, dur, dodgeDifficulty(level));
+        fly(s, PILOTS[pilot]);
+        const r = shortenedDodgeResult(dodgeResult(s), s.durationS);
+        expect(r.grazes, 'nunca limpia').toBeGreaterThanOrEqual(1);
+        sum += damage(r);
       }
-      // Peor cuanto más tarde.
-      expect(damage(lateDodgeResult(0.5, level, max))).toBeGreaterThanOrEqual(damage(lateDodgeResult(4, level, max)));
+      return sum / n;
+    };
+    for (const level of [0, 0.3, 0.6, 1]) {
+      for (const pilot of ['good', 'medium'] as const) {
+        const full = expected(level, pilot);
+        for (const eta of [0, 0.5, 1.5, 2.5, 3.3]) {
+          const dur = remoteDodgeDuration(eta);
+          expect(dur).toBeLessThan(DODGE_DURATION_S);
+          // Hay rocas que esquivar aunque sea corta (siempre se juega algo).
+          expect(createDodge(3, dur, dodgeDifficulty(level)).rocks.length, `nivel ${level}, eta ${eta}`).toBeGreaterThan(0);
+          expect(shortened(level, pilot, dur), `nivel ${level}, ${pilot}, eta ${eta}`).toBeGreaterThanOrEqual(full - 1e-9);
+        }
+      }
     }
   }, 30_000); // barrido largo: con `pnpm validate` corre en paralelo con los tests de red del servidor
 
@@ -186,6 +197,43 @@ describe('incentivo: llegar pronto al timón nunca es peor que llegar tarde', ()
     expect(expected(1, 'bad')).toBeGreaterThan(expected(0.3, 'bad') + 0.15);
     // Jugarla mal sigue siendo mejor que no intentarlo (el impacto entero).
     expect(expected(1, 'bad')).toBeLessThan(1);
+  });
+});
+
+describe('la esquiva siempre se juega', () => {
+  it('tiempo bala: llegue cuando llegue, el impacto no alcanza a la nave antes de terminar la esquiva', () => {
+    expect(dodgeTimeScale(-1, 3)).toBe(1); // nave parada
+    expect(dodgeTimeScale(30, 3)).toBe(1); // de sobra
+    expect(dodgeTimeScale(0.1, 3)).toBe(0); // encima: se espera a la esquiva
+    expect(dodgeTimeScale(1.75, 3)).toBeCloseTo(0.5, 6);
+    // Simulación con el paso fijo del motor (0,1 s, acumulado) y fotogramas de 60 Hz.
+    for (let eta0 = 0.05; eta0 <= 6; eta0 += 0.05) {
+      let eta = eta0;
+      let acc = 0;
+      let t = 0;
+      while (t < DODGE_DURATION_S) {
+        const dt = 1 / 60;
+        acc += dt * dodgeTimeScale(eta, DODGE_DURATION_S - t);
+        while (acc >= 0.1 - 1e-9) {
+          acc -= 0.1;
+          eta -= 0.1;
+        }
+        t += dt;
+        expect(eta, `eta inicial ${eta0.toFixed(2)}, t ${t.toFixed(2)}`).toBeGreaterThan(0);
+      }
+      // …y cuando hay tiempo de sobra el motor no se ralentiza en absoluto.
+      if (eta0 >= DODGE_DURATION_S + DODGE_ENGINE_MARGIN_S + 0.1) expect(eta).toBeLessThan(eta0 - DODGE_DURATION_S + 0.11);
+    }
+  });
+
+  it('en sala, la que quepa antes del impacto (con un mínimo jugable)', () => {
+    expect(remoteDodgeDuration(-1)).toBe(DODGE_DURATION_S);
+    expect(remoteDodgeDuration(30)).toBe(DODGE_DURATION_S);
+    expect(remoteDodgeDuration(2)).toBeCloseTo(2 - DODGE_LEAD_S, 6);
+    expect(remoteDodgeDuration(0.2)).toBe(DODGE_MIN_DURATION_S);
+    expect(DODGE_CUTOFF_S).toBeLessThan(DODGE_LEAD_S);
+    expect(shortenedDodgeResult({ grazes: 0, fullHit: false }, DODGE_DURATION_S)).toEqual({ grazes: 0, fullHit: false });
+    expect(shortenedDodgeResult({ grazes: 0, fullHit: false }, 2)).toEqual({ grazes: 1, fullHit: false });
   });
 });
 
@@ -235,10 +283,11 @@ describe('esquiva conectada al motor', () => {
       const w = run.state.warnings.find((x) => !x.evaded)!;
       expect(w, 'hay aviso').toBeTruthy();
       expect(w.evadeSeed).toBeTypeOf('number');
-      // Si da tiempo a jugarla, la esquiva termina antes del impacto: el `evade` llega a tiempo.
-      const dur = canPlayDodge(w.etaS) ? DODGE_DURATION_S : 0;
-      expect(dur).toBeLessThan(w.etaS);
-      run.step(Math.ceil(dur * 10) / 10);
+      // La esquiva se juega entera y, con el tiempo bala, termina antes del impacto: el `evade` llega a tiempo.
+      for (let t = 0; t < DODGE_DURATION_S; t += 1 / 60) {
+        const now = run.state.warnings.find((x) => x.hazardId === w.hazardId)!;
+        run.step((1 / 60) * dodgeTimeScale(now.etaS, DODGE_DURATION_S - t));
+      }
       expect(run.state.warnings.some((x) => x.hazardId === w.hazardId)).toBe(true);
       if (result) expect(run.apply(evadeAction(result, maxGrazesOf(run.catalog.hazards.impact.evade))).ok).toBe(true);
       const hull = run.state.ship.hull;
