@@ -393,7 +393,20 @@
     "sale": "[coins]",
     "purchase": "[cargo loaded]",
     "upgrade": "[upgrade installed]",
-    "noCredits": "[not enough credits]"
+    "noCredits": "[not enough credits]",
+    "go": "[green light]",
+    "noGo": "[red light]",
+    "launch": "[countdown]",
+    "ping": "[crewmate ping]",
+    "crewJoin": "[crewmate connected]",
+    "crewLeave": "[crewmate disconnected]",
+    "creak": "[hull creaking]",
+    "contact": "[Earth link]",
+    "observation": "[observation complete]",
+    "earthCall": "[call to Earth]",
+    "overheat": "[overheating]",
+    "powerDown": "[systems without power]",
+    "storageFull": "[storage full]"
   },
   "descent": {
     "title": "Descent",

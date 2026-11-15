@@ -393,7 +393,20 @@
     "sale": "[monedas]",
     "purchase": "[carga recibida]",
     "upgrade": "[mejora instalada]",
-    "noCredits": "[créditos insuficientes]"
+    "noCredits": "[créditos insuficientes]",
+    "go": "[luz verde]",
+    "noGo": "[luz roja]",
+    "launch": "[cuenta atrás]",
+    "ping": "[aviso de un compañero]",
+    "crewJoin": "[compañero conectado]",
+    "crewLeave": "[compañero desconectado]",
+    "creak": "[casco que cruje]",
+    "contact": "[enlace con la Tierra]",
+    "observation": "[observación completada]",
+    "earthCall": "[llamada a la Tierra]",
+    "overheat": "[sobrecalentamiento]",
+    "powerDown": "[sistemas sin energía]",
+    "storageFull": "[memoria llena]"
   },
   "descent": {
     "title": "Descenso",

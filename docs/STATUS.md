@@ -1,5 +1,26 @@
 # Estado del proyecto — traspaso entre sesiones
 
+## Audio inmersivo (2026-11-15, rama `feat/audio-inmersivo`)
+
+- **Salto que «se oía mal»:** el `jump` arrancaba un bucle de ruido blanco a 0,7 + sierra a 42 Hz que sonaba TODO el
+  tránsito (también en pausa), sumado a sierras graves de la música y sin limitador → saturación y fatiga. Ahora: arranque
+  de 2,4 s y crucero grave y suave; limitador en el master; los avisos bajan la música (ducking); los bucles bajan en pausa
+  (bus `loops`); ruido con varias semillas (antes todos los bucles sumaban la misma secuencia en fase); efectos agendados
+  20 ms por delante; sin LFO cuadrado sobre ganancias (clics de la capa `pulse`).
+- **Música generativa** (`musicSynth.ts`, `musicVoices.ts`): partitura por escena en Re (menú lidio, hangar mixolidio, a
+  bordo dórico, tránsito eólico con ostinato, aterrizaje frigio, EVA en quintas, victoria, lamento de derrota), reverb por
+  convolución generada, peligro en 3 escalones con un cambio cada uno, cambios alineados al compás.
+- **Efectos:** todos rediseñados (sin sierras crudas, alarmas distinguibles) y 38 nuevos: pasos por suelo y mundo,
+  aterrizaje del salto, hover/clic, mapa, paneles, terminal, energía, hangar (pieza, Go/No-Go, lanzamiento), radio con la
+  Tierra, observación, sobrecalentamiento, batería, ping y entrada/salida en la sala, crujido del casco, granizo.
+- **Niveles:** `BUS_TRIM` (música ×0,7, efectos ×1,12, avisos ×1,25) sin tocar los ajustes guardados; `SFX_GAIN` por sonido.
+- **Proceso:** estudio de mercado + rúbrica (`docs/diseno/audio-rubrica.md`, Haiku), compositor (Opus), diseñador de
+  efectos (Sonnet), laboratorio offline sin dependencias (`audio/offline/`, `pnpm --filter @payload/client audio:report`) y
+  validador independiente (Haiku) en 3 rondas: `docs/diseno/audio-validacion.md`.
+- **Sin verificar:** nada se ha ESCUCHADO con personas ni en el juego en marcha (solo métricas offline y Chrome sin
+  cabeza para la música). Pendiente: prueba de escucha (fatiga de pasos/hover, granizo, alarmas a ciegas), LUFS de una
+  sesión real de 3 min con efectos, y el ducking en partida.
+
 ## Corrección del cooperativo y del rendimiento (2026-11-15, rama `fix/coop-y-rendimiento`)
 
 Cinco fallos reportados tras probar con personas. Causas medidas y arreglos:

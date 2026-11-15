@@ -33,6 +33,15 @@ export type EmitterKind = 'consoleHum' | 'exhibitHum';
 export type Vec3 = readonly [number, number, number];
 
 const MASTER_LEVEL = 0.8;
+/**
+ * Ajuste interno de cada bus sobre el volumen del jugador (validación 2026-11-15: la música sonaba por
+ * encima de efectos y avisos). Jerarquía buscada: avisos > efectos > interfaz > música/ambiente.
+ */
+export const BUS_TRIM = { music: 0.7, sfx: 1.12, alerts: 1.25 } as const;
+/** Volúmenes por defecto de los ajustes (espejo de `state/settings.ts`, para el render offline). */
+export const DEFAULT_VOLUMES = { music: 0.5, sfx: 0.8, alerts: 0.8 } as const;
+/** Ganancia final de un bus: curva cuadrática del control por el ajuste interno. */
+export const busGain = (bus: keyof typeof BUS_TRIM, v: number): number => Math.max(0, Math.min(1, v)) ** 2 * BUS_TRIM[bus];
 /** Nivel de los bucles con la partida en pausa (no se cortan del todo: no hay salto al volver). */
 const PAUSED_LOOP_LEVEL = 0.12;
 /** Cuánto baja la música con un aviso, y durante cuánto. */
@@ -323,11 +332,10 @@ export class AudioEngine {
     } else {
       this.stopMusic();
     }
-    const sq = (n: number) => Math.max(0, Math.min(1, n)) ** 2;
     this.master.gain.setTargetAtTime(v.muteAll ? 0 : MASTER_LEVEL, t, 0.05);
-    this.buses.music?.gain.setTargetAtTime(sq(v.music), t, 0.1);
-    this.buses.sfx?.gain.setTargetAtTime(sq(v.sfx), t, 0.05);
-    this.buses.alerts?.gain.setTargetAtTime(sq(v.alerts), t, 0.05);
+    this.buses.music?.gain.setTargetAtTime(busGain('music', v.music), t, 0.1);
+    this.buses.sfx?.gain.setTargetAtTime(busGain('sfx', v.sfx), t, 0.05);
+    this.buses.alerts?.gain.setTargetAtTime(busGain('alerts', v.alerts), t, 0.05);
   }
 
   /** Suspende el contexto con todo silenciado o en segundo plano; lo reanuda si no. */

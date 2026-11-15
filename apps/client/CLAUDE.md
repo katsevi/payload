@@ -16,7 +16,7 @@ desde el servidor. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Dis
 | `gfx/` | Gráficos procedurales (sin assets que descargar): `quality.tsx` (`ShaderWarmup`, `useAdaptiveDpr`), `textures.ts`, `materials.ts` (`mats()`), `build.tsx` (`Builder`, `Parts`, `once`), `glsl.ts` (ruido y reloj `TIME`), `shipShaders.ts`, `fxShaders.ts` (`puffMaterial` exportado), `spaceShaders.ts`, `surfaceShaders.ts` (parche del suelo: grietas, borde, lava, explanada; cielo; tormenta; polvo; haces; llama de propulsor), `surfaceLook.ts` (paleta por `worldId` y aspecto de cada material de veta), `bodyLook.ts` (aspecto de los cuerpos del mapa solar: deducido de tipo, tamaño, atmósfera y mundo, con tabla propia para los reconocibles), `rocks.ts` (`rockGeometry`, `pebbleGeometry`, `rockMaterial`), `probeModels.ts` (piezas de la sonda del hangar), `hangarShaders.ts` (holograma, haces de focos, chispas de soldadura), `Glow.tsx`, `Sky.tsx` |
 | `ui/` | `kit` (piezas del sistema visual: `Button`, `SegBar`, `Tag`, `KeyHint`, `StatRow`, `SectionLabel`, `Tabs`, `Toast`; ver «Sistema visual (UI)»), `MissionScreens` (fase 4: `MissionsScreen` con las tarjetas y `DesignScreen`, el hangar), `names.ts` (`nodeName`: `catalog.<bodyId>` o el nombre del punto de paso; `distanceText`: años luz o unidades de ruta), `Hud` (barras, viaje, alertas, avisos, acción disponible; con diseño, distancia al Sol y paneles bajo la energía y misión → destino; exporta `Gauge`/`levelOf`), `SkillHud` (mira del extintor y barras de pulso/presión, sin React por frame), `SurfaceHud` (`DescentHud`, `SuitVitals` con teclas del jetpack, racha y herramientas, `ShipCompass`, `ToolCompass`, `FallAlert`, `O2Vignette`, `WorldBadge`), `ToolIcon`, `StarMap`, `PowerPanel`, `StationTerminal` (terminal de estación), `Credits` (`CreditsBadge`, `UpgradeIcon`, `UpgradeStrip`), `Screens`, `common` |
 | `player/` | `PlayerController` (controlador cinemático Rapier parametrizado por `MotionParams`, cámaras 1ª/3ª con rayo contra colisiones, sacudida), `input.ts`, `playerState.ts` (`playerState`, `motionEnv`, `resetPlayerState`) |
-| `audio/` | Web Audio procedural: `soundLogic.ts` y `musicLogic.ts` (puros), `audioEngine.ts`, `cues.ts` (`cue(id)`), `useAudioDirector.ts`, `SoundCaptions.tsx` |
+| `audio/` | Web Audio procedural: `soundLogic.ts` y `musicLogic.ts` (puros), `audioEngine.ts` (grafo, limitador, ducking, pausa, `BUS_TRIM`), `synthKit.ts` (piezas de síntesis), `sfxSynth.ts` (efectos), `musicSynth.ts` + `musicVoices.ts` (partitura generativa), `cues.ts` (`cue(id)`), `useAudioDirector.ts`, `useUiSounds.ts` (clic, hover, paneles, sala), `SoundCaptions.tsx`, `offline/` (laboratorio: render sin dependencias y métricas; solo tests) |
 | `state/` | `ui.ts` (panel abierto, vista, aviso de acción, `descentView`, `hudView`), `settings.ts` (persistido), `minigame.ts` (minijuegos en curso, mutable), `hangar.ts` (pieza señalada en la paleta) |
 | `models/` | GLB con `useGLTF`: `Models.tsx` (`FittedModel`, `ModelBoundary` con forma de respaldo) |
 | `net/` | Cooperativo (fase 6): `coopSession.ts` (conexión, lobby, envío agrupado, poses, pings) y `coopStore.ts` (`useCoop`, `coopLive`) |
@@ -78,8 +78,17 @@ desde el servidor. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Dis
   (malla del terreno en `SurfaceWorld`, texturas y rocas preparadas en el puente).
 - **Carteles en el mundo (`Markers`):** `Html` de drei; se ocultan a mano cuando quedan detrás de la cámara.
 - **Audio:** dispara siempre con `cue(id)` (suena + destello + subtítulo), nunca con `audio.play`. Sonido
-  nuevo = `SfxId` en `soundLogic.ts` + clave `sound.<id>` + `case` en `AudioEngine.synth`. Los efectos de
-  los eventos del motor salen de `sfxForRunEvent` en `runStore`. Sin Web Audio todo es no-op.
+  nuevo = `SfxId` + `SFX_META` (+ `SFX_GAIN` si hace falta) en `soundLogic.ts`, clave `sound.<id>` (si lleva subtítulo)
+  y `case` en `sfxSynth.ts`; su categoría en `offline/metrics.ts` (`categoryOf`). Los efectos de los eventos del motor
+  salen de `sfxForRunEvent` en `runStore`. Sin Web Audio todo es no-op.
+  - **Mezcla:** master → limitador (`buildOutputChain`); jerarquía avisos > efectos > interfaz > música/ambiente
+    (`BUS_TRIM`); los `alerts` bajan la música un momento; los bucles largos van al bus `loops`, que baja en pausa.
+    Los efectos se agendan 20 ms por delante (con el hilo principal ocupado no se recortan).
+  - **Música:** partitura generativa por escena (`musicSceneFor`: menú, hangar, a bordo, tránsito, aterrizaje, EVA,
+    victoria, derrota) y peligro en 3 escalones (`dangerTier`, un cambio por escalón). Planificador con anticipación.
+  - **Laboratorio:** `pnpm --filter @payload/client audio:report` renderiza offline todos los efectos y escenas y escribe
+    `apps/client/audio-report/` (métricas + WAV, no se versiona). `audioLab.test.ts` falla con clipping, clics o ruido de
+    banda ancha en bucles. Rúbrica: `docs/diseno/audio-rubrica.md`; validaciones: `docs/diseno/audio-validacion.md`.
 - **Modelos:** `publicDir` = `../../assets/web` (URL `/models/<archivo>.glb`). Registra assets nuevos en
   `assets/CREDITS.md` y en `src/data/credits.ts`. ERIZON (la estación) es CC-BY-NC-ND.
 

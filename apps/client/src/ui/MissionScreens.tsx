@@ -24,6 +24,7 @@ import { fmt } from './common';
 import { GlossaryButton, GlossaryPanel, useGlossary } from './Glossary';
 import { LanguageSelect } from './Screens';
 import { SectionLabel, SegBar, Tag } from './kit';
+import { cue } from '../audio/cues';
 
 const GROUP_ICON: Record<PaletteGroup, ReactNode> = {
   structure: <Box size={15} />,
@@ -73,7 +74,10 @@ function MissionCard({ mission, index }: { mission: MissionDef; index: number })
   const bodies = mission.destinations.map((id) => t(`catalog.${id}`, { ns: 'sim' })).join(' · ');
   const kinds = mission.requirements.requiredKinds.map((k) => t(`design.science.${k}`, { ns: 'sim' })).join(', ');
   return (
-    <button className="mission-card console-panel group flex flex-col gap-2 p-4 text-left" onClick={() => useGame.getState().openDesign(mission.id)}>
+    <button className="mission-card console-panel group flex flex-col gap-2 p-4 text-left" onClick={() => {
+      cue('select');
+      useGame.getState().openDesign(mission.id);
+    }}>
       {/* Expediente: código, etiquetas y dificultad arriba; nombre; descripción; ficha de datos. */}
       <span className="flex items-center gap-2">
         <span className="panel-code" aria-hidden="true">EXP-{String(index + 1).padStart(2, '0')}</span>
@@ -175,6 +179,12 @@ function Meter({ r, ghost, why }: { r: DesignResource; ghost?: DesignResource; w
 function ReviewPanel({ review, onLaunch }: { review: DesignReview; onLaunch: () => void }) {
   const { t } = useTranslation();
   const go = canLaunch(review);
+  // Go/No-Go: suena cuando el veredicto cambia (no al abrir el hangar).
+  const lastGo = useRef(go);
+  useEffect(() => {
+    if (lastGo.current !== go) cue(go ? 'go' : 'noGo');
+    lastGo.current = go;
+  }, [go]);
   // Fase 6: en el hangar compartido de una sala no se lanza: se vota (y zarpa el anfitrión).
   const shared = useGame((g) => g.sharedDesign);
   return (
@@ -347,7 +357,10 @@ function Palette({ design, update, budgetsNow }: { design: MissionDesign; update
                 className="flex min-w-0 flex-1 flex-col gap-0.5 px-2 py-1.5 text-left focus-visible:outline focus-visible:outline-accent"
                 aria-label={t('design.add', { part: name })}
                 title={br.length > 0 ? t('design.breaks', { resources: br.map((id) => t(`design.resource.${id}`, { ns: 'sim' })).join(', ') }) : undefined}
-                onClick={() => update(addPart(design, part))}
+                onClick={() => {
+                cue('partAdd');
+                update(addPart(design, part));
+              }}
                 onKeyDown={(e) => onKey(e, i, part)}
                 onPointerEnter={() => setHover(part)}
                 onPointerLeave={() => setHover(null)}
@@ -363,7 +376,10 @@ function Palette({ design, update, budgetsNow }: { design: MissionDesign; update
                 <PartLine part={part} />
               </button>
               {n > 0 && (
-                <button className="flex items-center px-2 text-slate-300 hover:text-bad" aria-label={t('design.remove', { part: name })} onClick={() => update(removePart(design, part))}>
+                <button className="flex items-center px-2 text-slate-300 hover:text-bad" aria-label={t('design.remove', { part: name })} onClick={() => {
+ cue('partRemove');
+ update(removePart(design, part));
+ }}>
                   <Minus size={15} />
                 </button>
               )}
@@ -412,7 +428,10 @@ function Mounted({ design, update }: { design: MissionDesign; update: (d: Missio
       {chips.map(({ part, n }) => {
         const name = partName(part.id);
         return (
-          <button key={`${part.kind}:${part.id}`} className="chip num flex items-center gap-1 border border-line bg-black/40 px-1.5 py-0.5 text-[11px] text-slate-200 hover:border-bad hover:text-bad focus-visible:border-bad" aria-label={t('design.remove', { part: name })} title={t('design.remove', { part: name })} onClick={() => update(removePart(design, part))}>
+          <button key={`${part.kind}:${part.id}`} className="chip num flex items-center gap-1 border border-line bg-black/40 px-1.5 py-0.5 text-[11px] text-slate-200 hover:border-bad hover:text-bad focus-visible:border-bad" aria-label={t('design.remove', { part: name })} title={t('design.remove', { part: name })} onClick={() => {
+ cue('partRemove');
+ update(removePart(design, part));
+ }}>
             {name}
             {n > 1 && <span className="text-accent">×{n}</span>}
             <Minus size={11} aria-hidden="true" />
@@ -514,7 +533,10 @@ export function DesignScreen() {
               <span className={relOk ? 'text-slate-300' : 'text-warn'}>{t('design.reliability', { pct: fmt(totals.reliabilityPct, 0) })}</span>
             </div>
           </div>
-          <ReviewPanel review={review} onLaunch={() => useGame.getState().launch()} />
+          <ReviewPanel review={review} onLaunch={() => {
+ cue('launch');
+ useGame.getState().launch();
+ }} />
         </aside>
       </div>
     </div>

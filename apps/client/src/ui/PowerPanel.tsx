@@ -29,7 +29,7 @@ export function systemDrawKw(s: RunState, id: PoweredSystemId): number {
 
 function toggle(id: PoweredSystemId): void {
   const s = useGame.getState().hud;
-  if (s && useGame.getState().act({ type: 'toggle-system', systemId: id, enabled: !s.ship.systems[id].enabled }).ok) cue('toggle');
+  if (s && useGame.getState().act({ type: 'toggle-system', systemId: id, enabled: !s.ship.systems[id].enabled }).ok) cue(s.ship.systems[id].enabled ? 'powerOff' : 'powerOn');
 }
 
 /** Panel de la sala de máquinas: qué se queda sin energía cuando no hay para todo. */

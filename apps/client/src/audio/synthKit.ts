@@ -26,6 +26,25 @@ export interface ToneOpts {
   detune?: number;
   /** Paneo estéreo -1..1. */
   pan?: number;
+  /** Paso bajo (Hz) tras el oscilador: suaviza los armónicos de `square`/`sawtooth`. */
+  lowpass?: number;
+  /** Segundos que se mantiene a volumen pleno antes de la caída (más RMS con el mismo pico). */
+  hold?: number;
+}
+
+/** Tono FM (portadora senoidal modulada): timbre de consola cálido o campana, según `ratio`. */
+export interface FmOpts {
+  freq: number;
+  dur: number;
+  vol?: number;
+  /** Frecuencia del modulador = `freq * ratio` (2 = cálido, 3.5 = campana metálica). */
+  ratio?: number;
+  /** Profundidad de modulación relativa a `freq`; decae durante la nota. */
+  index?: number;
+  slideTo?: number;
+  attack?: number;
+  pan?: number;
+  hold?: number;
 }
 
 export interface NoiseOpts {
@@ -37,6 +56,9 @@ export interface NoiseOpts {
   q?: number;
   attack?: number;
   pan?: number;
+  hold?: number;
+  /** Paso alto (Hz) del ruido; por defecto 35. */
+  hp?: number;
 }
 
 export interface NoiseLoopOpts {
@@ -54,6 +76,13 @@ export interface NoiseLoopOpts {
 
 /** Duración mínima de las rampas de ganancia: por debajo se oyen clics. */
 export const MIN_RAMP_S = 0.002;
+
+/** Mantiene `vol` durante `hold` s tras el ataque (sin pasarse de la duración). */
+function holdEnv(g: GainNode, vol: number, at: number, atk: number, dur: number, hold?: number): void {
+  if (!hold || hold <= 0) return;
+  const h = Math.min(hold, dur - atk - 0.02);
+  if (h > 0) g.gain.setValueAtTime(vol, at + atk + h);
+}
 
 export class SynthKit {
   private noiseBufs: AudioBuffer[] = [];
@@ -130,10 +159,52 @@ export class SynthKit {
     const atk = Math.max(MIN_RAMP_S, o.attack ?? 0.005);
     g.gain.setValueAtTime(0.0001, at);
     g.gain.linearRampToValueAtTime(vol, at + atk);
+    holdEnv(g, vol, at, atk, o.dur, o.hold);
     g.gain.exponentialRampToValueAtTime(0.0001, at + Math.max(atk + 0.01, o.dur));
-    osc.connect(g).connect(dest);
+    if (o.lowpass) {
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = o.lowpass;
+      lp.Q.value = 0.6;
+      osc.connect(lp).connect(g).connect(dest);
+    } else osc.connect(g).connect(dest);
     osc.start(at);
     osc.stop(at + o.dur + 0.05);
+  }
+
+  /** Tono FM con envolvente: la modulación decae (ataque brillante, cola limpia). */
+  fm(bus: KitBus, at: number, o: FmOpts): void {
+    const dest = this.out(bus, o.pan);
+    if (!dest) return;
+    const ctx = this.ctx;
+    const car = ctx.createOscillator();
+    const mod = ctx.createOscillator();
+    car.type = 'sine';
+    mod.type = 'sine';
+    car.frequency.setValueAtTime(o.freq, at);
+    mod.frequency.setValueAtTime(o.freq * (o.ratio ?? 2), at);
+    if (o.slideTo) {
+      const end = at + o.dur;
+      car.frequency.exponentialRampToValueAtTime(Math.max(1, o.slideTo), end);
+      mod.frequency.exponentialRampToValueAtTime(Math.max(1, o.slideTo * (o.ratio ?? 2)), end);
+    }
+    const depth = ctx.createGain();
+    const peak = o.freq * (o.index ?? 1);
+    depth.gain.setValueAtTime(Math.max(0.01, peak), at);
+    depth.gain.exponentialRampToValueAtTime(Math.max(0.01, peak * 0.06), at + o.dur);
+    mod.connect(depth).connect(car.frequency);
+    const g = ctx.createGain();
+    const vol = o.vol ?? 0.15;
+    const atk = Math.max(MIN_RAMP_S, o.attack ?? 0.004);
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.linearRampToValueAtTime(vol, at + atk);
+    holdEnv(g, vol, at, atk, o.dur, o.hold);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + Math.max(atk + 0.01, o.dur));
+    car.connect(g).connect(dest);
+    car.start(at);
+    mod.start(at);
+    car.stop(at + o.dur + 0.05);
+    mod.stop(at + o.dur + 0.05);
   }
 
   /** Ráfaga de ruido filtrado; la frecuencia del filtro puede barrer de `f0` a `f1`. */
@@ -153,11 +224,21 @@ export class SynthKit {
     const atk = Math.max(MIN_RAMP_S, o.attack ?? 0.01);
     g.gain.setValueAtTime(0.0001, at);
     g.gain.linearRampToValueAtTime(vol, at + atk);
+    holdEnv(g, vol, at, atk, o.dur, o.hold);
     g.gain.exponentialRampToValueAtTime(0.0001, at + Math.max(atk + 0.01, o.dur));
-    src.connect(f).connect(g).connect(dest);
+    src.connect(f).connect(this.rumbleCut(o.hp)).connect(g).connect(dest);
     // Desfase aleatorio dentro del buffer: dos ráfagas seguidas no suenan idénticas.
     src.start(at, this.rand() * 1.5);
     src.stop(at + o.dur + 0.05);
+  }
+
+  /** Paso alto a 35 Hz para el ruido filtrado: sin energía subgrave inútil. */
+  private rumbleCut(hz = 35): BiquadFilterNode {
+    const hp = this.ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = hz;
+    hp.Q.value = 0.7;
+    return hp;
   }
 
   hasLoop(name: string): boolean {
@@ -185,7 +266,7 @@ export class SynthKit {
     try {
       g.gain.cancelScheduledValues(now);
       g.gain.setValueAtTime(Math.max(0.0001, g.gain.value), now);
-      g.gain.linearRampToValueAtTime(0.0001, now + f);
+      g.gain.linearRampToValueAtTime(0, now + f);
       for (const s of sources) s.stop(now + f + 0.1);
     } catch {
       /* ya detenido */
@@ -231,7 +312,9 @@ export class SynthKit {
       lfo.start(t);
       sources.push(lfo);
     }
-    src.connect(f).connect(g).connect(dest);
+    // `fade` va tras `g`: el LFO de aleteo modula `g.gain` y no debe sobrevivir al fundido de parada.
+    const fade = ctx.createGain();
+    src.connect(f).connect(this.rumbleCut(80)).connect(g).connect(fade).connect(dest);
     src.start(t, this.rand() * 1.5);
     this.loops.set(name, {
       level: (v) => {
@@ -243,7 +326,7 @@ export class SynthKit {
           /* detenido */
         }
       },
-      stop: (fadeS) => this.fadeOut(g, sources, fadeS),
+      stop: (fadeS) => this.fadeOut(fade, sources, fadeS),
     });
   }
 }

@@ -12,7 +12,8 @@ import { myCrew } from '../game/me';
 /** Contexto de música a partir del estado de la partida (puro respecto al motor de audio). */
 export function currentMusicContext(): MusicContext {
   const { screen, hud } = useGame.getState();
-  if (screen !== 'game' || !hud) return { screen: 'menu' };
+  if (screen !== 'game') return { screen };
+  if (!hud) return { screen: 'game' };
   const ship = effectiveShipOf(hud, getRun()?.catalog);
   const me = myCrew(hud);
   const outside = me?.location === 'eva';
@@ -63,15 +64,7 @@ export function useAudioDirector(): void {
     return useSettings.subscribe(apply);
   }, []);
 
-  // Clic de interfaz (botones, enlaces, selectores y casillas)
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      const el = (e.target as Element | null)?.closest?.('button, a, select, [role="button"], input[type="checkbox"]');
-      if (el && !el.hasAttribute('disabled')) cue('click');
-    };
-    document.addEventListener('click', onClick, true);
-    return () => document.removeEventListener('click', onClick, true);
-  }, []);
+  // El clic y el «hover» de interfaz los pone `useUiSounds` (montado en App).
 
   // Música adaptativa por estado de la partida; al volver al menú se limpian subtítulos y enfriamientos
   useEffect(() => {

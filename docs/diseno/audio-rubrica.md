@@ -128,3 +128,15 @@ Escala general (para cada sonido):
 - Si una alarma no supera la prueba de distinguibilidad con personas, la fase de peligro no se aprueba aunque los objetivos técnicos sí.
 
 Protección en el grafo de Web Audio: ganancia maestra con headroom (-6 dB antes del destino) y, como red de seguridad, un DynamicsCompressorNode cerca del destino (valores de la comunidad, no oficiales: threshold -2 dB, ratio 12, knee 40). No sustituye a la validación de 3.1.
+
+### Clases añadidas tras la validación, ronda 2
+
+El laboratorio (`apps/client/src/audio/offline/metrics.ts`) añade tres clases para sonidos que la tabla 3.2 no cubría bien. No relajan la exigencia: separan funciones distintas con sus propios rangos.
+
+| Clase | Duración | RMS (dBFS) | Centroide | Sonidos |
+| --- | --- | --- | --- | --- |
+| UI-navegación (`ui-nav`) | 0,05-0,3 s | -24 a -18 | < 3 kHz (ataque ≤ 5 ms) | paneles, mapa, terminal, `select`, `powerOn/Off`, `partAdd/Remove`, `toolPlace` |
+| Notificación (`notification`) | 0,2-1 s | -22 a -16 | < 4 kHz | `go`, `noGo`, `contact`, `observation`, `earthCall`, `crewJoin/Leave` |
+| Presencia (`presence`) | sin límite | -28 a -22 | < 2,5 kHz | pasos, `footLand`, `breath`, `breathFast`, `hail` |
+
+Presencia son sonidos frecuentes que deben quedar por debajo de los efectos para no cansar. Además, el ataque se mide desde la primera muestra por encima de -60 dBFS hasta el primer máximo local, y un tramo central de un bucle (crucero del salto) no exige inicio ni final con fundido.

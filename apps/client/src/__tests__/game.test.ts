@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { catalog, getNode, SYSTEM_IDS, type RunState } from '@payload/shared';
 import { dangerLevel, musicMixFor, MUSIC_LAYERS } from '../audio/musicLogic';
 import { resetCueMemory, useCues } from '../audio/cues';
-import { SFX_IDS, SFX_META, sfxForRunEvent } from '../audio/soundLogic';
+import { SFX_IDS, SFX_META, sfxForRunEvent, stepSfxFor } from '../audio/soundLogic';
 import { chargedAction, EVADE_HOLD_S, holdAction, incidentAt, interactionAt, nextThrottle, promptFor, startsDodge } from '../game/interaction';
 import { BULKHEADS_Z, HULL, STATIONS, STATION_IDS, USE_RADIUS, distanceToStation, nearestStation, runSecondsBetween, zoneAt } from '../game/layout';
 import { getRun, useGame } from '../game/runStore';
@@ -240,22 +240,51 @@ describe('audio', () => {
     // Fase 5: ciencia y datos.
     expect(sfxForRunEvent({ type: 'mission-complete' })).toBe('success');
     expect(sfxForRunEvent({ type: 'objective-met' })).toBe('success');
-    expect(sfxForRunEvent({ type: 'storage-full' })).toBe('alarm');
-    expect(sfxForRunEvent({ type: 'contact-start' })).toBe('ok');
-    expect(sfxForRunEvent({ type: 'overheat' })).toBe('alarm');
-    expect(sfxForRunEvent({ type: 'battery-empty' })).toBe('alarm');
+    expect(sfxForRunEvent({ type: 'storage-full' })).toBe('storageFull');
+    expect(sfxForRunEvent({ type: 'contact-start' })).toBe('contact');
+    expect(sfxForRunEvent({ type: 'observation-done' })).toBe('observation');
+    expect(sfxForRunEvent({ type: 'overheat' })).toBe('overheat');
+    expect(sfxForRunEvent({ type: 'battery-empty' })).toBe('powerDown');
+    expect(sfxForRunEvent({ type: 'blackout' })).toBe('powerDown');
   });
 
   it('la música sube de tensión con el peligro y resuelve al superar el sector', () => {
     const calm = musicMixFor({ screen: 'game', phase: 'transit', danger: 0 });
     const hot = musicMixFor({ screen: 'game', phase: 'transit', danger: 1 });
     expect(hot.tension).toBeGreaterThan(calm.tension);
-    expect(hot.drive).toBeGreaterThan(calm.drive);
-    expect(musicMixFor({ screen: 'game', phase: 'won' }).resolve).toBe(1);
+    expect(hot.pulse).toBeGreaterThan(calm.pulse);
+    expect(calm.drive).toBeGreaterThan(0);
+    expect(musicMixFor({ screen: 'game', phase: 'won' }).scene).toBe('won');
     expect(musicMixFor({ screen: 'menu' }).tension).toBe(0);
     for (const m of [calm, hot]) for (const l of MUSIC_LAYERS) expect(m[l]).toBeGreaterThanOrEqual(0);
     expect(dangerLevel({ incidents: 0, warnings: 0, overloaded: false, hullPct: 100, oxygenPct: 100 })).toBe(0);
     expect(dangerLevel({ incidents: 3, warnings: 1, overloaded: true, hullPct: 10, oxygenPct: 10 })).toBe(1);
     expect(dangerLevel({ incidents: 1, warnings: 0, overloaded: false, hullPct: 100, oxygenPct: 100 })).toBeGreaterThan(0);
+  });
+});
+
+describe('audio: pasos e interacciones nuevas', () => {
+  it('los pasos dependen del lugar y del suelo del mundo', () => {
+    expect(stepSfxFor(false)).toBe('stepShip');
+    expect(stepSfxFor(true, 'ice-core')).toBe('stepIce');
+    expect(stepSfxFor(true, 'dust-moon')).toBe('stepDust');
+    expect(stepSfxFor(true, 'fractured-world')).toBe('stepRock');
+    expect(stepSfxFor(true, undefined)).toBe('stepRock');
+  });
+
+  it('pasos, foco y clic no llevan subtítulo ni flash y se espacian', () => {
+    for (const id of ['click', 'hover', 'stepShip', 'stepDust', 'stepRock', 'stepIce', 'footLand'] as const) {
+      expect(SFX_META[id].captionKey, id).toBeNull();
+      expect(SFX_META[id].flash, id).toBeNull();
+    }
+    expect(SFX_META.hover.minGapMs).toBeGreaterThanOrEqual(150);
+    for (const id of ['stepShip', 'stepDust', 'stepRock', 'stepIce'] as const) expect(SFX_META[id].minGapMs).toBeGreaterThanOrEqual(150);
+  });
+
+  it('los avisos de ciencia y energía tienen sonido propio y destello', () => {
+    for (const id of ['overheat', 'powerDown', 'storageFull', 'contact', 'observation', 'earthCall', 'go', 'noGo', 'launch', 'ping', 'creak'] as const) {
+      expect(SFX_META[id].captionKey, id).not.toBeNull();
+    }
+    for (const id of ['overheat', 'powerDown', 'storageFull'] as const) expect(SFX_META[id].bus).toBe('alerts');
   });
 });

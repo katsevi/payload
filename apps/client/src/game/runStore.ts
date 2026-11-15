@@ -211,6 +211,8 @@ export const useGame = create<GameState>((set, get) => {
       if (isOthersPersonal(e)) continue;
       const sfx = sfxForRunEvent(e);
       if (sfx) cue(sfx);
+      // Casco al límite: además de la alarma, el metal cruje.
+      if (e.type === 'low-hull') cue('creak');
       if (e.type === 'arrived' || e.type === 'lost') audio.stopLoop('roar', 1.2);
       fx.shake = Math.max(fx.shake, shakeForEvent(e));
       if (e.type === 'descent') useUi.getState().setDescentView(true);

@@ -15,6 +15,7 @@ import { CreditsBadge } from './Credits';
 import { Modal, Panel, fmt } from './common';
 import { GlossaryButton, GlossaryPanel, useGlossary } from './Glossary';
 import { distanceText, nodeName } from './names';
+import { cue } from '../audio/cues';
 
 // Mapa 3D del sistema solar (partidas con diseño): la escena solo se descarga si hace falta.
 const SolarMapScene = lazy(() => import('../scenes/SolarMapScene').then((m) => ({ default: m.SolarMapScene })));
@@ -156,7 +157,10 @@ function Details({ s, node, onJump }: { s: RunState; node: SectorNode; onJump: (
                   aria-checked={active}
                   title={t(`map.throttleHint.${id}`)}
                   className="seg-option chip num flex items-center justify-between gap-2 px-2 py-1.5 text-left text-xs"
-                  onClick={() => useGame.getState().act({ type: 'set-throttle', throttle: id })}
+                  onClick={() => {
+                    cue('select');
+                    useGame.getState().act({ type: 'set-throttle', throttle: id });
+                  }}
                 >
                   <span className="w-20 font-bold">{t(`throttle.${id}`, { ns: 'sim' })}</span>
                   <span className={e.enoughFuel ? '' : 'text-bad'}>
@@ -291,7 +295,10 @@ export function StarMap() {
                   aria-disabled={!canGo}
                   className={canGo ? 'cursor-pointer' : ''}
                   opacity={canGo || isHere || n.id === s.sector.goalId ? 1 : 0.55}
-                  onClick={() => setSelectedId(n.id)}
+                  onClick={() => {
+                    cue('select');
+                    setSelectedId(n.id);
+                  }}
                   onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelectedId(n.id)}
                 >
                   <circle r={20} fill="transparent" />
@@ -332,7 +339,10 @@ export function StarMap() {
                     const n = getNode(s.sector, id);
                     if (!n) return null;
                     return (
-                      <button key={id} className="seg-option chip num px-2 py-0.5 text-xs" aria-pressed={id === selectedId} onClick={() => setSelectedId(id)}>
+                      <button key={id} className="seg-option chip num px-2 py-0.5 text-xs" aria-pressed={id === selectedId} onClick={() => {
+ cue('select');
+ setSelectedId(id);
+ }}>
                         {n.missionTarget ? '★ ' : ''}
                         {nodeName(n)}
                       </button>

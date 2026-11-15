@@ -59,6 +59,6 @@ describe('fase 8 · efectos visuales', () => {
     expect(countermeasures({})).toBe(0);
     expect(countermeasures({ callsMade: 2, provisionsUsed: 1, restS: 30 })).toBe(4);
     expect(sfxForRunEvent({ type: 'crew-sanity', subtype: 'critical' } as never)).toBe('o2Low');
-    expect(sfxForRunEvent({ type: 'earth-call' })).toBe('ok');
+    expect(sfxForRunEvent({ type: 'earth-call' })).toBe('earthCall');
   });
 });

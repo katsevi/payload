@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { SoundCaptions } from '../audio/SoundCaptions';
 import { useAudioDirector } from '../audio/useAudioDirector';
+import { useUiSounds } from '../audio/useUiSounds';
 import { getMissions } from '@payload/shared';
 import { reachStation, reachSurface } from '../game/debug';
 import { loadDesign } from '../game/missionDesign';
@@ -101,6 +102,7 @@ export function App() {
   const view = useSceneTransition(targetView, screen === 'game');
   const sceneVeil = useUi((s) => s.sceneVeil);
   useAudioDirector();
+  useUiSounds();
 
   // Solo desarrollo: ?play=1[&seed=123] entra directo a la partida (capturas y depuración).
   // Fase 4: ?design=1[&mission=<id>] abre el hangar; ?play=1&seed=7&mission=<id> zarpa con el diseño de referencia

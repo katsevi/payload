@@ -16,6 +16,7 @@ import {
 } from '@payload/shared';
 import { setSharedDesignSink, useGame } from '../game/runStore';
 import { coopLive, INITIAL_COOP, useCoop, type CoopError } from './coopStore';
+import { cue } from '../audio/cues';
 
 /** Lo que usa el cliente de un `Room` de @colyseus/sdk (inyectable en tests). */
 export interface RoomLike {
@@ -218,6 +219,7 @@ function attach(room: RoomLike): void {
     if (session !== s) return;
     const now = performance.now();
     coopLive.pings = [...coopLive.pings.filter((p) => now - p.atMs < COOP_LIMITS.pingTtlS * 1000), { ...ping, atMs: now }];
+    cue('ping');
   });
   room.onDrop?.(() => session === s && useCoop.setState({ status: 'reconnecting' }));
   room.onReconnect?.(() => session === s && useCoop.setState({ status: 'connected' }));
@@ -308,6 +310,7 @@ export function sendPing(kind: PingKind, x: number, y: number, z: number, area: 
   const s = session;
   if (!s || s.mirroredRunId === -1) return;
   s.room.send(NET.ping, { kind, x, y, z, area });
+  cue('ping');
 }
 
 export const inRoom = (): boolean => session !== null;
