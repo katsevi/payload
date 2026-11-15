@@ -34,7 +34,7 @@ import { PlayerController } from '../player/PlayerController';
 import { attachKeyboard, isDown } from '../player/input';
 import { motionEnv, playerState, resetPlayerState } from '../player/playerState';
 import { useSettings } from '../state/settings';
-import { hudView, useUi } from '../state/ui';
+import { hudView, revealScene, useUi } from '../state/ui';
 import { ShipExterior } from './ShipExterior';
 import { LodeFinishers, SurfaceTools } from './SurfaceTools';
 import { deepestDropM } from '../game/terrain';
@@ -43,6 +43,7 @@ import { effectiveRulesOf } from '../game/effective';
 import { myCrew } from '../game/me';
 import { KEY_PING, reportPose, sendPing } from '../net/coopSession';
 import { CrewAvatars } from './CrewAvatars';
+import { ShaderWarmup, useAdaptiveDpr } from '../gfx/quality';
 
 const isTyping = (e: KeyboardEvent): boolean => {
   const el = e.target as HTMLElement | null;
@@ -376,13 +377,16 @@ export function SurfaceScene({ mode }: { mode: 'descent' | 'eva' }) {
   const radius = useGame((g) => g.hud?.surface?.radiusM ?? 100);
   const groundAt = useMemo(() => (x: number, z: number) => liveTerrain.current?.heightAt(x, z) ?? 0, []);
   const descentAlt = getRun()?.state.surface?.descent?.altitudeM ?? 0;
+  const { dpr, monitor } = useAdaptiveDpr();
   if (!worldId) return null;
   return (
-    <Canvas style={{ isolation: 'isolate' }} dpr={[1, 1.75]} camera={{ fov: 75, near: 0.1, far: 1300, position: [0, 3, 30] }}>
+    <Canvas style={{ isolation: 'isolate' }} dpr={dpr} camera={{ fov: 75, near: 0.1, far: 1300, position: [0, 3, 30] }}>
+      {monitor}
       <ShaderClock />
       <Physics gravity={[0, 0, 0]} timeStep="vary">
         <SurfaceWorld physics={mode === 'eva'} />
-        <SurfaceTools />
+        {/* En el descenso no hay herramientas colocadas (se pierden al despegar): no se montan sus 12 huecos. */}
+        {mode === 'eva' && <SurfaceTools />}
         {mode === 'eva' && <CrewAvatars area="surface" />}
         <LodeFinishers />
         <group ref={ship} position={[SHIP_OFFSET.x, SHIP_OFFSET.y + (mode === 'descent' ? descentAlt : 0), SHIP_OFFSET.z]}>
@@ -394,6 +398,7 @@ export function SurfaceScene({ mode }: { mode: 'descent' | 'eva' }) {
       </Physics>
       <PadDust worldId={worldId} strength={dust.strength} />
       {mode === 'descent' ? <DescentLoop ship={ship} dust={dust} /> : <SurfaceLoop motion={motion} />}
+      <ShaderWarmup onReady={revealScene} />
     </Canvas>
   );
 }

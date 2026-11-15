@@ -15,6 +15,13 @@ function Sun() {
   return (
     <>
       <directionalLight position={[SUN_DIR.x * 100, SUN_DIR.y * 100, SUN_DIR.z * 100]} intensity={1.1} color="#fff1dd" />
+      {/*
+        Luces apagadas que igualan las de la vista posada (`SurfaceWorld`: sol, relleno y hemisférica). three.js
+        recompila todos los materiales cuando cambia el número de luces de cada tipo; así, aterrizar y despegar no
+        congela el puente.
+      */}
+      <directionalLight intensity={0} />
+      <hemisphereLight intensity={0} />
       <sprite position={[SUN_DIR.x * 1500, SUN_DIR.y * 1500, SUN_DIR.z * 1500]} scale={[760, 760, 1]}>
         <spriteMaterial map={flareTexture()} color="#fff3e2" transparent blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </sprite>

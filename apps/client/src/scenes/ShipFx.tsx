@@ -33,7 +33,8 @@ const buildFixtures = once(() => {
   for (const zone of ZONES) {
     for (const x of FIXTURE_X) {
       b.box(m.dark, [x, HULL.height - 0.035, zone.z], [0.34, 0.07, FIXTURE_LEN + 0.16]);
-      for (const end of [-1, 1]) b.box(m.steel, [x, HULL.height - 0.075, zone.z + end * (FIXTURE_LEN / 2 + 0.05)], [0.34, 0.03, 0.06]);
+      // Remates 1 cm más allá del extremo de la luminaria (enrasados con él, las dos caras parpadeaban).
+      for (const end of [-1, 1]) b.box(m.steel, [x, HULL.height - 0.075, zone.z + end * (FIXTURE_LEN / 2 + 0.06)], [0.36, 0.03, 0.06]);
     }
   }
   return b.build();
@@ -101,6 +102,14 @@ export function ZoneLights() {
 }
 
 const FX_SLOTS = 6;
+/**
+ * Luces puntuales de las averías: pocas, SIEMPRE en la escena y fuera de los grupos que se ocultan (apagadas =
+ * intensidad 0). three.js recompila todos los materiales iluminados cuando cambia el número de luces visibles:
+ * con una luz dentro de cada grupo de avería, cada avería que aparecía o se apagaba congelaba la nave 1-3 s.
+ * Las reciben las primeras averías por prioridad (fuego, chispas, fuga); el resto se ve con sus halos.
+ */
+const FX_LIGHTS = 2;
+const LIGHT_PRIORITY: Record<IncidentKind, number> = { fire: 0, short: 1, leak: 2 };
 /** Distancia (m) desde el centro del puesto hacia su punto de uso a la que aparece la avería. */
 const FX_FORWARD: Record<SystemId, number> = { reactor: 1.15, engines: 0.75, lifeSupport: 0.5, shields: 0.72, nav: 0.3 };
 /** Cada tipo de avería tiene su sitio a lo ancho del sistema para que no se tapen. */
@@ -122,19 +131,21 @@ export function IncidentFx() {
   const lights = useRef<(PointLight | null)[]>([]);
   const halos = useRef<(Sprite | null)[]>([]);
   const indices = useMemo(() => Array.from({ length: FX_SLOTS }, (_, i) => i), []);
+  const lightIndices = useMemo(() => Array.from({ length: FX_LIGHTS }, (_, i) => i), []);
+  /** Ranuras ordenadas por prioridad de luz (se reutiliza: nada de `new` por frame). */
+  const order = useMemo(() => Array.from({ length: FX_SLOTS }, (_, i) => i), []);
+  const offset = useMemo(() => new Vector3(0, 1.4, 0.2), []);
   const seeds = useMemo(() => ({ embers: seedGeometry(26, 5), smoke: seedGeometry(9, 11), sparks: seedGeometry(34, 23), jet: seedGeometry(30, 37) }), []);
   useFrame((state) => {
     const incidents = getRun()?.state.incidents ?? [];
     const t = state.clock.elapsedTime;
     for (let i = 0; i < FX_SLOTS; i++) {
       const group = slots.current[i];
-      const light = lights.current[i];
       const halo = halos.current[i];
-      if (!group || !light || !halo) continue;
+      if (!group || !halo) continue;
       const inc = incidents[i];
       if (!inc) {
         group.visible = false;
-        light.intensity = 0;
         continue;
       }
       const st = STATIONS[inc.systemId];
@@ -151,24 +162,48 @@ export function IncidentFx() {
       leak.visible = inc.kind === 'leak';
       const flicker = 0.7 + Math.sin(t * 23 + i * 5) * 0.2 + Math.sin(t * 41 + i) * 0.1;
       if (inc.kind === 'fire') {
-        light.color.set('#ff7a1f');
-        light.intensity = 34 * flicker;
         halo.material.color.set('#ff6a1a');
         halo.material.opacity = 0.42 * flicker;
         halo.scale.setScalar(3.4);
       } else if (inc.kind === 'short') {
         const on = Math.sin(t * 37 + i * 3) > 0.25;
-        light.color.set('#7fc4ff');
-        light.intensity = on ? 24 : 0;
         halo.material.color.set('#7fc4ff');
         halo.material.opacity = on ? 0.5 : 0.05;
         halo.scale.setScalar(1.8);
       } else {
-        light.color.set('#dff3ff');
-        light.intensity = 6;
         halo.material.color.set('#dff3ff');
         halo.material.opacity = 0.12;
         halo.scale.setScalar(1.6);
+      }
+    }
+    // Luces: a las averías más vistosas, colocadas sobre su grupo.
+    order.sort((a, b) => {
+      const ia = incidents[a];
+      const ib = incidents[b];
+      if (!ia || !ib) return ia ? -1 : ib ? 1 : a - b;
+      return LIGHT_PRIORITY[ia.kind] - LIGHT_PRIORITY[ib.kind] || a - b;
+    });
+    for (let k = 0; k < FX_LIGHTS; k++) {
+      const light = lights.current[k];
+      if (!light) continue;
+      const i = order[k]!;
+      const inc = i < FX_SLOTS ? incidents[i] : undefined;
+      const group = slots.current[i];
+      if (!inc || !group) {
+        light.intensity = 0;
+        continue;
+      }
+      light.position.copy(offset).applyEuler(group.rotation).add(group.position);
+      const flicker = 0.7 + Math.sin(t * 23 + i * 5) * 0.2 + Math.sin(t * 41 + i) * 0.1;
+      if (inc.kind === 'fire') {
+        light.color.set('#ff7a1f');
+        light.intensity = 34 * flicker;
+      } else if (inc.kind === 'short') {
+        light.color.set('#7fc4ff');
+        light.intensity = Math.sin(t * 37 + i * 3) > 0.25 ? 24 : 0;
+      } else {
+        light.color.set('#dff3ff');
+        light.intensity = 6;
       }
     }
   });
@@ -192,9 +227,11 @@ export function IncidentFx() {
           <group>
             <points geometry={seeds.jet} material={jetMaterial()} frustumCulled={false} dispose={null} />
           </group>
-          <pointLight ref={(l) => void (lights.current[i] = l)} position={[0, 1.4, 0.2]} distance={9} decay={1.6} intensity={0} />
           <Glow ref={(sp) => void (halos.current[i] = sp)} size={3} opacity={0} position={[0, 1.25, 0.1]} />
         </group>
+      ))}
+      {lightIndices.map((k) => (
+        <pointLight key={k} ref={(l) => void (lights.current[k] = l)} position={[0, -10, 0]} distance={9} decay={1.6} intensity={0} />
       ))}
     </>
   );

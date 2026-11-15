@@ -17,6 +17,9 @@ ADR 0017 (y 0009, 0010, 0012). Lee antes el `CLAUDE.md` raíz y el de `packages/
 
 ## Reglas
 
+- **Anfitrión y cupo:** el anfitrión es el creador y no cambia por una caída (solo al irse del todo; lo recupera con su
+  `key`). `CrewRoom.maxClients` es el doble del límite a propósito (Colyseus cuenta asientos reservados al bloquear la
+  sala); el límite real de 4 lo pone `RoomModel.join`. Ver `docs/MULTIPLAYER.md` § «Sala».
 - **La lógica va en `RoomModel`, no en `CrewRoom`.** Si algo se puede probar sin red, se prueba sin red.
 - **No se duplican tipos ni fórmulas:** todo sale de `@payload/shared`. Los mensajes y su validación
   están en `packages/shared/src/net.ts`; si añades un mensaje, añádelo allí y en `docs/MULTIPLAYER.md`.

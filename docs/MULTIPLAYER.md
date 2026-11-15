@@ -18,9 +18,15 @@ El contrato del simulador anterior está en `docs/archivo/v0.3-simulador/MULTIPL
 ## Sala
 
 - Sala `crew` de Colyseus 0.18, **privada**: no hay emparejamiento. El código de sala es el `roomId`
-  (4 caracteres de `ABCDEFGHJKMNPQRSTUVWXYZ23456789`). Se crea con `create('crew', { name })` y se entra
-  con `joinById(código, { name })`.
-- Hasta 4 jugadores. El primero es el anfitrión; si se va, pasa al siguiente conectado.
+  (4 caracteres de `ABCDEFGHJKMNPQRSTUVWXYZ23456789`). Se crea con `create('crew', { name, key })` y se entra
+  con `joinById(código, { name, key })`. `key` (opcional) es una clave privada por pestaña (8-64 caracteres
+  `[A-Za-z0-9_-]`, en `sessionStorage`); el servidor no la difunde.
+- Hasta 4 jugadores (lo decide `RoomModel`: `room-full`). El cupo de Colyseus (`maxClients`) es el doble a propósito:
+  Colyseus bloquea la sala sola al llenarse contando los asientos reservados, y un intento de conexión fallido deja el
+  suyo reservado 15 s; con el cupo exacto el cuarto jugador recibía «sala bloqueada».
+- El anfitrión es quien crea la sala. **No cambia por una caída** (conserva el sitio durante la gracia de reconexión y
+  nadie más puede empezar mientras tanto); solo si se va del todo pasa al siguiente conectado. Si el creador vuelve a
+  entrar con su `key`, recupera el anfitrión.
 - **Lobby:** cada jugador elige rol (opcional, único en la sala) y se marca listo. El anfitrión empieza
   cuando los demás conectados están listos. Una persona sola puede empezar.
 - Al empezar, la sala se bloquea: nadie entra a una partida en curso (`in-progress`). Los jugadores, por

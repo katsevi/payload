@@ -1,5 +1,32 @@
 # Estado del proyecto — traspaso entre sesiones
 
+## Corrección del cooperativo y del rendimiento (2026-11-15, rama `fix/coop-y-rendimiento`)
+
+Cinco fallos reportados tras probar con personas. Causas medidas y arreglos:
+
+1. **El cuarto jugador no podía entrar («la partida ya ha empezado»).** Colyseus bloquea la sala sola cuando clientes +
+   asientos reservados llegan a `maxClients`, y un intento de conexión fallido deja su asiento reservado 15 s (el cliente
+   reintenta hasta 3 veces). Reproducido en un test de red (`room "…" is locked`). Arreglo: `maxClients` = 8 y el límite
+   de 4 lo pone `RoomModel` (`room-full`).
+2. **El anfitrión pasaba a otro jugador.** `pickHost` lo traspasaba con cualquier caída y no lo devolvía al volver.
+   Ahora el anfitrión es el creador mientras siga en la sala (también durante la gracia de reconexión); solo pasa a otro
+   si se va del todo, y lo recupera si vuelve a entrar con su clave privada (`key`, por pestaña). Tests en
+   `roomModel.test.ts` y `network.test.ts`.
+3. **Tirones en el aterrizaje** y 4. **en la nave.** Medido en el navegador con una GPU integrada AMD (ANGLE/D3D11):
+   cada avería que aparecía recompilaba 15 shaders (1,3 s; con dos, 3 s) porque su luz estaba dentro de un grupo oculto
+   y cambiaba el número de luces; volver al puente tras posarse congelaba 2,6 s; entrar al descenso, 1,3 s. Ahora:
+   averías sin recompilación (máx. 21 ms por frame), vuelta al puente ~0,18 s (producción) y bajo un fundido a negro, y el
+   montaje del descenso (~0,9 s de React en producción: contexto WebGL, física, mundo) también queda bajo el fundido.
+   Durante el descenso, 60 FPS. Ver `apps/client/CLAUDE.md` § «Luces puntuales contadas» y «Fluidez».
+5. **Paredes que parpadeaban.** La cámara en 3ª persona atravesaba el dintel de las puertas (sin colisión) y podía
+   quedarse dentro de las paredes si el pivote del hombro caía dentro; además había caras coplanares (remates de las
+   lámparas, pantallas a 2 mm de su consola). Arreglado (colisión del dintel, pivote limitado, techo de cámara más bajo,
+   plano cercano 8 cm, caras separadas). Comprobado que la cámara ya no entra en el dintel; el parpadeo en sí no se pudo
+   ver en capturas fijas.
+
+**Sin verificar:** prueba con 4 personas en el servidor publicado (hay que desplegar el servidor de esta rama a la vez que
+el cliente), FPS a pantalla completa en otras GPU, y el parpadeo de paredes a ojo con jugadores.
+
 ## Rediseño de la interfaz (2026-11-14, rama `feat/ui-tecnologica`)
 
 - Nuevo sistema visual de toda la interfaz 2D (menú, pantallas, paneles y HUD): tokens y clases en `apps/client/src/index.css`,
@@ -23,7 +50,7 @@ supervivencia sea la *operación* de la misión diseñada (ADR `docs/adr/0015-re
 - **Fase 6 · Cooperativo 1-4: base implementada por Harry Hernández e integrada antes de la fase 5** (commit `6272af2` de la rama `feat/f4-cooperativo`, escrita cuando era la fase 4; integrada desde `feat/f6-integrar-cooperativo` el 2026-11-14 en el **PR #9**). Su ADR se renumeró de 0015 a **0017**. Ver «Fase 6 — qué se hizo» y «Fase 6 — pendiente». Los ADR 0009 y 0010 siguen aceptados; el 0017 sustituye el detalle de implementación del 0009. En las notas antiguas de este archivo, el cooperativo que aparece como «fase 4» es ahora la fase 6.
 - **Fase 8 · Cordura de la tripulación: implementada en `feat/phase-8-implementation` (2026-11-14), `psych.enabled: true`; `pnpm validate` 11/11 (shared 378, client 195, game-server 25). Falta: validación independiente, prueba visual en navegador y hito con personas.** Ficha `docs/phases/fase-8.md`, diseño detallado `docs/diseno/cordura-tripulacion.md`, fuentes NASA `docs/diseno/cordura-fuentes-nasa.md` y ADR 0019 (propuesta).
 
-Última actualización: **2026-11-14** (además: planeación de la fase 8 documentada) · rama `feat/f5-ciencia-y-datos` (desde `main` con la fase 4 y el cooperativo, PR #9, fusionados) · Propuesta: 0.7.0 (fase 4; ver `CHANGELOG.md`). Guía para probar el juego: [`docs/guias/primera-mision.md`](guias/primera-mision.md)
+Última actualización: **2026-11-15** (corrección del cooperativo y del rendimiento, rama `fix/coop-y-rendimiento`; antes: planeación de la fase 8) · rama `feat/f5-ciencia-y-datos` (desde `main` con la fase 4 y el cooperativo, PR #9, fusionados) · Propuesta: 0.7.0 (fase 4; ver `CHANGELOG.md`). Guía para probar el juego: [`docs/guias/primera-mision.md`](guias/primera-mision.md)
 
 > Léelo antes de empezar y actualízalo al terminar una tarea relevante. Las casillas de
 > `docs/phases/fase-*.md` las marca quien valida la fase, no quien implementa: aquí solo se resume.

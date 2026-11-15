@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { SoundCaptions } from '../audio/SoundCaptions';
 import { useAudioDirector } from '../audio/useAudioDirector';
 import { getMissions } from '@payload/shared';
@@ -52,6 +52,38 @@ function toStation(loot = true): boolean {
  * Raíz de la interfaz: menú o partida. La partida vive en `game/runStore` (el motor manda); aquí
  * solo se decide qué escena y qué paneles se pintan.
  */
+/** Lo que tarda el fundido a negro en cubrir la pantalla antes de cambiar de escena (igual que en `.scene-veil`). */
+const VEIL_IN_MS = 180;
+/** Si la escena nueva no avisa (sin WebGL, error), el fundido se quita igualmente. */
+const VEIL_MAX_MS = 6000;
+
+/**
+ * Cambio de escena dentro de la partida (nave ↔ descenso ↔ EVA) con fundido: primero se oscurece la pantalla y
+ * después se monta la escena nueva, que lo quita al pintar (`revealScene`). Montar una escena bloquea el hilo
+ * principal unos cientos de ms (contexto WebGL, física, mundo); bajo el fundido no se ve como un tirón. Fuera de
+ * la partida el cambio es inmediato.
+ */
+function useSceneTransition(target: string, active: boolean): string {
+  const [shown, setShown] = useState(target);
+  useEffect(() => {
+    if (shown === target) return;
+    if (!active) {
+      setShown(target);
+      return;
+    }
+    useUi.getState().setSceneVeil(true);
+    const id = setTimeout(() => setShown(target), VEIL_IN_MS);
+    return () => clearTimeout(id);
+  }, [target, shown, active]);
+  const veil = useUi((s) => s.sceneVeil);
+  useEffect(() => {
+    if (!veil) return;
+    const id = setTimeout(() => useUi.getState().setSceneVeil(false), VEIL_MAX_MS);
+    return () => clearTimeout(id);
+  }, [veil, shown]);
+  return active ? shown : target;
+}
+
 export function App() {
   const screen = useGame((s) => s.screen);
   const runId = useGame((s) => s.runId);
@@ -62,8 +94,12 @@ export function App() {
   // Cooperativo: la sala se pinta sobre el menú mientras se está en ella (o hay un error que enseñar).
   const coopOpen = useCoop((s) => s.lobby !== null || s.error !== null);
   const ended = phase === 'lost' || phase === 'won';
-  const scene = sceneFor(phase, crewAt, descentView);
-  const surfaceMode = crewAt === 'eva' ? 'eva' : 'descent';
+  const targetView = (() => {
+    const scene = sceneFor(phase, crewAt, descentView);
+    return scene === 'surface' ? (crewAt === 'eva' ? 'eva' : 'descent') : 'ship';
+  })();
+  const view = useSceneTransition(targetView, screen === 'game');
+  const sceneVeil = useUi((s) => s.sceneVeil);
   useAudioDirector();
 
   // Solo desarrollo: ?play=1[&seed=123] entra directo a la partida (capturas y depuración).
@@ -123,12 +159,13 @@ export function App() {
           <MenuScene />
         ) : screen === 'design' ? (
           <HangarScene />
-        ) : scene === 'surface' ? (
-          <SurfaceScene key={`${runId}:${surfaceMode}`} mode={surfaceMode} />
+        ) : view !== 'ship' ? (
+          <SurfaceScene key={`${runId}:${view}`} mode={view === 'eva' ? 'eva' : 'descent'} />
         ) : (
           <ShipScene key={runId} />
         )}
       </Suspense>
+      {screen === 'game' && <div className={`scene-veil${sceneVeil ? ' is-on' : ''}`} aria-hidden="true" />}
 
       {screen === 'menu' && <MenuScreen />}
       {screen === 'missions' && <MissionsScreen />}

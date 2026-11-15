@@ -44,6 +44,7 @@ const POSE_INTERVAL_MS = 1000 / COOP_LIMITS.poseHz;
 export const CONNECT_ATTEMPTS = 3;
 const CONNECT_RETRY_MS = 500;
 const NAME_KEY = 'payload.coop.name';
+const PLAYER_KEY = 'payload.coop.key';
 /** Tecla del ping «mirad aquí» (en la nave y en la superficie). */
 export const KEY_PING = 'KeyG';
 
@@ -72,6 +73,31 @@ export function loadPlayerName(): string {
     return '';
   }
 }
+
+let memoryKey: string | null = null;
+
+/**
+ * Clave privada de esta pestaña: con ella el servidor reconoce al creador de la sala si vuelve a entrar con el
+ * código tras perder la conexión del todo (y le devuelve el anfitrión). Se guarda en `sessionStorage`: cada
+ * pestaña es un jugador distinto. No identifica a la persona fuera de la sala.
+ */
+export function playerKey(): string {
+  try {
+    const saved = sessionStorage.getItem(PLAYER_KEY);
+    if (saved) return saved;
+  } catch {
+    /* sin almacenamiento */
+  }
+  memoryKey ??= typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `k${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+  try {
+    sessionStorage.setItem(PLAYER_KEY, memoryKey);
+  } catch {
+    /* sin almacenamiento */
+  }
+  return memoryKey;
+}
+
+const joinOptions = (name: string): Record<string, unknown> => (name ? { name, key: playerKey() } : { key: playerKey() });
 
 function savePlayerName(name: string): void {
   try {
@@ -235,7 +261,7 @@ async function connect(open: (client: ClientLike, name: string) => Promise<RoomL
 }
 
 export function createRoom(name: string): Promise<boolean> {
-  return connect((client, n) => client.create(COOP_ROOM, n ? { name: n } : {}), name);
+  return connect((client, n) => client.create(COOP_ROOM, joinOptions(n)), name);
 }
 
 export async function joinRoom(rawCode: string, name: string): Promise<boolean> {
@@ -244,7 +270,7 @@ export async function joinRoom(rawCode: string, name: string): Promise<boolean> 
     useCoop.setState({ error: 'not-found' });
     return false;
   }
-  return connect((client, n) => client.joinById(code, n ? { name: n } : {}), name);
+  return connect((client, n) => client.joinById(code, joinOptions(n)), name);
 }
 
 export async function leaveRoom(): Promise<void> {

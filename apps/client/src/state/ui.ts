@@ -52,6 +52,13 @@ interface UiState {
    */
   descentView: boolean;
   setDescentView: (on: boolean) => void;
+  /**
+   * Fundido a negro entre escenas de la partida (nave ↔ descenso ↔ EVA): tapa el montaje de la escena nueva, que
+   * bloquea el hilo principal unos cientos de ms. Lo enciende `App` antes de cambiar y lo apaga la escena nueva en
+   * cuanto ha pintado su primer fotograma con los shaders compilados (`ShaderWarmup`).
+   */
+  sceneVeil: boolean;
+  setSceneVeil: (on: boolean) => void;
   setOverlay: (o: Overlay) => void;
   toggleOverlay: (o: Exclude<Overlay, null>) => void;
   toggleView: () => void;
@@ -70,11 +77,16 @@ export const useUi = create<UiState>((set) => ({
   prompt: null,
   descentView: false,
   setDescentView: (descentView) => set({ descentView }),
+  sceneVeil: false,
+  setSceneVeil: (sceneVeil) => set((s) => (s.sceneVeil === sceneVeil ? s : { sceneVeil })),
   setOverlay: (overlay) => set({ overlay }),
   toggleOverlay: (o) => set((s) => ({ overlay: s.overlay === o ? null : o })),
   toggleView: () => set((s) => ({ view: s.view === 'first' ? 'third' : 'first' })),
   setPrompt: (prompt) => set((s) => (samePrompt(s.prompt, prompt) ? s : { prompt })),
 }));
+
+/** La escena nueva ya se ve: quita el fundido a negro (ver `sceneVeil`). */
+export const revealScene = (): void => useUi.getState().setSceneVeil(false);
 
 /**
  * Vista del jugador para la interfaz (posición en el plano y giro), escrita por la escena cada frame y
