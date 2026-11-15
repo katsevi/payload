@@ -9,7 +9,8 @@ import { useUi } from '../state/ui';
 import { fmt, usePointerLocked } from './common';
 import { nodeName } from './names';
 import { CreditsBadge, UpgradeStrip } from './Credits';
-import { HelmPointer } from './HelmPointer';
+import { HelmPointer, ObjectivePointer } from './HelmPointer';
+import { ObjectiveTracker } from './ObjectiveTracker';
 import { SkillHud } from './SkillHud';
 import { ToolIcon } from './ToolIcon';
 import { DescentHud, FallAlert, ToolCompass, O2Vignette, ShipCompass, SuitVitals, WorldBadge } from './SurfaceHud';
@@ -356,12 +357,14 @@ export function Hud() {
         </>
       )}
       <Toasts />
+      <ObjectiveTracker />
       <div className="hud-frame num absolute right-3 top-3 px-2 py-1 text-xs text-slate-300">{t('hud.helpHint')}</div>
       {playing && overlay === null && (
         <>
           <Crosshair />
           {!eva && <SkillHud />}
           {!eva && <HelmPointer />}
+          {!eva && <ObjectivePointer />}
           <PromptBar />
           {!locked && <div className="hud-frame label-code absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1.5 !text-slate-200">{t('hud.clickToPlay')}</div>}
         </>

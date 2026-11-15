@@ -233,6 +233,13 @@ export function bearingTo(x: number, z: number, yaw: number, toX: number, toZ: n
   return { distanceM: Math.hypot(tx, tz), angle: Math.atan2(right, fwd) };
 }
 
+/** Solo el ángulo de `bearingTo` (sin crear objetos: se usa por frame en la flecha del objetivo). */
+export function bearingAngle(x: number, z: number, yaw: number, toX: number, toZ: number): number {
+  const tx = toX - x;
+  const tz = toZ - z;
+  return Math.atan2(Math.cos(yaw) * tx - Math.sin(yaw) * tz, -Math.sin(yaw) * tx - Math.cos(yaw) * tz);
+}
+
 // ─── Guía del descenso ───────────────────────────────────────────────────────────────────────────
 
 /**

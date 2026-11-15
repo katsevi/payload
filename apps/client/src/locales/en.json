@@ -58,7 +58,8 @@
     "simpleDodge": "Simple dodge (hold E at the helm, no minigame)",
     "simpleRepairs": "Simple repairs (hold R, no minigames)",
     "wideAim": "Wide extinguisher aim",
-    "reduceStress": "Reduce stress effects"
+    "reduceStress": "Reduce stress effects",
+    "objectiveGuide": "Detailed objective guide (steps, hints and arrow to the station)"
   },
   "credits": {
     "title": "Credits",
@@ -88,7 +89,8 @@
     "power": "Power panel",
     "airlock": "Airlock",
     "bunk": "Bunk",
-    "comms": "Comms"
+    "comms": "Comms",
+    "solarMap": "Solar map"
   },
   "marker": {
     "evade": "To the helm!"
@@ -247,7 +249,9 @@
     "powerShort": "There, cruise power falls short by {{kw}} kW",
     "target": "Mission target",
     "reachable": "Possible jumps",
-    "scaleHint": "Sun distances compressed (√AU)"
+    "scaleHint": "Sun distances compressed (√AU)",
+    "objective": "Objective",
+    "suggested": "Suggested jump towards the objective"
   },
   "power": {
     "title": "Power panel",
@@ -299,7 +303,8 @@
     "reportTitle": "Mission report",
     "rootCause": "cause",
     "sanityCritical": "Time in critical",
-    "countermeasures": "Countermeasures"
+    "countermeasures": "Countermeasures",
+    "objectiveNext": "Your objective continues: {{step}}"
   },
   "pause": {
     "title": "Paused",
@@ -333,7 +338,8 @@
     "down": "Jetpack down (descend sooner)",
     "click": "Faults: aim the extinguisher, press on time or seal (click or Space)",
     "repair": "Spare: hold and release on the mark, twice",
-    "ping": "Ping the crew (co-op)"
+    "ping": "Ping the crew (co-op)",
+    "objective": "Objective: show or hide every step"
   },
   "keys": {
     "move": "WASD",
@@ -348,7 +354,8 @@
     "down": "C",
     "repair": "R",
     "click": "Click",
-    "ping": "G"
+    "ping": "G",
+    "objective": "O"
   },
   "sound": {
     "fixed": "[repaired]",
@@ -393,7 +400,8 @@
     "sale": "[coins]",
     "purchase": "[cargo loaded]",
     "upgrade": "[upgrade installed]",
-    "noCredits": "[not enough credits]"
+    "noCredits": "[not enough credits]",
+    "objective": "[objective done]"
   },
   "descent": {
     "title": "Descent",
@@ -514,7 +522,8 @@
     },
     "pick": "Design",
     "saved": "Saved design",
-    "guided": "Guided"
+    "guided": "Guided",
+    "recommended": "Recommended to start"
   },
   "design": {
     "title": "Hangar · {{mission}}",
@@ -581,7 +590,10 @@
     "difficulty": "Difficulty",
     "difficultyHint": "Changes budget, deadline and required science; in flight, failures, hazards and contact windows",
     "guidedSteps": "Guided mission steps",
-    "backToRoom": "Room"
+    "backToRoom": "Room",
+    "guidedNow": "Now",
+    "guidedReady": "All set: press «Launch»",
+    "guidedReadyRoom": "All set: vote Go and the host launches"
   },
   "glossary": {
     "title": "Glossary",
@@ -698,6 +710,21 @@
       "needMajority": "a Go majority is needed",
       "waiting": "Waiting for Go",
       "hostLaunches": "The host launches once Go has a majority"
+    },
+    "recommended": "Recommended to start: {{mission}}",
+    "pickRecommended": "Pick"
+  },
+  "objective": {
+    "label": "Objective",
+    "new": "New objective",
+    "done": "Done",
+    "goTo": "Go to: {{station}}",
+    "steps": "Steps",
+    "optional": "optional",
+    "progress": {
+      "s": "{{value}}/{{max}} s",
+      "science": "{{value}}/{{max}} science",
+      "jumps": "{{value}}/{{max}} jumps"
     }
   }
 }

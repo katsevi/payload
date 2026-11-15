@@ -2,7 +2,7 @@ import { countermeasures } from '../game/sanityFx';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Activity, ArrowDownToLine, ChevronRight, CircleCheck, CircleX, CloudLightning, Drill, Flame, Mountain, Navigation, Wind, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { catalog as defaultCatalog, getPsychRules, missionReport, type Locale, type MissionReport } from '@payload/shared';
+import { catalog as defaultCatalog, currentObjective, getPsychRules, missionReport, type Locale, type MissionReport } from '@payload/shared';
 import { CREDITS } from '../data/credits';
 import { getRun, useGame } from '../game/runStore';
 import { currentLocale, setLocale, tr } from '../i18n';
@@ -181,7 +181,7 @@ export function SettingsPanel() {
           </span>
           <input type="range" min={0} max={1} step={0.05} value={s.effects} onChange={(e) => s.set({ effects: Number(e.target.value) })} />
         </label>
-        {(['simpleDodge', 'simpleRepairs', 'wideAim', 'reduceStress'] as const).map((key) => (
+        {(['simpleDodge', 'simpleRepairs', 'wideAim', 'reduceStress', 'objectiveGuide'] as const).map((key) => (
           <label key={key} className={row}>
             <span>{t(`settings.${key}`)}</span>
             <input type="checkbox" checked={s[key]} onChange={(e) => s.set({ [key]: e.target.checked })} />
@@ -255,7 +255,7 @@ export function CreditsScreen() {
   );
 }
 
-const HELP_KEYS = ['move', 'run', 'look', 'interact', 'click', 'repair', 'alt', 'jump', 'down', 'view', 'ping', 'pause'] as const;
+const HELP_KEYS = ['move', 'run', 'look', 'interact', 'click', 'repair', 'alt', 'jump', 'down', 'view', 'objective', 'ping', 'pause'] as const;
 const HELP_TIPS: { id: 'fire' | 'leak' | 'short' | 'impact' | 'power' | 'landing' | 'o2' | 'terrain' | 'storm' | 'tools'; icon: ReactNode }[] = [
   { id: 'fire', icon: <Flame size={16} className="text-bad" /> },
   { id: 'leak', icon: <Wind size={16} className="text-bad" /> },
@@ -380,6 +380,9 @@ export function EndScreen() {
   // Fase 5: con diseño, el informe de la misión (resultado y cadena de causas); la misión termina al volver a casa.
   const report = missionReport(s);
   const missionOver = !!s.science?.over;
+  const objective = !lost && !missionOver ? currentObjective(s, getRun()?.catalog) : null;
+  // Solo en misión: en la partida libre el paso es «llegar a la salida», justo lo que se acaba de hacer.
+  const nextStep = objective?.mode === 'mission' && objective.awaitingNextSector && objective.current >= 0 ? objective.steps[objective.current] : undefined;
   const stats: [string, string][] = [
     [t('end.sectors'), String(s.stats.sectorsCleared)],
     [t('end.jumps'), String(s.stats.jumps)],
@@ -452,6 +455,8 @@ export function EndScreen() {
             )
           ) : (
             <>
+              {/* Guía del objetivo: lo que queda por hacer después de este tramo/sector (una línea). */}
+              {nextStep && <p className="num text-xs text-accent">{t('end.objectiveNext', { step: tr(nextStep.text) })}</p>}
               <button className="btn btn-primary !py-3" onClick={() => useGame.getState().act({ type: 'next-sector' })} autoFocus>
                 {t('end.next', { sector: s.sector.index + 1 })}
               </button>

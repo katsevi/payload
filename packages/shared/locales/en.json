@@ -348,5 +348,49 @@
       "stranded": "The ship was stranded",
       "crew": "The whole crew died"
     }
+  },
+  "objective": {
+    "title": {
+      "mission": "Mission: $t(catalog.{{mission}}) · target $t(catalog.{{body}})",
+      "free": "Sector {{sector}}: reach the exit"
+    },
+    "step": {
+      "launch": "Leave the station: jump towards $t(catalog.{{body}})",
+      "reachTarget": "Reach $t(catalog.{{body}}) and stay in orbit",
+      "observe": "Observe $t(catalog.{{body}}) for {{seconds}} s",
+      "downlink": "Downlink the minimum science to Earth: {{required}}",
+      "return": "Return to the Earth zone to finish the mission",
+      "jump": "Jump to a connected destination",
+      "repair": "If a fault appears, fix it",
+      "repairNow": "Fix the fault in $t(system.{{system}})",
+      "overload": "Overload: switch off a system at the power panel",
+      "station": "Dock at a station and sell or refuel",
+      "exit": "Reach the exit of sector {{sector}}"
+    },
+    "hint": {
+      "openSolarMap": "Go to the bridge and open the solar map to pick the jump",
+      "openStarMap": "Go to the bridge and open the star map to pick the jump",
+      "targetAhead": "Keep jumping: $t(catalog.{{body}}) is marked on the map",
+      "targetNextLeg": "The target is on another leg: cross this one's exit",
+      "observe": "Docked by $t(catalog.{{body}}) with navigation on, observing is automatic",
+      "navOffline": "Without navigation there is no observing or link: turn it on at the power panel",
+      "backToTarget": "Go back to $t(catalog.{{body}}) to keep observing",
+      "observeSurface": "Orbit has nothing left: land on $t(catalog.{{body}}) (science is worth more)",
+      "observeOthers": "$t(catalog.{{body}}) has nothing left: observe other bodies",
+      "storageFull": "Storage full: downlink data before observing more",
+      "contact": "Link open: downlinking data",
+      "nextWindow": "Next contact window in {{seconds}} s",
+      "outOfRange": "Out of antenna range: get closer to Earth",
+      "noLinkGround": "No link from the ground: take off to downlink",
+      "return": "Whatever is still aboard is delivered on arrival",
+      "nextLeg": "Leg cleared: continue to the next one",
+      "nextSector": "Sector cleared: continue to the next one",
+      "repair": "Go to that station and fix it before it gets worse",
+      "overload": "If demand exceeds supply, the reactor gets damaged",
+      "watch": "Keep an eye on fuel and power in the HUD",
+      "station": "Use the airlock terminal to sell, refuel or ask for help",
+      "stationAhead": "There is a station ahead, marked on the map",
+      "exit": "Every jump burns fuel: pick short routes"
+    }
   }
 }

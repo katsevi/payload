@@ -13,7 +13,9 @@ export type SfxId =
   | 'dodgeGraze' | 'dodgeHit' | 'skillHit' | 'skillMiss' | 'extinguisher'
   | 'toolPlace' | 'toolReady' | 'toolDone' | 'toolStop' | 'toolResume' | 'toolLost'
   // Terminal de estación (fase 3)
-  | 'sale' | 'purchase' | 'upgrade' | 'noCredits';
+  | 'sale' | 'purchase' | 'upgrade' | 'noCredits'
+  // Guía del objetivo: paso cumplido
+  | 'objective';
 
 /** Efectos en bucle: `cue(id)` los arranca y `audio.stopLoop(id)` los para. */
 export const LOOP_SFX: readonly SfxId[] = ['jump', 'thruster', 'jetpack', 'storm', 'takeOff', 'wind', 'extinguisher'];
@@ -83,6 +85,7 @@ export const SFX_META: Record<SfxId, SfxMeta> = {
   purchase: { bus: 'sfx', captionKey: 'sound.purchase', flash: 'info', minGapMs: 120 },
   upgrade: { bus: 'alerts', captionKey: 'sound.upgrade', flash: 'ok', minGapMs: 400 },
   noCredits: { bus: 'alerts', captionKey: 'sound.noCredits', flash: 'warn', minGapMs: 300 },
+  objective: { bus: 'alerts', captionKey: 'sound.objective', flash: 'ok', minGapMs: 1500 },
 };
 
 export const SFX_IDS = Object.keys(SFX_META) as SfxId[];

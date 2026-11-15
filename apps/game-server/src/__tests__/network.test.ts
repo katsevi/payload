@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { matchMaker } from '@colyseus/core';
 import { Client as SDKClient, type Room as SDKRoom } from '@colyseus/sdk';
 import {
-  COOP_ROOM, createRun, getNode, NET, normalizeRoomCode,
+  COOP_ROOM, createRun, currentObjective, getNode, guidedStartDesign, NET, normalizeRoomCode,
   type LobbyAction, type LobbyView, type PingBroadcast, type PosesMessage, type ResultMessage, type RunAction, type RunEvent, type RunState, type SectorMap, type StateMessage,
 } from '@payload/shared';
 import { CrewRoom } from '../CrewRoom';
@@ -184,6 +184,39 @@ describe('sala cooperativa en red', () => {
     expect(back.lobby!.players[1]).toMatchObject({ name: 'Beto', crewId: 2 });
     await waitFor(() => synced([ana, back]), 'sincronizados tras la reconexión');
     await Promise.all([ana.room.leave(), back.room.leave()]);
+  });
+
+  it('misión guiada en sala: diseño guiado, carga CubeSat, Go y objetivo de vuelo guiado en cada cliente', async () => {
+    const players = await openRoom(['Ana', 'Beto'], 19);
+    const [ana, beto] = players as [Player, Player];
+    lobby(ana, { type: 'set-mission', missionId: 'mission-cubesat-guided' });
+    await waitFor(() => beto.lobby?.design?.missionId === 'mission-cubesat-guided', 'Beto ve la misión guiada');
+    expect(beto.lobby!.design).toEqual(guidedStartDesign('mission-cubesat-guided'));
+    // Una edición que la misión guiada no admite no cambia nada; la carga CubeSat sí.
+    const rev = beto.lobby!.designRev;
+    lobby(beto, { type: 'edit-design', edit: { op: 'set-launcher', id: 'launcher-colossus' } });
+    lobby(beto, { type: 'edit-design', edit: { op: 'add-instrument', id: 'inst-cubesat-magnetometer' } });
+    lobby(ana, { type: 'edit-design', edit: { op: 'add-instrument', id: 'inst-cubesat-dosimeter' } });
+    await waitFor(() => ana.lobby!.design!.instrumentIds.length === 2 && beto.lobby!.design!.instrumentIds.length === 2, 'carga en los dos');
+    expect(ana.lobby!.designRev).toBe(rev! + 2);
+    expect(ana.lobby!.design!.launcherId).toBe(guidedStartDesign('mission-cubesat-guided')!.launcherId);
+    lobby(ana, { type: 'vote', go: true });
+    lobby(beto, { type: 'vote', go: true });
+    await waitFor(() => ana.lobby!.players.every((p) => p.vote === true), 'votos Go');
+    lobby(ana, { type: 'start' });
+    await waitFor(() => players.every((p) => p.lobby?.phase === 'playing' && p.state !== null), 'partida empezada en todos');
+    for (const p of players) {
+      // Como el espejo del cliente: crea la partida con el diseño del estado y la hidrata.
+      const state = p.state!;
+      expect(state.missionDesign).toEqual(ana.lobby!.design);
+      const mirror = createRun({ seed: state.seed, crewSize: state.crew.length, roles: state.crew.map((c) => c.role ?? null), design: state.missionDesign! });
+      mirror.hydrate(state);
+      const objective = currentObjective(mirror.state);
+      expect(objective.mode).toBe('mission');
+      expect(objective.steps[objective.current]?.id).toBe('launch');
+      expect(objective.steps[objective.current]?.text.key).toBe('guided.mission-cubesat-guided.launch.text');
+    }
+    await Promise.all(players.map((p) => p.room.leave()));
   });
 
   it('la sala no existe con un código inventado', async () => {

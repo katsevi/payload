@@ -13,6 +13,10 @@ efecto en vuelo (decisión 6). Tercera entrega hecha: dificultad, misión guiada
 muestra la cadena de causas del resultado (p. ej. poca potencia, antena en reserva, datos sin bajar) que puede
 verificar sobre lo que vivió.
 
+Cuarta entrega (rama `feat/f5-objetivo-y-guia-primera-mision`): objetivo visible en vuelo (`currentObjective`, panel con tecla
+O) y misión guiada de CubeSat con pasos de vuelo, en solitario, partida libre y cooperativo. Detalle y pendientes en
+`docs/STATUS.md` § «Objetivo visible y primera misión guiada».
+
 ## Punto de partida
 
 - Fase 4 (ADR 0016 § 4): el diseño define instrumentos, antena y potencia; la distancia al Sol limita la energía. Ya existen, pero **solo cuentan para el Go/No-Go** (nada se genera ni se baja en la partida):

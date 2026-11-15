@@ -5,6 +5,20 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+### Objetivo visible y primera misión guiada (rama `feat/f5-objetivo-y-guia-primera-mision`)
+- **shared:** `currentObjective(state, cat?)` (`src/objective.ts`), pura y sin campos nuevos en `RunState`: pasos de misión
+  (`launch`, `reach-target`, `observe`, `downlink`, `return`) y de partida libre (sector 1: `jump`, `repair` opcional,
+  `station`, `exit`; sector >= 2: `exit`), con progreso, puesto y nodo objetivo. Tipos aditivos en `types.ts`.
+- **shared:** el bloque `guided` de `misiones.json` admite `flightSteps` (cinco pasos de vuelo con texto y ayuda es/en,
+  validado con zod); «Tu primer CubeSat» los define. Claves `guided.<misión>.<paso>.*` y `objective.*` en `sim`.
+- **client:** panel de objetivo persistente (tecla **O** despliega la lista), avisos «Nuevo objetivo» / «Hecho» con sonido
+  `objective`, cartel 3D y flecha hacia el puesto, nodo objetivo y salto sugerido en los mapas estelar y solar, hangar
+  guiado con la ayuda del paso actual, misión recomendada (foco en el selector y «Elegir» en el lobby cooperativo), ajuste
+  «Guía detallada del objetivo» y fila en la ayuda. Sirve igual en solitario, partida libre y cooperativo.
+- **game-server:** sin cambios de código ni de contrato de red; tests nuevos (misión guiada en sala, ediciones prohibidas,
+  objetivo del espejo igual al del servidor, partida libre en sala).
+- Pendiente: etiqueta del puesto durante la EVA y aviso «Hecho» cuando se cumplen dos pasos a la vez (ver `docs/STATUS.md`).
+
 ### Corrección del cooperativo y del rendimiento (rama `fix/coop-y-rendimiento`)
 - **game-server:** el cuarto jugador ya puede entrar. Colyseus bloqueaba la sala sola en cuanto clientes + asientos
   reservados llegaban a 4, y un intento de conexión fallido (el cliente reintenta) dejaba un asiento reservado 15 s:

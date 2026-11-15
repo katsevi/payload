@@ -1,5 +1,39 @@
 # Estado del proyecto — traspaso entre sesiones
 
+## Objetivo visible y primera misión guiada (2026-11-15, rama `feat/f5-objetivo-y-guia-primera-mision`)
+
+Problema reportado: al zarpar no se sabía qué hacer (el objetivo se perdía). Se pidió que la primera misión, la más fácil
+(«Tu primer CubeSat», `mission-cubesat-guided`), se jugara guiada y con más detalle en los tres modos (solitario con diseño,
+partida libre y cooperativo). Sin ADR nuevo: cambios aditivos en `types.ts`, sin campos nuevos en `RunState` y **sin cambios
+en el contrato de red** (`docs/MULTIPLAYER.md` no se toca).
+
+**Qué se hizo**
+- **Motor** (`packages/shared/src/objective.ts`): `currentObjective(state, cat?)`, pura, deriva el objetivo del `RunState`.
+  Misión: `launch` → `reach-target` → `observe` → `downlink` → `return`; partida libre: sector 1 `jump` → `repair` (opcional)
+  → `station` → `exit`, sector >= 2 solo `exit`. `flightSteps` y `hint` por paso en el bloque `guided` de `misiones.json`
+  (validado con zod, claves generadas en `simLocales`). Ver `packages/shared/CLAUDE.md` § «Objetivo actual».
+- **Servidor:** sin cambios de código. 5 tests nuevos (misión guiada en sala, ediciones prohibidas ignoradas en silencio,
+  objetivo del espejo = servidor = solitario, partida libre en sala). La sala sigue empezando en partida libre.
+- **Cliente** (ver `apps/client/CLAUDE.md` § «Guía del objetivo»): panel de objetivo persistente (abajo a la derecha; **O**
+  despliega la lista, por defecto desplegada en la guiada y en el sector 1 libre), avisos «Nuevo objetivo» / «Hecho» con
+  `cue('objective')`, cartel 3D y flecha hacia el puesto, nodo del objetivo marcado y salto sugerido preseleccionado en los
+  mapas estelar y solar, hangar guiado con la ayuda del paso actual y «Todo listo», misión recomendada (foco por defecto en
+  el selector; «Elegir» en el lobby cooperativo), ajuste «Guía detallada del objetivo» y fila en la ayuda (H).
+- Tests nuevos: 17 en `packages/shared/src/__tests__/objective.test.ts`, `apps/client/src/__tests__/objective.test.ts` y 5 en
+  `apps/game-server`. `pnpm test` en esta rama (salida real): 403 shared + 219 client + 34 game-server = 656 tests, todos en verde. `pnpm validate`
+  completo (typecheck + build) queda para quien entregue.
+
+**Verificado** (Chrome, panel del navegador): misión guiada completa hasta «misión cumplida», partida libre (salto, avería,
+estación), superficie, hangar, sala cooperativa con la guiada.
+
+**Sin verificar:** sala sin diseño con 2 jugadores; la línea «Tu objetivo sigue» de la pantalla de tramo; pantallas
+< 1090 px; el sonido del cue `objective`; FPS; prueba con personas (¿el objetivo ya no se pierde?).
+
+**Pendiente**
+- En EVA la etiqueta «Ve a: Mapa estelar» podría ser «vuelve a la nave».
+- Si dos pasos se cumplen a la vez, el aviso «Hecho» solo nombra el primero.
+- Validación independiente (`validator`) y `pnpm validate` final antes de fusionar.
+
 ## Corrección del cooperativo y del rendimiento (2026-11-15, rama `fix/coop-y-rendimiento`)
 
 Cinco fallos reportados tras probar con personas. Causas medidas y arreglos:

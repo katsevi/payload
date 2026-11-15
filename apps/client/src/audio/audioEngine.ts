@@ -505,6 +505,11 @@ export class AudioEngine {
         this.noiseBurst(ctx, 'alerts', t, { dur: 1.8, vol: 0.55, f0: 2200, f1: 90 });
         this.tone(ctx, 'alerts', t, { freq: 80, dur: 1.2, type: 'sawtooth', vol: 0.3, slideTo: 28 });
         break;
+      case 'objective':
+        // Paso del objetivo cumplido: dos notas ascendentes suaves (más discreto que el éxito de la misión).
+        this.tone(ctx, 'alerts', t, { freq: 659.25, dur: 0.16, type: 'triangle', vol: 0.16 });
+        this.tone(ctx, 'alerts', t + 0.14, { freq: 987.77, dur: 0.28, type: 'triangle', vol: 0.16 });
+        break;
       case 'success':
       case 'complete':
         [523.25, 659.25, 783.99, 1046.5].forEach((f, k) => this.tone(ctx, 'alerts', t + k * 0.12, { freq: f, dur: 0.4, vol: 0.14 }));
