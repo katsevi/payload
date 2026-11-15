@@ -1263,7 +1263,20 @@ export interface GuidedMissionDef {
   launcherId: string;
   /** Instrumentos que se pueden elegir (los de escala CubeSat). */
   instrumentIds: string[];
-  steps: { check: GuidedStepCheck; text: LocalizedText }[];
+  /** Pasos del hangar; `hint` = explicación opcional de una línea. */
+  steps: { check: GuidedStepCheck; text: LocalizedText; hint?: LocalizedText }[];
+  /**
+   * Pasos en vuelo (opcional): textos concretos de esta misión para cada paso de `currentObjective`. Si están, cubren
+   * los cinco `MISSION_STEP_IDS` una vez cada uno; el texto admite los mismos `{{params}}` que el paso genérico.
+   */
+  flightSteps?: GuidedFlightStep[];
+}
+
+/** Paso en vuelo de una misión guiada: qué paso del objetivo sustituye y con qué texto (una línea). */
+export interface GuidedFlightStep {
+  check: MissionStepId;
+  text: LocalizedText;
+  hint?: LocalizedText;
 }
 
 /** Reglas del diseño (`catalog/misiones.json`, `rules`). */
@@ -1654,4 +1667,69 @@ export interface PsychRules {
   /** Derivado por `effectivePsychRules` (mejoras y módulos), no va en el catálogo. */
   drainMult?: number;
   recoverMult?: number;
+}
+
+// ─── Objetivo actual (guía en vuelo) ───────────────────────────────────────
+
+/** Pasos de una partida con misión diseñada, en orden. */
+export const MISSION_STEP_IDS = ['launch', 'reach-target', 'observe', 'downlink', 'return'] as const;
+export type MissionStepId = (typeof MISSION_STEP_IDS)[number];
+/** Pasos de la partida libre (sector 1: todos; después, solo `exit`). */
+export const FREE_STEP_IDS = ['jump', 'repair', 'station', 'exit'] as const;
+export type FreeStepId = (typeof FREE_STEP_IDS)[number];
+export type ObjectiveStepId = MissionStepId | FreeStepId;
+
+/**
+ * Puesto de la nave que hay que usar (mismos ids que los puestos del cliente): `map` = mapa estelar/solar del puente,
+ * `power` = panel de energía, `airlock` = esclusa (atracada en una estación con tienda, da a la terminal) o un sistema.
+ */
+export type ObjectiveStationId = SystemId | 'helm' | 'map' | 'power' | 'airlock';
+
+/** Unidad del progreso: segundos de observación, puntos de ciencia o saltos (columnas del mapa). */
+export type ObjectiveUnit = 's' | 'science' | 'jumps';
+
+export interface ObjectiveProgress {
+  value: number;
+  max: number;
+  unit: ObjectiveUnit;
+}
+
+/** Nodo del sector actual al que hay que ir (`bodyId` si es un cuerpo real). */
+export interface ObjectiveTarget {
+  nodeId: string;
+  bodyId?: string;
+}
+
+export interface ObjectiveStep {
+  id: ObjectiveStepId;
+  done: boolean;
+  /** Es el paso actual (`current`). */
+  active: boolean;
+  /** No bloquea el avance: solo pasa a ser el actual cuando hace falta (avería, sobrecarga). */
+  optional?: boolean;
+  text: MessageRef;
+  /** Explicación opcional de una línea (regla 6 revisada, ADR 0015). */
+  hint?: MessageRef;
+  progress?: ObjectiveProgress;
+  target?: ObjectiveTarget;
+  station?: ObjectiveStationId;
+}
+
+/** `complete` = misión terminada (de vuelta en la Tierra); `failed` = partida perdida. La partida libre no termina. */
+export type ObjectiveStatus = 'active' | 'complete' | 'failed';
+
+/** Lo que hay que hacer ahora (`currentObjective`), derivado del `RunState`: sirve igual en solitario y en cooperativo. */
+export interface ObjectiveView {
+  mode: 'mission' | 'free';
+  status: ObjectiveStatus;
+  /** Una línea: la misión y su destino, o el sector y su salida. */
+  title: MessageRef;
+  steps: ObjectiveStep[];
+  /** Índice del paso actual en `steps`; -1 con la misión terminada. */
+  current: number;
+  /** Del paso actual (atajos para el HUD). */
+  target?: ObjectiveTarget;
+  station?: ObjectiveStationId;
+  /** Portal alcanzado (`phase` = `won`) y la partida sigue: falta `next-sector`. */
+  awaitingNextSector: boolean;
 }

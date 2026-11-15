@@ -22,6 +22,7 @@ export { getNodeWorld, generateSurface, takeOffFuel, referenceBrake, simulateDes
 export {
   getScienceRules, scienceProfile, newScienceState, contactWindow, downlinkMbPerS, sciencePoints, stepScience, finishMission, missionReport, type ScienceProfile,
 } from './science';
+export { currentObjective } from './objective';
 export { getRoles, getRole, crewPerks, crewCarryCapacityKg, crewJetpackDrainPctPerS } from './roles';
 export {
   getPsychRules, effectivePsychRules, missionPsychMult, psychPausedFor, sanityBandFor, bandIndex, sanityDebuffs, sanityDrainPctPerS, commsDelayMin, callRecoveryPct, psychRoll, cohesionDeltaPctPerS,

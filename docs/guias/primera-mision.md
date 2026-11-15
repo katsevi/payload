@@ -101,3 +101,26 @@ repite con el mismo diseño y otra semilla. Atajo para zarpar directo con el dis
 `http://localhost:5173/?play=1&seed=7&mission=mission-lunar-ice`.
 
 > Hoy el objetivo de la misión no termina la partida (pendiente de la fase 5): llegar a la Luna no cierra la misión ni puntúa aparte.
+
+## Seguir el objetivo en vuelo
+
+En vuelo, en tierra y en la sala cooperativa hay un **panel de objetivo** abajo a la derecha: el paso actual, su progreso, una
+ayuda de una línea y «Ve a: puesto» (la nave pinta un cartel y, lejos del puesto, una flecha junto a la mira). Pulsa **O** para
+desplegar o recoger la lista completa de pasos; viene desplegada en la misión guiada y en el sector 1 de la partida libre. Al
+cambiar de paso aparece «Nuevo objetivo» y al cumplirlo «Hecho». Los mapas estelar y solar marcan el nodo del objetivo y
+preseleccionan el salto sugerido. En **Ajustes** puedes quitar la «Guía detallada del objetivo» (queda el panel compacto, sin
+ayudas ni flecha); la fila de la ayuda (**H**) recuerda la tecla.
+
+## La misión más fácil: «Tu primer CubeSat»
+
+`mission-cubesat-guided` es la misión recomendada para empezar (lleva el foco en el selector). Atajos de desarrollo:
+`http://localhost:5173/?design=1&mission=mission-cubesat-guided` (hangar) y
+`http://localhost:5173/?play=1&seed=7&mission=mission-cubesat-guided` (zarpar con su diseño de referencia).
+
+- **Hangar:** el panel «Ahora» enseña la ayuda del paso de diseño actual (instrumento, tipo de ciencia que pide la misión,
+  ciencia mínima, Go) y, al terminar, «Todo listo».
+- **Vuelo:** cinco pasos: salta hacia la Luna (`launch`), llega y quédate en órbita (`reach-target`), observa unos segundos con
+  la navegación encendida (`observe`), baja los datos en la ventana de contacto (`downlink`) y vuelve a la Tierra cruzando la
+  salida del tramo (`return`). Si se pierden los datos o se llena la memoria, el objetivo vuelve atrás.
+- **Cooperativo:** la sala empieza en partida libre; el anfitrión pulsa **Elegir** en la misión recomendada del lobby y todos
+  siguen el mismo objetivo.

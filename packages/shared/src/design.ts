@@ -571,8 +571,11 @@ export function guidedStartDesign(missionId: string, cat: Catalog = defaultCatal
   return { missionId, destinationId: m.destinations[0] ?? null, moduleIds: [...m.guided.moduleIds], instrumentIds: [], launcherId: m.guided.launcherId };
 }
 
-/** Pasos de la misión guiada con si ya se cumplen (se marcan solos según el diseño). `[]` si no es guiada. */
-export function guidedProgress(design: MissionDesign, cat: Catalog = defaultCatalog): { check: GuidedStepCheck; done: boolean; text: LocalizedText }[] {
+/**
+ * Pasos de la misión guiada con si ya se cumplen (se marcan solos según el diseño) y su ayuda opcional de una línea.
+ * `[]` si no es guiada.
+ */
+export function guidedProgress(design: MissionDesign, cat: Catalog = defaultCatalog): { check: GuidedStepCheck; done: boolean; text: LocalizedText; hint?: LocalizedText }[] {
   const base = getMissions(cat).find((x) => x.id === design.missionId);
   if (!base?.guided) return [];
   const mission = missionAtDifficulty(base, getDifficulty(design.difficultyId, cat));
@@ -584,5 +587,5 @@ export function guidedProgress(design: MissionDesign, cat: Catalog = defaultCata
     science: review.budgets.totals.scienceValue + 1e-9 >= mission.requirements.minScience,
     go: review.go,
   };
-  return base.guided.steps.map((s) => ({ check: s.check, done: done[s.check], text: s.text }));
+  return base.guided.steps.map((s) => ({ check: s.check, done: done[s.check], text: s.text, ...(s.hint ? { hint: s.hint } : {}) }));
 }

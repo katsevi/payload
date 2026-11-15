@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
-import { Orbit, Flame, Navigation, Wind, Zap } from 'lucide-react';
+import { Crosshair, Orbit, Flame, Navigation, Wind, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Color, Vector3, type Group, type MeshBasicMaterial, type PointLight, type Sprite } from 'three';
 import { catalog as defaultCatalog, getPsychRules, type IncidentKind, type SystemId } from '@payload/shared';
@@ -12,6 +12,7 @@ import { arcMaterial, billboardGeometry, emberMaterial, flameMaterial, jetMateri
 import { Glow } from '../gfx/Glow';
 import { mats } from '../gfx/materials';
 import { playerState } from '../player/playerState';
+import { hudView } from '../state/ui';
 
 const ZONES: { id: Zone; z: number }[] = [
   { id: 'bridge', z: -9 },
@@ -240,7 +241,7 @@ export function IncidentFx() {
 interface Marker {
   key: string;
   station: StationId;
-  kind: IncidentKind | 'evade' | 'label';
+  kind: IncidentKind | 'evade' | 'label' | 'objective';
   y: number;
 }
 
@@ -257,6 +258,7 @@ const MARKER_STYLE: Record<Marker['kind'], string> = {
   short: 'border-warn text-warn',
   evade: 'border-warn text-warn',
   label: 'border-line text-slate-200',
+  objective: 'border-accent text-accent',
 };
 
 /**
@@ -297,6 +299,12 @@ export function Markers() {
       next.push({ key: 'evade', station: 'helm', kind: 'evade', y: 2.5 });
       busy.add('helm');
     }
+    // Guía del objetivo: el puesto que pide el paso actual, visible a través de los mamparos (sin latir: no es urgente).
+    const obj = hudView.objStation;
+    if (obj && !busy.has(obj) && STATIONS[obj]) {
+      next.push({ key: `o-${obj}`, station: obj, kind: 'objective', y: 2.5 });
+      busy.add(obj);
+    }
     for (const id of stationIdsFor(!!getPsychRules(getRun()?.catalog ?? defaultCatalog))) {
       if (busy.has(id)) continue;
       const st = STATIONS[id];
@@ -309,7 +317,8 @@ export function Markers() {
       setMarkers(next);
     }
   });
-  const name = (id: StationId): string => (id === 'helm' || id === 'map' || id === 'power' || id === 'airlock' || id === 'bunk' || id === 'comms' ? t(`station.${id}`) : t(`systemName.${id}`, { ns: 'sim' }));
+  // Con diseño (fase 4) la mesa del puente abre el mapa del sistema solar.
+  const name = (id: StationId): string => (id === 'map' && getRun()?.state.missionDesign ? t('station.solarMap') : id === 'helm' || id === 'map' || id === 'power' || id === 'airlock' || id === 'bunk' || id === 'comms' ? t(`station.${id}`) : t(`systemName.${id}`, { ns: 'sim' }));
   return (
     <>
       {markers.map((m) => {
@@ -321,14 +330,15 @@ export function Markers() {
                 else nodes.current.delete(m.key);
               }}
               style={{ visibility: 'hidden' }}
-              className={`num flex items-center gap-1 whitespace-nowrap rounded border bg-panel/85 px-2 py-0.5 text-xs ${MARKER_STYLE[m.kind]} ${m.kind === 'label' ? 'opacity-80' : 'animate-pulse font-bold'}`}>
+              className={`num flex items-center gap-1 whitespace-nowrap rounded border bg-panel/85 px-2 py-0.5 text-xs ${MARKER_STYLE[m.kind]} ${m.kind === 'label' ? 'opacity-80' : m.kind === 'objective' ? 'font-bold' : 'animate-pulse font-bold'}`}>
               {m.kind === 'fire' && <Flame size={14} />}
               {m.kind === 'short' && <Zap size={14} />}
               {m.kind === 'leak' && <Wind size={14} />}
               {m.kind === 'evade' && <Navigation size={14} />}
               {/* Esquiva: sin texto, la flecha y el icono de rocas señalan el timón (y el holograma late). */}
               {m.kind === 'evade' && <Orbit size={14} />}
-              {m.kind === 'label' ? name(m.station) : m.kind === 'evade' ? null : `${t(`incident.${m.kind}`, { ns: 'sim' })} · ${name(m.station)}`}
+              {m.kind === 'objective' && <Crosshair size={13} />}
+              {m.kind === 'label' ? name(m.station) : m.kind === 'objective' ? `${t('objective.label')} · ${name(m.station)}` : m.kind === 'evade' ? null : `${t(`incident.${m.kind}`, { ns: 'sim' })} · ${name(m.station)}`}
             </div>
           </Html>
         );

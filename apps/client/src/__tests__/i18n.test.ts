@@ -54,7 +54,9 @@ describe('i18n de la interfaz (namespace ui)', () => {
       ...['helm', 'map', 'power', 'airlock'].map((s) => `station.${s}`),
       ...['bunk', 'comms'].map((s) => `station.${s}`),
       'prompt.rest', 'prompt.callEarth', 'hud.morale', 'hud.crewName', 'settings.reduceStress', 'shop.provisions', 'end.sanityCritical', 'end.countermeasures', 'help.tips.morale',
-      ...['move', 'run', 'look', 'interact', 'click', 'repair', 'alt', 'jump', 'down', 'view', 'ping', 'pause'].flatMap((k) => [`keys.${k}`, `help.${k}`]),
+      ...['move', 'run', 'look', 'interact', 'click', 'repair', 'alt', 'jump', 'down', 'view', 'objective', 'ping', 'pause'].flatMap((k) => [`keys.${k}`, `help.${k}`]),
+      // Guía del objetivo: progreso por unidad, nombre del mapa solar y su ajuste.
+      ...['s', 'science', 'jumps'].map((u) => `objective.progress.${u}`), 'station.solarMap', 'settings.objectiveGuide',
       ...['fire', 'leak', 'short', 'impact', 'power', 'landing', 'o2', 'terrain', 'storm', 'tools'].map((k) => `help.tips.${k}`),
       ...CREDITS.flatMap((c) => [`credits.${c.id}`, c.modifiedKey]),
       ...Object.values(SFX_META).flatMap((m) => (m.captionKey ? [m.captionKey] : [])),
@@ -65,7 +67,7 @@ describe('i18n de la interfaz (namespace ui)', () => {
       // Herramientas de minería y minijuegos (parte 2).
       'prompt.deployTool', 'prompt.noToolLeft', 'prompt.toolAirborne', 'prompt.toolsLeft', 'prompt.collectReady', 'prompt.collectAirborne',
       'prompt.toolPickUp', 'prompt.toolStorm', 'prompt.toolWorking', 'prompt.retrieveTool', 'prompt.toolsOut', 'prompt.readyOut',
-      ...['simpleDodge', 'simpleRepairs', 'wideAim', 'reduceStress'].map((k) => `settings.${k}`),
+      ...['simpleDodge', 'simpleRepairs', 'wideAim', 'reduceStress', 'objectiveGuide'].map((k) => `settings.${k}`),
       'prompt.evadeDodge', 'prompt.dodging', 'prompt.grazes', 'prompt.hits', 'keys.move',
       ...['fire', 'short', 'leak'].map((k) => `prompt.fix.${k}`),
       // Terminal de estación (fase 3): suministros, unidades y estilos de la línea de efecto.
@@ -83,7 +85,7 @@ describe('i18n de la interfaz (namespace ui)', () => {
     for (const flat of [esFlat, enFlat]) {
       for (const [key, value] of Object.entries(flat)) {
         // Fase 4: el hangar, las tarjetas de misión, el glosario y el menú también son de una línea.
-        if (/^(hud|prompt|map|power|end|pause|station|marker|help|descent|sound|shop|design|missions|glossary|menu|coop)\./.test(key)) expect(value.length, key).toBeLessThanOrEqual(110);
+        if (/^(hud|prompt|map|power|end|pause|station|marker|help|descent|sound|shop|design|missions|glossary|menu|coop|objective)\./.test(key)) expect(value.length, key).toBeLessThanOrEqual(110);
       }
     }
   });

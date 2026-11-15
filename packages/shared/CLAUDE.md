@@ -34,6 +34,7 @@ Diseño que implementa: `docs/GDD.md`. Contrato: `src/types.ts` (reescrito en el
 | `bodyPositionAu`, `solarNodePositionsAu` | `(body, cat?, days = 0) => {x, y}` · `(sector, cat?, days = 0) => Record<nodeId, {x, y}>` | Posiciones en UA para dibujar el mapa (órbitas circulares) |
 | `getScienceRules`, `scienceProfile`, `contactWindow`, `downlinkMbPerS`, `sciencePoints`, `missionReport` | `(cat?)` · `(design, cat?)` · `(seed, timeS, rules)` · `(profile, au, rules)` · `(sci, rules)` · `(state) => MissionReport \| null` | Fase 5 (ADR 0018): ciencia, ventanas de contacto e informe; puras |
 | `getPsychRules`, `effectivePsychRules`, `sanityBandFor`, `bandIndex`, `sanityDebuffs`, `sanityDrainPctPerS`, `commsDelayMin`, `callRecoveryPct`, `psychRoll`, `cohesionDeltaPctPerS`, `contactWindowOpen`, `crewFieldValues` | ver `src/sanity.ts` | Fase 8 (`docs/diseno/cordura-tripulacion.md`): cordura de la tripulación, puras. Opcional: sin `catalog.psych` o con `enabled: false` el juego es idéntico (acciones `rest`/`call-earth`/`buy-provisions` rechazan con `reject.invalid`). Flujo de azar propio (`PSYCH_SALT`), nunca mata ni pierde la partida |
+| `currentObjective` | `(state, cat?) => ObjectiveView` | Objetivo actual derivado solo del `RunState` (pura; sirve igual con un estado hidratado en cooperativo). Ver § «Objetivo actual» |
 | `getRoles`, `getRole`, `crewPerks`, `crewCarryCapacityKg`, `crewJetpackDrainPctPerS` | `(cat)` · `(roleId, cat)` · `(member, cat)` · `(rules, member, cat)` | Fase 6 (ADR 0017): roles y sus ventajas pasivas |
 | `COOP_LIMITS`, `COOP_ROOM`, `NET`, `parse*`, `sanitizePlayerName`, `makeRoomCode`, `normalizeRoomCode` | | Fase 6: contrato de red (`net.ts`; ver `docs/MULTIPLAYER.md`) |
 | `applyDesignEdit`, `designEditsBetween`, `missionStartDesign`, `parseDesignEdit`, `voteTally`, `MAX_DESIGN_PARTS` | `(design, edit, cat?) => MissionDesign \| null` · `(from, to) => DesignEdit[]` · `(missionId, cat?)` · `(raw)` · `(votes) => VoteTally` | Fase 6 (ADR 0020, `sharedDesign.ts`): diseño compartido en sala y voto (mayoría estricta, empate = No-Go); puras, nunca lanzan |
@@ -241,6 +242,25 @@ Cifras en `catalog/misiones.json` (`rules` + `missions`), `modulos.json`, `instr
   Sobrecarga con `ship.batteryKwh` > 0: gasta déficit × dt × `batteryKwhPerKwS` y no daña el reactor (al llegar a 0,
   `battery-empty`); sin sobrecarga recarga excedente × dt × `batteryKwhPerKwS` × `batteryRechargeEff` hasta
   `batteryMaxKwh`. Tests: `operations.test.ts`.
+
+## Objetivo actual (guía en vuelo, `src/objective.ts`)
+
+- **`currentObjective(state, cat?)`** devuelve `ObjectiveView`: `mode` (`mission` con diseño y ciencia, si no `free`),
+  `status` (`active` | `complete` = misión terminada | `failed` = `lost`), `title`, `steps[]` (`id`, `done`, `active`,
+  `optional?`, `text`, `hint?`, `progress? {value, max, unit: 's'|'science'|'jumps'}`, `target? {nodeId, bodyId?}`,
+  `station?`), `current` (índice; -1 con la misión terminada), `target`/`station` del paso actual y `awaitingNextSector`
+  (`won` sin terminar: falta `next-sector`). Sin campos nuevos en el estado; no muta nada.
+- **Misión** (`MISSION_STEP_IDS`): `launch` (algún salto) → `reach-target` (`targetVisited`) → `observe` (entregado + a bordo
+  >= `requiredScience`) → `downlink` (`objectiveMet`) → `return` (`over`). Vuelve atrás si se pierden los datos o la memoria
+  se llena (entonces primero `downlink`). Ayudas de situación (mandan sobre las demás en el paso actual): navegación apagada
+  (puesto `power`), volver al destino, aterrizar (`helm`) u otros cuerpos con la órbita agotada, memoria llena, sin enlace en
+  tierra, fuera de alcance, enlace abierto, próxima ventana en N s, tramo superado.
+- **Misión guiada:** con `guided.flightSteps` (los cinco pasos, una vez cada uno; zod lo exige) usa sus textos con claves
+  generadas en `simLocales`: `guided.<missionId>.<paso>.text`/`.hint` (mismos params que el paso genérico, p. ej. `{{seconds}}`).
+- **Partida libre** (`FREE_STEP_IDS`): en el sector 1 `jump` → `repair` (opcional: pasa delante con una avería o sobrecarga)
+  → `station` (vender, comprar o la ayuda; solo si hay una estación por delante) → `exit`; en los siguientes, solo `exit`.
+- **Puestos** (`ObjectiveStationId`, mismos ids que el cliente): `map`, `helm`, `power`, `airlock` (terminal de la
+  estación) o un `SystemId` (avería). Textos en `objective.*`. Tests: `objective.test.ts` (incluye cobertura de claves).
 
 ## Cooperativo (fase 6, ADR 0017; cifras en `catalog/roles.json`; red en `docs/MULTIPLAYER.md`)
 

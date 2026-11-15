@@ -25,7 +25,7 @@ import {
 } from '../game/repairGames';
 import { HULL, PLAYER_START, STATIONS, USE_RADIUS, nearestStation, stationIdsFor } from '../game/layout';
 import { fx, getRun, shipSpawn, useGame } from '../game/runStore';
-import { bearingTo, SHIP_OFFSET } from '../game/surfaceRules';
+import { bearingAngle, bearingTo, SHIP_OFFSET } from '../game/surfaceRules';
 import { ShaderClock } from '../gfx/Glow';
 import { PlayerController, type CameraBounds } from '../player/PlayerController';
 import { isDown, MOUSE_PRIMARY } from '../player/input';
@@ -122,6 +122,7 @@ function GameLoop() {
     minigame.dodgeFlash = Math.max(0, minigame.dodgeFlash - dt * 2.5);
     if (!run || ui.overlay !== null) {
       hudView.helmOn = false;
+      hudView.objOn = false;
       charge.current = 0;
       ui.setPrompt(null);
       stopSpray();
@@ -137,6 +138,7 @@ function GameLoop() {
     const d = minigame.dodge;
     if (d) {
       hudView.helmOn = false;
+      hudView.objOn = false;
       const warning = run.state.warnings.find((w) => w.hazardId === minigame.dodgeHazardId && !w.evaded);
       const still = !!warning;
       // Si el impacto está encima, se termina ya y se envía lo que haya (el `evade` debe llegar antes).
@@ -186,6 +188,12 @@ function GameLoop() {
         warnBeep.current = WARN_REPEAT_S;
       }
     } else warnBeep.current = WARN_REPEAT_S;
+
+    // Guía del objetivo: flecha discreta hacia el puesto que pide el paso actual (lo escribe `ObjectiveTracker`), solo
+    // lejos de él, con la guía detallada activa y nunca a la vez que la del timón (un impacto manda).
+    const objSt = hudView.objStation ? STATIONS[hudView.objStation] : undefined;
+    hudView.objOn = !!objSt && !hudView.helmOn && settings.objectiveGuide && Math.hypot(objSt.useX - playerState.pos.x, objSt.useZ - playerState.pos.z) > USE_RADIUS;
+    if (hudView.objOn && objSt) hudView.objAngle = bearingAngle(playerState.pos.x, playerState.pos.z, playerState.yaw, objSt.useX, objSt.useZ);
 
     const interaction = currentInteraction();
     const holdingUse = isDown('KeyE');

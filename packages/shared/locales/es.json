@@ -348,5 +348,49 @@
       "stranded": "La nave quedó varada",
       "crew": "Murió toda la tripulación"
     }
+  },
+  "objective": {
+    "title": {
+      "mission": "Misión: $t(catalog.{{mission}}) · destino $t(catalog.{{body}})",
+      "free": "Sector {{sector}}: llega a la salida"
+    },
+    "step": {
+      "launch": "Sal de la estación: salta rumbo a $t(catalog.{{body}})",
+      "reachTarget": "Llega a $t(catalog.{{body}}) y quédate en órbita",
+      "observe": "Observa $t(catalog.{{body}}) durante {{seconds}} s",
+      "downlink": "Baja a la Tierra la ciencia mínima: {{required}}",
+      "return": "Vuelve a la zona de la Tierra para terminar la misión",
+      "jump": "Salta a un destino conectado",
+      "repair": "Si aparece una avería, repárala",
+      "repairNow": "Repara la avería en $t(system.{{system}})",
+      "overload": "Sobrecarga: apaga algún sistema en el panel de energía",
+      "station": "Atraca en una estación y vende o reposta",
+      "exit": "Llega a la salida del sector {{sector}}"
+    },
+    "hint": {
+      "openSolarMap": "Ve al puente y abre el mapa solar para elegir el salto",
+      "openStarMap": "Ve al puente y abre el mapa estelar para elegir el salto",
+      "targetAhead": "Sigue saltando: $t(catalog.{{body}}) está marcado en el mapa",
+      "targetNextLeg": "El destino está en otro tramo: cruza la salida de este",
+      "observe": "Atracado junto a $t(catalog.{{body}}) y con navegación, se observa solo",
+      "navOffline": "Sin navegación no se observa ni se enlaza: enciéndela en el panel de energía",
+      "backToTarget": "Vuelve a $t(catalog.{{body}}) para seguir observando",
+      "observeSurface": "La órbita ya no da más: aterriza en $t(catalog.{{body}}) (la ciencia vale más)",
+      "observeOthers": "$t(catalog.{{body}}) ya no da más: observa otros cuerpos",
+      "storageFull": "Memoria llena: baja datos antes de seguir observando",
+      "contact": "Enlace abierto: bajando datos",
+      "nextWindow": "Próxima ventana de contacto en {{seconds}} s",
+      "outOfRange": "Fuera del alcance de la antena: acércate a la Tierra",
+      "noLinkGround": "En tierra no hay enlace: despega para bajar los datos",
+      "return": "Al llegar se entrega lo que quede a bordo",
+      "nextLeg": "Tramo superado: continúa al siguiente",
+      "nextSector": "Sector superado: continúa al siguiente",
+      "repair": "Ve a ese puesto y arréglala antes de que empeore",
+      "overload": "Si la demanda supera la potencia, el reactor se daña",
+      "watch": "Vigila combustible y energía en el HUD",
+      "station": "Usa la terminal de la esclusa para vender, repostar o pedir ayuda",
+      "stationAhead": "Hay una estación más adelante, marcada en el mapa",
+      "exit": "Cada salto gasta combustible: elige rutas cortas"
+    }
   }
 }

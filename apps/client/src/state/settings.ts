@@ -22,11 +22,16 @@ export interface SettingsState {
   wideAim: boolean;
   /** Fase 8: sin viñeta ni desaturación por cordura baja (el medidor se conserva). */
   reduceStress: boolean;
+  /**
+   * Guía detallada del objetivo: lista de pasos desplegada al empezar (misión guiada y sector 1), ayudas de una línea y
+   * flecha hacia el puesto. Sin ella queda siempre el objetivo compacto (paso actual y progreso).
+   */
+  objectiveGuide: boolean;
   set: (patch: Partial<Omit<SettingsState, 'set'>>) => void;
 }
 
 const KEY = 'payload.settings';
-const defaults = { fov: 75, headBob: false, sensitivity: 1, muteAll: false, volMusic: 0.5, volSfx: 0.8, volAlerts: 0.8, soundCaptions: false, effects: 1, simpleDodge: false, simpleRepairs: false, wideAim: false, reduceStress: false };
+const defaults = { fov: 75, headBob: false, sensitivity: 1, muteAll: false, volMusic: 0.5, volSfx: 0.8, volAlerts: 0.8, soundCaptions: false, effects: 1, simpleDodge: false, simpleRepairs: false, wideAim: false, reduceStress: false, objectiveGuide: true };
 
 function load(): typeof defaults {
   try {
