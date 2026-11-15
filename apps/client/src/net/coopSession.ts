@@ -121,6 +121,8 @@ interface Session {
   work: Map<string, RunAction & { seconds: number }>;
   timer: ReturnType<typeof setInterval> | null;
   lastPoseMs: number;
+  /** En el último lobby recibido, todos los conectados votaban Go (para pasar al hangar solo al cambiar). */
+  allGo: boolean;
 }
 
 let session: Session | null = null;
@@ -166,10 +168,24 @@ function sendAction(action: RunAction): void {
   sendNow(s, action);
 }
 
+/**
+ * Fase 6 (ADR 0020): en el lobby, con una misión elegida, todos los conectados han votado Go. Entonces la tripulación pasa
+ * junta al hangar compartido (en el lobby no hay botón para ir).
+ */
+export function crewAllGo(view: LobbyView): boolean {
+  if (view.phase !== 'lobby' || !view.design) return false;
+  const online = view.players.filter((p) => p.connected);
+  return online.length > 0 && online.every((p) => p.vote === true);
+}
+
 function onLobby(s: Session, view: LobbyView): void {
   useCoop.setState({ lobby: view, status: 'connected' });
   // Fase 6: el diseño compartido manda sobre lo que se esté pintando en el hangar.
   useGame.getState().syncSharedDesign(view.design ?? null);
+  // Todos dieron Go en el lobby: al hangar. Solo al pasar a unanimidad, para que «Sala» desde el hangar no rebote.
+  const allGo = crewAllGo(view);
+  if (allGo && !s.allGo && view.design && !useGame.getState().sharedDesign) useGame.getState().openSharedDesign(view.design);
+  s.allGo = allGo;
   // La sala volvió al lobby (reinicio tras perder): se deja de reflejar la partida.
   if (view.phase === 'lobby' && s.mirroredRunId !== -1) {
     s.mirroredRunId = -1;
@@ -205,7 +221,7 @@ function closeSession(error: CoopError | null): void {
 }
 
 function attach(room: RoomLike): void {
-  const s: Session = { room, seq: 0, sector: null, mirroredRunId: -1, position: null, work: new Map(), timer: null, lastPoseMs: 0 };
+  const s: Session = { room, seq: 0, sector: null, mirroredRunId: -1, position: null, work: new Map(), timer: null, lastPoseMs: 0, allGo: false };
   session = s;
   useCoop.setState({ status: 'connected', myId: room.sessionId, error: null });
   room.onMessage(NET.lobby, (view: LobbyView) => session === s && onLobby(s, view));

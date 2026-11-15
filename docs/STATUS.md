@@ -1,5 +1,15 @@
 # Estado del proyecto — traspaso entre sesiones
 
+## Cooperativo: del lobby al hangar con el Go de todos (2026-11-15, rama `feat/f6-lobby-al-hangar`)
+
+- **Cambio:** el botón «Abrir el hangar» del lobby confundía y se quitó. Con una misión elegida, el voto del lobby ya no
+  zarpa: cuando **todos** los conectados votan Go, a cada cliente se le abre el hangar compartido
+  (`coopSession.crewAllGo`, solo al pasar a unanimidad, así «Sala» desde el hangar no rebota). En el hangar se vota y
+  zarpa el anfitrión como antes (ADR 0020). Sin cambios en el servidor ni en el contrato.
+- **Ojo:** los votos del lobby siguen valiendo en el hangar hasta la primera edición del diseño (que los borra); si el
+  diseño de partida ya fuera Go, el anfitrión podría zarpar sin tocar nada.
+- **Sin verificar:** no se ha probado con dos navegadores contra el servidor real (solo el test de sesión en memoria).
+
 ## Aterrizaje fluido y esquiva que siempre se juega (2026-11-15, rama `fix/aterrizaje-y-esquiva`)
 
 - **Problema 1:** el aterrizaje «iba con lag». Medido por CDP en Chrome (Iris Xe, ANGLE/Vulkan, 1920×1080 a escala 1,5):

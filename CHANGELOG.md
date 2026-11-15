@@ -5,6 +5,10 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+### Cooperativo: al hangar cuando todos dan Go (rama `feat/f6-lobby-al-hangar`)
+- **client:** se quita «Abrir el hangar» del lobby. Con misión elegida, cuando todos los conectados votan Go la
+  tripulación pasa sola al hangar compartido, donde se vota y zarpa. En el lobby el voto ya no muestra «Zarpar».
+
 ### Aterrizaje fluido y esquiva de asteroides que siempre se juega (rama `fix/aterrizaje-y-esquiva`)
 - **client:** el descenso iba a 44-52 FPS con tirones de 50-67 ms en una Iris Xe a 1080p HiDPI (medido por CDP); el
   cuello de botella era el shader del suelo. Ahora: ramas en el parche del terreno (grietas, lava y trazos de los anillos

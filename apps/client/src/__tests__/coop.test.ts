@@ -252,6 +252,24 @@ describe('diseño compartido en sala (ADR 0020)', () => {
     expect(useGame.getState()).toMatchObject({ screen: 'menu', sharedDesign: false });
   });
 
+  it('cuando todos dan Go en el lobby, la tripulación pasa al hangar compartido (y «Sala» no rebota)', async () => {
+    await lobbyOfTwo();
+    sendLobby({ type: 'set-mission', missionId: 'mission-mars-habitability' });
+    sendLobby({ type: 'vote', go: true });
+    expect(useGame.getState().screen).toBe('menu'); // falta el Go del otro
+    server.model.lobby('otro', { type: 'vote', go: true });
+    sendLobby({ type: 'vote', go: false }); // fuerza una difusión del lobby
+    expect(useGame.getState().screen).toBe('menu'); // ya no es unánime
+    sendLobby({ type: 'vote', go: true });
+    expect(useGame.getState()).toMatchObject({ screen: 'design', sharedDesign: true });
+    expect(useGame.getState().draft?.missionId).toBe('mission-mars-habitability');
+    // Volver a la sala con los votos aún en Go no vuelve a abrir el hangar.
+    useGame.getState().openMissions();
+    server.model.lobby('otro', { type: 'set-role', role: 'pilot' });
+    sendLobby({ type: 'set-role', role: 'engineer' });
+    expect(useGame.getState()).toMatchObject({ screen: 'menu', sharedDesign: false });
+  });
+
   it('con Go del motor y mayoría de Go, la partida empieza con el diseño en todos los espejos', async () => {
     await lobbyOfTwo();
     sendLobby({ type: 'set-mission', missionId: 'mission-mars-habitability' });

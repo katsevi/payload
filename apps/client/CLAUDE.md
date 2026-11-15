@@ -293,7 +293,9 @@ desde el servidor. Lee antes el `CLAUDE.md` raíz y el de `packages/shared`. Dis
 - **Escena:** `scenes/CrewAvatars.tsx` pinta a los compañeros de la misma zona (`ship` o `surface`) interpolando
   las poses, y los pings como halos. Sin colisión entre jugadores.
 - **Diseño compartido (ADR 0020):** en el lobby, `MissionRow` (el anfitrión elige misión con `set-mission`; los demás la
-  ven), «Abrir el hangar» (`useGame.openSharedDesign`) y `SharedVote` (voto, recuento, motivo de una línea y «Empezar»
+  ven) y `SharedVote inLobby` (voto y recuento, sin zarpar). Ya no hay botón para ir al hangar: cuando todos los conectados
+  votan Go (`crewAllGo`, en `coopSession.onLobby`, solo al pasar a unanimidad) se abre `useGame.openSharedDesign` para
+  todos. En el hangar, `SharedVote` (voto, recuento, motivo de una línea y «Empezar»
   del anfitrión; `sharedLaunchCheck` repite la regla del servidor). Con `sharedDesign`, `updateDraft` no guarda: calcula
   `designEditsBetween` y las envía (`setSharedDesignSink`, lo registra `coopSession`); `onLobby` llama a
   `syncSharedDesign` (el hangar pinta el diseño del servidor); «volver» (`openMissions`) lleva a la sala y el botón dice
