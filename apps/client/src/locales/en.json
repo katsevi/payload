@@ -709,7 +709,6 @@
     "mission": "Mission",
     "freePlay": "Free play (no design)",
     "parts": "{{n}} parts mounted",
-    "openHangar": "Open the hangar",
     "missionsUnsupported": "This room server is outdated and does not support missions: it needs updating",
     "vote": {
       "title": "Go/No-Go vote",
@@ -722,6 +721,7 @@
       "tie": "tie: no launch",
       "needMajority": "a Go majority is needed",
       "waiting": "Waiting for Go",
+      "toHangar": "When everyone votes Go, the crew moves to the hangar",
       "hostLaunches": "The host launches once Go has a majority"
     },
     "recommended": "Recommended to start: {{mission}}",

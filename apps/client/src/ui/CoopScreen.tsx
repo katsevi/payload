@@ -3,7 +3,7 @@
  * tripulación que se ve durante la partida. Todo el estado viene de `net/coopStore` (lo que dice el servidor).
  */
 import { useMemo, useState } from 'react';
-import { CircleCheck, CircleX, Crown, PencilRuler, Rocket, Sparkles, Wifi, WifiOff } from 'lucide-react';
+import { CircleCheck, CircleX, Crown, Rocket, Sparkles, Wifi, WifiOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { COOP_LIMITS, getMissions, reviewDesign, ROLE_IDS, voteTally, type LobbyView, type RoleId, type VoteTally } from '@payload/shared';
 import { lt } from '../i18n';
@@ -29,8 +29,11 @@ export function sharedLaunchCheck(lobby: LobbyView): { motorGo: boolean; tally: 
   return { motorGo, tally, canStart: motorGo && tally.passed };
 }
 
-/** Voto Go/No-Go, recuento y (para el anfitrión) zarpar. Se usa en el lobby y en el hangar compartido. */
-export function SharedVote() {
+/**
+ * Voto Go/No-Go y recuento. En el hangar compartido, el anfitrión zarpa desde aquí; en el lobby (`inLobby`) no se zarpa:
+ * cuando todos dan Go, la tripulación pasa al hangar (`coopSession.crewAllGo`).
+ */
+export function SharedVote({ inLobby = false }: { inLobby?: boolean }) {
   const { t } = useTranslation();
   const lobby = useCoop((s) => s.lobby);
   const me = useCoop(mePlayer);
@@ -38,7 +41,7 @@ export function SharedVote() {
   if (!lobby || !check || !me) return null;
   const { motorGo, tally, canStart } = check;
   const vote = (go: boolean) => sendLobby({ type: 'vote', go: me.vote === go ? null : go });
-  const why = !motorGo ? t('coop.vote.motorNoGo') : tally.passed ? t('coop.vote.ready') : tally.go * 2 === tally.voters && tally.pending === 0 ? t('coop.vote.tie') : t('coop.vote.needMajority');
+  const why = inLobby ? t('coop.vote.toHangar') : !motorGo ? t('coop.vote.motorNoGo') : tally.passed ? t('coop.vote.ready') : tally.go * 2 === tally.voters && tally.pending === 0 ? t('coop.vote.tie') : t('coop.vote.needMajority');
   return (
     <div className="flex flex-col gap-2" aria-live="polite">
       <div className="grid grid-cols-2 gap-2" role="group" aria-label={t('coop.vote.title')}>
@@ -49,10 +52,10 @@ export function SharedVote() {
           <CircleX size={15} aria-hidden="true" /> {t('coop.vote.noGo')}
         </button>
       </div>
-      <p className={`num text-center text-xs ${canStart ? 'text-ok' : 'text-warn'}`}>
+      <p className={`num text-center text-xs ${inLobby ? 'text-slate-400' : canStart ? 'text-ok' : 'text-warn'}`}>
         {t('coop.vote.tally', { go: tally.go, noGo: tally.noGo, voters: tally.voters })} · {why}
       </p>
-      {me.host ? (
+      {inLobby ? null : me.host ? (
         <button className="btn btn-primary flex items-center justify-center gap-2 !py-3" disabled={!canStart} onClick={() => sendLobby({ type: 'start' })}>
           <Rocket size={16} aria-hidden="true" /> {canStart ? t('coop.start') : t('coop.vote.waiting')}
         </button>
@@ -68,7 +71,7 @@ export function missionsSupported(lobby: LobbyView): boolean {
   return typeof lobby.designRev === 'number';
 }
 
-/** Fase 6: misión de la sala (la elige el anfitrión) y acceso al hangar compartido. */
+/** Fase 6: misión de la sala (la elige el anfitrión). Al hangar compartido se pasa cuando todos votan Go. */
 function MissionRow({ lobby, host }: { lobby: LobbyView; host: boolean }) {
   const { t } = useTranslation();
   const missions = getMissions();
@@ -116,9 +119,6 @@ function MissionRow({ lobby, host }: { lobby: LobbyView; host: boolean }) {
         <div className="flex items-center gap-2">
           <span className={`num text-xs font-bold ${motorGo ? 'text-ok' : 'text-bad'}`}>{motorGo ? t('design.goTitle') : t('design.noGoTitle')}</span>
           <span className="num flex-1 truncate text-[11px] text-slate-400">{t('coop.parts', { n: design.moduleIds.length + design.instrumentIds.length })}</span>
-          <button className="btn flex items-center gap-1.5 !py-1 text-xs" onClick={() => useGame.getState().openSharedDesign(design)}>
-            <PencilRuler size={14} aria-hidden="true" /> {t('coop.openHangar')}
-          </button>
         </div>
       )}
     </div>
@@ -232,7 +232,7 @@ function Lobby() {
       </div>
       <div className="mt-4 flex flex-col gap-2">
         {withDesign ? (
-          <SharedVote />
+          <SharedVote inLobby />
         ) : me?.host ? (
           <button className="btn btn-primary !py-3" disabled={!canStart} onClick={() => sendLobby({ type: 'start' })}>
             <Rocket size={16} className="mr-2 inline" aria-hidden="true" />

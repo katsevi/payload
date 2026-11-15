@@ -709,7 +709,6 @@
     "mission": "Misión",
     "freePlay": "Partida libre (sin diseño)",
     "parts": "{{n}} piezas montadas",
-    "openHangar": "Abrir el hangar",
     "missionsUnsupported": "El servidor de la sala es antiguo y no admite misiones: hay que actualizarlo",
     "vote": {
       "title": "Voto Go/No-Go",
@@ -722,6 +721,7 @@
       "tie": "empate: no se zarpa",
       "needMajority": "hace falta mayoría de Go",
       "waiting": "Esperando el Go",
+      "toHangar": "Cuando todos den Go, la tripulación pasa al hangar",
       "hostLaunches": "Zarpa el anfitrión cuando hay mayoría de Go"
     },
     "recommended": "Recomendada para empezar: {{mission}}",

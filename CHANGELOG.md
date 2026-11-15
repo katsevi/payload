@@ -5,6 +5,10 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+### Cooperativo: al hangar cuando todos dan Go (rama `feat/f6-lobby-al-hangar`)
+- **client:** se quita «Abrir el hangar» del lobby. Con misión elegida, cuando todos los conectados votan Go la
+  tripulación pasa sola al hangar compartido, donde se vota y zarpa. En el lobby el voto ya no muestra «Zarpar».
+
 ### Mapa del sistema solar sin congelación al abrirlo (rama `feat/f4-mapa-solar-carga`)
 - **client:** el mapa solar de las misiones abría con ~2,2 s de juego congelado (Iris Xe, sin caché de shaders): el 90 %
   era enlazar el shader procedural de planeta en el contexto WebGL propio del mapa. Ahora las superficies se hornean una
