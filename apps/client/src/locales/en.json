@@ -646,6 +646,7 @@
     "freePlay": "Free play (no design)",
     "parts": "{{n}} parts mounted",
     "openHangar": "Open the hangar",
+    "missionsUnsupported": "This room server is outdated and does not support missions: it needs updating",
     "vote": {
       "title": "Go/No-Go vote",
       "go": "Go",

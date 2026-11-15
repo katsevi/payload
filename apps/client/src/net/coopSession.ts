@@ -40,6 +40,9 @@ export const DEFAULT_GAME_SERVER_PORT = 2567;
 /** Cadencia de envío de lo agrupado (posición y trabajo mantenido). */
 export const FLUSH_INTERVAL_MS = 66;
 const POSE_INTERVAL_MS = 1000 / COOP_LIMITS.poseHz;
+/** Intentos de crear/entrar si la red falla (una red con pérdidas corta a veces el primer intento). */
+export const CONNECT_ATTEMPTS = 3;
+const CONNECT_RETRY_MS = 500;
 const NAME_KEY = 'payload.coop.name';
 /** Tecla del ping «mirad aquí» (en la nave y en la superficie). */
 export const KEY_PING = 'KeyG';
@@ -212,14 +215,23 @@ async function connect(open: (client: ClientLike, name: string) => Promise<RoomL
   const name = sanitizePlayerName(rawName, '');
   savePlayerName(name);
   useCoop.setState({ status: 'connecting', error: null });
-  try {
-    const client = await factory(gameServerUrl());
-    attach(await open(client, name));
-    return true;
-  } catch (e) {
-    useCoop.setState({ ...INITIAL_COOP, error: errorOf(e) });
-    return false;
+  let error: CoopError = 'unreachable';
+  for (let attempt = 1; attempt <= CONNECT_ATTEMPTS; attempt++) {
+    try {
+      const client = await factory(gameServerUrl());
+      attach(await open(client, name));
+      return true;
+    } catch (e) {
+      error = errorOf(e);
+      // Solo se reintenta lo que parece de red (conexión que no llega o se corta al abrir el WebSocket): una sala
+      // llena, empezada o inexistente no cambia por insistir. Crear de nuevo es seguro: la reserva que no se usó
+      // caduca sola en el servidor y su sala vacía se descarta.
+      if (error !== 'unreachable' || attempt === CONNECT_ATTEMPTS) break;
+      await new Promise((r) => setTimeout(r, CONNECT_RETRY_MS));
+    }
   }
+  useCoop.setState({ ...INITIAL_COOP, error });
+  return false;
 }
 
 export function createRoom(name: string): Promise<boolean> {
