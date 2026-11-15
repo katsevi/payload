@@ -3,10 +3,11 @@
  * tripulación que se ve durante la partida. Todo el estado viene de `net/coopStore` (lo que dice el servidor).
  */
 import { useMemo, useState } from 'react';
-import { CircleCheck, CircleX, Crown, PencilRuler, Rocket, Wifi, WifiOff } from 'lucide-react';
+import { CircleCheck, CircleX, Crown, PencilRuler, Rocket, Sparkles, Wifi, WifiOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { COOP_LIMITS, getMissions, reviewDesign, ROLE_IDS, voteTally, type LobbyView, type RoleId, type VoteTally } from '@payload/shared';
 import { lt } from '../i18n';
+import { recommendedMissionId } from '../game/objectiveGuide';
 import { useGame } from '../game/runStore';
 import { createRoom, joinRoom, leaveRoom, loadPlayerName, sendLobby } from '../net/coopSession';
 import { mePlayer, useCoop } from '../net/coopStore';
@@ -76,20 +77,24 @@ function MissionRow({ lobby, host }: { lobby: LobbyView; host: boolean }) {
   // Un servidor anterior a la fase 6 (ADR 0020) no manda `designRev` e ignora `set-mission`: el selector volvería solo
   // a «Partida libre». Se avisa en vez de dejar un selector que no responde.
   const supported = missionsSupported(lobby);
+  // La misión para empezar (la guiada): se destaca y el anfitrión la elige con un clic. La sala sigue empezando en
+  // partida libre: nada se cambia sin que el anfitrión lo vea.
+  const recommendedId = recommendedMissionId(missions);
+  const recommended = recommendedId ? missions.find((m) => m.id === recommendedId) : undefined;
   return (
     <div className="chamfer mt-4 flex flex-col gap-2 p-2">
       <label className="flex items-center gap-2 text-sm">
         <span className="label-code w-20 shrink-0">{t('coop.mission')}</span>
         {host && supported ? (
           <select
-            className="field flex-1 !py-1"
+            className="field min-w-0 flex-1 !py-1"
             value={design?.missionId ?? ''}
             onChange={(e) => sendLobby({ type: 'set-mission', missionId: e.target.value || null })}
           >
             <option value="">{t('coop.freePlay')}</option>
             {missions.map((m) => (
               <option key={m.id} value={m.id}>
-                {lt(m.name)}
+                {m.id === recommendedId ? `${lt(m.name)} · ${t('missions.recommended')}` : lt(m.name)}
               </option>
             ))}
           </select>
@@ -98,6 +103,15 @@ function MissionRow({ lobby, host }: { lobby: LobbyView; host: boolean }) {
         )}
       </label>
       {!supported && host && <p className="num text-[11px] text-warn">{t('coop.missionsUnsupported')}</p>}
+      {host && supported && !design && recommended && (
+        <div className="flex items-center gap-2 border-t border-line pt-2">
+          <Sparkles size={14} className="shrink-0 text-ok" aria-hidden="true" />
+          <span className="min-w-0 flex-1 text-xs text-slate-200">{t('coop.recommended', { mission: lt(recommended.name) })}</span>
+          <button className="btn btn-primary !py-1 text-xs" onClick={() => sendLobby({ type: 'set-mission', missionId: recommended.id })} autoFocus>
+            {t('coop.pickRecommended')}
+          </button>
+        </div>
+      )}
       {design && (
         <div className="flex items-center gap-2">
           <span className={`num text-xs font-bold ${motorGo ? 'text-ok' : 'text-bad'}`}>{motorGo ? t('design.goTitle') : t('design.noGoTitle')}</span>

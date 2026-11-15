@@ -50,10 +50,44 @@
         "launcherId": "launcher-condor",
         "instrumentIds": ["inst-cubesat-magnetometer", "inst-cubesat-dosimeter", "inst-cubesat-camera", "inst-cubesat-neutron"],
         "steps": [
-          { "check": "instrument", "text": { "es": "Elige un instrumento para el CubeSat", "en": "Pick an instrument for the CubeSat" } },
-          { "check": "required-kinds", "text": { "es": "La misión pide medir campos: lleva uno de campos", "en": "The mission measures fields: carry a fields instrument" } },
-          { "check": "science", "text": { "es": "Suma la ciencia mínima (mira el medidor de ciencia)", "en": "Reach the minimum science (watch the science meter)" } },
-          { "check": "go", "text": { "es": "Con Go, lanza: observa la Luna y baja los datos", "en": "With Go, launch: observe the Moon and downlink the data" } }
+          {
+            "check": "instrument", "text": { "es": "Elige un instrumento para el CubeSat", "en": "Pick an instrument for the CubeSat" },
+            "hint": { "es": "Los instrumentos CubeSat están en la paleta; cada uno suma ciencia, masa y consumo", "en": "CubeSat instruments are in the palette; each adds science, mass and power draw" }
+          },
+          {
+            "check": "required-kinds", "text": { "es": "La misión pide medir campos: lleva uno de campos", "en": "The mission measures fields: carry a fields instrument" },
+            "hint": { "es": "El magnetómetro y el dosímetro miden campos", "en": "The magnetometer and the dosimeter measure fields" }
+          },
+          {
+            "check": "science", "text": { "es": "Suma la ciencia mínima (mira el medidor de ciencia)", "en": "Reach the minimum science (watch the science meter)" },
+            "hint": { "es": "Con el magnetómetro y el dosímetro juntos llegas justo", "en": "The magnetometer and the dosimeter together are just enough" }
+          },
+          {
+            "check": "go", "text": { "es": "Con Go, lanza: observa la Luna y baja los datos", "en": "With Go, launch: observe the Moon and downlink the data" },
+            "hint": { "es": "Go = ningún bloqueo; si sale No-Go, el motivo aparece junto al botón", "en": "Go = no blockers; on No-Go, the reason shows next to the button" }
+          }
+        ],
+        "flightSteps": [
+          {
+            "check": "launch", "text": { "es": "Ve al puente, abre el mapa solar y salta hacia la Luna", "en": "Go to the bridge, open the solar map and jump towards the Moon" },
+            "hint": { "es": "La Luna está marcada en el mapa; cada salto gasta combustible", "en": "The Moon is marked on the map; every jump burns fuel" }
+          },
+          {
+            "check": "reach-target", "text": { "es": "Llega a la Luna y quédate en órbita", "en": "Reach the Moon and stay in orbit" },
+            "hint": { "es": "Atracado junto a la Luna, el CubeSat empieza a observar solo", "en": "Docked by the Moon, the CubeSat starts observing on its own" }
+          },
+          {
+            "check": "observe", "text": { "es": "En órbita de la Luna, observa {{seconds}} s", "en": "In lunar orbit, observe for {{seconds}} s" },
+            "hint": { "es": "Deja la navegación encendida: los instrumentos dependen de ella", "en": "Keep navigation on: the instruments depend on it" }
+          },
+          {
+            "check": "downlink", "text": { "es": "Espera la ventana de contacto y baja los datos", "en": "Wait for the contact window and downlink the data" },
+            "hint": { "es": "Las ventanas se abren cada poco; el HUD dice cuándo", "en": "Windows open every so often; the HUD tells you when" }
+          },
+          {
+            "check": "return", "text": { "es": "Vuelve a la Tierra: cruza la salida del tramo", "en": "Return to Earth: cross the leg's exit" },
+            "hint": { "es": "Lo que quede a bordo se entrega al llegar", "en": "Whatever is still aboard is delivered on arrival" }
+          }
         ]
       }
     },

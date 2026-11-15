@@ -29,6 +29,8 @@ const waypointStationGeo = once(() => new OctahedronGeometry(0.16, 0));
 const waypointDerelictGeo = once(() => new BoxGeometry(0.26, 0.12, 0.18));
 const ACCENT = '#38e1c0';
 const GOLD = '#ffd25a';
+/** Guía del objetivo (`signal` del sistema visual): el nodo al que lleva el paso actual. */
+const SIGNAL = '#ff9a4a';
 
 /**
  * Etiquetas como sprites con textura de lienzo (tamaño constante en pantalla, sin DOM): baratas y sin los
@@ -218,6 +220,8 @@ interface NodeView {
   here: boolean;
   target: boolean;
   goal: boolean;
+  /** Nodo al que lleva el paso actual del objetivo. */
+  objective: boolean;
 }
 
 /** Marcador pulsante de un nodo (anillos) y área de clic. */
@@ -240,6 +244,8 @@ function NodeMarker({ v, selected, onSelect }: { v: NodeView; selected: boolean;
         </mesh>
       )}
       {v.target && <Glow color={GOLD} size={1.8} opacity={0.4} />}
+      {/* Objetivo: anillo exterior cálido que gira despacio (forma, no solo color). */}
+      {v.objective && <ObjectiveRing />}
       {/* Área de clic invisible: los cuerpos pequeños también se pueden elegir. */}
       <mesh
         visible={false}
@@ -258,6 +264,24 @@ function NodeMarker({ v, selected, onSelect }: { v: NodeView; selected: boolean;
         <sphereGeometry args={[0.6, 8, 6]} />
       </mesh>
       <Label text={`${v.target ? '★ ' : ''}${v.name}`} color={v.here ? '#ffffff' : v.target ? GOLD : v.reachable ? ACCENT : '#9fb4d0'} position={[0, 0.3, 0]} />
+    </group>
+  );
+}
+
+/** Anillo del objetivo: discontinuo (cuatro arcos) y girando, por fuera del anillo de selección. */
+function ObjectiveRing() {
+  const g = useRef<Group>(null);
+  useFrame((_, dt) => {
+    if (g.current) g.current.rotation.y += dt * 0.8;
+  });
+  return (
+    <group ref={g}>
+      {[0, 1, 2, 3].map((k) => (
+        <mesh key={k} rotation={[-Math.PI / 2, 0, (k * Math.PI) / 2]}>
+          <ringGeometry args={[0.86, 0.95, 16, 1, 0.15, Math.PI / 2 - 0.3]} />
+          <meshBasicMaterial color={SIGNAL} transparent opacity={0.95} toneMapped={false} depthWrite={false} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -331,6 +355,8 @@ export interface SolarMapProps {
   reachable: readonly string[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** Guía del objetivo: nodo al que lleva el paso actual (anillo cálido). */
+  objectiveId?: string | null;
 }
 
 function Route({ sector, pos, hereId, reachable, selectedId }: { sector: SectorMap; pos: Record<string, ScenePos>; hereId: string; reachable: readonly string[]; selectedId: string | null }) {
@@ -365,7 +391,7 @@ function Route({ sector, pos, hereId, reachable, selectedId }: { sector: SectorM
   );
 }
 
-export function SolarMapScene({ sector, hereId, reachable, selectedId, onSelect }: SolarMapProps) {
+export function SolarMapScene({ sector, hereId, reachable, selectedId, onSelect, objectiveId = null }: SolarMapProps) {
   // Al cerrar el mapa: cursor normal y texturas de las etiquetas liberadas.
   useEffect(
     () => () => {
@@ -383,9 +409,9 @@ export function SolarMapScene({ sector, hereId, reachable, selectedId, onSelect 
       sector.nodes.flatMap((n) => {
         const at = pos[n.id];
         if (!at) return [];
-        return [{ id: n.id, at, name: nodeName(n), kind: n.kind, reachable: reachable.includes(n.id), here: n.id === hereId, target: !!n.missionTarget, goal: n.id === sector.goalId }];
+        return [{ id: n.id, at, name: nodeName(n), kind: n.kind, reachable: reachable.includes(n.id), here: n.id === hereId, target: !!n.missionTarget, goal: n.id === sector.goalId, objective: n.id === objectiveId }];
       }),
-    [sector, pos, reachable, hereId],
+    [sector, pos, reachable, hereId, objectiveId],
   );
   // Encuadre: dónde está la nave, los saltos posibles, la llegada del tramo y el destino (el resto, con la rueda).
   const bounds = useMemo(() => {

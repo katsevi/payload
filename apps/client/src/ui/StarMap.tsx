@@ -1,12 +1,13 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Package, Star, Store, Sun, Weight } from 'lucide-react';
+import { AlertTriangle, Crosshair, Package, Star, Store, Sun, Weight } from 'lucide-react';
 import {
-  cruisePowerMarginKw, getNode, getNodeKind, getNodeWorld, hasShop, HAZARD_KINDS, shipPowerKw, solarKw, solarPowerFactor, THROTTLE_IDS,
+  currentObjective, cruisePowerMarginKw, getNode, getNodeKind, getNodeWorld, hasShop, HAZARD_KINDS, shipPowerKw, solarKw, solarPowerFactor, THROTTLE_IDS,
   type NodeKind, type RunState, type SectorNode,
 } from '@payload/shared';
 import { effectiveShipOf } from '../game/effective';
 import { getRun, useGame } from '../game/runStore';
+import { nextHopToward } from '../game/objectiveGuide';
 import { cargoFuelPct } from '../game/shop';
 import { isLandableNode } from '../game/surfaceRules';
 import { lt } from '../i18n';
@@ -31,6 +32,20 @@ const KIND_COLOR: Record<NodeKind, string> = {
 };
 const RISK_COLOR = ['text-ok', 'text-warn', 'text-bad', 'text-bad'];
 const EMPTY: readonly string[] = [];
+
+/** Guía del objetivo (`signal` del sistema visual): nodo del paso actual y salto sugerido. */
+const SIGNAL = 'var(--color-signal)';
+
+/**
+ * Nodo al que lleva el paso actual del objetivo y, atracada, el primer salto del camino más corto hasta él (puede ser el
+ * propio objetivo). Sale del estado que se pasa: el del HUD al pintar, el vivo al abrir el mapa.
+ */
+function objectiveRoute(s: RunState): { objectiveId: string | null; suggestedId: string | null } {
+  const view = currentObjective(s, getRun()?.catalog);
+  const objectiveId = view.status === 'active' ? (view.target?.nodeId ?? null) : null;
+  const suggestedId = objectiveId && s.phase === 'docked' ? nextHopToward(s.sector, s.locationId, objectiveId) : null;
+  return { objectiveId, suggestedId };
+}
 
 const VIEW_W = 640;
 const VIEW_H = 330;
@@ -90,7 +105,7 @@ function LandableInfo({ s, node }: { s: RunState; node: SectorNode }) {
   );
 }
 
-function Details({ s, node, onJump }: { s: RunState; node: SectorNode; onJump: () => void }) {
+function Details({ s, node, onJump, suggested }: { s: RunState; node: SectorNode; onJump: () => void; suggested: boolean }) {
   const { t } = useTranslation();
   const estimate = getRun()?.estimateJump(node.id) ?? null;
   const sensors = s.ship.systems.nav.online;
@@ -121,6 +136,11 @@ function Details({ s, node, onJump }: { s: RunState; node: SectorNode; onJump: (
           </span>
         )}
       </div>
+      {suggested && (
+        <p className="num flex items-center gap-1 text-xs" style={{ color: SIGNAL }}>
+          <Crosshair size={13} aria-hidden="true" /> {t('map.suggested')}
+        </p>
+      )}
       {solar && <SolarAt s={s} au={node.sunDistanceAu ?? 1} />}
       {estimate && (
         <>
@@ -224,10 +244,16 @@ function SolarHere({ s }: { s: RunState }) {
 export function StarMap() {
   const { t } = useTranslation();
   const s = useGame((g) => g.hud);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Al abrir el mapa queda elegido el salto sugerido hacia el objetivo (si lo hay): basta con confirmar.
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    const live = getRun()?.state;
+    return live ? objectiveRoute(live).suggestedId : null;
+  });
   const [glossary, setGlossary] = useGlossary();
   const project = useProjection(s?.sector.nodes ?? []);
+  const route = useMemo(() => (s ? objectiveRoute(s) : { objectiveId: null, suggestedId: null }), [s]);
   if (!s) return null;
+  const { objectiveId, suggestedId } = route;
   const close = () => useUi.getState().setOverlay(null);
   const here = getNode(s.sector, s.locationId)!;
   const selected = selectedId ? getNode(s.sector, selectedId) : undefined;
@@ -249,7 +275,7 @@ export function StarMap() {
           {solar ? (
             <div className="hud-frame relative h-[360px] min-w-0 flex-1 overflow-hidden bg-black/60 lg:h-[460px]">
               <Suspense fallback={null}>
-                <SolarMapScene sector={liveSector} hereId={here.id} reachable={liveLinks} selectedId={selectedId} onSelect={setSelectedId} />
+                <SolarMapScene sector={liveSector} hereId={here.id} reachable={liveLinks} selectedId={selectedId} onSelect={setSelectedId} objectiveId={objectiveId} />
               </Suspense>
               <span className="num pointer-events-none absolute bottom-1 left-2 text-[10px] text-slate-500">{t('map.scaleHint')}</span>
               {glossary && <GlossaryPanel className="absolute right-2 top-2" onClose={() => setGlossary(false)} />}
@@ -280,6 +306,13 @@ export function StarMap() {
                   );
                 }),
             )}
+            {suggestedId && (() => {
+              const to = getNode(s.sector, suggestedId);
+              if (!to) return null;
+              const [x1, y1] = project(here);
+              const [x2, y2] = project(to);
+              return <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={SIGNAL} strokeWidth={2} strokeDasharray="2 4" opacity={0.9} />;
+            })()}
             {s.sector.nodes.map((n) => {
               const [x, y] = project(n);
               const canGo = reachable.includes(n.id);
@@ -304,6 +337,14 @@ export function StarMap() {
                   <circle r={20} fill="transparent" />
                   {n.id === selectedId && <rect x={-16} y={-16} width={32} height={32} fill="none" stroke="#4cd8ff" strokeWidth={1.2} strokeDasharray="6 20" strokeDashoffset={3} />}
                   {isHere && <circle r={15} fill="none" stroke="#ffffff" strokeWidth={2} strokeDasharray="4 3" />}
+                  {n.id === objectiveId && (
+                    <>
+                      <circle r={19} fill="none" stroke={SIGNAL} strokeWidth={2} strokeDasharray="7 5" />
+                      <text y={39} textAnchor="middle" fontSize={10} fill={SIGNAL} fontFamily="var(--font-mono)">
+                        {t('map.objective')}
+                      </text>
+                    </>
+                  )}
                   <NodeGlyph kind={n.kind} />
                   {showCache && <circle cx={11} cy={-10} r={3.5} fill="#3ddc84" />}
                   <text y={27} textAnchor="middle" fontSize={11} fill={isHere ? '#ffffff' : '#a9bacb'} fontFamily="var(--font-mono)">
@@ -340,9 +381,10 @@ export function StarMap() {
                     if (!n) return null;
                     return (
                       <button key={id} className="seg-option chip num px-2 py-0.5 text-xs" aria-pressed={id === selectedId} onClick={() => {
- cue('select');
- setSelectedId(id);
- }}>
+                        cue('select');
+                        setSelectedId(id);
+                      }}>
+                        {id === suggestedId && <Crosshair size={11} className="mr-1 inline" style={{ color: SIGNAL }} aria-label={t('map.suggested')} />}
                         {n.missionTarget ? '★ ' : ''}
                         {nodeName(n)}
                       </button>
@@ -354,7 +396,7 @@ export function StarMap() {
             {s.transit ? (
               <p className="num text-sm text-accent">{t('map.inTransit', { pct: Math.round((s.transit.traveledLy / s.transit.distanceLy) * 100) })}</p>
             ) : selected && selected.id !== here.id ? (
-              <Details s={s} node={selected} onJump={jump} />
+              <Details s={s} node={selected} onJump={jump} suggested={selected.id === suggestedId} />
             ) : (
               <p className="text-sm text-slate-300">{t('map.select')}</p>
             )}

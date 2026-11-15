@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { ObjectiveStationId } from '@payload/shared';
 
 /**
  * Panel modal abierto. `map`, `power`, `terminal` y `help` no detienen la partida (como el mapa: atracada
@@ -109,4 +110,11 @@ export const hudView = {
   toolOn: false,
   toolX: 0,
   toolZ: 0,
+  /**
+   * Guía del objetivo: puesto que pide el paso actual (lo escribe `ObjectiveTracker` al cambiar, ~10 Hz; null = ninguno;
+   * lo usan el cartel 3D y la flecha) y, escrito por la escena cada frame, si la flecha se ve y su ángulo respecto a la mirada.
+   */
+  objStation: null as ObjectiveStationId | null,
+  objOn: false,
+  objAngle: 0,
 };

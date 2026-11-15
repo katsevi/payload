@@ -58,7 +58,8 @@
     "simpleDodge": "Esquiva simple (mantener E en el timón, sin minijuego)",
     "simpleRepairs": "Averías simples (mantener R, sin minijuegos)",
     "wideAim": "Puntería amplia del extintor",
-    "reduceStress": "Reducir efectos de estrés"
+    "reduceStress": "Reducir efectos de estrés",
+    "objectiveGuide": "Guía detallada del objetivo (pasos, ayudas y flecha al puesto)"
   },
   "credits": {
     "title": "Créditos",
@@ -88,7 +89,8 @@
     "power": "Panel de energía",
     "airlock": "Esclusa",
     "bunk": "Litera",
-    "comms": "Comunicaciones"
+    "comms": "Comunicaciones",
+    "solarMap": "Mapa solar"
   },
   "marker": {
     "evade": "¡Al timón!"
@@ -247,7 +249,9 @@
     "powerShort": "Allí no da la energía a crucero: faltan {{kw}} kW",
     "target": "Destino de la misión",
     "reachable": "Saltos posibles",
-    "scaleHint": "Distancias al Sol comprimidas (√UA)"
+    "scaleHint": "Distancias al Sol comprimidas (√UA)",
+    "objective": "Objetivo",
+    "suggested": "Salto sugerido hacia el objetivo"
   },
   "power": {
     "title": "Panel de energía",
@@ -299,7 +303,8 @@
     "reportTitle": "Informe de la misión",
     "rootCause": "causa",
     "sanityCritical": "Tiempo en crítica",
-    "countermeasures": "Contramedidas"
+    "countermeasures": "Contramedidas",
+    "objectiveNext": "Tu objetivo sigue: {{step}}"
   },
   "pause": {
     "title": "Pausa",
@@ -333,7 +338,8 @@
     "down": "Jetpack hacia abajo (bajar antes)",
     "click": "Averías: apuntar el extintor, pulsar a tiempo o sellar (clic o Espacio)",
     "repair": "Repuesto: mantén y suelta en la marca, dos veces",
-    "ping": "Señalar a la tripulación (cooperativo)"
+    "ping": "Señalar a la tripulación (cooperativo)",
+    "objective": "Objetivo: ver u ocultar todos los pasos"
   },
   "keys": {
     "move": "WASD",
@@ -348,7 +354,8 @@
     "down": "C",
     "repair": "R",
     "click": "Clic",
-    "ping": "G"
+    "ping": "G",
+    "objective": "O"
   },
   "sound": {
     "fixed": "[reparado]",
@@ -406,7 +413,8 @@
     "earthCall": "[llamada a la Tierra]",
     "overheat": "[sobrecalentamiento]",
     "powerDown": "[sistemas sin energía]",
-    "storageFull": "[memoria llena]"
+    "storageFull": "[memoria llena]",
+    "objective": "[objetivo cumplido]"
   },
   "descent": {
     "title": "Descenso",
@@ -527,7 +535,8 @@
     },
     "pick": "Diseñar",
     "saved": "Diseño guardado",
-    "guided": "Guiada"
+    "guided": "Guiada",
+    "recommended": "Recomendada para empezar"
   },
   "design": {
     "title": "Hangar · {{mission}}",
@@ -594,7 +603,10 @@
     "difficulty": "Dificultad",
     "difficultyHint": "Cambia presupuesto, plazo y ciencia pedida; en vuelo, averías, peligros y ventanas de contacto",
     "guidedSteps": "Pasos de la misión guiada",
-    "backToRoom": "Sala"
+    "backToRoom": "Sala",
+    "guidedNow": "Ahora",
+    "guidedReady": "Todo listo: pulsa «Lanzar»",
+    "guidedReadyRoom": "Todo listo: votad Go y el anfitrión zarpa"
   },
   "glossary": {
     "title": "Glosario",
@@ -711,6 +723,21 @@
       "needMajority": "hace falta mayoría de Go",
       "waiting": "Esperando el Go",
       "hostLaunches": "Zarpa el anfitrión cuando hay mayoría de Go"
+    },
+    "recommended": "Recomendada para empezar: {{mission}}",
+    "pickRecommended": "Elegir"
+  },
+  "objective": {
+    "label": "Objetivo",
+    "new": "Nuevo objetivo",
+    "done": "Hecho",
+    "goTo": "Ve a: {{station}}",
+    "steps": "Pasos",
+    "optional": "opcional",
+    "progress": {
+      "s": "{{value}}/{{max}} s",
+      "science": "{{value}}/{{max}} de ciencia",
+      "jumps": "{{value}}/{{max}} saltos"
     }
   }
 }

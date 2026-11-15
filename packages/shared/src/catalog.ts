@@ -19,7 +19,7 @@ import solarJson from '../catalog/sistema-solar.json';
 import scienceJson from '../catalog/ciencia.json';
 import psychJson from '../catalog/cordura.json';
 import {
-  MODULE_KINDS, NODE_KINDS, ROLE_IDS, SCIENCE_KINDS, SUPPLY_IDS, THROTTLE_IDS, UPGRADE_FIELDS, UPGRADE_TARGETS,
+  MISSION_STEP_IDS, MODULE_KINDS, NODE_KINDS, ROLE_IDS, SCIENCE_KINDS, SUPPLY_IDS, THROTTLE_IDS, UPGRADE_FIELDS, UPGRADE_TARGETS,
   type Catalog, type MaterialDef, type NodeKind, type NodeKindDef, type ShipDef, type SurfaceCatalog, type ThrottleDef, type ThrottleId, type WorldDef,
 } from './types';
 
@@ -313,7 +313,14 @@ const missionSchema = z.strictObject({
       moduleIds: z.array(id).min(1),
       launcherId: id,
       instrumentIds: z.array(id).min(1),
-      steps: z.array(z.strictObject({ check: z.enum(['instrument', 'required-kinds', 'science', 'go']), text: localized })).max(6),
+      steps: z.array(z.strictObject({ check: z.enum(['instrument', 'required-kinds', 'science', 'go']), text: localized, hint: localized.optional() })).max(6),
+      // Pasos en vuelo (guía de `currentObjective`): los cinco pasos de misión, una vez cada uno.
+      flightSteps: z
+        .array(z.strictObject({ check: z.enum(MISSION_STEP_IDS), text: localized, hint: localized.optional() }))
+        .refine((xs) => xs.length === MISSION_STEP_IDS.length && MISSION_STEP_IDS.every((c) => xs.some((x) => x.check === c)), {
+          message: `flightSteps debe cubrir una vez cada paso: ${MISSION_STEP_IDS.join(', ')}`,
+        })
+        .optional(),
     })
     .optional(),
 });

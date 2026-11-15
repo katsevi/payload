@@ -1,6 +1,9 @@
 // Modelo puro de la sala: lobby, roles, paridad con el motor, antiabuso y presencia.
 import { describe, expect, it } from 'vitest';
-import { catalog, createRun, designEditsBetween, FIXED_STEP_S, getNode, MAX_WORK_SECONDS, parseCatalog, type Catalog, type RoleId, type Run, type RunAction } from '@payload/shared';
+import {
+  catalog, createRun, currentObjective, designEditsBetween, FIXED_STEP_S, getMission, getNode, guidedStartDesign, MAX_WORK_SECONDS, parseCatalog, reviewDesign,
+  type Catalog, type RoleId, type Run, type RunAction,
+} from '@payload/shared';
 import { referenceDesign } from '../../../../packages/shared/src/__tests__/missionFixtures';
 import { RoomModel } from '../roomModel';
 
@@ -402,5 +405,96 @@ describe('diseño compartido y voto Go/No-Go (ADR 0020)', () => {
     room.lobby('p1', { type: 'vote', go: true });
     room.lobby('p1', { type: 'start' });
     expect(room.lobby('p1', { type: 'edit-design', edit: { op: 'clear' } })).toBe(false);
+  });
+});
+
+describe('misión guiada y objetivo actual en sala', () => {
+  const GUIDED = 'mission-cubesat-guided';
+
+  /** Lo que hace el cliente con el `state` que recibe: lo serializa la red, crea el espejo con el diseño y lo hidrata. */
+  function mirrorOf(room: RoomModel): Run {
+    const msg = JSON.parse(JSON.stringify(room.stateMessage(true))) as NonNullable<ReturnType<RoomModel['stateMessage']>>;
+    const state = { ...msg.state, sector: msg.sector! };
+    const design = state.missionDesign;
+    const mirror = createRun({ seed: state.seed, crewSize: state.crew.length, roles: state.crew.map((c) => c.role ?? null), ...(design ? { design } : {}) });
+    mirror.hydrate(state);
+    return mirror;
+  }
+
+  it('el anfitrión elige la misión guiada y el diseño arranca con su nave y su lanzador, como en solitario', () => {
+    const room = newRoom();
+    room.join('p1', 'A');
+    expect(room.lobby('p1', { type: 'set-mission', missionId: GUIDED })).toBe(true);
+    expect(room.view.design).toEqual(guidedStartDesign(GUIDED));
+    expect(room.view.design?.launcherId).toBe(getMission(GUIDED).guided!.launcherId);
+    expect(room.view.design?.instrumentIds).toEqual([]);
+  });
+
+  it('las ediciones que la misión guiada no admite se rechazan sin tocar el diseño ni la revisión', () => {
+    const room = newRoom();
+    room.join('p1', 'A');
+    room.join('p2', 'B');
+    room.lobby('p1', { type: 'set-mission', missionId: GUIDED });
+    const before = room.view.design;
+    const rev = room.view.designRev;
+    const forbidden = [
+      { op: 'add-module', id: 'frame-standard' },
+      { op: 'remove-module', id: 'engine-chemical' },
+      { op: 'set-launcher', id: 'launcher-colossus' },
+      { op: 'set-launcher', id: null },
+      { op: 'set-destination', id: null },
+      { op: 'add-instrument', id: 'inst-drill' }, // no es de la carga guiada
+      { op: 'clear' }, // sin carga, no cambia nada
+    ];
+    for (const edit of forbidden) expect(room.lobby('p2', { type: 'edit-design', edit }), JSON.stringify(edit)).toBe(false);
+    expect(room.view.design).toEqual(before);
+    expect(room.view.designRev).toBe(rev);
+    // Sin carga, el motor da No-Go: aunque todos voten Go, no se zarpa.
+    expect(reviewDesign(room.view.design!).go).toBe(false);
+    room.lobby('p1', { type: 'vote', go: true });
+    room.lobby('p2', { type: 'vote', go: true });
+    expect(room.lobby('p1', { type: 'start' })).toBe(false);
+  });
+
+  it('con la carga CubeSat y Go, la partida lleva diseño y ciencia y el objetivo es el vuelo guiado (paso «launch»)', () => {
+    const room = newRoom();
+    room.join('p1', 'A');
+    room.join('p2', 'B');
+    room.lobby('p1', { type: 'set-mission', missionId: GUIDED });
+    expect(room.lobby('p1', { type: 'edit-design', edit: { op: 'add-instrument', id: 'inst-cubesat-magnetometer' } })).toBe(true);
+    expect(room.lobby('p2', { type: 'edit-design', edit: { op: 'add-instrument', id: 'inst-cubesat-dosimeter' } })).toBe(true);
+    expect(reviewDesign(room.view.design!).go).toBe(true);
+    room.lobby('p1', { type: 'vote', go: true });
+    room.lobby('p2', { type: 'vote', go: true });
+    expect(room.lobby('p1', { type: 'start' })).toBe(true);
+
+    const run = room.run!;
+    expect(run.state.missionDesign).toEqual(room.view.design);
+    expect(run.state.science).toBeDefined();
+
+    // El cliente calcula el objetivo sobre el estado que recibe: debe ser el mismo que en el servidor.
+    const mirror = mirrorOf(room);
+    const objective = currentObjective(mirror.state);
+    expect(objective).toEqual(currentObjective(run.state));
+    expect(objective.mode).toBe('mission');
+    expect(objective.status).toBe('active');
+    expect(objective.steps.map((s) => s.id)).toEqual(['launch', 'reach-target', 'observe', 'downlink', 'return']);
+    expect(objective.steps[objective.current]?.id).toBe('launch');
+    // Los textos son los de la misión guiada (`guided.<id>.<paso>`), no los genéricos.
+    expect(objective.steps[0]!.text.key).toBe(`guided.${GUIDED}.launch.text`);
+
+    // Y en solitario, con el mismo diseño y semilla, es el mismo objetivo.
+    const solo = createRun({ seed: SEED, crewSize: 2, roles: [null, null], design: room.view.design! });
+    expect(currentObjective(solo.state)).toEqual(objective);
+  });
+
+  it('en sala sin misión (partida libre), el objetivo es la guía libre del sector 1', () => {
+    const room = playing([null, 'pilot']);
+    expect(room.run!.state.missionDesign).toBeUndefined();
+    const objective = currentObjective(mirrorOf(room).state);
+    expect(objective.mode).toBe('free');
+    expect(objective.status).toBe('active');
+    expect(objective.steps[objective.current]?.id).toBe('jump');
+    expect(objective).toEqual(currentObjective(room.run!.state));
   });
 });

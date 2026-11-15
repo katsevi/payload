@@ -22,7 +22,9 @@ export type SfxId =
   // Cooperativo y peligros ambientales
   | 'ping' | 'crewJoin' | 'crewLeave' | 'creak' | 'hail'
   // Ciencia y estado de la nave
-  | 'contact' | 'observation' | 'earthCall' | 'overheat' | 'powerDown' | 'storageFull';
+  | 'contact' | 'observation' | 'earthCall' | 'overheat' | 'powerDown' | 'storageFull'
+  // Guía del objetivo: paso cumplido
+  | 'objective';
 
 /** Efectos en bucle: `cue(id)` los arranca y `audio.stopLoop(id)` los para. */
 export const LOOP_SFX: readonly SfxId[] = ['jump', 'thruster', 'jetpack', 'storm', 'takeOff', 'wind', 'extinguisher'];
@@ -124,6 +126,7 @@ export const SFX_META: Record<SfxId, SfxMeta> = {
   overheat: { bus: 'alerts', captionKey: 'sound.overheat', flash: 'warn', minGapMs: 2500 },
   powerDown: { bus: 'alerts', captionKey: 'sound.powerDown', flash: 'bad', minGapMs: 2500 },
   storageFull: { bus: 'alerts', captionKey: 'sound.storageFull', flash: 'warn', minGapMs: 2500 },
+  objective: { bus: 'alerts', captionKey: 'sound.objective', flash: 'ok', minGapMs: 1500 },
 };
 
 /**

@@ -209,6 +209,11 @@ export function synthSfx(kit: SynthKit, id: SfxId, t: number): void {
       s.tone('alerts', t, { freq: 80, slideTo: 38, dur: 0.8, vol: 0.2, attack: 0.004 });
       s.noiseBurst('alerts', t + 0.02, { dur: 0.3, vol: 0.18, filter: 'bandpass', f0: 900, q: 1.5, attack: 0.003 });
       break;
+    case 'objective':
+      // Paso del objetivo cumplido: dos notas ascendentes suaves (más discreto que el éxito de la misión).
+      s.fm('alerts', t, { freq: 659.25, dur: 0.1, vol: 0.09, ratio: 2, index: 0.35 });
+      s.fm('alerts', t + 0.08, { freq: 987.77, dur: 0.14, vol: 0.09, ratio: 2, index: 0.35 });
+      break;
     case 'success':
     case 'complete':
       [783.99, 1046.5].forEach((f, k) => s.fm('alerts', t + k * 0.09, { freq: f, dur: 0.16, vol: 0.1, ratio: 2, index: 0.4 }));
