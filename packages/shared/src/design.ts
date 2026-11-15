@@ -25,6 +25,8 @@ import {
 
 /** Fase 8: plazo (meses) desde el que el aviso `crew-wellbeing` pide un hábitat. */
 const CREW_WELLBEING_MONTHS = 48;
+/** Fase 8: desde este plazo (meses), sin hábitat ni huerto, el aviso es de nivel alto. */
+const CREW_WELLBEING_HIGH_MONTHS = 84;
 
 export function getDesignRules(cat: Catalog = defaultCatalog): DesignRules {
   if (!cat.design) throw new Error('El catálogo no tiene reglas de diseño (usa parseCatalog)');
@@ -539,7 +541,9 @@ export function reviewDesign(rawDesign: MissionDesign, cat: Catalog = defaultCat
   if (k.structure.length > 0 && a.ship.shieldAbsorb <= 0) warning('no-shielding');
   // Fase 8: misiones largas sin hábitat desgastan a la tripulación (solo con la cordura activa).
   if (cat.psych?.enabled && m && m.deadlineMonths >= CREW_WELLBEING_MONTHS && k.habitat.length === 0) {
-    warning('crew-wellbeing', { months: m.deadlineMonths, hasHabitat: 0 });
+    if (m.deadlineMonths >= CREW_WELLBEING_HIGH_MONTHS && k.greenhouse.length === 0) {
+      issues.push({ severity: 'warning', code: 'crew-wellbeing', message: { key: 'design.review.crew-wellbeing-high', params: { months: m.deadlineMonths, severity: 'high' } } });
+    } else warning('crew-wellbeing', { months: m.deadlineMonths, hasHabitat: 0 });
   }
 
   const go = !issues.some((i) => i.severity === 'blocker');

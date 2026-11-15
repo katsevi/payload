@@ -38,8 +38,8 @@ describe('fase 8 · puestos de cordura', () => {
 
 describe('fase 8 · efectos visuales', () => {
   const rules = psychCat(true).psych!;
-  it('el medidor se oculta en estable por encima del 85 %', () => {
-    expect(moraleView({ sanityPct: 90, sanityBand: 'stable' }, rules)).toBeNull();
+  it('el medidor se ve siempre con la cordura activa (también estable y alta)', () => {
+    expect(moraleView({ sanityPct: 90, sanityBand: 'stable' }, rules)).not.toBeNull();
     expect(moraleView({ sanityPct: 80, sanityBand: 'stable' }, rules)?.level).toBe('ok');
     expect(moraleView({ sanityPct: 60, sanityBand: 'tense' }, rules)?.level).toBe('warn');
     expect(moraleView({ sanityPct: 20, sanityBand: 'critical' }, rules)?.level).toBe('bad');

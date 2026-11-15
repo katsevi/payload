@@ -307,6 +307,7 @@ const missionSchema = z.strictObject({
   budgetMUSD: positive,
   deadlineMonths: positive,
   difficulty: positive.int().max(3),
+  psychDrainMult: nonNeg.optional(),
   guided: z
     .strictObject({
       moduleIds: z.array(id).min(1),
@@ -334,7 +335,7 @@ const designRulesSchema = z
       .array(
         z.strictObject({
           id, name: localized, budgetMult: positive, deadlineMult: positive, minScienceMult: positive,
-          wearMult: nonNeg, hazardMult: nonNeg, contactWindowMult: positive,
+          wearMult: nonNeg, hazardMult: nonNeg, contactWindowMult: positive, psychDrainMult: nonNeg.optional(),
         }),
       )
       .optional(),
@@ -460,6 +461,10 @@ const psychSchema = z
     }),
     crewOfferSize: nonNeg.int(),
     thirdQuarter: z.strictObject({ enabled: z.boolean(), fictional: z.boolean(), atFrac: probability, shockPct: nonNeg }).optional(),
+    mission: z
+      .strictObject({ durationK: nonNeg, durationRefMonths: nonNeg, durationSpanMonths: positive, durationMin: nonNeg, durationMax: nonNeg })
+      .refine((m) => m.durationMin <= m.durationMax, { message: 'mission: durationMin <= durationMax' })
+      .optional(),
   })
   .refine((r) => r.bands.breakdown < r.bands.critical && r.bands.critical < r.bands.tense && r.bands.tense <= 100, {
     message: 'bands: se exige breakdown < critical < tense <= 100',

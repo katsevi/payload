@@ -1,6 +1,6 @@
 /** Fase 8: la cordura dentro de la partida (`run.ts`). Todo es opcional: sin `psych` el juego es el de siempre. */
 import { describe, expect, it } from 'vitest';
-import { catalog, createRun, getNode, parseCatalog, reviewDesign, shipFromDesign, type Catalog, type RunAction, type RunState } from '../index';
+import { catalog, createRun, effectivePsychRules, getNode, missionPsychMult, psychPausedFor, parseCatalog, reviewDesign, shipFromDesign, type Catalog, type RunAction, type RunState } from '../index';
 import { referenceDesign } from './missionFixtures';
 import { playRun } from './bot';
 import { calmPsychCatalog, psychCatalog, psychOffCatalog, stepSeconds } from './psychHelpers';
@@ -437,5 +437,59 @@ describe('diseño: aviso crew-wellbeing y módulos de hábitat', () => {
     const withHabitat = shipFromDesign({ ...europa, moduleIds: [...europa.moduleIds, 'habitat-cabin'] });
     expect(withHabitat.systemDrawKw.lifeSupport - plain.systemDrawKw.lifeSupport).toBeCloseTo(5, 8);
     expect(withHabitat).not.toHaveProperty('sanityDrainMult');
+  });
+});
+
+describe('misiones diseñadas: cordura por misión, dificultad y CubeSat', () => {
+  const cat = calmPsychCatalog();
+  const mult = (missionId: string, difficultyId?: string) =>
+    missionPsychMult({ ...referenceDesign(missionId), ...(difficultyId ? { difficultyId } : {}) }, cat);
+  const eff = (id: string) => effectivePsychRules(cat.psych!, {}, cat, referenceDesign(id)).drainMult!;
+
+  it('el multiplicador crece con el plazo de la misión', () => {
+    expect(mult('mission-lunar-ice')).toBeCloseTo(1, 5);
+    expect(mult('mission-asteroid-sample')).toBeCloseTo(1, 5);
+    expect(mult('mission-mars-habitability')).toBeCloseTo(1.1, 5);
+    expect(mult('mission-belt-ice')).toBeCloseTo(1.2, 5);
+    expect(mult('mission-europa-ocean')).toBeCloseTo(1.4, 5);
+    expect(mult('mission-titan-chemistry')).toBeCloseTo(1.5, 5);
+    expect(eff('mission-titan-chemistry')).toBeGreaterThan(eff('mission-lunar-ice'));
+  });
+  it('la dificultad escala el desgaste (fácil < normal < difícil)', () => {
+    const e = mult('mission-lunar-ice', 'difficulty-easy');
+    const n = mult('mission-lunar-ice', 'difficulty-normal');
+    const h = mult('mission-lunar-ice', 'difficulty-hard');
+    expect(e).toBeCloseTo(0.7, 5);
+    expect(n).toBeCloseTo(1, 5);
+    expect(h).toBeCloseTo(1.3, 5);
+  });
+  it('CubeSat guiado: desgaste suave (×0,5), no pausado', () => {
+    const design = referenceDesign('mission-cubesat-guided');
+    expect(mult('mission-cubesat-guided')).toBeCloseTo(0.5, 5);
+    expect(psychPausedFor(design, cat)).toBe(false);
+  });
+  it('una misión con psychDrainMult 0 pausa la cordura: queda en 100', () => {
+    const c0 = calmPsychCatalog((raw) => { for (const m of raw.missions ?? []) if (m.id === 'mission-cubesat-guided') m.psychDrainMult = 0; });
+    const design = referenceDesign('mission-cubesat-guided');
+    expect(psychPausedFor(design, c0)).toBe(true);
+    const run = createRun({ seed: 7, catalog: c0, design });
+    stepSeconds(run, 300);
+    expect(run.state.crew[0]!.sanityPct).toBe(100);
+  });
+  it('la partida clásica no cambia (sin diseño: drenaje sin multiplicador de misión)', () => {
+    expect(psychPausedFor(undefined, cat)).toBe(false);
+    const run = createRun({ seed: 7, catalog: cat });
+    expect(run.state.psych).toBeDefined();
+    const a = createRun({ seed: 7, catalog: calmPsychCatalog((raw) => { delete raw.psych!.mission; }) });
+    stepSeconds(run, 60);
+    stepSeconds(a, 60);
+    expect(run.state.crew[0]!.sanityPct).toBe(a.state.crew[0]!.sanityPct);
+  });
+  it('aviso alto de bienestar: >= 84 meses sin hábitat ni huerto', () => {
+    const find = (d: ReturnType<typeof referenceDesign>) => reviewDesign(d, psychCatalog()).issues.find((i) => i.code === 'crew-wellbeing');
+    const europa = referenceDesign('mission-europa-ocean');
+    expect(find(europa)?.message).toMatchObject({ key: 'design.review.crew-wellbeing-high', params: { severity: 'high' } });
+    expect(find({ ...europa, moduleIds: [...europa.moduleIds, 'greenhouse-pod'] })?.message.key).toBe('design.review.crew-wellbeing');
+    expect(find(referenceDesign('mission-mars-habitability'))?.message.key).toBe('design.review.crew-wellbeing');
   });
 });

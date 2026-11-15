@@ -31,6 +31,7 @@
     "provisions": { "unitPrice": 6, "maxUnits": 6, "secondsPerUnit": 60, "drainMult": 0.7 },
     "cohesion": { "start": 80, "lowPct": 50, "drainMax": 0.5, "groupRepairPct": 5, "groupRepairSanity": 1, "evaNearM": 15, "evaNearPctPerS": 0.05, "teamworkMult": 1.1, "teamworkMinPct": 80 },
     "crewOfferSize": 2,
+    "mission": { "durationK": 0.5, "durationRefMonths": 36, "durationSpanMonths": 60, "durationMin": 1, "durationMax": 1.6 },
     "thirdQuarter": { "enabled": true, "fictional": true, "atFrac": 0.75, "shockPct": 10 }
   }
 }

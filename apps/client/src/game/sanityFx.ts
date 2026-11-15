@@ -6,7 +6,8 @@ import type { CrewMember, PsychRules, RunStats, SanityBand } from '@payload/shar
 import type { Level } from '../ui/Hud';
 
 /** El medidor se oculta mientras la banda es estable y el valor pasa de este porcentaje. */
-export const MORALE_HIDE_ABOVE_PCT = 85;
+/** Antes se ocultaba por encima del 85 %; ahora el medidor se ve siempre que la cordura esté activa. */
+export const MORALE_HIDE_ABOVE_PCT = 100;
 
 export interface MoraleView {
   pct: number;
@@ -19,7 +20,6 @@ export interface MoraleView {
 export function moraleView(m: Pick<CrewMember, 'sanityPct' | 'sanityBand'> | null | undefined, rules: PsychRules | null): MoraleView | null {
   if (!rules || !m || m.sanityPct === undefined) return null;
   const band: SanityBand = m.sanityBand ?? 'stable';
-  if (band === 'stable' && m.sanityPct > MORALE_HIDE_ABOVE_PCT) return null;
   const level: Level = band === 'critical' || band === 'breakdown' ? 'bad' : band === 'tense' ? 'warn' : 'ok';
   return { pct: m.sanityPct, level, markerPct: rules.bands.critical };
 }

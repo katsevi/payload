@@ -22,7 +22,7 @@
     "difficulties": [
       {
         "id": "difficulty-easy", "name": { "es": "Fácil", "en": "Easy" },
-        "budgetMult": 1.25, "deadlineMult": 1.25, "minScienceMult": 0.8, "wearMult": 0.7, "hazardMult": 0.7, "contactWindowMult": 1.3
+        "budgetMult": 1.25, "deadlineMult": 1.25, "minScienceMult": 0.8, "wearMult": 0.7, "hazardMult": 0.7, "contactWindowMult": 1.3, "psychDrainMult": 0.7
       },
       {
         "id": "difficulty-normal", "name": { "es": "Normal", "en": "Normal" },
@@ -30,7 +30,7 @@
       },
       {
         "id": "difficulty-hard", "name": { "es": "Difícil", "en": "Hard" },
-        "budgetMult": 0.85, "deadlineMult": 0.85, "minScienceMult": 1.2, "wearMult": 1.3, "hazardMult": 1.3, "contactWindowMult": 0.75
+        "budgetMult": 0.85, "deadlineMult": 0.85, "minScienceMult": 1.2, "wearMult": 1.3, "hazardMult": 1.3, "contactWindowMult": 0.75, "psychDrainMult": 1.3
       }
     ]
   },
@@ -41,7 +41,7 @@
       "description": { "es": "Misión guiada: elige la carga de un CubeSat, llévalo a la Luna y baja sus datos.", "en": "Guided mission: pick a CubeSat's payload, fly it to the Moon and downlink its data." },
       "scienceKind": "fields", "destinations": ["luna"],
       "requirements": { "minScience": 18, "requiredKinds": ["fields"], "minReliabilityPct": 75 },
-      "budgetMUSD": 450, "deadlineMonths": 30, "difficulty": 1,
+      "budgetMUSD": 450, "deadlineMonths": 30, "difficulty": 1, "psychDrainMult": 0.5,
       "guided": {
         "moduleIds": [
           "frame-standard", "engine-chemical", "solar-array-hi", "solar-array", "comms-lga", "computer-flight", "battery-pack",

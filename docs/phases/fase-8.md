@@ -20,7 +20,8 @@ banda estable o tensa. Al acabar, ambas saben explicar por qué sin haber leído
 | Punto | Estado |
 | --- | --- |
 | Motor: `sanity.ts`, estado aditivo, `stepPsych`, debuffs, lapsus, golpes y recompensas, estación, `rest`/`call-earth`/`buy-provisions`, cohesión mínima, perks del gestor | Implementado (`catalog/cordura.json`, `enabled: true`) |
-| Mejoras `crew` (oferta aparte, `crewOfferSize` 2) y módulos `habitat-cabin`/`greenhouse-pod`; aviso `crew-wellbeing` | Implementado · sin nivel «high» (≥ 84 meses) ni fixture propio |
+| Mejoras `crew` (oferta aparte, `crewOfferSize` 2) y módulos `habitat-cabin`/`greenhouse-pod`; aviso `crew-wellbeing` | Implementado · nivel «high» (≥ 84 meses sin hábitat ni huerto: `crew-wellbeing-high`); sin fixture propio |
+| Misiones diseñadas: multiplicador por plazo (`psych.mission`), `psychDrainMult` por dificultad y por misión; CubeSat guiado con desgaste suave (×0,5; con 0 una misión pausa la cordura) | Implementado (`missionPsychMult`, `psychPausedFor` en `sanity.ts`) |
 | Servidor: `rest` y `call-earth` en `CREW_ACTIONS`/`WORK_ACTIONS` | Implementado |
 | Cliente: medidor «Ánimo», litera y comunicaciones (mantener E), provisiones en la terminal, viñeta + «Reducir efectos de estrés», toasts personales, `EndScreen`, ayuda | Implementado · **sin comprobar en navegador** |
 | Anillo por compañero, oscilación de cámara, alucinaciones, audio nuevo, `strain` en minijuegos, días de misión, «tercer trimestre», cordura estimada en `estimateJump` | Pendiente |
