@@ -32,7 +32,7 @@ import { isDown, MOUSE_PRIMARY } from '../player/input';
 import { playerState, resetPlayerState } from '../player/playerState';
 import { minigame, resetMinigames, resetRepairGame } from '../state/minigame';
 import { useSettings } from '../state/settings';
-import { hudView, useUi } from '../state/ui';
+import { hudView, revealScene, useUi } from '../state/ui';
 import { IncidentFx, Markers, ZoneLights } from './ShipFx';
 import { DodgeHolo, FlameTarget } from './ShipMinigames';
 import { Hull } from './ShipInterior';
@@ -41,8 +41,12 @@ import { SpaceView } from './SpaceView';
 import { SurfaceWorld } from './SurfaceWorld';
 import { KEY_PING, reportPose, sendPing } from '../net/coopSession';
 import { CrewAvatars } from './CrewAvatars';
+import { ShaderWarmup, useAdaptiveDpr } from '../gfx/quality';
+import { pebbleGeometry, rockGeometry, rockMaterial } from '../gfx/rocks';
 
-const BOUNDS: CameraBounds = { minX: -HULL.halfWidth + 0.4, maxX: HULL.halfWidth - 0.4, minZ: HULL.minZ + 0.4, maxZ: HULL.maxZ - 0.4, maxY: HULL.height - 0.3 };
+// Techo de la cámara bajo las tuberías y vigas del techo (bajan hasta ~0,3 m del techo): más arriba el plano cercano
+// las cortaba y parpadeaban.
+const BOUNDS: CameraBounds = { minX: -HULL.halfWidth + 0.4, maxX: HULL.halfWidth - 0.4, minZ: HULL.minZ + 0.4, maxZ: HULL.maxZ - 0.4, maxY: HULL.height - 0.45 };
 
 const isTyping = (e: KeyboardEvent): boolean => {
   const el = e.target as HTMLElement | null;
@@ -104,6 +108,7 @@ function GameLoop() {
   const warnBeep = useRef(WARN_REPEAT_S);
   const scratch = useMemo(() => ({ dir: new Vector3(), off: { x: 0, y: 0 } }), []);
   const { gl } = useThree();
+  const getThree = useThree((s) => s.get);
 
   useFrame(({ camera }, delta) => {
     const dt = Math.min(delta, 0.1);
@@ -351,14 +356,15 @@ function GameLoop() {
     window.addEventListener('keydown', onKey);
     document.addEventListener('pointerlockchange', onLock);
     // Solo desarrollo: estado del jugador y de los minijuegos a mano para depurar desde la consola.
-    if (import.meta.env.DEV) Object.assign(((window as unknown as { __payload?: object }).__payload ??= {}), { playerState, minigame, startDodge });
+    // `three()` devuelve el estado de R3F (escena, cámara, renderizador) para inspeccionarlo desde la consola.
+    if (import.meta.env.DEV) Object.assign(((window as unknown as { __payload?: object }).__payload ??= {}), { playerState, minigame, startDodge, three: getThree });
     return () => {
       window.removeEventListener('keydown', onKey);
       document.removeEventListener('pointerlockchange', onLock);
       audio.stopLoop('extinguisher', 0.1);
       resetMinigames();
     };
-  }, [gl]);
+  }, [gl, getThree]);
 
   return null;
 }
@@ -412,12 +418,40 @@ function useShipSpawn(): { start: readonly [number, number, number]; yaw: number
   return spawn;
 }
 
+/**
+ * Lo que la superficie genera por CPU al montarse (texturas y rocas, ~50-100 ms) se prepara antes, en un momento
+ * libre del puente: así el paso al descenso no lo paga. Son `once`: luego se reutilizan.
+ */
+function usePrepareSurfaceAssets(): void {
+  useEffect(() => {
+    const prepare = () => {
+      rockMaterial();
+      rockGeometry();
+      pebbleGeometry();
+    };
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(prepare, { timeout: 8000 });
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const id = setTimeout(prepare, 3000);
+    return () => clearTimeout(id);
+  }, []);
+}
+
 /** Interior caminable de la nave (1ª/3ª persona) con el espacio (o la superficie) al otro lado de las ventanas. */
 export function ShipScene() {
+  usePrepareSurfaceAssets();
   const landed = useGame((s) => s.hud?.phase === 'surface');
+  // Lo que se ve por la proa: al cambiar se precompila lo nuevo antes de pintarlo.
+  const outside = useGame((s) => s.hud?.transit?.toId ?? s.hud?.locationId ?? '');
   const spawn = useShipSpawn();
+  const { dpr, monitor } = useAdaptiveDpr();
+  // Plano cercano a 8 cm (antes 5): más precisión de profundidad (menos parpadeo de caras próximas) y la cámara nunca
+  // queda a menos de ~15 cm de la geometría (paredes a 0,4 m en 3ª persona, cápsula de 0,35 m en 1ª).
   return (
-    <Canvas style={{ isolation: 'isolate' }} dpr={[1, 1.75]} camera={{ fov: 75, near: 0.05, far: 2400, position: [PLAYER_START[0], 1.6, PLAYER_START[2]] }}>
+    <Canvas style={{ isolation: 'isolate' }} dpr={dpr} camera={{ fov: 75, near: 0.08, far: 2400, position: [PLAYER_START[0], 1.6, PLAYER_START[2]] }}>
+      {monitor}
       <color attach="background" args={['#01020a']} />
       <ShaderClock />
       <ShipEnvironment />
@@ -435,6 +469,7 @@ export function ShipScene() {
       <Markers />
       <CrewAvatars area="ship" />
       <GameLoop />
+      <ShaderWarmup watch={`${landed}:${outside}`} onReady={revealScene} />
     </Canvas>
   );
 }

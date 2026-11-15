@@ -157,6 +157,24 @@ function terrainGeometry(terrain: Terrain, look: SurfaceLook): { geometry: Buffe
   return { geometry: g, heights, n };
 }
 
+/**
+ * Última malla de terreno construida. El descenso, el puente con la nave posada (por las ventanas) y la EVA son
+ * escenas distintas que pintan el MISMO terreno: sin esto cada cambio de escena lo reconstruía (rejilla de hasta
+ * 193 × 193 alturas, normales y colores; el trabajo más pesado al montar la superficie). Se libera al cambiar.
+ */
+let cachedTerrain: { key: string; look: SurfaceLook; built: ReturnType<typeof terrainGeometry> } | null = null;
+
+function cachedTerrainGeometry(terrain: Terrain, look: SurfaceLook): ReturnType<typeof terrainGeometry> {
+  const key = JSON.stringify(terrain.input);
+  if (cachedTerrain && cachedTerrain.key === key && cachedTerrain.look === look) return cachedTerrain.built;
+  const previous = cachedTerrain;
+  const built = terrainGeometry(terrain, look);
+  cachedTerrain = { key, look, built };
+  // La anterior ya no la usa nadie: la escena que la pintaba se desmonta antes de montar la nueva o la sustituye.
+  previous?.built.geometry.dispose();
+  return built;
+}
+
 function TerrainMesh({ terrain, look, physics }: { terrain: Terrain; look: SurfaceLook; physics: boolean }) {
   const uniforms = useMemo(terrainUniforms, []);
   const material = useMemo(() => {
@@ -166,8 +184,7 @@ function TerrainMesh({ terrain, look, physics }: { terrain: Terrain; look: Surfa
     patchTerrainMaterial(m, uniforms);
     return m;
   }, [uniforms]);
-  const built = useMemo(() => terrainGeometry(terrain, look), [terrain, look]);
-  useEffect(() => () => built.geometry.dispose(), [built]);
+  const built = useMemo(() => cachedTerrainGeometry(terrain, look), [terrain, look]);
   useEffect(() => () => material.dispose(), [material]);
   useEffect(() => {
     uniforms.uRadius.value = terrain.input.radiusM;
@@ -205,7 +222,7 @@ function TerrainMesh({ terrain, look, physics }: { terrain: Terrain; look: Surfa
   useEffect(() => () => outer.material.dispose(), [outer]);
   return (
     <>
-      <mesh geometry={built.geometry} material={material} />
+      <mesh geometry={built.geometry} material={material} dispose={null} />
       <mesh position={[0, outer.rimY, 0]} rotation={[-Math.PI / 2, 0, 0]} material={outer.material}>
         <ringGeometry args={[outer.inner, 2400, 96, 1]} />
       </mesh>
@@ -567,8 +584,11 @@ function SkyAndWeather({ look, warnS, windAngle, interior }: { look: SurfaceLook
       {look.stars && <Stars radius={420} depth={60} count={2600} factor={6} saturation={0.2} fade speed={0.2} />}
       <hemisphereLight args={[look.hemiSky, look.hemiGround, look.hemiIntensity]} />
       <directionalLight position={[look.sunDir[0] * 100, look.sunDir[1] * 100, look.sunDir[2] * 100]} intensity={look.sunIntensity} color={look.sun} />
-      {/* Relleno frío desde el lado contrario al sol (sin sombras ni coste por frame): el relieve se lee también a contraluz. */}
-      {(look.fillIntensity ?? 0) > 0 && <directionalLight position={[-look.sunDir[0] * 100, 60, -look.sunDir[2] * 100]} intensity={look.fillIntensity} color={look.hemiSky} />}
+      {/*
+        Relleno frío desde el lado contrario al sol (sin sombras ni coste por frame): el relieve se lee también a contraluz.
+        Siempre presente (a 0 en los mundos sin relleno): el número de luces no cambia y no hay que recompilar shaders.
+      */}
+      <directionalLight position={[-look.sunDir[0] * 100, 60, -look.sunDir[2] * 100]} intensity={look.fillIntensity ?? 0} color={look.hemiSky} />
       {!interior && <points ref={particles} geometry={stormGeom} material={storm.material} frustumCulled={false} />}
     </>
   );

@@ -485,7 +485,7 @@ function LifeSupport() {
         <cylinderGeometry args={[0.32, 0.32, 1.44, 24, 1, true]} />
       </mesh>
       <group position={[0, 0.36, LS_Z + 0.44]} rotation={[-0.5, 0, 0]}>
-        <mesh position={[0, 0, 0.082]} material={leds.material}>
+        <mesh position={[0, 0, 0.088]} material={leds.material}>
           <planeGeometry args={[0.5, 0.16]} />
         </mesh>
       </group>
@@ -634,10 +634,11 @@ function NavRack() {
       <Parts parts={buildNav()} />
       <group position={[0, 1.32, NAV_Z - 0.06]} rotation={[NAV_TILT, 0, 0]}>
         <Parts parts={buildNavFace()} />
-        <mesh position={[-0.38, 0, 0.24]} material={radar.material}>
+        {/* Pantallas a 7 mm de la cara de la consola (a 2 mm parpadeaban de lejos por la precisión de profundidad). */}
+        <mesh position={[-0.38, 0, 0.245]} material={radar.material}>
           <circleGeometry args={[0.215, 40]} />
         </mesh>
-        <mesh position={[0.3, 0.05, 0.24]} material={leds.material}>
+        <mesh position={[0.3, 0.05, 0.245]} material={leds.material}>
           <planeGeometry args={[0.62, 0.3]} />
         </mesh>
         <group position={[0.52, -0.18, 0.238]} rotation={[HALF_PI, 0, 0]}>

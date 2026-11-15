@@ -338,6 +338,14 @@ input[type="checkbox"] { width: 1rem; height: 1rem; }
 @keyframes credits-pop { 0% { opacity: 0; transform: translateY(4px); } 15% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-12px); } }
 @keyframes credits-pop-still { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
 
+/*
+  Fundido a negro entre escenas de la partida (nave ↔ descenso ↔ EVA). Encima del lienzo 3D y debajo del HUD. La
+  opacidad la anima el compositor: sigue fluida aunque el hilo principal esté montando la escena nueva.
+  Entra en 180 ms (lo que espera `App` antes de cambiar) y sale algo más despacio.
+*/
+.scene-veil { position: absolute; inset: 0; background: var(--color-void, #01020a); opacity: 0; pointer-events: none; transition: opacity .35s ease-out; will-change: opacity; }
+.scene-veil.is-on { opacity: 1; transition: opacity .18s ease-in; }
+
 /* Movimiento reducido: sin desplazamientos; los parpadeos de alerta pasan a un cambio de opacidad lento. */
 @media (prefers-reduced-motion: reduce) {
   .ui-enter, .ui-stagger > * { animation: none; }

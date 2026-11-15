@@ -5,6 +5,24 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+### Corrección del cooperativo y del rendimiento (rama `fix/coop-y-rendimiento`)
+- **game-server:** el cuarto jugador ya puede entrar. Colyseus bloqueaba la sala sola en cuanto clientes + asientos
+  reservados llegaban a 4, y un intento de conexión fallido (el cliente reintenta) dejaba un asiento reservado 15 s:
+  el cuarto recibía «sala bloqueada», que el cliente mostraba como «la partida ya ha empezado». Ahora el cupo de
+  Colyseus tiene holgura (8) y el límite de 4 lo pone `RoomModel` (`room-full`).
+- **game-server:** el anfitrión es quien crea la sala y no cambia por una caída (conserva el sitio durante la gracia);
+  solo pasa a otro si se va del todo. Si el creador vuelve a entrar con el código, recupera el anfitrión gracias a una
+  clave privada por pestaña (`key` en las opciones de entrada; no se difunde).
+- **client:** sin tirones de 1-3 s al aparecer o apagarse una avería (sus luces estaban dentro de grupos que se
+  ocultaban y three.js recompilaba todos los shaders al cambiar el número de luces) ni al aterrizar o despegar (la vista
+  posada y el espacio tienen ahora las mismas luces). Precompilación de shaders en paralelo (`gfx/quality.tsx`,
+  `ShaderWarmup`) al montar la nave y la superficie, resolución adaptativa (`PerformanceMonitor`) y fundido a negro
+  entre escenas (nave ↔ descenso ↔ EVA) que tapa el montaje. El terreno se reutiliza entre escenas, las herramientas no
+  se montan en el descenso y las texturas de roca se preparan en el puente.
+- **client:** menos parpadeo de paredes: el dintel de las puertas tiene colisión (la cámara en 3ª persona lo
+  atravesaba), el pivote de la cámara no entra en las paredes, la cámara no sube hasta las tuberías del techo, plano
+  cercano a 8 cm y separadas las caras coplanares encontradas (remates de las lámparas, pantallas de las consolas).
+
 ### Rediseño del sistema visual de la interfaz (`@payload/client`)
 - Sistema de diseño en `index.css` (tokens fríos con estados ok/ámbar/rojo, chaflanes, líneas de 1 px, barras segmentadas, etiquetas de ficha técnica, entradas cortas que respetan `prefers-reduced-motion`) y kit `ui/kit.tsx` (`Button`, `SegBar`, `Tag`, `KeyHint`, `StatRow`, `SectionLabel`, `Tabs`, `Toast`); `Panel` con cabecera de código y `Modal` con fondo desenfocado.
 - Menú principal nuevo: logotipo tipográfico, navegación lateral con índice y teclado (↑↓ + Intro), ficha con la descripción de la entrada señalada, versión y teclas; la galaxia del fondo pasa a la derecha.

@@ -16,6 +16,8 @@ import { lookDir, motionEnv, playerState } from './playerState';
 type KinematicCharacterController = ReturnType<ReturnType<typeof useRapier>['world']['createCharacterController']>;
 
 const EYE = 1.6;
+/** Desplazamiento lateral de la cámara en 3ª persona (sobre el hombro derecho). */
+const SHOULDER_M = 0.55;
 const TRANSITION_S = 0.4;
 
 const smooth = (x: number) => x * x * (3 - 2 * x);
@@ -227,9 +229,23 @@ export function PlayerController({ start, startYaw = 0, bounds, motion = SHIP_MO
     const bob = settings.headBob && moving && s.grounded ? Math.sin(t.current * 9) * 0.035 : 0;
     fpPos.set(feet.x, feet.y + EYE + bob, feet.z);
     right.set(cy, 0, -sy);
-    pivot.set(feet.x, feet.y + 1.55, feet.z).addScaledVector(right, 0.55);
+    pivot.set(feet.x, feet.y + 1.55, feet.z);
     // La cámara en 3ª persona se acerca si algo (mamparo, rampa, ladera) se interpone.
     let camDist = bounds ? 3.2 : 4.6;
+    let shoulder = SHOULDER_M;
+    if (blend.current > 0.01) {
+      // El pivote va sobre el hombro derecho, pero nunca dentro de una pared o un puesto: el rayo de la cámara
+      // saldría desde dentro del colisionador (choque a distancia 0) y la cámara se quedaría en la pared (parpadeo).
+      camRay.origin.x = pivot.x;
+      camRay.origin.y = pivot.y;
+      camRay.origin.z = pivot.z;
+      camRay.dir.x = right.x;
+      camRay.dir.y = 0;
+      camRay.dir.z = right.z;
+      const side = world.castRay(camRay, SHOULDER_M + 0.3, true, undefined, undefined, undefined, rb);
+      if (side) shoulder = Math.max(0, Math.min(SHOULDER_M, side.timeOfImpact - 0.3));
+    }
+    pivot.addScaledVector(right, shoulder);
     if (blend.current > 0.01) {
       camRay.origin.x = pivot.x;
       camRay.origin.y = pivot.y;

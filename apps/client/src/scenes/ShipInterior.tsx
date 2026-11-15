@@ -14,6 +14,8 @@ const MID_Z = (HULL.maxZ + HULL.minZ) / 2;
 const SILL = 1.15;
 const LINTEL = 2.7;
 const DOOR_H = 2.6;
+/** Arranque del colisionador del dintel: el canto inferior de la viga de la puerta. */
+const LINTEL_COLLIDER_Y = DOOR_H - 0.07;
 /** Separación entre cuadernas (los montantes de las ventanas continúan como vigas del techo). */
 const RIB_SPACING = 3.25;
 /** Proa: mirador de tres caras que sobresale del casco (la colisión sigue siendo el plano z = minZ). */
@@ -216,6 +218,13 @@ export function Hull() {
           <CuboidCollider key={`${z}:${side}`} args={[(W - DOOR_HALF_WIDTH) / 2, H / 2, BULKHEAD_THICKNESS / 2]} position={[side * doorSide, H / 2, z]} />
         )),
       )}
+      {/*
+        Dintel de cada puerta (con su viga): el tripulante no llega (está a 2,5 m), pero sin él el rayo de la cámara en
+        3ª persona no lo veía y, al cruzar la puerta mirando abajo, la cámara pasaba por dentro del mamparo (parpadeo).
+      */}
+      {BULKHEADS_Z.map((z) => (
+        <CuboidCollider key={`lintel:${z}`} args={[DOOR_HALF_WIDTH + 0.2, (H - LINTEL_COLLIDER_Y) / 2, (BULKHEAD_THICKNESS + 0.2) / 2]} position={[0, (H + LINTEL_COLLIDER_Y) / 2, z]} />
+      ))}
     </RigidBody>
   );
 }
