@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { effectiveShipOf } from '../game/effective';
 import { getRun, useGame } from '../game/runStore';
 import { useSettings } from '../state/settings';
+import { useUi } from '../state/ui';
+import { isRemote } from '../game/runStore';
 import { audio } from './audioEngine';
 import { cue, resetCueMemory } from './cues';
 import { dangerLevel, musicMixFor, type MusicContext } from './musicLogic';
@@ -79,5 +81,24 @@ export function useAudioDirector(): void {
       if (s.hud !== p.hud || s.screen !== p.screen) update();
       if (s.screen !== 'game' && p.screen === 'game') resetCueMemory();
     });
+  }, []);
+
+  // Pausa: los bucles (motor del salto, propulsores, viento) bajan casi a nada mientras el juego está parado
+  useEffect(() => {
+    const PAUSING = new Set(['pause', 'settings', 'credits']);
+    const apply = () => {
+      const { screen } = useGame.getState();
+      const overlay = useUi.getState().overlay;
+      audio.setPaused(screen === 'game' && !isRemote() && overlay !== null && PAUSING.has(overlay));
+    };
+    apply();
+    const a = useUi.subscribe(apply);
+    const b = useGame.subscribe((s, p) => {
+      if (s.screen !== p.screen) apply();
+    });
+    return () => {
+      a();
+      b();
+    };
   }, []);
 }
