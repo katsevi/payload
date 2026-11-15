@@ -299,6 +299,9 @@ describe('mensajes del diseño (una línea, es/en)', () => {
       refs.push(...r.issues.map((i) => i.message), ...r.budgets.resources.map((x) => x.why));
     }
     refs.push(...reviewDesign(healthyLunar, strictCat).issues.map((i) => i.message));
+    // Fase 8: con la cordura activa, las misiones largas sin hábitat avisan (`crew-wellbeing`).
+    const psychCat = parseCatalog({ ...clone(), psych: { ...catalog.psych!, enabled: true } });
+    refs.push(...reviewDesign(europa, psychCat).issues.map((i) => i.message));
 
     const keys = new Set<string>();
     for (const ref of refs) {

@@ -1,7 +1,7 @@
-import { AlertTriangle, BatteryMedium, FlaskConical, Flame, Fuel, HardDrive, Heart, Navigation, SatelliteDish, Shield, Sun, Telescope, Thermometer, Wind, Wrench, Zap } from 'lucide-react';
+import { Activity, AlertTriangle, BatteryMedium, FlaskConical, Flame, Fuel, HardDrive, Heart, Navigation, SatelliteDish, Shield, Sun, Telescope, Thermometer, Wind, Wrench, Zap } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { findBody, getMissions, getNode, type EventTone, type IncidentKind, type RunState } from '@payload/shared';
+import { catalog as defaultCatalog, findBody, getMissions, getNode, getPsychRules, type EventTone, type IncidentKind, type RunState } from '@payload/shared';
 import { effectiveShipOf, maxPowerKwOf } from '../game/effective';
 import { getRun, TOAST_MS, useGame } from '../game/runStore';
 import { lt, tr } from '../i18n';
@@ -14,6 +14,8 @@ import { SkillHud } from './SkillHud';
 import { ToolIcon } from './ToolIcon';
 import { DescentHud, FallAlert, ToolCompass, O2Vignette, ShipCompass, SuitVitals, WorldBadge } from './SurfaceHud';
 import { myCrew } from '../game/me';
+import { moraleView } from '../game/sanityFx';
+import { SanityVignette } from './SanityVignette';
 
 const TONE_TEXT: Record<EventTone, string> = { info: 'text-slate-200 border-line', ok: 'text-ok border-ok/60', warn: 'text-warn border-warn/60', bad: 'text-bad border-bad/70' };
 const INCIDENT_ICON: Record<IncidentKind, ReactNode> = { fire: <Flame size={14} />, short: <Zap size={14} />, leak: <Wind size={14} /> };
@@ -39,6 +41,22 @@ export function Gauge({ icon, label, pct, text, level, marker }: { icon: ReactNo
       </span>
     </div>
   );
+}
+
+/** Fase 8: ánimo propio («Ánimo»). Aparece al bajar de estable o del 85 %; con la cordura apagada no existe. */
+export function MoraleGauge({ s, compact = false }: { s: RunState; compact?: boolean }) {
+  const { t } = useTranslation();
+  const v = moraleView(myCrew(s), getPsychRules(getRun()?.catalog ?? defaultCatalog));
+  if (!v) return null;
+  if (compact) {
+    return (
+      <div className={`num flex items-center gap-2 text-xs ${v.level === 'bad' ? 'animate-pulse text-bad' : v.level === 'warn' ? 'text-warn' : 'text-slate-100'}`} role="meter" aria-label={t('hud.morale')} aria-valuenow={Math.round(v.pct)} aria-valuemin={0} aria-valuemax={100}>
+        <Activity size={14} aria-hidden="true" />
+        <span>{t('hud.morale')} {Math.ceil(v.pct)} %</span>
+      </div>
+    );
+  }
+  return <Gauge icon={<Activity size={16} />} label={t('hud.morale')} pct={v.pct} text={`${Math.ceil(v.pct)} %`} level={v.level} marker={v.markerPct} />;
 }
 
 /** Recursos vitales: los cuatro números que deciden si la nave llega. */
@@ -91,6 +109,7 @@ function Vitals({ s }: { s: RunState }) {
           <span>{t('hud.overheat', { demandKw: fmt(s.ship.powerDemandKw, 0), heatKw: fmt(s.ship.heatRejectKw ?? 0, 0) })}</span>
         </div>
       )}
+      <MoraleGauge s={s} />
       {s.science && <ScienceGauges s={s} />}
       <div className="flex items-center justify-between gap-2 text-xs text-slate-200">
         <span className="flex items-center gap-2" title={t('hud.spares')}>
@@ -307,6 +326,7 @@ export function Hud() {
   return (
     <div className="pointer-events-none absolute inset-0 z-10">
       <O2Vignette s={s} />
+      <SanityVignette s={s} />
       {eva ? <SuitVitals s={s} /> : <Vitals s={s} />}
       <Voyage s={s} />
       <Alerts s={s} />

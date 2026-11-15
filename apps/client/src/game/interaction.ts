@@ -2,10 +2,11 @@
  * Qué puede hacer el jugador en el puesto que tiene al lado (lógica pura; la escena solo lee
  * teclas y posición). Tecla principal E (mantener o pulsar) y secundaria Q.
  */
-import { catalog as defaultCatalog, getNode, getNodeKind, hasShop, suitRefill, SYSTEM_IDS, THROTTLE_IDS, type Catalog, type Incident, type IncidentKind, type LandingEstimate, type RunAction, type RunState, type SystemId, type TakeOffEstimate, type ThrottleId } from '@payload/shared';
+import { catalog as defaultCatalog, getNode, getPsychRules, getNodeKind, hasShop, suitRefill, SYSTEM_IDS, THROTTLE_IDS, type Catalog, type Incident, type IncidentKind, type LandingEstimate, type RunAction, type RunState, type SystemId, type TakeOffEstimate, type ThrottleId } from '@payload/shared';
 import type { Prompt, PromptBadge } from '../state/ui';
 import { canPlayDodge } from './dodge';
 import { effectiveRulesOf } from './effective';
+import { myCrew } from './me';
 import type { StationId } from './layout';
 
 /** Segundos manteniendo E en el timón para ejecutar la maniobra evasiva. */
@@ -17,6 +18,8 @@ export const TAKE_OFF_HOLD_S = 0.8;
 export const SHIP_O2_LOW_PCT = 55;
 /** Segundos manteniendo E en la esclusa para salir. */
 export const AIRLOCK_HOLD_S = 0.5;
+/** Segundos acumulados de llamada para completarla (el motor manda; solo para la barra). */
+export const CALL_EARTH_S = 6;
 const INCIDENT_PRIORITY: Record<IncidentKind, number> = { fire: 0, leak: 1, short: 2 };
 
 export type Interaction =
@@ -27,6 +30,9 @@ export type Interaction =
   | { kind: 'takeoff'; fuel: number; enoughFuel: boolean; heavy: boolean; canJettison: boolean; lootUnits: number }
   | { kind: 'airlock'; open: boolean; refill?: { shipO2Cost: number; suitO2Pct: number } }
   | { kind: 'map' }
+  /** Fase 8: descansar en la litera / llamar a la Tierra (mantener E). */
+  | { kind: 'bunk'; crewId?: number }
+  | { kind: 'comms'; crewId?: number }
   | { kind: 'power' }
   /** Atracada en una estación con terminal: la esclusa conecta con la estación (fase 3). */
   | { kind: 'terminal'; credits: number };
@@ -36,6 +42,8 @@ export interface HelmEstimates {
   landing?: LandingEstimate | null;
   takeOff?: TakeOffEstimate | null;
 }
+
+const myCrewId = (state: RunState): number | undefined => myCrew(state)?.id;
 
 const isSystem = (id: StationId): id is SystemId => (SYSTEM_IDS as readonly string[]).includes(id);
 
@@ -79,6 +87,7 @@ export function interactionAt(station: StationId | null, state: RunState, est: H
   if (!station || state.phase === 'lost' || state.phase === 'won') return null;
   if (station === 'map') return { kind: 'map' };
   if (station === 'power') return { kind: 'power' };
+  if (station === 'bunk' || station === 'comms') return getPsychRules(cat) ? { kind: station, ...(myCrewId(state) !== undefined ? { crewId: myCrewId(state) } : {}) } : null;
   if (station === 'helm') return helmAt(state, est);
   if (station === 'airlock') {
     // Atracada en una estación: la esclusa da al terminal (vender, comprar, mejorar).
@@ -189,6 +198,10 @@ export function promptFor(interaction: Interaction | null, state: RunState, char
           : [];
       return { key: 'prompt.airlockExit', hold: true, progress: charge, ...(partial ? { warn: true } : {}), ...(badges.length > 0 ? { badges } : {}) };
     }
+    case 'bunk':
+      return { key: 'prompt.rest', inputKey: KEY_USE, hold: true, progress: charge };
+    case 'comms':
+      return { key: 'prompt.callEarth', inputKey: KEY_USE, hold: true, progress: Math.max(charge, (myCrew(state)?.callProgressS ?? 0) / CALL_EARTH_S) };
     case 'map':
       return { key: 'prompt.map', hold: false, progress: 0 };
     case 'power':
@@ -220,6 +233,8 @@ export function holdAction(interaction: Interaction | null, seconds: number): Ru
   if (!interaction) return null;
   if (interaction.kind === 'incident') return { type: 'work-incident', incidentId: interaction.incident.id, seconds };
   if (interaction.kind === 'repair' && !interaction.blocked) return { type: 'repair-system', systemId: interaction.systemId, seconds };
+  if (interaction.kind === 'bunk') return { type: 'rest', seconds, ...(interaction.crewId !== undefined ? { crewId: interaction.crewId } : {}) };
+  if (interaction.kind === 'comms') return { type: 'call-earth', seconds, ...(interaction.crewId !== undefined ? { crewId: interaction.crewId } : {}) };
   return null;
 }
 

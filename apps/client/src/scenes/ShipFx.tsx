@@ -4,8 +4,8 @@ import { Html } from '@react-three/drei';
 import { Orbit, Flame, Navigation, Wind, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Color, Vector3, type Group, type MeshBasicMaterial, type PointLight, type Sprite } from 'three';
-import type { IncidentKind, SystemId } from '@payload/shared';
-import { HULL, STATIONS, STATION_IDS, zoneAt, type StationId, type Zone } from '../game/layout';
+import { catalog as defaultCatalog, getPsychRules, type IncidentKind, type SystemId } from '@payload/shared';
+import { HULL, STATIONS, stationIdsFor, zoneAt, type StationId, type Zone } from '../game/layout';
 import { getRun } from '../game/runStore';
 import { Builder, Parts, once } from '../gfx/build';
 import { arcMaterial, billboardGeometry, emberMaterial, flameMaterial, jetMaterial, seedGeometry, smokeMaterial, sparkMaterial } from '../gfx/fxShaders';
@@ -260,7 +260,7 @@ export function Markers() {
       next.push({ key: 'evade', station: 'helm', kind: 'evade', y: 2.5 });
       busy.add('helm');
     }
-    for (const id of STATION_IDS) {
+    for (const id of stationIdsFor(!!getPsychRules(getRun()?.catalog ?? defaultCatalog))) {
       if (busy.has(id)) continue;
       const st = STATIONS[id];
       if (Math.hypot(st.useX - playerState.pos.x, st.useZ - playerState.pos.z) <= LABEL_RANGE_M) next.push({ key: `l-${id}`, station: id, kind: 'label', y: 2.35 });
@@ -272,7 +272,7 @@ export function Markers() {
       setMarkers(next);
     }
   });
-  const name = (id: StationId): string => (id === 'helm' || id === 'map' || id === 'power' || id === 'airlock' ? t(`station.${id}`) : t(`systemName.${id}`, { ns: 'sim' }));
+  const name = (id: StationId): string => (id === 'helm' || id === 'map' || id === 'power' || id === 'airlock' || id === 'bunk' || id === 'comms' ? t(`station.${id}`) : t(`systemName.${id}`, { ns: 'sim' }));
   return (
     <>
       {markers.map((m) => {

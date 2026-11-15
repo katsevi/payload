@@ -1,6 +1,6 @@
 // Modelo puro de la sala: lobby, roles, paridad con el motor, antiabuso y presencia.
 import { describe, expect, it } from 'vitest';
-import { createRun, designEditsBetween, FIXED_STEP_S, getNode, MAX_WORK_SECONDS, type RoleId, type Run, type RunAction } from '@payload/shared';
+import { catalog, createRun, designEditsBetween, FIXED_STEP_S, getNode, MAX_WORK_SECONDS, parseCatalog, type Catalog, type RoleId, type Run, type RunAction } from '@payload/shared';
 import { referenceDesign } from '../../../../packages/shared/src/__tests__/missionFixtures';
 import { RoomModel } from '../roomModel';
 
@@ -165,6 +165,47 @@ describe('autoridad y antiabuso', () => {
     expect(room.action('p1', 'x', 0)).toBeNull();
     expect(room.action('nadie', { seq: 1, action: { type: 'land' } }, 0)).toBeNull();
     expect(room.run!.state.phase).toBe('docked');
+  });
+});
+
+describe('cordura (fase 8)', () => {
+  const psychCat = (): Catalog => parseCatalog({ ...JSON.parse(JSON.stringify(catalog)), psych: { ...JSON.parse(JSON.stringify(catalog.psych)), enabled: true } });
+  function psychRoom(): RoomModel {
+    const room = new RoomModel({ code: 'PSY', nextSeed: () => SEED, catalog: psychCat() });
+    room.join('p1', 'Uno');
+    room.join('p2', 'Dos');
+    room.lobby('p2', { type: 'set-ready', ready: true });
+    expect(room.lobby('p1', { type: 'start' })).toBe(true);
+    return room;
+  }
+
+  it('rest y call-earth llevan el crewId del servidor y su `seconds` entra en el presupuesto de trabajo', () => {
+    const room = psychRoom();
+    const run = room.run!;
+    for (const c of run.state.crew) c.sanityPct = 50;
+    // p2 intenta descansar con el tripulante 1: el servidor impone el 2. 100 mensajes en el mismo instante: solo cuenta el presupuesto.
+    for (let i = 0; i < 100; i++) room.action('p2', { seq: i, action: { type: 'rest', seconds: MAX_WORK_SECONDS, crewId: 1 } }, 0);
+    const [a, b] = run.state.crew;
+    expect(a!.sanityPct).toBe(50);
+    const gain = b!.sanityPct! - 50;
+    expect(gain).toBeGreaterThan(0);
+    expect(gain).toBeLessThanOrEqual(MAX_WORK_SECONDS * run.catalog.psych!.rest.recoverPctPerS + 1e-9);
+    expect(room.action('p1', { seq: 1, action: { type: 'call-earth', seconds: MAX_WORK_SECONDS, crewId: 2 } }, 1)).toBeNull();
+    expect(run.state.crew[0]!.callProgressS).toBeGreaterThan(0);
+    expect(run.state.crew[1]!.callProgressS).toBe(0);
+  });
+
+  it('buy-provisions no lleva tripulante y la cordura viaja por snapshot e hydrate', () => {
+    const room = psychRoom();
+    const run = room.run!;
+    expect(room.action('p1', { seq: 1, action: { type: 'buy-provisions', amount: 2, crewId: 2 } }, 0)).toBeNull();
+    expect(run.state.psych!.provisions).toBe(2);
+    run.state.crew[1]!.sanityPct = 33;
+    const snap = run.snapshot();
+    const mirror = createRun({ seed: SEED, crewSize: 2, catalog: psychCat() });
+    mirror.hydrate(snap);
+    expect(mirror.snapshot()).toEqual(snap);
+    expect(mirror.snapshot().crew[1]!.sanityPct).toBe(33);
   });
 });
 

@@ -5,7 +5,7 @@
  * ninguna cifra de juego: solo cómo se presenta cada campo (qué es mejor, en qué unidad).
  */
 import {
-  catalog as defaultCatalog, cruisePowerMarginKw, effectiveShip, effectiveSurfaceRules, getShip, getSurfaceCatalog, getUpgrade, SUPPLY_IDS, UPGRADE_FIELDS,
+  catalog as defaultCatalog, crewFieldValues, cruisePowerMarginKw, effectivePsychRules, effectiveShip, effectiveSurfaceRules, getShip, getSurfaceCatalog, getUpgrade, SUPPLY_IDS, UPGRADE_FIELDS,
   type ActionResult, type Catalog, type MessageRef, type RunAction, type RunState, type ShipDef, type StationQuote, type SupplyId, type SurfaceRules, type UpgradeTarget,
 } from '@payload/shared';
 import { baseShipOf } from './effective';
@@ -155,6 +155,14 @@ export const FIELD_INFO: Record<string, FieldInfo> = {
   'falls.harmlessMps': { up: true, style: 'abs', unit: 'mps' },
   'falls.o2LossPctPerMps': { up: false, style: 'rel' },
   'falls.lethalMps': { up: true, style: 'abs', unit: 'mps' },
+  // Fase 8 (cordura): mejoras `crew`.
+  'crew.sanityDrainMult': { up: false, style: 'rel' },
+  'crew.restRecoverPctPerS': { up: true, style: 'rel' },
+  'crew.callRecoverPct': { up: true, style: 'rel' },
+  'crew.callCooldownS': { up: false, style: 'rel' },
+  'crew.sleepPenalty': { up: false, style: 'rel' },
+  'crew.monotonyMax': { up: false, style: 'rel' },
+  'crew.stationRecoverCapPct': { up: true, style: 'rel' },
 };
 
 /** Todos los campos que el contrato deja tocar, como `objetivo.campo` (para el test de que no falta ninguno). */
@@ -192,8 +200,8 @@ export function upgradeDeltas(upgradeId: string, levels: Readonly<Record<string,
   const next = { ...levels, [upgradeId]: level + 1 };
   const base = resolveBase(baseShip, cat);
   const baseRules = getSurfaceCatalog(cat).rules;
-  const now = shipAndRules(effectiveShip(base, levels, cat), effectiveSurfaceRules(baseRules, levels, cat));
-  const then = shipAndRules(effectiveShip(base, next, cat), effectiveSurfaceRules(baseRules, next, cat));
+  const now = shipAndRules(effectiveShip(base, levels, cat), effectiveSurfaceRules(baseRules, levels, cat), crewRules(levels, cat));
+  const then = shipAndRules(effectiveShip(base, next, cat), effectiveSurfaceRules(baseRules, next, cat), crewRules(next, cat));
   const out: EffectDelta[] = [];
   for (const field of ALL_FIELDS) {
     const [target, ...rest] = field.split('.') as [UpgradeTarget, ...string[]];
@@ -206,8 +214,13 @@ export function upgradeDeltas(upgradeId: string, levels: Readonly<Record<string,
   return out;
 }
 
-function shipAndRules(ship: ShipDef, rules: SurfaceRules): Record<UpgradeTarget, unknown> {
-  return { ship, suit: rules.suit, jetpack: rules.jetpack, falls: rules.falls };
+/** Reglas de cordura con esas mejoras (aunque la cordura esté apagada: así se previsualiza la mejora). */
+function crewRules(levels: Readonly<Record<string, number>>, cat: Catalog): Record<string, number> {
+  return cat.psych ? crewFieldValues(effectivePsychRules(cat.psych, { ...levels }, cat)) : {};
+}
+
+function shipAndRules(ship: ShipDef, rules: SurfaceRules, crew: Record<string, number>): Record<UpgradeTarget, unknown> {
+  return { ship, suit: rules.suit, jetpack: rules.jetpack, falls: rules.falls, crew };
 }
 
 /** Valor a mostrar de un efecto: antes → después, o el cambio relativo (en %), o la diferencia en kW. */

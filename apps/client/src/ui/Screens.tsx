@@ -1,9 +1,10 @@
+import { countermeasures } from '../game/sanityFx';
 import type { ReactNode } from 'react';
-import { ArrowDownToLine, CircleCheck, CircleX, CloudLightning, Drill, Flame, Mountain, Navigation, Wind, Zap } from 'lucide-react';
+import { Activity, ArrowDownToLine, CircleCheck, CircleX, CloudLightning, Drill, Flame, Mountain, Navigation, Wind, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { missionReport, type Locale, type MissionReport } from '@payload/shared';
+import { catalog as defaultCatalog, getPsychRules, missionReport, type Locale, type MissionReport } from '@payload/shared';
 import { CREDITS } from '../data/credits';
-import { useGame } from '../game/runStore';
+import { getRun, useGame } from '../game/runStore';
 import { currentLocale, setLocale, tr } from '../i18n';
 import { sendLobby } from '../net/coopSession';
 import { mePlayer, useCoop } from '../net/coopStore';
@@ -106,7 +107,7 @@ export function SettingsPanel() {
           </span>
           <input type="range" min={0} max={1} step={0.05} value={s.effects} onChange={(e) => s.set({ effects: Number(e.target.value) })} />
         </label>
-        {(['simpleDodge', 'simpleRepairs', 'wideAim'] as const).map((key) => (
+        {(['simpleDodge', 'simpleRepairs', 'wideAim', 'reduceStress'] as const).map((key) => (
           <label key={key} className={row}>
             <span>{t(`settings.${key}`)}</span>
             <input type="checkbox" checked={s[key]} onChange={(e) => s.set({ [key]: e.target.checked })} />
@@ -198,6 +199,7 @@ const HELP_TIPS: { id: 'fire' | 'leak' | 'short' | 'impact' | 'power' | 'landing
 export function HelpOverlay() {
   const { t } = useTranslation();
   const close = () => useUi.getState().setOverlay(null);
+  const psych = !!getPsychRules(getRun()?.catalog ?? defaultCatalog);
   return (
     <Modal onClose={close}>
       <Panel title={t('help.title')}>
@@ -219,6 +221,12 @@ export function HelpOverlay() {
               {t(`help.tips.${tip.id}`)}
             </li>
           ))}
+          {psych && (
+            <li className="flex items-center gap-2">
+              <Activity size={16} className="text-accent" />
+              {t('help.tips.morale')}
+            </li>
+          )}
         </ul>
         <div className="mt-4 text-right">
           <button className="btn btn-primary" onClick={close}>
@@ -315,6 +323,11 @@ export function EndScreen() {
   const bought = s.stats.upgradesBought ?? 0;
   if (earned > 0 || spent > 0) stats.push([t('end.creditsEarned'), `+${fmt(earned, 0)}`], [t('end.creditsSpent'), `−${fmt(spent, 0)}`]);
   if (bought > 0) stats.push([t('end.upgrades'), String(bought)]);
+  // Fase 8: cordura (ocultas si valen 0, y con la cordura apagada no existen).
+  const critS = s.stats.sanityCriticalS ?? 0;
+  const counter = countermeasures(s.stats);
+  if (critS > 0) stats.push([t('end.sanityCritical'), formatTime(critS)]);
+  if (counter > 0) stats.push([t('end.countermeasures'), String(counter)]);
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/65 p-4" role="dialog" aria-modal="true">
       <Panel className="w-full max-w-md text-center">

@@ -8,12 +8,24 @@ RIDGE de la NASA: radiación, aislamiento, distancia, gravedad y entorno hostil.
 peor y comete pequeños errores, pero **nunca muere ni hace perder la partida** por ello. Recuperarlo cuesta lo
 mismo que ya escasea: créditos, masa, potencia, tiempo y manos. Esa es la sinergia con las fases 1 a 6.
 
-No iniciada · planeación documentada (2026-11-14). Depende de la fase 6 (cohesión y rol gestor en cooperativo).
+Implementada (rama `feat/phase-8-implementation`, 2026-11-14) · `pnpm validate` en verde · pendiente de validación independiente y prueba con personas. Ver § «Estado de implementación». Depende de la fase 6 (cohesión y rol gestor en cooperativo).
 Deja un gancho para las ventanas de contacto de la fase 5 (`contactWindowOpen`), pero no la necesita.
 
 **Hito:** dos personas juegan 4 sectores en cooperativo. Si ignoran a la tripulación, terminan en banda crítica,
 con reparaciones lentas y algún lapsus. Si descansan, llaman a casa y compran provisiones, llegan al sector 4 en
 banda estable o tensa. Al acabar, ambas saben explicar por qué sin haber leído ningún texto.
+
+## Estado de implementación (2026-11-14)
+
+| Punto | Estado |
+| --- | --- |
+| Motor: `sanity.ts`, estado aditivo, `stepPsych`, debuffs, lapsus, golpes y recompensas, estación, `rest`/`call-earth`/`buy-provisions`, cohesión mínima, perks del gestor | Implementado (`catalog/cordura.json`, `enabled: true`) |
+| Mejoras `crew` (oferta aparte, `crewOfferSize` 2) y módulos `habitat-cabin`/`greenhouse-pod`; aviso `crew-wellbeing` | Implementado · sin nivel «high» (≥ 84 meses) ni fixture propio |
+| Servidor: `rest` y `call-earth` en `CREW_ACTIONS`/`WORK_ACTIONS` | Implementado |
+| Cliente: medidor «Ánimo», litera y comunicaciones (mantener E), provisiones en la terminal, viñeta + «Reducir efectos de estrés», toasts personales, `EndScreen`, ayuda | Implementado · **sin comprobar en navegador** |
+| Anillo por compañero, oscilación de cámara, alucinaciones, audio nuevo, `strain` en minijuegos, días de misión, «tercer trimestre», cordura estimada en `estimateJump` | Pendiente |
+
+Calibración: los debuffs de crítica y quiebre se suavizaron para no romper `balance.test` (O₂ del traje `[1,1,1.05,1.1]`, carga `[1,1,0.95,0.9]`, jetpack `[1,1,1.1,1.15]`). Sin el catálogo `psych` (o con `enabled: false`) el juego es idéntico al anterior.
 
 ## Punto de partida
 

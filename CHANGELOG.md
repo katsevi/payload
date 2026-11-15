@@ -5,6 +5,15 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+## Fase 8 · Cordura de la tripulación
+
+Rama `feat/phase-8-implementation` (2026-11-14). Diseño: `docs/diseno/cordura-tripulacion.md`; ADR 0019 (propuesta).
+
+### Añadido
+- **shared:** `sanity.ts` (bandas con histéresis, drenaje por peligros RIDGE, debuffs, lapsus deterministas, llamada según retraso, cohesión), `catalog/cordura.json`, estado aditivo en `CrewMember`/`RunState.psych`, acciones `rest`, `call-earth` y `buy-provisions`, mejoras con target `crew`, módulos `habitat-cabin` y `greenhouse-pod`, aviso `crew-wellbeing`, perks del gestor, `psychPolicy` en el bot y métricas en `pnpm balance`. Nunca mata ni hace perder.
+- **game-server:** `rest` y `call-earth` como acciones de tripulante y de trabajo.
+- **client:** medidor «Ánimo», puestos de litera y comunicaciones, provisiones en la terminal, viñeta por banda con ajuste «Reducir efectos de estrés», filas en la pantalla final y tip de ayuda.
+
 ## Fase 6 · Diseño compartido y voto Go/No-Go en sala
 
 Rama `feat/f6-diseno-cooperativo` (2026-11-14, desde la fase 5). Decisiones: ADR 0020 (propuesta).

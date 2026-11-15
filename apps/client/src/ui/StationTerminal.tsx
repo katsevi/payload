@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Fuel, Gem, LifeBuoy, Package, Shield, Wrench } from 'lucide-react';
+import { AlertTriangle, Apple, Fuel, Gem, LifeBuoy, Package, Shield, Wrench } from 'lucide-react';
 import { getMaterial, getNode, type RunAction, type SupplyId } from '@payload/shared';
 import { effectiveShipOf } from '../game/effective';
 import { getRun, useGame } from '../game/runStore';
@@ -206,6 +206,25 @@ export function StationTerminal() {
                     )}
                   </li>
                 ))}
+                {quote.provisions && s.psych && (
+                  <li className="flex items-center gap-2 rounded border border-line bg-black/30 px-2 py-1.5 text-sm">
+                    <Apple size={15} className="text-accent" aria-hidden="true" />
+                    <span className="flex-1 text-slate-100">{t('shop.provisions')}</span>
+                    <span className="num text-xs text-slate-300">{t('shop.level', { current: Math.floor(s.psych.provisions), max: Math.floor(s.psych.provisions + quote.provisions.missing) })}</span>
+                    {quote.provisions.missing <= 0 ? (
+                      <span className="num w-24 text-right text-xs text-ok">{t('shop.full')}</span>
+                    ) : (
+                      <ShopButton
+                        col={1}
+                        primary
+                        block={quote.provisions.affordable < 1 ? 'noCredits' : undefined}
+                        label={`${t('shop.provisions')} · ${t('shop.fill', { credits: Math.ceil(quote.provisions.unitPrice * quote.provisions.missing) })}`}
+                        onClick={() => act({ type: 'buy-provisions', ...(quote.provisions!.affordable < quote.provisions!.missing ? { amount: quote.provisions!.affordable } : {}) })}>
+                        <span className={quote.provisions.affordable < 1 ? 'text-bad' : ''}>{t('shop.fill', { credits: Math.ceil(quote.provisions.unitPrice * Math.min(quote.provisions.missing, quote.provisions.affordable || quote.provisions.missing)) })}</span>
+                      </ShopButton>
+                    )}
+                  </li>
+                )}
                 {quote.emergency.available && (
                   <li className="flex items-center gap-2 rounded border border-warn/50 bg-warn/5 px-2 py-1.5 text-sm">
                     <LifeBuoy size={15} className="text-warn" aria-hidden="true" />

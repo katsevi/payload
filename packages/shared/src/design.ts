@@ -23,6 +23,9 @@ import {
 
 // ─── Búsquedas ──────────────────────────────────────────────────────────────
 
+/** Fase 8: plazo (meses) desde el que el aviso `crew-wellbeing` pide un hábitat. */
+const CREW_WELLBEING_MONTHS = 48;
+
 export function getDesignRules(cat: Catalog = defaultCatalog): DesignRules {
   if (!cat.design) throw new Error('El catálogo no tiene reglas de diseño (usa parseCatalog)');
   return cat.design;
@@ -295,6 +298,7 @@ function buildShip(modules: ModuleDef[], instruments: InstrumentDef[], rules: De
   const mults = new Map<string, number>();
   for (const m of modules) {
     for (const e of m.effects) {
+      if (e.target !== 'ship') continue; // los efectos `crew` (fase 8) los aplica `effectivePsychRules`
       if (e.add !== undefined) adds.set(e.field, (adds.get(e.field) ?? 0) + e.add);
       if (e.mult !== undefined) mults.set(e.field, (mults.get(e.field) ?? 1) * e.mult);
     }
@@ -533,6 +537,10 @@ export function reviewDesign(rawDesign: MissionDesign, cat: Catalog = defaultCat
   if (k.structure.length > 0 && t.demandKw > t.heatRejectKw + 1e-9) warning('thermal', { demandKw: round(t.demandKw), heatKw: round(t.heatRejectKw) });
   if (a.zone?.radiation && k.computer.length > 0 && !k.computer.some((c) => c.radiationHardened)) warning('radiation', { zone: a.zone.id });
   if (k.structure.length > 0 && a.ship.shieldAbsorb <= 0) warning('no-shielding');
+  // Fase 8: misiones largas sin hábitat desgastan a la tripulación (solo con la cordura activa).
+  if (cat.psych?.enabled && m && m.deadlineMonths >= CREW_WELLBEING_MONTHS && k.habitat.length === 0) {
+    warning('crew-wellbeing', { months: m.deadlineMonths, hasHabitat: 0 });
+  }
 
   const go = !issues.some((i) => i.severity === 'blocker');
   if (go && issues.length === 0) issues.push({ severity: 'info', code: 'all-clear', message: { key: 'design.review.all-clear' } });

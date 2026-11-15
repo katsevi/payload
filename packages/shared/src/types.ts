@@ -222,6 +222,8 @@ export interface Catalog {
   roles?: RoleDef[];
   /** Fase 5 (ADR 0018): datos, ventanas de contacto y puntuación de la ciencia (`catalog/ciencia.json`). Siempre presente tras validar. */
   science?: ScienceRules;
+  /** Fase 8: reglas de cordura de la tripulación (`catalog/cordura.json`). Opcional: sin él (o con `enabled: false`) el juego es el de siempre. */
+  psych?: PsychRules;
 }
 
 // ─── Roles de tripulación (fase 6, ADR 0017) ─────────────────────────────────
@@ -242,6 +244,10 @@ export interface RolePerks {
   carryCapacityMult?: number;
   /** Explorador: multiplicador del gasto del jetpack. */
   jetpackDrainMult?: number;
+  /** Fase 8, gestor: multiplicador del drenaje de cordura del resto de la tripulación (vivo y a bordo). */
+  sanityAuraMult?: number;
+  /** Fase 8, gestor: multiplicador de su propia recuperación por descanso y llamada. */
+  sanityRecoverMult?: number;
 }
 
 /** Rol de tripulación. Nombre en `catalog.<id>`. */
@@ -284,7 +290,7 @@ export interface EconomyRules {
 }
 
 /** Qué ajusta una mejora: la nave (`ShipDef`), el traje, el jetpack o las caídas (`SurfaceRules`). */
-export const UPGRADE_TARGETS = ['ship', 'suit', 'jetpack', 'falls'] as const;
+export const UPGRADE_TARGETS = ['ship', 'suit', 'jetpack', 'falls', 'crew'] as const;
 export type UpgradeTarget = (typeof UPGRADE_TARGETS)[number];
 
 /** Campos numéricos que puede tocar una mejora en cada objetivo. */
@@ -297,6 +303,8 @@ export const UPGRADE_FIELDS: Record<UpgradeTarget, readonly string[]> = {
   suit: ['o2DrainPctPerS', 'carryCapacityKg', 'refillShipO2PctPerTank', 'airlockCycleShipO2Pct', 'collectRangeM'],
   jetpack: ['drainPctPerS', 'rechargePctPerS'],
   falls: ['harmlessMps', 'o2LossPctPerMps', 'lethalMps'],
+  /** Fase 8: reglas de cordura (`PsychRules`), ver `effectivePsychRules`. */
+  crew: ['sanityDrainMult', 'restRecoverPctPerS', 'callRecoverPct', 'callCooldownS', 'sleepPenalty', 'monotonyMax', 'stationRecoverCapPct'],
 };
 
 /**
@@ -356,6 +364,8 @@ export interface StationQuote {
     /** Con el siguiente nivel, la demanda a crucero con todo encendido superaría al reactor sano (sobrecarga). */
     overloadsAtCruise: boolean;
   }[];
+  /** Fase 8 (solo con `psych.enabled`): provisiones frescas (precio por unidad, huecos en la despensa y unidades pagables). */
+  provisions?: { unitPrice: number; missing: number; affordable: number };
 }
 
 // ─── Superficie (fase 2) ────────────────────────────────────────────────────
@@ -584,6 +594,8 @@ export interface Incident {
   progress: number;
   /** Solo fuego: ya se propagó a otro sistema. */
   spread?: boolean;
+  /** Fase 8: `crewId` que han trabajado en esta avería (cohesión por reparar en grupo). */
+  workers?: number[];
 }
 
 export interface PlannedHazard {
@@ -692,6 +704,20 @@ export interface CrewMember {
   lodeVeinsDone: number[];
   /** Fase 6: rol en cooperativo (ausente en solitario: sin ventajas). */
   role?: RoleId;
+  /** Fase 8 (solo con `psych.enabled`): cordura 0-100. */
+  sanityPct?: number;
+  /** Fase 8: banda actual (en el estado para conservar la histéresis). */
+  sanityBand?: SanityBand;
+  /** Fase 8: segundos sin descanso eficaz. */
+  awakeS?: number;
+  /** Fase 8: hasta qué `stats.timeS` sigue en la litera. */
+  restUntilS?: number;
+  /** Fase 8: progreso (s) de la llamada en curso. */
+  callProgressS?: number;
+  /** Fase 8: fin del enfriamiento de la llamada. */
+  callCooldownUntilS?: number;
+  /** Fase 8: fin del enfriamiento entre lapsus. */
+  lapseCooldownUntilS?: number;
 }
 
 /** Avance de un filón para un tripulante en la salida en curso (ver `lodeProgress`). */
@@ -836,6 +862,12 @@ export interface RunStats {
   /** Fase 5 (solo con diseño): ciencia entregada en la Tierra y los puntos que da (incluido el bonus de éxito). */
   scienceDelivered?: number;
   sciencePoints?: number;
+  /** Fase 8: segundos-tripulante en banda crítica o de quiebre, segundos-tripulante descansando, llamadas, unidades de provisiones gastadas y lapsus. */
+  sanityCriticalS?: number;
+  restS?: number;
+  callsMade?: number;
+  provisionsUsed?: number;
+  lapses?: number;
 }
 
 export interface RunState {
@@ -867,6 +899,8 @@ export interface RunState {
   sunDistanceAu?: number;
   /** Fase 5 (ADR 0018, solo con diseño): datos científicos, enlace con la Tierra y estado de la misión. */
   science?: ScienceState;
+  /** Fase 8: estado de partida de la cordura (solo con `catalog.psych.enabled`). */
+  psych?: PsychState;
 }
 
 export type RunEventType =
@@ -923,6 +957,12 @@ export type RunEventType =
   | 'mission-complete'
   | 'overheat'
   | 'battery-empty'
+  // Fase 8: cordura de la tripulación
+  | 'crew-sanity'
+  | 'crew-rest'
+  | 'earth-call'
+  | 'crew-lapse'
+  | 'cohesion'
   | 'lost';
 
 export type EventTone = 'info' | 'ok' | 'warn' | 'bad';
@@ -943,7 +983,9 @@ export type RunEventSubtype =
   // `purchase` fuel/hull/spares (fase 3)
   | 'fuel' | 'hull' | 'spares'
   // `mission-complete` success/partial (fase 5)
-  | 'success' | 'partial';
+  | 'success' | 'partial'
+  // Fase 8: `crew-sanity` tense/critical/breakdown/recovered · `crew-lapse` switch/drop · `crew-rest` start/done · `cohesion` low/recovered
+  | 'tense' | 'breakdown' | 'recovered' | 'switch' | 'drop' | 'start' | 'done';
 
 export interface RunEvent {
   id: number;
@@ -985,6 +1027,12 @@ export type RunAction =
   /** Fase 3, atracada en una estación que la ofrezca: compra el siguiente nivel de la mejora. */
   | { type: 'buy-upgrade'; upgradeId: string }
   | { type: 'next-sector' }
+  /** Fase 8: descansa en la litera (trabajo mantenido, recortado a `MAX_WORK_SECONDS`). */
+  | { type: 'rest'; seconds: number; crewId?: number }
+  /** Fase 8: llamada a la Tierra (trabajo mantenido; se completa a los `call.seconds` acumulados). */
+  | { type: 'call-earth'; seconds: number; crewId?: number }
+  /** Fase 8, atracada en una estación: compra provisiones frescas (por defecto hasta llenar la despensa). */
+  | { type: 'buy-provisions'; amount?: number }
   // Superficie (fase 2). `crewId` por defecto: el primer tripulante vivo.
   | { type: 'land' }
   | { type: 'set-descent-brake'; on: boolean }
@@ -1105,7 +1153,7 @@ export type ScienceKind = (typeof SCIENCE_KINDS)[number];
 /** Familias de módulos de nave. `structure` y `propulsion` van una sola vez; el resto se puede repetir. */
 export const MODULE_KINDS = [
   'structure', 'propulsion', 'solar', 'nuclear', 'battery', 'comms', 'computer', 'attitude', 'thermal', 'tank', 'shielding',
-  'lifeSupport', 'workshop',
+  'lifeSupport', 'workshop', 'habitat', 'greenhouse',
 ] as const;
 export type ModuleKind = (typeof MODULE_KINDS)[number];
 
@@ -1535,4 +1583,69 @@ export interface MissionReport {
   rootCause: ReportLinkId | null;
   deliveredScience: number;
   requiredScience: number;
+}
+
+// ─── Cordura de la tripulación (fase 8, docs/diseno/cordura-tripulacion.md) ──
+
+/** Tramo de cordura que fija los debuffs. */
+export type SanityBand = 'stable' | 'tense' | 'critical' | 'breakdown';
+
+/** Estado de partida de la cordura (`RunState.psych`, solo con `catalog.psych.enabled`). */
+export interface PsychState {
+  /** Pasos fijos contados (semilla de los lapsus sin rng con estado). */
+  steps: number;
+  /** Segundos desde la última novedad (monotonía). */
+  sinceNoveltyS: number;
+  /** Cohesión del equipo 0-100 (solo con 2 o más vivos). */
+  cohesionPct?: number;
+  cohesionBand?: 'ok' | 'low';
+  /** Recuperado en el atraque actual (tope). */
+  stationRecoveredPct: number;
+  /** Unidades de provisiones frescas a bordo y segundos consumidos de la unidad en curso. */
+  provisions: number;
+  provisionsS: number;
+  /** Hasta qué `stats.timeS` la llamada suma demanda eléctrica. */
+  callUntilS: number;
+  /** Bonificación por venta ya cobrada en este atraque. */
+  saleBonusUsed: boolean;
+  /** Días de misión (solo para mostrar). */
+  missionDays: number;
+}
+
+/** Cifras de la cordura (`catalog/cordura.json`). Las mejoras `crew` y los módulos las ajustan (`effectivePsychRules`). */
+export interface PsychRules {
+  enabled: boolean;
+  startPct: number;
+  daysPerS: number;
+  bands: { tense: number; critical: number; breakdown: number; hysteresisPct: number };
+  base: { transit: number; docked: number; surfaceAboard: number; eva: number };
+  distPerSector: number;
+  distPerAu: number;
+  monotonyMax: number;
+  monotonyRampS: number;
+  awakeGraceS: number;
+  awakeRampS: number;
+  sleepPenalty: number;
+  radiationMult: number;
+  stressors: { perIncident: number; maxIncidents: number; lowShipO2: number; stormEva: number; suitCritical: number };
+  shocks: { impact: number; hardLanding: number; crewDeath: number; crewDeathCohesion: number };
+  rewards: { incidentFixed: number; systemRepaired: number; storedPer100: number; storedMax: number; sale: number; sectorCleared: number };
+  /** Un valor por banda: [estable, tensa, crítica, quiebre]. */
+  debuffs: { work: number[]; evadeDamage: number[]; suitO2: number[]; jetpack: number[]; carry: number[]; lapsePerS: number[] };
+  lapse: { cooldownS: number; systems: PoweredSystemId[] };
+  rest: { recoverPctPerS: number; alarmMult: number; awakeRecoverMult: number };
+  call: { seconds: number; drawKw: number; recoverPct: number; delayHalfMin: number; soloMult: number; cooldownS: number };
+  station: { recoverPctPerS: number; arrivalPct: number; capPct: number; cohesionPctPerS: number };
+  provisions: { unitPrice: number; maxUnits: number; secondsPerUnit: number; drainMult: number };
+  cohesion: {
+    start: number; lowPct: number; drainMax: number; groupRepairPct: number; groupRepairSanity: number; evaNearM: number; evaNearPctPerS: number;
+    teamworkMult: number; teamworkMinPct: number;
+  };
+  /** Mejoras `crew` distintas que ofrece además cada estación (flujo de azar propio; no cambia la oferta de siempre). */
+  crewOfferSize: number;
+  /** Opcional y desactivado por defecto: golpe único al 75 % del plazo (ficción de juego). */
+  thirdQuarter?: { enabled: boolean; fictional: boolean; atFrac: number; shockPct: number };
+  /** Derivado por `effectivePsychRules` (mejoras y módulos), no va en el catálogo. */
+  drainMult?: number;
+  recoverMult?: number;
 }

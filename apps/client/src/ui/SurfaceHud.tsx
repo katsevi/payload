@@ -9,7 +9,7 @@ import { ToolIcon } from './ToolIcon';
 import { useSettings } from '../state/settings';
 import { hudView } from '../state/ui';
 import { fmt } from './common';
-import { Gauge, levelOf } from './Hud';
+import { Gauge, levelOf, MoraleGauge } from './Hud';
 import { myCrew } from '../game/me';
 
 /** Reglas de traje y jetpack EFECTIVAS (con las mejoras): la mochila ampliada se ve con su nuevo tope. */
@@ -128,6 +128,7 @@ export function SuitVitals({ s }: { s: RunState }) {
         <Gauge icon={<Wind size={16} />} label={t('hud.suitO2')} pct={me.suitO2Pct} text={`${Math.ceil(me.suitO2Pct)} %`} level={o2Level} marker={r.suit.lowO2Pct} />
         {critical && <AlertTriangle size={14} className="text-bad" aria-hidden="true" />}
       </div>
+      <MoraleGauge s={s} compact />
       <JetpackRow pct={me.jetpackPct} label={t('hud.jetpack')} />
       <div className="flex items-center gap-1">
         <Gauge

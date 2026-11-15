@@ -17,6 +17,7 @@ import instrumentsJson from '../catalog/instrumentos.json';
 import launchersJson from '../catalog/lanzadores.json';
 import solarJson from '../catalog/sistema-solar.json';
 import scienceJson from '../catalog/ciencia.json';
+import psychJson from '../catalog/cordura.json';
 import {
   MODULE_KINDS, NODE_KINDS, ROLE_IDS, SCIENCE_KINDS, SUPPLY_IDS, THROTTLE_IDS, UPGRADE_FIELDS, UPGRADE_TARGETS,
   type Catalog, type MaterialDef, type NodeKind, type NodeKindDef, type ShipDef, type SurfaceCatalog, type ThrottleDef, type ThrottleId, type WorldDef,
@@ -239,7 +240,7 @@ const upgradeSchema = z.strictObject({
 
 // ─── Fase 4: diseño de misión y sistema solar (ADR 0016) ───────────────────
 
-const shipEffectSchema = upgradeEffectSchema.refine((e) => e.target === 'ship', { message: 'los módulos solo tocan la nave (target "ship")' });
+const shipEffectSchema = upgradeEffectSchema.refine((e) => e.target === 'ship' || e.target === 'crew', { message: 'los módulos solo tocan la nave o la tripulación (target "ship" o "crew")' });
 
 const moduleSchema = z
   .strictObject({
@@ -421,8 +422,48 @@ const roleSchema = z.strictObject({
     repairSpeedMult: positive.optional(),
     carryCapacityMult: positive.optional(),
     jetpackDrainMult: nonNeg.optional(),
+    sanityAuraMult: positive.optional(),
+    sanityRecoverMult: positive.optional(),
   }),
 });
+
+// ─── Fase 8: cordura de la tripulación ─────────────────────────────────────
+
+const perBand = z.array(nonNeg).length(4);
+const psychSchema = z
+  .strictObject({
+    enabled: z.boolean(),
+    startPct: z.number().min(1).max(100),
+    daysPerS: nonNeg,
+    bands: z.strictObject({ tense: positive, critical: positive, breakdown: positive, hysteresisPct: nonNeg }),
+    base: z.strictObject({ transit: nonNeg, docked: nonNeg, surfaceAboard: nonNeg, eva: nonNeg }),
+    distPerSector: nonNeg,
+    distPerAu: nonNeg,
+    monotonyMax: nonNeg,
+    monotonyRampS: positive,
+    awakeGraceS: nonNeg,
+    awakeRampS: positive,
+    sleepPenalty: nonNeg,
+    radiationMult: positive,
+    stressors: z.strictObject({ perIncident: nonNeg, maxIncidents: nonNeg.int(), lowShipO2: nonNeg, stormEva: nonNeg, suitCritical: nonNeg }),
+    shocks: z.strictObject({ impact: nonNeg, hardLanding: nonNeg, crewDeath: nonNeg, crewDeathCohesion: nonNeg }),
+    rewards: z.strictObject({ incidentFixed: nonNeg, systemRepaired: nonNeg, storedPer100: nonNeg, storedMax: nonNeg, sale: nonNeg, sectorCleared: nonNeg }),
+    debuffs: z.strictObject({ work: perBand, evadeDamage: perBand, suitO2: perBand, jetpack: perBand, carry: perBand, lapsePerS: perBand }),
+    lapse: z.strictObject({ cooldownS: nonNeg, systems: z.array(z.enum(['engines', 'lifeSupport', 'shields', 'nav'])) }),
+    rest: z.strictObject({ recoverPctPerS: nonNeg, alarmMult: nonNeg, awakeRecoverMult: nonNeg }),
+    call: z.strictObject({ seconds: positive, drawKw: nonNeg, recoverPct: nonNeg, delayHalfMin: positive, soloMult: nonNeg, cooldownS: nonNeg }),
+    station: z.strictObject({ recoverPctPerS: nonNeg, arrivalPct: nonNeg, capPct: nonNeg, cohesionPctPerS: nonNeg }),
+    provisions: z.strictObject({ unitPrice: positive, maxUnits: nonNeg.int(), secondsPerUnit: positive, drainMult: positive }),
+    cohesion: z.strictObject({
+      start: z.number().min(0).max(100), lowPct: z.number().min(0).max(100), drainMax: nonNeg, groupRepairPct: nonNeg, groupRepairSanity: nonNeg,
+      evaNearM: nonNeg, evaNearPctPerS: nonNeg, teamworkMult: positive, teamworkMinPct: z.number().min(0).max(100),
+    }),
+    crewOfferSize: nonNeg.int(),
+    thirdQuarter: z.strictObject({ enabled: z.boolean(), fictional: z.boolean(), atFrac: probability, shockPct: nonNeg }).optional(),
+  })
+  .refine((r) => r.bands.breakdown < r.bands.critical && r.bands.critical < r.bands.tense && r.bands.tense <= 100, {
+    message: 'bands: se exige breakdown < critical < tense <= 100',
+  });
 
 const catalogSchema = z
   .strictObject({
@@ -441,6 +482,7 @@ const catalogSchema = z
     solarSystem: solarSystemSchema.optional(),
     roles: z.array(roleSchema).optional(),
     science: scienceSchema.optional(),
+    psych: psychSchema.optional(),
   })
   .superRefine((cat, ctx) => {
     const shipIds = new Set<string>();
@@ -577,6 +619,7 @@ export const catalog: Catalog = parseCatalog({
   solarSystem: solarJson,
   roles: rolesJson.roles,
   science: scienceJson.science,
+  psych: psychJson.psych,
 });
 
 export function getShip(shipId: string | undefined, cat: Catalog = catalog): ShipDef {

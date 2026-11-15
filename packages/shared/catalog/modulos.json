@@ -122,6 +122,24 @@
       "id": "workshop", "kind": "workshop", "name": { "es": "Taller de repuestos", "en": "Spares workshop" },
       "massKg": 400, "costMUSD": 15, "devMonths": 4, "reliability": 0.995,
       "effects": [{ "target": "ship", "field": "maxSpares", "add": 4 }]
+    },
+    {
+      "id": "habitat-cabin", "kind": "habitat", "name": { "es": "Hábitat con cabinas y ventanas", "en": "Habitat with cabins and windows" },
+      "massKg": 900, "costMUSD": 30, "devMonths": 6, "reliability": 0.99, "slotsUsed": 2,
+      "effects": [
+        { "target": "crew", "field": "sanityDrainMult", "mult": 0.8 },
+        { "target": "crew", "field": "restRecoverPctPerS", "mult": 1.2 },
+        { "target": "ship", "field": "systemDrawKw.lifeSupport", "add": 5 }
+      ]
+    },
+    {
+      "id": "greenhouse-pod", "kind": "greenhouse", "name": { "es": "Huerto hidropónico", "en": "Hydroponic garden" },
+      "massKg": 1200, "costMUSD": 45, "devMonths": 10, "reliability": 0.97, "slotsUsed": 2,
+      "effects": [
+        { "target": "crew", "field": "sanityDrainMult", "mult": 0.9 },
+        { "target": "ship", "field": "o2RegenPctPerS", "mult": 1.15 },
+        { "target": "ship", "field": "systemDrawKw.lifeSupport", "add": 12 }
+      ]
     }
   ]
 }

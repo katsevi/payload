@@ -11,8 +11,12 @@
  */
 import { SYSTEM_IDS, type SystemId } from '@payload/shared';
 
-export type StationId = SystemId | 'helm' | 'map' | 'power' | 'airlock';
+export type StationId = SystemId | 'helm' | 'map' | 'power' | 'airlock' | 'bunk' | 'comms';
 export const STATION_IDS: readonly StationId[] = ['helm', 'map', 'power', 'airlock', ...SYSTEM_IDS];
+/** Puestos de la fase 8 (cordura): la litera y las comunicaciones; solo existen con la cordura activa. */
+export const PSYCH_STATION_IDS: readonly StationId[] = ['bunk', 'comms'];
+/** Puestos disponibles según la cordura (apagada = la nave de siempre). */
+export const stationIdsFor = (psych: boolean): readonly StationId[] => (psych ? [...STATION_IDS, ...PSYCH_STATION_IDS] : STATION_IDS);
 
 export interface Station {
   id: StationId;
@@ -49,6 +53,9 @@ export const STATIONS: Record<StationId, Station> = {
   engines: station('engines', 0, 12.3, 0, 11.2, Math.PI),
   // Esclusa en el costado de babor de la cubierta media (fase 2: salir a la superficie).
   airlock: station('airlock', -4.6, 2.4, -3.5, 2.4, Math.PI / 2),
+  // Fase 8 (cordura): litera en cubierta media (babor) y comunicaciones en el puente (estribor).
+  bunk: station('bunk', -4.2, -3.2, -3.1, -3.2, Math.PI / 2),
+  comms: station('comms', 4.1, -5.9, 3.1, -5.9, -Math.PI / 2),
 };
 
 /** Bodega: cajas junto al costado de estribor de la cubierta media (crecen con `ship.cargo`). */
@@ -66,10 +73,10 @@ export function distanceToStation(id: StationId, x: number, z: number): number {
 }
 
 /** Puesto más cercano dentro del radio de uso (null = ninguno). */
-export function nearestStation(x: number, z: number, radius = USE_RADIUS): StationId | null {
+export function nearestStation(x: number, z: number, radius = USE_RADIUS, ids: readonly StationId[] = STATION_IDS): StationId | null {
   let best: StationId | null = null;
   let bestD = radius;
-  for (const id of STATION_IDS) {
+  for (const id of ids) {
     const d = distanceToStation(id, x, z);
     if (d <= bestD) {
       best = id;
