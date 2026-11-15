@@ -4,7 +4,7 @@
  */
 import { DoubleSide, MeshBasicMaterial, MeshStandardMaterial, type ColorRepresentation } from 'three';
 import { once } from './build';
-import { brushedMaps, deckMaps, hazardTexture, panelMaps, type SurfaceMaps } from './textures';
+import { brushedMaps, deckMaps, foilMaps, hazardTexture, panelMaps, solarCellMaps, type SurfaceMaps } from './textures';
 
 function surface(maps: SurfaceMaps, color: ColorRepresentation, metalness: number, normalScale = 1): MeshStandardMaterial {
   const m = new MeshStandardMaterial({ color, map: maps.albedo, normalMap: maps.normal, roughnessMap: maps.rough, roughness: 1, metalness });
@@ -52,3 +52,30 @@ export const mats = once(() => {
 });
 
 export type Mats = ReturnType<typeof mats>;
+
+/**
+ * Materiales de las sondas del hangar (amplían `mats()`). Aparte para no generar sus texturas (lámina MLI,
+ * celdas solares) en las escenas que no las usan.
+ */
+export const probeMats = once(() => {
+  const brushed = brushedMaps();
+  const foil = foilMaps();
+  const cells = solarCellMaps();
+  const paintDish = surface(brushed, '#e8ecf0', 0.12, 0.25);
+  paintDish.side = DoubleSide;
+  return {
+    /** Manta térmica MLI dorada. */
+    mli: surface(foil, '#d39a3a', 1, 0.6),
+    /** Manta térmica negra (kapton con carbono). */
+    mliDark: surface(foil, '#2a2a30', 0.35, 0.7),
+    /** Celdas solares estándar y de alta eficiencia (más oscuras, con reflejo violáceo). */
+    cell: surface(cells, '#ffffff', 0.55, 0.5),
+    cellHi: surface(cells, '#8c84bd', 0.7, 0.5),
+    /** Pintura blanca térmica: radiadores, tanques, antenas. */
+    paint: surface(brushed, '#e6eaee', 0.12, 0.25),
+    /** La misma pintura por las dos caras (plato de alta ganancia). */
+    paintDish,
+    /** Tobera: metal oscuro con tinte de calor. */
+    nozzle: surface(brushed, '#5a5552', 0.9, 0.5),
+  };
+});
