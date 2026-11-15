@@ -5,6 +5,15 @@ Cada entrada se agrupa por paquete.
 
 ## [Sin publicar]
 
+### Mapa del sistema solar sin congelación al abrirlo (rama `feat/f4-mapa-solar-carga`)
+- **client:** el mapa solar de las misiones abría con ~2,2 s de juego congelado (Iris Xe, sin caché de shaders): el 90 %
+  era enlazar el shader procedural de planeta en el contexto WebGL propio del mapa. Ahora las superficies se hornean una
+  vez en Web Workers (`gfx/planetBake.ts`, el mismo algoritmo portado a TS) y el mapa las pinta con un shader ligero
+  (`mapPlanetMaterial`) con la misma iluminación, nubes que se deslizan y grietas de lava que laten: ~0,27 s en el mismo
+  peor caso. Texturas con mipmaps (menos parpadeo de los cuerpos pequeños).
+- **client:** precarga en segundo plano al empezar una partida con misión (escena y planetas); si se abre antes, los
+  globos aparecen lisos y funden a su superficie al llegar. Atajo de desarrollo `__payload.solarFocus(id, distancia)`.
+
 ### Audio inmersivo (rama `feat/audio-inmersivo`)
 - **client:** el salto ya no satura: arranque y crucero suaves en lugar de ruido blanco fuerte todo el tránsito; limitador
   en el master, ducking de la música con los avisos, bucles que bajan en pausa y ruido descorrelado.

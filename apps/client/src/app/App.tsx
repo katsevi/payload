@@ -14,7 +14,7 @@ import { Hud } from '../ui/Hud';
 import { PowerPanel } from '../ui/PowerPanel';
 import { DesignScreen, MissionsScreen } from '../ui/MissionScreens';
 import { CreditsScreen, EndScreen, HelpOverlay, MenuScreen, PauseScreen, SettingsPanel } from '../ui/Screens';
-import { StarMap } from '../ui/StarMap';
+import { prefetchSolarMap, StarMap } from '../ui/StarMap';
 import { StationTerminal } from '../ui/StationTerminal';
 import { myCrew } from '../game/me';
 
@@ -57,6 +57,8 @@ function toStation(loot = true): boolean {
 const VEIL_IN_MS = 180;
 /** Si la escena nueva no avisa (sin WebGL, error), el fundido se quita igualmente. */
 const VEIL_MAX_MS = 6000;
+/** Espera tras empezar la partida antes de preparar el mapa solar (la nave compila sus shaders primero). */
+const SOLAR_PREFETCH_DELAY_MS = 2500;
 
 /**
  * Cambio de escena dentro de la partida (nave ↔ descenso ↔ EVA) con fundido: primero se oscurece la pantalla y
@@ -146,6 +148,15 @@ export function App() {
   useEffect(() => {
     if (screen === 'game') void loadSurface();
   }, [screen]);
+
+  // Con misión, el mapa solar se prepara en segundo plano (escena y planetas horneados en workers) cuando la nave ya
+  // ha arrancado: así no compite con su carga y al abrir el mapa está listo.
+  const withMission = useGame((s) => !!s.hud?.missionDesign);
+  useEffect(() => {
+    if (screen !== 'game' || !withMission) return;
+    const id = setTimeout(prefetchSolarMap, SOLAR_PREFETCH_DELAY_MS);
+    return () => clearTimeout(id);
+  }, [screen, withMission, runId]);
 
   // Al acabar el sector o la partida se suelta el ratón y se cierran los paneles.
   useEffect(() => {
