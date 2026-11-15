@@ -26,7 +26,20 @@
     "mission": "Design a mission",
     "free": "Free play",
     "missionHint": "Build the ship, pass the review and fly it through the Solar System",
-    "coopPlay": "Co-op"
+    "coopPlay": "Co-op",
+    "desc": {
+      "mission": "Build the probe, pass the Go/No-Go review and fly it through the Solar System.",
+      "free": "Random sectors with a fixed ship: jump, repair and trade as far as you can.",
+      "coop": "Private room with a code for 1-4 crew, each with a role.",
+      "help": "Controls and the basic rules on a single screen.",
+      "settings": "View, mouse, audio, captions and simple modes.",
+      "credits": "Authors and licences of the models and typefaces."
+    },
+    "build": "Build {{version}}",
+    "hintMove": "Navigate",
+    "hintSelect": "Select",
+    "keyEnter": "Enter",
+    "navLabel": "Main menu"
   },
   "settings": {
     "title": "Settings",
@@ -49,7 +62,7 @@
   },
   "credits": {
     "title": "Credits",
-    "intro": "3D models from Sketchfab. Thanks to their authors.",
+    "intro": "3D models from Sketchfab and open typefaces (OFL). Thanks to their authors.",
     "by": "by",
     "license": "License",
     "source": "Source: Sketchfab",
@@ -62,7 +75,12 @@
     "ncnd": "CC-BY-NC-ND: non-commercial use only, no derivatives.",
     "modifiedCompressed": "Modified: meshopt compression and WebP textures.",
     "modifiedMeshopt": "Modified: meshopt compression.",
-    "modifiedTechnical": "Technically modified: meshopt compression and vertex quantization; geometry and textures unchanged."
+    "modifiedTechnical": "Technically modified: meshopt compression and vertex quantization; geometry and textures unchanged.",
+    "sourceFonts": "Source: Google Fonts (Fontsource packages)",
+    "modifiedNone": "Unmodified (Latin subset only).",
+    "fontChakra": "Titles, buttons and labels",
+    "fontBarlow": "Interface text",
+    "fontJetbrains": "Numbers and codes"
   },
   "station": {
     "helm": "Helm",

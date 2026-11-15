@@ -1,5 +1,15 @@
 # Estado del proyecto — traspaso entre sesiones
 
+## Rediseño de la interfaz (2026-11-14, rama `feat/ui-tecnologica`)
+
+- Nuevo sistema visual de toda la interfaz 2D (menú, pantallas, paneles y HUD): tokens y clases en `apps/client/src/index.css`,
+  kit en `ui/kit.tsx`, reglas en `apps/client/CLAUDE.md` § «Sistema visual (UI)». Solo presentación: ni lógica ni acciones.
+- Tipografías OFL (Chakra Petch, Barlow, JetBrains Mono) como dependencias `@fontsource` del cliente; en `assets/CREDITS.md`.
+- Claves i18n nuevas (es/en): `menu.desc.*`, `menu.build`, `menu.hintMove`, `menu.hintSelect`, `menu.keyEnter`,
+  `menu.navLabel`, `credits.sourceFonts`, `credits.modifiedNone`, `credits.font*`; `credits.intro` actualizado.
+- Verificado: typecheck, test y build del cliente; capturas de Chrome sin cabeza a 1440×900 y 1280×720. Pendiente: verlo en una
+  GPU real, el lobby con servidor, la barra de tripulación y las alertas de averías en vivo; pantallas de menos de 1280 px.
+
 ## Reto NASA y roadmap nuevo (2026-11-14)
 
 El equipo evaluó Payload frente al reto «Space Mission Design Game» (NASA Space Apps 2026: diseñar, gestionar y simular una

@@ -100,7 +100,7 @@ function Details({ s, node, onJump }: { s: RunState; node: SectorNode; onJump: (
   return (
     <div className="flex flex-col gap-2 text-sm">
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-base font-bold text-slate-100">{nodeName(node)}</h3>
+        <h3 className="display text-base font-semibold !tracking-[0.08em] text-slate-50">{nodeName(node)}</h3>
         <span className="num text-xs uppercase tracking-wider" style={{ color: KIND_COLOR[node.kind] }}>
           {lt(kind.name)}
         </span>
@@ -155,7 +155,7 @@ function Details({ s, node, onJump }: { s: RunState; node: SectorNode; onJump: (
                   role="radio"
                   aria-checked={active}
                   title={t(`map.throttleHint.${id}`)}
-                  className={`num flex items-center justify-between gap-2 rounded border px-2 py-1.5 text-left text-xs ${active ? 'border-accent bg-accent/10 text-accent' : 'border-line text-slate-200 hover:border-accent/60'}`}
+                  className="seg-option chip num flex items-center justify-between gap-2 px-2 py-1.5 text-left text-xs"
                   onClick={() => useGame.getState().act({ type: 'set-throttle', throttle: id })}
                 >
                   <span className="w-20 font-bold">{t(`throttle.${id}`, { ns: 'sim' })}</span>
@@ -175,7 +175,7 @@ function Details({ s, node, onJump }: { s: RunState; node: SectorNode; onJump: (
             </p>
           )}
           <p className="text-xs text-slate-400">{t(`map.throttleHint.${s.ship.throttle}`)}</p>
-          <button className="btn btn-primary !py-2.5" disabled={s.phase !== 'docked' || !chosen?.enoughFuel} onClick={onJump}>
+          <button className="btn btn-primary btn-lg" disabled={s.phase !== 'docked' || !chosen?.enoughFuel} onClick={onJump}>
             {chosen?.enoughFuel ? t('map.jump', { node: nodeName(node) }) : t('map.notEnough')}
           </button>
         </>
@@ -240,10 +240,10 @@ export function StarMap() {
   const liveLinks = s.phase === 'docked' ? (getNode(liveSector, here.id)?.links ?? EMPTY) : EMPTY;
   return (
     <Modal onClose={close} wide>
-      <Panel title={solar ? t('map.solarTitle', { sector: s.sector.index }) : t('map.title', { sector: s.sector.index })}>
+      <Panel title={solar ? t('map.solarTitle', { sector: s.sector.index }) : t('map.title', { sector: s.sector.index })} code="NAV-03">
         <div className="flex flex-col gap-4 lg:flex-row">
           {solar ? (
-            <div className="relative h-[360px] min-w-0 flex-1 overflow-hidden rounded border border-line bg-black/60 lg:h-[460px]">
+            <div className="hud-frame relative h-[360px] min-w-0 flex-1 overflow-hidden bg-black/60 lg:h-[460px]">
               <Suspense fallback={null}>
                 <SolarMapScene sector={liveSector} hereId={here.id} reachable={liveLinks} selectedId={selectedId} onSelect={setSelectedId} />
               </Suspense>
@@ -251,7 +251,7 @@ export function StarMap() {
               {glossary && <GlossaryPanel className="absolute right-2 top-2" onClose={() => setGlossary(false)} />}
             </div>
           ) : (
-          <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className="min-w-0 flex-1 rounded border border-line bg-black/50" role="group" aria-label={t('map.title', { sector: s.sector.index })}>
+          <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className="map-grid min-w-0 flex-1 border border-line bg-black/50" role="group" aria-label={t('map.title', { sector: s.sector.index })}>
             {s.sector.nodes.flatMap((a) =>
               a.links
                 .filter((id) => id > a.id)
@@ -269,7 +269,7 @@ export function StarMap() {
                       y1={y1}
                       x2={x2}
                       y2={y2}
-                      stroke={picked || active ? '#38e1c0' : live ? '#4d6f9c' : '#1f3a5f'}
+                      stroke={picked || active ? '#4cd8ff' : live ? '#4f7396' : '#263a4d'}
                       strokeWidth={picked || active ? 2.5 : 1.3}
                       strokeDasharray={live || active ? undefined : '3 5'}
                     />
@@ -295,11 +295,11 @@ export function StarMap() {
                   onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelectedId(n.id)}
                 >
                   <circle r={20} fill="transparent" />
-                  {n.id === selectedId && <circle r={16} fill="none" stroke="#38e1c0" strokeWidth={1.5} />}
+                  {n.id === selectedId && <rect x={-16} y={-16} width={32} height={32} fill="none" stroke="#4cd8ff" strokeWidth={1.2} strokeDasharray="6 20" strokeDashoffset={3} />}
                   {isHere && <circle r={15} fill="none" stroke="#ffffff" strokeWidth={2} strokeDasharray="4 3" />}
                   <NodeGlyph kind={n.kind} />
                   {showCache && <circle cx={11} cy={-10} r={3.5} fill="#3ddc84" />}
-                  <text y={27} textAnchor="middle" fontSize={11} fill={isHere ? '#ffffff' : '#9fb4d0'} fontFamily="ui-monospace, monospace">
+                  <text y={27} textAnchor="middle" fontSize={11} fill={isHere ? '#ffffff' : '#a9bacb'} fontFamily="var(--font-mono)">
                     {n.name}
                   </text>
                   {isHere && (
@@ -326,13 +326,13 @@ export function StarMap() {
             )}
             {solar && s.phase === 'docked' && reachable.length > 0 && (
               <div className="flex flex-col gap-1" role="group" aria-label={t('map.reachable')}>
-                <span className="num text-[11px] uppercase tracking-widest text-slate-400">{t('map.reachable')}</span>
+                <span className="label-code">{t('map.reachable')}</span>
                 <div className="flex flex-wrap gap-1">
                   {reachable.map((id) => {
                     const n = getNode(s.sector, id);
                     if (!n) return null;
                     return (
-                      <button key={id} className={`num rounded border px-2 py-0.5 text-xs ${id === selectedId ? 'border-accent bg-accent/15 text-accent' : 'border-line text-slate-200 hover:border-accent/60'}`} onClick={() => setSelectedId(id)}>
+                      <button key={id} className="seg-option chip num px-2 py-0.5 text-xs" aria-pressed={id === selectedId} onClick={() => setSelectedId(id)}>
                         {n.missionTarget ? '★ ' : ''}
                         {nodeName(n)}
                       </button>
@@ -350,7 +350,7 @@ export function StarMap() {
             )}
             {/* Atracada en una estación: el terminal (venta, suministros, ayuda de emergencia y mejoras). */}
             {hasShop(hereKind) && s.phase === 'docked' && (
-              <button className="btn flex w-full items-center justify-between gap-2" onClick={() => useUi.getState().setOverlay('terminal')}>
+              <button className="btn flex w-full items-center justify-between gap-2 !tracking-[0.06em]" onClick={() => useUi.getState().setOverlay('terminal')}>
                 <span className="flex items-center gap-2">
                   <Store size={15} aria-hidden="true" />
                   {t('map.terminal')}

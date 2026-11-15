@@ -7,7 +7,7 @@ const FLASH_COLOR: Record<FlashTone, string> = {
   ok: 'rgba(61,220,132,.55)',
   warn: 'rgba(255,176,32,.6)',
   bad: 'rgba(255,77,94,.7)',
-  info: 'rgba(56,225,192,.5)',
+  info: 'rgba(76,216,255,.5)',
 };
 
 const CAPTION_TEXT: Record<FlashTone, string> = {
@@ -41,7 +41,7 @@ export function SoundCaptions() {
       {enabled && (
         <div className="pointer-events-none absolute bottom-3 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-1" role="log" aria-live="polite" aria-label={t('settings.soundCaptions')}>
           {captions.map((c) => (
-            <span key={c.id} className={`num rounded border bg-panel/90 px-3 py-1 text-xs ${c.tone ? CAPTION_TEXT[c.tone] : 'border-line text-slate-200'}`}>
+            <span key={c.id} className={`num border bg-panel/90 px-3 py-1 text-xs ${c.tone ? CAPTION_TEXT[c.tone] : 'border-line text-slate-200'}`}>
               {t(c.key)}
             </span>
           ))}

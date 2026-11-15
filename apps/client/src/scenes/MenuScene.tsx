@@ -14,12 +14,15 @@ function Spin({ speed, children }: { speed: number; children: React.ReactNode })
   return <group ref={ref}>{children}</group>;
 }
 
-/** Deriva lenta de la cámara: el fondo del menú nunca está del todo quieto. */
+/**
+ * Deriva lenta de la cámara: el fondo del menú nunca está del todo quieto. Mira a la izquierda del centro para que la
+ * galaxia quede en la mitad derecha y la columna del menú (izquierda) se lea sobre el cielo oscuro.
+ */
 function Drift() {
   useFrame(({ camera, clock }) => {
     const t = clock.elapsedTime;
     camera.position.set(Math.sin(t * 0.05) * 2.2, 6 + Math.sin(t * 0.07) * 0.8, 26 + Math.cos(t * 0.04) * 1.2);
-    camera.lookAt(0, 0, 0);
+    camera.lookAt(-6.5, -0.5, 0);
   });
   return null;
 }

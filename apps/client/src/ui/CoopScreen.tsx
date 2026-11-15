@@ -44,7 +44,7 @@ export function SharedVote() {
         <button className={`btn flex items-center justify-center gap-1.5 ${me.vote === true ? 'btn-primary' : ''}`} aria-pressed={me.vote === true} onClick={() => vote(true)}>
           <CircleCheck size={15} aria-hidden="true" /> {t('coop.vote.go')}
         </button>
-        <button className={`btn flex items-center justify-center gap-1.5 ${me.vote === false ? '!border-bad !text-bad' : ''}`} aria-pressed={me.vote === false} onClick={() => vote(false)}>
+        <button className={`btn ${me.vote === false ? 'btn-danger' : ''}`} aria-pressed={me.vote === false} onClick={() => vote(false)}>
           <CircleX size={15} aria-hidden="true" /> {t('coop.vote.noGo')}
         </button>
       </div>
@@ -77,12 +77,12 @@ function MissionRow({ lobby, host }: { lobby: LobbyView; host: boolean }) {
   // a «Partida libre». Se avisa en vez de dejar un selector que no responde.
   const supported = missionsSupported(lobby);
   return (
-    <div className="mt-4 flex flex-col gap-2 rounded border border-line bg-black/30 p-2">
+    <div className="chamfer mt-4 flex flex-col gap-2 p-2">
       <label className="flex items-center gap-2 text-sm">
-        <span className="num w-20 shrink-0 text-[11px] uppercase tracking-widest text-slate-400">{t('coop.mission')}</span>
+        <span className="label-code w-20 shrink-0">{t('coop.mission')}</span>
         {host && supported ? (
           <select
-            className="num flex-1 rounded border border-line bg-black/50 px-2 py-1 text-slate-100"
+            className="field flex-1 !py-1"
             value={design?.missionId ?? ''}
             onChange={(e) => sendLobby({ type: 'set-mission', missionId: e.target.value || null })}
           >
@@ -125,10 +125,10 @@ function Entry() {
   const [code, setCode] = useState('');
   const busy = status === 'connecting';
   return (
-    <Panel title={t('coop.title')} className="mx-auto w-full max-w-sm">
+    <Panel title={t('coop.title')} code="NET-06" className="ui-enter mx-auto w-full max-w-sm">
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-slate-400">{t('coop.name')}</span>
-        <input className="num rounded border border-line bg-black/40 px-3 py-2 text-slate-100" value={name} maxLength={COOP_LIMITS.nameMaxLen} onChange={(e) => setName(e.target.value)} autoFocus />
+        <span className="label-code">{t('coop.name')}</span>
+        <input className="field" value={name} maxLength={COOP_LIMITS.nameMaxLen} onChange={(e) => setName(e.target.value)} autoFocus />
       </label>
       <button className="btn btn-primary mt-4 w-full !py-3" disabled={busy} onClick={() => void createRoom(name)}>
         {t('coop.create')}
@@ -141,7 +141,7 @@ function Entry() {
         }}
       >
         <input
-          className="num w-full rounded border border-line bg-black/40 px-3 py-2 text-center text-lg uppercase tracking-[0.4em] text-slate-100"
+          className="field w-full text-center text-lg uppercase tracking-[0.4em]"
           value={code}
           maxLength={COOP_LIMITS.roomCodeLen}
           placeholder={t('coop.code')}
@@ -169,14 +169,14 @@ function Lobby() {
   const canStart = others.every((p) => !p.connected || p.ready);
   const withDesign = !!lobby.design;
   return (
-    <Panel title={t('coop.title')} className="mx-auto w-full max-w-md">
+    <Panel title={t('coop.title')} code="NET-06" className="ui-enter mx-auto w-full max-w-md">
       <div className="text-center">
-        <p className="text-xs uppercase tracking-widest text-slate-400">{t('coop.codeLabel')}</p>
-        <p className="num select-all text-5xl font-bold tracking-[0.4em] text-accent">{lobby.code}</p>
+        <p className="label-code">{t('coop.codeLabel')}</p>
+        <p className="num mt-1 select-all border-y border-line py-2 text-5xl font-bold tracking-[0.4em] text-accent">{lobby.code}</p>
       </div>
       <ul className="mt-4 flex flex-col gap-1.5">
         {lobby.players.map((p) => (
-          <li key={p.id} className={`flex items-center gap-2 rounded border border-line bg-black/30 px-3 py-1.5 text-sm ${p.connected ? '' : 'opacity-50'}`}>
+          <li key={p.id} className={`chip flex items-center gap-2 border border-line bg-black/30 px-3 py-1.5 text-sm ${p.connected ? '' : 'opacity-50'}`}>
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: p.role ? ROLE_COLORS[p.role] : NO_ROLE_COLOR }} aria-hidden="true" />
             <span className="flex-1 truncate text-slate-100">
               {p.name}
@@ -241,7 +241,7 @@ function Lobby() {
 export function CoopScreen() {
   const inLobby = useCoop((s) => s.lobby !== null);
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center overflow-auto bg-black/60 p-4" role="dialog" aria-modal="true">
+    <div className="modal-backdrop absolute inset-0 z-30 flex items-center justify-center overflow-auto p-4" role="dialog" aria-modal="true">
       {inLobby ? <Lobby /> : <Entry />}
     </div>
   );
@@ -263,7 +263,7 @@ export function CrewBar() {
           const member = crew.find((c) => c.id === p.crewId);
           const dead = member ? !member.alive : false;
           return (
-            <li key={p.id} className={`num flex items-center gap-2 rounded border border-line bg-panel/80 px-2 py-1 text-xs ${dead || !p.connected ? 'opacity-50' : ''}`}>
+            <li key={p.id} className={`hud-frame num flex items-center gap-2 px-2 py-1 text-xs ${dead || !p.connected ? 'opacity-50' : ''}`}>
               <span className="h-2 w-2 rounded-full" style={{ background: p.role ? ROLE_COLORS[p.role] : NO_ROLE_COLOR }} aria-hidden="true" />
               <span className={`max-w-28 truncate ${p.id === myId ? 'text-accent' : 'text-slate-200'} ${dead ? 'line-through' : ''}`}>{p.name}</span>
               {member?.location === 'eva' && !dead && <span className="text-warn">{t('coop.outside', { o2: Math.round(member.suitO2Pct) })}</span>}

@@ -66,11 +66,11 @@ export function UpgradeStrip({ upgrades }: { upgrades: Readonly<Record<string, n
   return (
     <ul className="flex flex-wrap items-center gap-1.5" aria-label={t('hud.upgrades')}>
       {list.map((u) => (
-        <li key={u.upgradeId} className="flex items-center gap-0.5 rounded border border-accent/40 bg-accent/10 px-1 py-0.5 text-accent" title={`${t(`catalog.${u.upgradeId}`, { ns: 'sim' })} · ${t('shop.upgradeLevel', { level: u.level, max: u.maxLevel })}`}>
+        <li key={u.upgradeId} className="chip flex items-center gap-0.5 border border-accent/40 bg-accent/10 px-1 py-0.5 text-accent" title={`${t(`catalog.${u.upgradeId}`, { ns: 'sim' })} · ${t('shop.upgradeLevel', { level: u.level, max: u.maxLevel })}`}>
           <UpgradeIcon field={u.iconField} size={12} />
           <span className="flex flex-col gap-px" aria-hidden="true">
             {Array.from({ length: u.maxLevel }, (_, k) => (
-              <span key={k} className={`block h-0.5 w-1.5 rounded-full ${k < u.level ? 'bg-accent' : 'bg-slate-600'}`} />
+              <span key={k} className={`block h-0.5 w-1.5 ${k < u.level ? 'bg-accent' : 'bg-slate-600'}`} />
             )).reverse()}
           </span>
           <span className="sr-only">

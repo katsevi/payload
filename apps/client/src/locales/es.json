@@ -26,7 +26,20 @@
     "mission": "Diseñar una misión",
     "free": "Partida libre",
     "missionHint": "Monta la nave, pasa la revisión y opérala en el sistema solar",
-    "coopPlay": "Cooperativo"
+    "coopPlay": "Cooperativo",
+    "desc": {
+      "mission": "Monta la sonda, pasa la revisión Go/No-Go y opérala en el sistema solar.",
+      "free": "Sectores aleatorios con una nave fija: salta, repara y vende hasta donde llegues.",
+      "coop": "Sala privada con código para 1-4 tripulantes, cada uno con su rol.",
+      "help": "Controles y las reglas básicas en una sola pantalla.",
+      "settings": "Vista, ratón, audio, subtítulos y modos simples.",
+      "credits": "Autores y licencias de los modelos y las tipografías."
+    },
+    "build": "Versión {{version}}",
+    "hintMove": "Navegar",
+    "hintSelect": "Elegir",
+    "keyEnter": "Intro",
+    "navLabel": "Menú principal"
   },
   "settings": {
     "title": "Ajustes",
@@ -49,7 +62,7 @@
   },
   "credits": {
     "title": "Créditos",
-    "intro": "Modelos 3D de Sketchfab. Gracias a sus autores.",
+    "intro": "Modelos 3D de Sketchfab y tipografías libres (OFL). Gracias a sus autores.",
     "by": "por",
     "license": "Licencia",
     "source": "Fuente: Sketchfab",
@@ -62,7 +75,12 @@
     "ncnd": "CC-BY-NC-ND: solo uso no comercial y sin obras derivadas.",
     "modifiedCompressed": "Modificado: compresión meshopt y texturas WebP.",
     "modifiedMeshopt": "Modificado: compresión meshopt.",
-    "modifiedTechnical": "Modificado técnicamente: compresión meshopt y cuantización de vértices; geometría y texturas sin cambios."
+    "modifiedTechnical": "Modificado técnicamente: compresión meshopt y cuantización de vértices; geometría y texturas sin cambios.",
+    "sourceFonts": "Fuente: Google Fonts (paquetes de Fontsource)",
+    "modifiedNone": "Sin modificar (solo el subconjunto latino).",
+    "fontChakra": "Títulos, botones y etiquetas",
+    "fontBarlow": "Texto de la interfaz",
+    "fontJetbrains": "Cifras y códigos"
   },
   "station": {
     "helm": "Timón",
